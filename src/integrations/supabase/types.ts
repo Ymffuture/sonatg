@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       chat_members: {
         Row: {
           chat_id: string
@@ -46,6 +64,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_group: boolean
+          is_hidden: boolean
           last_message_at: string
           title: string | null
         }
@@ -54,6 +73,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_group?: boolean
+          is_hidden?: boolean
           last_message_at?: string
           title?: string | null
         }
@@ -62,6 +82,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_group?: boolean
+          is_hidden?: boolean
           last_message_at?: string
           title?: string | null
         }
@@ -100,6 +121,7 @@ export type Database = {
           created_at: string
           duration_ms: number | null
           id: string
+          is_encrypted: boolean
           kind: string
           media_url: string | null
           sender_id: string
@@ -110,6 +132,7 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           id?: string
+          is_encrypted?: boolean
           kind?: string
           media_url?: string | null
           sender_id: string
@@ -120,6 +143,7 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           id?: string
+          is_encrypted?: boolean
           kind?: string
           media_url?: string | null
           sender_id?: string
@@ -142,6 +166,7 @@ export type Database = {
           email: string | null
           id: string
           is_ai: boolean
+          is_pro: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -150,6 +175,7 @@ export type Database = {
           email?: string | null
           id: string
           is_ai?: boolean
+          is_pro?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -158,6 +184,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_ai?: boolean
+          is_pro?: boolean
         }
         Relationships: []
       }
@@ -192,6 +219,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          current_period_end: string | null
+          provider: string | null
+          provider_customer_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_period_end?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_period_end?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
