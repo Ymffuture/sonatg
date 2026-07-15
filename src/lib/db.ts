@@ -34,5 +34,11 @@ export type ReactionRow = {
   emoji: string;
 };
 
+export type MessageReadRow = {
+  message_id: string;
+  user_id: string;
+  read_at: string;
+};
+
 export const fmtTime = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

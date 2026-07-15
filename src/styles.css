@@ -39,6 +39,7 @@
   --color-chat-bg: var(--chat-bg);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-tick-read: var(--tick-read);
   --shadow-bubble: var(--shadow-bubble);
 }
 
@@ -48,7 +49,7 @@
   --charcoal: oklch(0.23 0.012 250);
   --milky: oklch(0.985 0.006 90);
   --skyblue: oklch(0.82 0.09 230);
-  --skyblue-deep: oklch(0.68 0.12 235);
+  --skyblue-deep: oklch(0.58 0.14 235);
 
   --background: var(--milky);
   --foreground: var(--charcoal);
@@ -74,13 +75,14 @@
   --sidebar: oklch(0.98 0.005 240);
   --sidebar-foreground: var(--charcoal);
 
-  --chat-bg: oklch(0.965 0.012 230);
-  --bubble-me: var(--skyblue);
+  --chat-bg: oklch(0.94 0.02 225);
+  --bubble-me: oklch(0.86 0.09 220);
   --bubble-me-foreground: var(--charcoal);
   --bubble-them: oklch(1 0 0);
   --bubble-them-foreground: var(--charcoal);
+  --tick-read: oklch(0.6 0.16 235);
 
-  --shadow-bubble: 0 1px 1px oklch(0.2 0 0 / 0.08);
+  --shadow-bubble: 0 1px 1px oklch(0.2 0 0 / 0.13);
 }
 
 .dark {
@@ -106,22 +108,19 @@
   --sidebar: oklch(0.2 0.012 250);
   --sidebar-foreground: var(--milky);
 
-  --chat-bg: oklch(0.19 0.012 250);
-  --bubble-me: var(--skyblue-deep);
+  --chat-bg: oklch(0.17 0.014 245);
+  --bubble-me: oklch(0.32 0.06 230);
   --bubble-me-foreground: var(--milky);
-  --bubble-them: oklch(0.28 0.014 250);
+  --bubble-them: oklch(0.26 0.012 250);
   --bubble-them-foreground: var(--milky);
+  --tick-read: oklch(0.78 0.12 225);
 
-  --shadow-bubble: 0 1px 1px oklch(0 0 0 / 0.3);
+  --shadow-bubble: 0 1px 1px oklch(0 0 0 / 0.35);
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
-  html, body, #root {
-    height: 100%;
-  }
+  * { border-color: var(--color-border); }
+  html, body, #root { height: 100%; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -129,13 +128,24 @@
   }
 }
 
+/* WhatsApp-style doodle background: hearts, stars, dots, bubbles */
 @utility chat-pattern {
   background-color: var(--color-chat-bg);
-  background-image:
-    radial-gradient(oklch(0.7 0.05 230 / 0.08) 1px, transparent 1px),
-    radial-gradient(oklch(0.7 0.05 230 / 0.05) 1px, transparent 1px);
-  background-size: 22px 22px, 44px 44px;
-  background-position: 0 0, 11px 11px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%233b6f9c' stroke-opacity='0.09' stroke-width='1.5'><circle cx='30' cy='40' r='6'/><circle cx='200' cy='90' r='4'/><circle cx='60' cy='180' r='5'/><path d='M110 30 q10 -8 20 0 q10 8 0 18 l-10 10 l-10 -10 q-10 -10 0 -18z'/><path d='M170 200 l4 -10 l4 10 l10 2 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6z'/><path d='M40 100 q15 -15 30 0 q15 15 0 30 l-15 15 l-15 -15 q-15 -15 0 -30z' opacity='0.5'/><circle cx='150' cy='150' r='3' fill='%233b6f9c' fill-opacity='0.12'/><circle cx='90' cy='60' r='2.5' fill='%233b6f9c' fill-opacity='0.12'/><path d='M210 40 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/><path d='M20 210 h20 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-14 l-6 6 v-10 a4 4 0 0 1 0 -14z'/></g></svg>");
+  background-size: 220px 220px;
+  background-repeat: repeat;
+}
+.dark .chat-pattern,
+[data-theme="dark"] .chat-pattern {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%23a9d1ff' stroke-opacity='0.08' stroke-width='1.5'><circle cx='30' cy='40' r='6'/><circle cx='200' cy='90' r='4'/><circle cx='60' cy='180' r='5'/><path d='M110 30 q10 -8 20 0 q10 8 0 18 l-10 10 l-10 -10 q-10 -10 0 -18z'/><path d='M170 200 l4 -10 l4 10 l10 2 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6z'/><path d='M40 100 q15 -15 30 0 q15 15 0 30 l-15 15 l-15 -15 q-15 -15 0 -30z' opacity='0.5'/><circle cx='150' cy='150' r='3' fill='%23a9d1ff' fill-opacity='0.1'/><circle cx='90' cy='60' r='2.5' fill='%23a9d1ff' fill-opacity='0.1'/><path d='M210 40 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/><path d='M20 210 h20 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-14 l-6 6 v-10 a4 4 0 0 1 0 -14z'/></g></svg>");
+}
+
+/* WhatsApp-style bubble tails */
+@utility bubble-tail-r {
+  position: relative;
+}
+@utility bubble-tail-l {
+  position: relative;
 }
 
 @utility scrollbar-thin {
@@ -143,3 +153,11 @@
   &::-webkit-scrollbar { width: 6px; height: 6px; }
   &::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
 }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-dot { animation: typing-bounce 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
