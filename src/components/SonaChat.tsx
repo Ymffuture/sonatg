@@ -1,19 +1,26 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, MoreVertical, Paperclip, Smile, Send, Mic, ArrowLeft, Moon, Sun,
-  Image as ImageIcon, Plus, X, LogOut, Sparkles, Play, Pause, Trash2, SmilePlus,
+  Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
+  Check, CheckCheck, MessageSquarePlus,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI } from "@/lib/ai.functions";
-import { SONA_AI_ID, fmtTime, type ChatRow, type MessageRow, type Profile, type ReactionRow } from "@/lib/db";
+import {
+  SONA_AI_ID, fmtTime,
+  type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
+} from "@/lib/db";
 import { toast } from "sonner";
+import sonaLogo from "@/assets/sona-logo.png";
+import sonaAi from "@/assets/sona-ai.png";
 
 type ChatWithMeta = ChatRow & {
   memberIds: string[];
   members: Profile[];
   lastMessage?: MessageRow;
+  unread: number;
 };
 
 function useTheme() {
@@ -35,9 +42,10 @@ function useTheme() {
 const EMOJIS = ["😀","😂","🥲","😍","😎","🤔","🙌","👍","🔥","🎉","❤️","✨","🥂","📷","🙏","😴"];
 const REACT_EMOJIS = ["❤️","😂","👍","🔥","😮","🙏"];
 
-function Avatar({ url, name, size = 40 }: { url?: string | null; name: string; size?: number }) {
+function Avatar({ url, name, size = 40, ai = false }: { url?: string | null; name: string; size?: number; ai?: boolean }) {
+  if (ai) return <img src={sonaAi} alt="Sona AI" width={size} height={size} loading="lazy" style={{ width: size, height: size }} className="rounded-full object-cover shrink-0 bg-white" />;
   const src = url || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=AEE4FF&textColor=1F2937`;
-  return <img src={src} alt={name} style={{ width: size, height: size }} className="rounded-full object-cover shrink-0" />;
+  return <img src={src} alt={name} loading="lazy" style={{ width: size, height: size }} className="rounded-full object-cover shrink-0" />;
 }
 
 function chatTitle(c: ChatWithMeta, meId: string) {
@@ -46,7 +54,7 @@ function chatTitle(c: ChatWithMeta, meId: string) {
   if (other?.is_ai) return "Sona AI";
   return other?.display_name || c.title || "Chat";
 }
-function chatAvatar(c: ChatWithMeta, meId: string) {
+function chatAvatarUrl(c: ChatWithMeta, meId: string) {
   const other = c.members.find((m) => m.id !== meId);
   return other?.avatar_url ?? null;
 }
@@ -64,6 +72,7 @@ export default function SonaChat() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
+  const [reads, setReads] = useState<MessageReadRow[]>([]); // reads for current active chat
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
@@ -72,8 +81,10 @@ export default function SonaChat() {
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
   const [showNewChat, setShowNewChat] = useState(false);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
+  const [typingOthers, setTypingOthers] = useState<string[]>([]); // user ids typing in active chat
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Bootstrap: current user + profile
   useEffect(() => {
@@ -85,7 +96,7 @@ export default function SonaChat() {
     })();
   }, [navigate]);
 
-  // Load chats + members + latest messages
+  // Load chats + members + latest messages + unread counts
   const loadChats = useCallback(async () => {
     if (!me) return;
     const { data: memberships } = await supabase
@@ -104,11 +115,27 @@ export default function SonaChat() {
     (profs ?? []).forEach((p) => { profMap[(p as Profile).id] = p as Profile; });
     setProfiles((prev) => ({ ...prev, ...profMap }));
 
-    // last message per chat
+    // recent messages across my chats (for previews + unread)
     const { data: latest } = await supabase
-      .from("messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }).limit(200);
+      .from("messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }).limit(500);
+    const rows = (latest ?? []) as MessageRow[];
     const lastByChat: Record<string, MessageRow> = {};
-    (latest ?? []).forEach((m) => { const row = m as MessageRow; if (!lastByChat[row.chat_id]) lastByChat[row.chat_id] = row; });
+    rows.forEach((m) => { if (!lastByChat[m.chat_id]) lastByChat[m.chat_id] = m; });
+
+    // my reads for those messages
+    const msgIds = rows.map((m) => m.id);
+    let myReadSet = new Set<string>();
+    if (msgIds.length) {
+      const { data: myReads } = await supabase.from("message_reads")
+        .select("message_id").eq("user_id", me.id).in("message_id", msgIds);
+      myReadSet = new Set((myReads ?? []).map((r: { message_id: string }) => r.message_id));
+    }
+    const unreadByChat: Record<string, number> = {};
+    rows.forEach((m) => {
+      if (m.sender_id !== me.id && !myReadSet.has(m.id)) {
+        unreadByChat[m.chat_id] = (unreadByChat[m.chat_id] ?? 0) + 1;
+      }
+    });
 
     const memsByChat: Record<string, string[]> = {};
     (allMembers ?? []).forEach((m: { chat_id: string; user_id: string }) => {
@@ -123,6 +150,7 @@ export default function SonaChat() {
         memberIds: ids,
         members: ids.map((id) => profMap[id]).filter(Boolean),
         lastMessage: lastByChat[chat.id],
+        unread: unreadByChat[chat.id] ?? 0,
       };
     });
     setChats(result);
@@ -131,21 +159,26 @@ export default function SonaChat() {
 
   useEffect(() => { loadChats(); }, [loadChats]);
 
-  // Load messages + reactions for active chat
+  // Load messages + reactions + read receipts for active chat
   useEffect(() => {
     if (!activeId) return;
     (async () => {
       const { data: msgs } = await supabase.from("messages").select("*").eq("chat_id", activeId).order("created_at");
-      setMessages((msgs ?? []) as MessageRow[]);
-      const ids = (msgs ?? []).map((m) => (m as MessageRow).id);
+      const rows = (msgs ?? []) as MessageRow[];
+      setMessages(rows);
+      const ids = rows.map((m) => m.id);
       if (ids.length) {
-        const { data: rx } = await supabase.from("reactions").select("*").in("message_id", ids);
+        const [{ data: rx }, { data: rd }] = await Promise.all([
+          supabase.from("reactions").select("*").in("message_id", ids),
+          supabase.from("message_reads").select("*").in("message_id", ids),
+        ]);
         setReactions((rx ?? []) as ReactionRow[]);
-      } else setReactions([]);
+        setReads((rd ?? []) as MessageReadRow[]);
+      } else { setReactions([]); setReads([]); }
     })();
   }, [activeId]);
 
-  // Realtime
+  // Realtime: messages, reactions, reads, member changes
   useEffect(() => {
     if (!me) return;
     const channel = supabase
@@ -164,10 +197,59 @@ export default function SonaChat() {
           setReactions((prev) => prev.filter((x) => x.id !== r.id));
         }
       })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reads" }, (p) => {
+        const r = p.new as MessageReadRow;
+        setReads((prev) => prev.some((x) => x.message_id === r.message_id && x.user_id === r.user_id) ? prev : [...prev, r]);
+        if (r.user_id === me.id) loadChats();
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_members" }, () => { loadChats(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [me, activeId, loadChats]);
+
+  // Typing indicator: subscribe to broadcast per active chat
+  useEffect(() => {
+    if (!me || !activeId) return;
+    const chan = supabase.channel(`typing:${activeId}`, { config: { broadcast: { self: false } } });
+    const timers: Record<string, ReturnType<typeof setTimeout>> = {};
+    chan.on("broadcast", { event: "typing" }, (payload) => {
+      const uid = (payload.payload as { user_id?: string })?.user_id;
+      if (!uid || uid === me.id) return;
+      setTypingOthers((prev) => (prev.includes(uid) ? prev : [...prev, uid]));
+      if (timers[uid]) clearTimeout(timers[uid]);
+      timers[uid] = setTimeout(() => setTypingOthers((prev) => prev.filter((x) => x !== uid)), 3500);
+    }).subscribe();
+    typingChanRef.current = chan;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+      supabase.removeChannel(chan);
+      typingChanRef.current = null;
+      setTypingOthers([]);
+    };
+  }, [me, activeId]);
+
+  const sendTyping = useCallback(() => {
+    const chan = typingChanRef.current;
+    if (!chan || !me) return;
+    chan.send({ type: "broadcast", event: "typing", payload: { user_id: me.id } });
+  }, [me]);
+
+  // Auto-mark unread messages as read when active chat is open
+  useEffect(() => {
+    if (!me || !activeId || messages.length === 0) return;
+    const toMark = messages.filter((m) => m.sender_id !== me.id).map((m) => m.id);
+    if (!toMark.length) return;
+    (async () => {
+      const { data: existing } = await supabase.from("message_reads")
+        .select("message_id").eq("user_id", me.id).in("message_id", toMark);
+      const have = new Set((existing ?? []).map((r: { message_id: string }) => r.message_id));
+      const missing = toMark.filter((id) => !have.has(id));
+      if (missing.length) {
+        await supabase.from("message_reads").insert(missing.map((id) => ({ message_id: id, user_id: me.id })));
+        loadChats();
+      }
+    })();
+  }, [me, activeId, messages, loadChats]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -202,7 +284,6 @@ export default function SonaChat() {
     const prompt = draft.trim();
     setDraft(""); setPendingImage(null); setShowEmoji(false);
 
-    // AI trigger: dedicated AI chat OR @sona mention
     if (active) {
       const isAI = isAIChat(active);
       const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
@@ -214,15 +295,11 @@ export default function SonaChat() {
 
   const onPickFile = (f?: File | null) => { if (f) setPendingImage(f); };
 
-  // Reactions
   const toggleReaction = async (messageId: string, emoji: string) => {
     if (!me) return;
     const existing = reactions.find((r) => r.message_id === messageId && r.user_id === me.id && r.emoji === emoji);
-    if (existing) {
-      await supabase.from("reactions").delete().eq("id", existing.id);
-    } else {
-      await supabase.from("reactions").insert({ message_id: messageId, user_id: me.id, emoji });
-    }
+    if (existing) await supabase.from("reactions").delete().eq("id", existing.id);
+    else await supabase.from("reactions").insert({ message_id: messageId, user_id: me.id, emoji });
     setReactingOn(null);
   };
 
@@ -235,28 +312,27 @@ export default function SonaChat() {
     return <div className="grid min-h-dvh place-items-center text-muted-foreground">Loading Sona…</div>;
   }
 
+  const typingNames = typingOthers
+    .map((id) => profiles[id]?.display_name)
+    .filter(Boolean) as string[];
+
   return (
     <div className="h-dvh w-full bg-background text-foreground">
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
         <div className="flex h-full w-full overflow-hidden rounded-none bg-card shadow-xl md:rounded-3xl md:border">
           {/* Sidebar */}
-          <aside className={`${showSidebarMobile ? "flex" : "hidden"} h-full w-full flex-col border-r bg-sidebar text-sidebar-foreground md:flex md:w-[340px] lg:w-[380px]`}>
+          <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r bg-sidebar text-sidebar-foreground md:flex md:w-[340px] lg:w-[380px]`}>
             <div className="flex items-center justify-between gap-2 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-skyblue to-skyblue-deep text-primary-foreground shadow-md">
-                  <span className="text-lg font-black">S</span>
-                </div>
-                <div className="leading-tight">
-                  <div className="text-base font-bold">Sona</div>
+              <div className="flex items-center gap-2 min-w-0">
+                <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md" />
+                <div className="leading-tight min-w-0">
+                  <div className="text-base font-bold truncate">Sona</div>
                   <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">talk gold</div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Toggle theme">
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </button>
-                <button onClick={() => setShowNewChat(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="New chat">
-                  <Plus className="h-4 w-4" />
                 </button>
                 <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Sign out">
                   <LogOut className="h-4 w-4" />
@@ -279,34 +355,53 @@ export default function SonaChat() {
               </div>
             </div>
 
-            <div className="scrollbar-thin flex-1 overflow-y-auto">
+            <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
               {filtered.map((c) => {
-                const title = chatTitle(c, me.id);
+                const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
                 const last = c.lastMessage;
-                const preview = last?.kind === "image" ? "📷 Photo" : last?.kind === "voice" ? "🎤 Voice note" : (last?.body ?? "");
+                const mine = last?.sender_id === me.id;
+                const previewText = last?.kind === "image" ? "📷 Photo" : last?.kind === "voice" ? "🎤 Voice note" : (last?.body ?? "");
+                const active = c.id === activeId;
+                const ai = isAIChat(c);
                 return (
                   <button key={c.id} onClick={() => { setActiveId(c.id); setShowSidebarMobile(false); }}
-                    className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary ${c.id === activeId ? "bg-secondary" : ""}`}>
-                    <div className="relative">
-                      <Avatar url={chatAvatar(c, me.id)} name={title} size={48} />
-                      {isAIChat(c) && (
-                        <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-gradient-to-br from-skyblue to-skyblue-deep text-primary-foreground shadow ring-2 ring-sidebar">
-                          <Sparkles className="h-2.5 w-2.5" />
-                        </span>
-                      )}
+                    className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary ${active ? "bg-secondary" : ""}`}>
+                    <div className="relative shrink-0">
+                      <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate font-semibold">{title}</span>
-                        <span className="text-[11px] text-muted-foreground">{last ? fmtTime(last.created_at) : ""}</span>
+                        <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-skyblue-deep font-semibold" : "text-muted-foreground"}`}>
+                          {last ? fmtTime(last.created_at) : ""}
+                        </span>
                       </div>
-                      <div className="truncate text-sm text-muted-foreground">{preview}</div>
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-muted-foreground">
+                          {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
+                          <span className="truncate">{previewText}</span>
+                        </div>
+                        {c.unread > 0 && (
+                          <span className="grid min-w-[20px] h-5 px-1.5 place-items-center rounded-full bg-skyblue-deep text-primary-foreground text-[11px] font-bold shrink-0">
+                            {c.unread > 99 ? "99+" : c.unread}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 );
               })}
               {filtered.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">No chats yet. Tap + to start one.</div>}
             </div>
+
+            {/* Floating New-Chat FAB */}
+            <button
+              onClick={() => setShowNewChat(true)}
+              aria-label="New chat"
+              className="absolute bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-skyblue to-skyblue-deep text-primary-foreground shadow-2xl transition hover:scale-105 active:scale-95"
+            >
+              <MessageSquarePlus className="h-6 w-6" />
+            </button>
           </aside>
 
           {/* Chat panel */}
@@ -317,36 +412,52 @@ export default function SonaChat() {
                   <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary md:hidden" aria-label="Back">
                     <ArrowLeft className="h-4 w-4" />
                   </button>
-                  <Avatar url={chatAvatar(active, me.id)} name={chatTitle(active, me.id)} />
+                  <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold flex items-center gap-1.5">
-                      {chatTitle(active, me.id)}
-                      {isAIChat(active) && <Sparkles className="h-3.5 w-3.5 text-skyblue-deep" />}
-                    </div>
+                    <div className="truncate font-semibold">{chatTitle(active, me.id)}</div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {isAIChat(active) ? "AI companion · always on" : `${active.members.length} members`}
+                      {typingNames.length > 0
+                        ? <span className="text-skyblue-deep">{typingNames.join(", ")} typing…</span>
+                        : isAIChat(active) ? "AI companion · always on" : `${active.members.length} members`}
                     </div>
                   </div>
                   <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary"><MoreVertical className="h-4 w-4" /></button>
                 </header>
 
                 <div ref={scrollRef} className="scrollbar-thin chat-pattern flex-1 overflow-y-auto px-3 py-4 md:px-8">
-                  <div className="mx-auto flex max-w-3xl flex-col gap-2">
+                  <div className="mx-auto flex max-w-3xl flex-col gap-1.5">
                     <div className="mx-auto rounded-full bg-card/80 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur">
-                      {isAIChat(active) ? "Chat with Sona AI ✨" : "End-to-end · type @sona to summon the AI"}
+                      {isAIChat(active) ? "Chat with Sona AI ✨" : "Type @sona to summon the AI"}
                     </div>
-                    {messages.map((m) => (
-                      <Bubble
-                        key={m.id}
-                        msg={m}
-                        me={me}
-                        sender={profiles[m.sender_id]}
-                        reactions={reactions.filter((r) => r.message_id === m.id)}
-                        onReact={(emoji) => toggleReaction(m.id, emoji)}
-                        opening={reactingOn === m.id}
-                        onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
-                      />
-                    ))}
+                    {messages.map((m, idx) => {
+                      const prev = messages[idx - 1];
+                      const groupWithPrev = prev && prev.sender_id === m.sender_id
+                        && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
+                      return (
+                        <Bubble
+                          key={m.id}
+                          msg={m}
+                          me={me}
+                          sender={profiles[m.sender_id]}
+                          reactions={reactions.filter((r) => r.message_id === m.id)}
+                          reads={reads}
+                          otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
+                          onReact={(emoji) => toggleReaction(m.id, emoji)}
+                          opening={reactingOn === m.id}
+                          onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
+                          grouped={!!groupWithPrev}
+                        />
+                      );
+                    })}
+                    {typingNames.length > 0 && (
+                      <div className="flex items-end gap-2 mt-1">
+                        <div className="rounded-2xl rounded-bl-md bg-bubble-them text-bubble-them-foreground shadow-bubble px-3 py-2.5 flex items-center gap-1">
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-current inline-block" />
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-current inline-block" />
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-current inline-block" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -361,7 +472,8 @@ export default function SonaChat() {
                 )}
 
                 <Composer
-                  draft={draft} setDraft={setDraft}
+                  draft={draft}
+                  setDraft={(v) => { setDraft(v); if (v) sendTyping(); }}
                   showEmoji={showEmoji} setShowEmoji={setShowEmoji}
                   onPickFile={onPickFile} fileRef={fileRef}
                   onSend={send}
@@ -379,8 +491,11 @@ export default function SonaChat() {
                 />
               </>
             ) : (
-              <div className="grid flex-1 place-items-center p-6 text-center text-muted-foreground">
-                Pick a chat or tap + to start a new one.
+              <div className="grid flex-1 place-items-center p-6 text-center text-muted-foreground chat-pattern">
+                <div>
+                  <img src={sonaLogo} alt="" className="mx-auto h-24 w-24 opacity-80" />
+                  <p className="mt-4">Pick a chat or tap + to start a new one.</p>
+                </div>
               </div>
             )}
           </section>
@@ -398,41 +513,61 @@ export default function SonaChat() {
   );
 }
 
+type ReadStatus = "sent" | "delivered" | "read";
+function readStatusFor(msg: MessageRow, reads: MessageReadRow[], memberIds: string[], meId: string): ReadStatus {
+  if (msg.sender_id !== meId) return "sent";
+  const others = memberIds.filter((id) => id !== meId);
+  if (others.length === 0) return "sent";
+  const readers = reads.filter((r) => r.message_id === msg.id && r.user_id !== meId);
+  if (readers.length >= others.length) return "read";
+  if (readers.length > 0) return "read";
+  return "delivered";
+}
+
+function TickIcon({ status, className }: { status: ReadStatus; className?: string }) {
+  if (status === "read") return <CheckCheck className={`${className ?? ""} text-tick-read`} />;
+  if (status === "delivered") return <CheckCheck className={className} />;
+  return <Check className={className} />;
+}
+
 function Bubble({
-  msg, me, sender, reactions, onReact, opening, onOpenPicker,
+  msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
-  onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void;
+  reads: MessageReadRow[]; otherMemberIds: string[];
+  onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
   const counts: Record<string, number> = {};
   reactions.forEach((r) => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
+  const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
   return (
-    <div className={`group flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
-      {!mine && <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} />}
+    <div className={`group flex items-end gap-2 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}>
+      {!mine && !grouped && <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />}
+      {!mine && grouped && <div className="w-7 shrink-0" />}
       <div className="relative max-w-[78%]">
-        <div className={`relative rounded-2xl px-3 py-2 text-sm shadow-bubble ${
-          mine ? "rounded-br-md bg-bubble-me text-bubble-me-foreground"
-               : isAI ? "rounded-bl-md bg-gradient-to-br from-skyblue/70 to-skyblue-deep/50 text-charcoal"
-               : "rounded-bl-md bg-bubble-them text-bubble-them-foreground"
+        <div className={`relative px-3 py-2 text-sm shadow-bubble ${
+          mine
+            ? `bg-bubble-me text-bubble-me-foreground rounded-2xl ${grouped ? "rounded-br-2xl" : "rounded-br-sm"}`
+            : `bg-bubble-them text-bubble-them-foreground rounded-2xl ${grouped ? "rounded-bl-2xl" : "rounded-bl-sm"}`
         }`}>
-          {!mine && (
-            <div className="mb-0.5 text-[11px] font-semibold opacity-70 flex items-center gap-1">
-              {sender?.display_name ?? "…"}
-              {isAI && <Sparkles className="h-3 w-3" />}
+          {!mine && !grouped && (
+            <div className="mb-0.5 text-[11px] font-semibold text-skyblue-deep flex items-center gap-1">
+              {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
             </div>
           )}
           {msg.kind === "image" && msg.media_url && (
-            <img src={msg.media_url} alt="" className="mb-1 max-h-72 w-full rounded-xl object-cover" />
+            <img src={msg.media_url} alt="" loading="lazy" className="mb-1 max-h-72 w-full rounded-xl object-cover" />
           )}
           {msg.kind === "voice" && msg.media_url && (
             <VoicePlayer url={msg.media_url} durationMs={msg.duration_ms ?? 0} mine={mine} />
           )}
-          {msg.body && <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</p>}
+          {msg.body && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{msg.body}</p>}
           <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] opacity-70">
             <span>{fmtTime(msg.created_at)}</span>
+            {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
           <button
             onClick={onOpenPicker}
@@ -567,22 +702,22 @@ function Composer({
         </div>
       ) : (
         <div className="mx-auto flex max-w-3xl items-end gap-2">
-          <button onClick={() => setShowEmoji((s) => !s)} className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-secondary"><Smile className="h-5 w-5" /></button>
-          <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-secondary"><Paperclip className="h-5 w-5" /></button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-          <div className="flex flex-1 items-center gap-2 rounded-3xl bg-secondary px-4 py-2">
+          <div className="flex flex-1 items-center gap-1.5 rounded-3xl bg-secondary px-2 py-1.5">
+            <button onClick={() => setShowEmoji((s) => !s)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-background/60"><Smile className="h-5 w-5" /></button>
             <textarea
               value={draft} onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
               rows={1} placeholder="Type a message · @sona for AI"
-              className="max-h-32 min-h-6 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="max-h-32 min-h-6 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground py-1.5"
             />
-            <button onClick={() => fileRef.current?.click()} className="text-muted-foreground hover:text-foreground" aria-label="Image"><ImageIcon className="h-4 w-4" /></button>
+            <button onClick={() => fileRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-background/60" aria-label="Attach"><Paperclip className="h-5 w-5" /></button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
+            <button onClick={() => fileRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-background/60" aria-label="Image"><ImageIcon className="h-5 w-5" /></button>
           </div>
           {draft.trim() ? (
-            <button onClick={onSend} className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-skyblue to-skyblue-deep text-primary-foreground shadow-md"><Send className="h-5 w-5" /></button>
+            <button onClick={onSend} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-skyblue to-skyblue-deep text-primary-foreground shadow-md"><Send className="h-5 w-5" /></button>
           ) : (
-            <button onClick={startRec} className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-skyblue to-skyblue-deep text-primary-foreground shadow-md"><Mic className="h-5 w-5" /></button>
+            <button onClick={startRec} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-skyblue to-skyblue-deep text-primary-foreground shadow-md"><Mic className="h-5 w-5" /></button>
           )}
         </div>
       )}
@@ -604,7 +739,6 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
       if (!prof) { toast.error("No Sona user with that email yet."); return; }
       if (prof.id === meId) { toast.error("That's you 🙂"); return; }
 
-      // Try to reuse an existing 1:1 chat with this person
       const { data: myChats } = await supabase.from("chat_members").select("chat_id").eq("user_id", meId);
       const ids = (myChats ?? []).map((r: { chat_id: string }) => r.chat_id);
       if (ids.length) {
@@ -631,7 +765,10 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold">Start a new chat</h3>
+        <div className="flex items-center gap-2">
+          <Plus className="h-4 w-4 text-skyblue-deep" />
+          <h3 className="text-base font-semibold">Start a new chat</h3>
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">Enter a Sona user's email to connect.</p>
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="friend@example.com"
           className="mt-4 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
