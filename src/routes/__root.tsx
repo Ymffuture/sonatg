@@ -83,6 +83,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "A modern chat experience in charcoal, milky and sky blue." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Sona — Talk Gold" },
+      { name: "twitter:description", content: "A modern chat experience in charcoal, milky and sky blue." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/c2848763-a982-4e16-b7b5-e800f59cee97" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/c2848763-a982-4e16-b7b5-e800f59cee97" },
     ],
     links: [
       {
