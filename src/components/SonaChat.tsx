@@ -526,16 +526,48 @@ export default function SonaChat() {
                   <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary md:hidden" aria-label="Back">
                     <ArrowLeft className="h-4 w-4" />
                   </button>
+                <header className="relative flex items-center gap-3 border-b bg-card px-3 py-2.5 md:px-4">
+                  <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary md:hidden" aria-label="Back">
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
                   <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{chatTitle(active, me.id)}</div>
+                    <div className="truncate font-semibold flex items-center gap-1.5">
+                      {chatTitle(active, me.id)}
+                      {active.is_hidden && <Lock className="h-3.5 w-3.5 text-skyblue-deep" />}
+                    </div>
                     <div className="truncate text-xs text-muted-foreground">
                       {typingNames.length > 0
                         ? <span className="text-skyblue-deep">{typingNames.join(", ")} typing…</span>
                         : isAIChat(active) ? "AI companion · always on" : `${active.members.length} members`}
                     </div>
                   </div>
-                  <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary"><MoreVertical className="h-4 w-4" /></button>
+                  <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Menu">
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {showHeaderMenu && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setShowHeaderMenu(false)} />
+                      <div className="absolute right-3 top-14 z-40 w-56 rounded-xl border bg-popover p-1 shadow-xl">
+                        <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-secondary">
+                          <Sparkles className="h-4 w-4 text-skyblue-deep" /> Summarize chat
+                        </button>
+                        <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-secondary">
+                          {active.is_hidden ? <><Unlock className="h-4 w-4" /> Unhide chat</> : <><Shield className="h-4 w-4" /> Hide & encrypt</>}
+                        </button>
+                        {active.is_hidden && isUnlocked(active.id) && (
+                          <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-secondary">
+                            <Lock className="h-4 w-4" /> Lock now
+                          </button>
+                        )}
+                        {!isAIChat(active) && !active.is_group && (
+                          <button onClick={blockOther} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-secondary">
+                            <Ban className="h-4 w-4" /> Block user
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </header>
 
                 <div ref={scrollRef} className="scrollbar-thin chat-pattern flex-1 overflow-y-auto px-3 py-4 md:px-8">
