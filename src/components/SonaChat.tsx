@@ -169,6 +169,38 @@ export default function SonaChat() {
 
   useEffect(() => { loadChats(); }, [loadChats]);
 
+  // Load my blocks
+  useEffect(() => {
+    if (!me) return;
+    (async () => {
+      const { data } = await supabase.from("blocks").select("*").eq("blocker_id", me.id);
+      setBlockedIds(new Set(((data ?? []) as BlockRow[]).map((b) => b.blocked_id)));
+    })();
+  }, [me]);
+
+  // Prompt to unlock when opening a hidden chat
+  useEffect(() => {
+    if (!activeId) return;
+    const c = chats.find((x) => x.id === activeId);
+    if (c?.is_hidden && !isUnlocked(activeId)) setNeedsUnlock(true);
+    else setNeedsUnlock(false);
+  }, [activeId, chats]);
+
+  // Decrypt encrypted messages we have keys for
+  useEffect(() => {
+    if (!activeId || !isUnlocked(activeId)) return;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const m of messages) {
+        if (m.is_encrypted && m.body && !decrypted[m.id]) {
+          const pt = await decryptBody(activeId, m.body);
+          if (pt !== null) next[m.id] = pt;
+        }
+      }
+      if (Object.keys(next).length) setDecrypted((prev) => ({ ...prev, ...next }));
+    })();
+  }, [activeId, messages, decrypted, needsUnlock]);
+
   // Load messages + reactions + read receipts for active chat
   useEffect(() => {
     if (!activeId) return;
