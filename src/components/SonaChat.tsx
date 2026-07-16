@@ -2,16 +2,19 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, MoreVertical, Paperclip, Smile, Send, Mic, ArrowLeft, Moon, Sun,
   Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
-  Check, CheckCheck, MessageSquarePlus,
+  Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
+  Ban, UserX,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { askSonaAI } from "@/lib/ai.functions";
+import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import {
   SONA_AI_ID, fmtTime,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
+  type BlockRow,
 } from "@/lib/db";
+import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
 import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
 import sonaAi from "@/assets/sona-ai.png";
