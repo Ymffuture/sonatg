@@ -656,6 +656,37 @@ export default function SonaChat() {
           onCreated={(id) => { setActiveId(id); setShowSidebarMobile(false); setShowNewChat(false); loadChats(); }}
         />
       )}
+
+      {showSettings && me && (
+        <SettingsModal
+          me={me}
+          onClose={() => setShowSettings(false)}
+          onSaved={(p) => { setMe(p); setProfiles((prev) => ({ ...prev, [p.id]: p })); }}
+        />
+      )}
+
+      {needsUnlock && activeId && active?.is_hidden && (
+        <UnlockModal
+          chatId={activeId}
+          onUnlocked={() => setNeedsUnlock(false)}
+          onCancel={() => { setNeedsUnlock(false); setActiveId(null); }}
+        />
+      )}
+
+      {summary !== null && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setSummary(null)}>
+          <div className="w-full max-w-md rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-skyblue-deep" />
+              <h3 className="text-base font-semibold">Chat summary</h3>
+            </div>
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{summary}</p>
+            <div className="mt-4 flex justify-end">
+              <button onClick={() => setSummary(null)} className="rounded-xl bg-secondary px-3 py-2 text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
