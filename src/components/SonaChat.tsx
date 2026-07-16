@@ -69,13 +69,14 @@ export default function SonaChat() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const askAI = useServerFn(askSonaAI);
+  const askSummary = useServerFn(summarizeChat);
 
   const [me, setMe] = useState<Profile | null>(null);
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
-  const [reads, setReads] = useState<MessageReadRow[]>([]); // reads for current active chat
+  const [reads, setReads] = useState<MessageReadRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
@@ -84,7 +85,13 @@ export default function SonaChat() {
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
   const [showNewChat, setShowNewChat] = useState(false);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
-  const [typingOthers, setTypingOthers] = useState<string[]>([]); // user ids typing in active chat
+  const [typingOthers, setTypingOthers] = useState<string[]>([]);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [summary, setSummary] = useState<string | null>(null);
+  const [needsUnlock, setNeedsUnlock] = useState(false);
+  const [decrypted, setDecrypted] = useState<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
