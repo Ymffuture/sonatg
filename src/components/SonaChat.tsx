@@ -2,16 +2,19 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, MoreVertical, Paperclip, Smile, Send, Mic, ArrowLeft, Moon, Sun,
   Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
-  Check, CheckCheck, MessageSquarePlus,
+  Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
+  Ban, UserX,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { askSonaAI } from "@/lib/ai.functions";
+import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import {
   SONA_AI_ID, fmtTime,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
+  type BlockRow,
 } from "@/lib/db";
+import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
 import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
 import sonaAi from "@/assets/sona-ai.png";
@@ -66,13 +69,14 @@ export default function SonaChat() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const askAI = useServerFn(askSonaAI);
+  const askSummary = useServerFn(summarizeChat);
 
   const [me, setMe] = useState<Profile | null>(null);
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
-  const [reads, setReads] = useState<MessageReadRow[]>([]); // reads for current active chat
+  const [reads, setReads] = useState<MessageReadRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
@@ -81,7 +85,13 @@ export default function SonaChat() {
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
   const [showNewChat, setShowNewChat] = useState(false);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
-  const [typingOthers, setTypingOthers] = useState<string[]>([]); // user ids typing in active chat
+  const [typingOthers, setTypingOthers] = useState<string[]>([]);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [summary, setSummary] = useState<string | null>(null);
+  const [needsUnlock, setNeedsUnlock] = useState(false);
+  const [decrypted, setDecrypted] = useState<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -158,6 +168,38 @@ export default function SonaChat() {
   }, [me, activeId]);
 
   useEffect(() => { loadChats(); }, [loadChats]);
+
+  // Load my blocks
+  useEffect(() => {
+    if (!me) return;
+    (async () => {
+      const { data } = await supabase.from("blocks").select("*").eq("blocker_id", me.id);
+      setBlockedIds(new Set(((data ?? []) as BlockRow[]).map((b) => b.blocked_id)));
+    })();
+  }, [me]);
+
+  // Prompt to unlock when opening a hidden chat
+  useEffect(() => {
+    if (!activeId) return;
+    const c = chats.find((x) => x.id === activeId);
+    if (c?.is_hidden && !isUnlocked(activeId)) setNeedsUnlock(true);
+    else setNeedsUnlock(false);
+  }, [activeId, chats]);
+
+  // Decrypt encrypted messages we have keys for
+  useEffect(() => {
+    if (!activeId || !isUnlocked(activeId)) return;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const m of messages) {
+        if (m.is_encrypted && m.body && !decrypted[m.id]) {
+          const pt = await decryptBody(activeId, m.body);
+          if (pt !== null) next[m.id] = pt;
+        }
+      }
+      if (Object.keys(next).length) setDecrypted((prev) => ({ ...prev, ...next }));
+    })();
+  }, [activeId, messages, decrypted, needsUnlock]);
 
   // Load messages + reactions + read receipts for active chat
   useEffect(() => {
@@ -256,9 +298,15 @@ export default function SonaChat() {
   }, [activeId, messages.length]);
 
   const active = chats.find((c) => c.id === activeId);
-  const filtered = useMemo(() => chats.filter((c) =>
-    me ? chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase()) : true
-  ), [chats, query, me]);
+  const filtered = useMemo(() => chats.filter((c) => {
+    if (!me) return true;
+    // hide 1:1 chats with a blocked user
+    if (!c.is_group) {
+      const other = c.memberIds.find((id) => id !== me.id);
+      if (other && blockedIds.has(other)) return false;
+    }
+    return chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase());
+  }), [chats, query, me, blockedIds]);
 
   // Send
   const send = async () => {
@@ -274,21 +322,30 @@ export default function SonaChat() {
       media_url = signed?.signedUrl ?? null;
       kind = "image";
     }
-    const body = draft.trim() || null;
+    const plaintext = draft.trim();
+    let body: string | null = plaintext || null;
+    let is_encrypted = false;
+
+    if (active?.is_hidden && body && isUnlocked(activeId)) {
+      const enc = await encryptBody(activeId, body);
+      if (enc) { body = enc; is_encrypted = true; }
+    }
 
     const { error } = await supabase.from("messages").insert({
-      chat_id: activeId, sender_id: me.id, kind, body, media_url,
+      chat_id: activeId, sender_id: me.id, kind, body, media_url, is_encrypted,
     });
     if (error) { toast.error(error.message); return; }
 
-    const prompt = draft.trim();
+    const prompt = plaintext;
+    const attachedImageUrl = media_url;
     setDraft(""); setPendingImage(null); setShowEmoji(false);
 
-    if (active) {
+    if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
       const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
-      if ((isAI || mentionsSona) && prompt) {
-        askAI({ data: { chatId: activeId, prompt } }).catch((e) => toast.error(e.message));
+      if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
+        askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
+          .catch((e) => toast.error(e.message));
       }
     }
   };
@@ -301,6 +358,60 @@ export default function SonaChat() {
     if (existing) await supabase.from("reactions").delete().eq("id", existing.id);
     else await supabase.from("reactions").insert({ message_id: messageId, user_id: me.id, emoji });
     setReactingOn(null);
+  };
+
+  // Delete a message for everyone (RLS allows sender delete)
+  const deleteMessage = async (messageId: string) => {
+    if (!me) return;
+    if (!confirm("Delete this message for everyone?")) return;
+    const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me.id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  };
+
+  // Block the other user in a 1:1 chat
+  const blockOther = async () => {
+    if (!me || !active) return;
+    const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
+    if (!other) { toast.error("Can't block in this chat."); return; }
+    const { error } = await supabase.from("blocks").insert({ blocker_id: me.id, blocked_id: other });
+    if (error) { toast.error(error.message); return; }
+    setBlockedIds((prev) => new Set(prev).add(other));
+    toast.success("User blocked");
+    setShowHeaderMenu(false);
+    setActiveId(null);
+  };
+
+  // Toggle hide/lock a chat (encrypts new messages once unlocked)
+  const toggleHideChat = async () => {
+    if (!active) return;
+    const next = !active.is_hidden;
+    const { error } = await supabase.from("chats").update({ is_hidden: next }).eq("id", active.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Chat hidden — set a passcode to unlock" : "Chat is no longer hidden");
+    setShowHeaderMenu(false);
+    loadChats();
+  };
+
+  // AI chat summary on demand
+  const runSummary = async () => {
+    if (!activeId) return;
+    setShowHeaderMenu(false);
+    toast.loading("Summarizing…", { id: "sum" });
+    try {
+      const r = await askSummary({ data: { chatId: activeId } }) as { summary: string };
+      setSummary(r.summary);
+      toast.success("Summary ready", { id: "sum" });
+    } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
+  };
+
+  // Lock chat (forget key in-memory)
+  const relock = () => {
+    if (!activeId) return;
+    lockChat(activeId);
+    setDecrypted({});
+    setNeedsUnlock(true);
+    setShowHeaderMenu(false);
   };
 
   const signOut = async () => {
@@ -333,6 +444,9 @@ export default function SonaChat() {
               <div className="flex items-center gap-1 shrink-0">
                 <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Toggle theme">
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
+                <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Settings">
+                  <Settings className="h-4 w-4" />
                 </button>
                 <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Sign out">
                   <LogOut className="h-4 w-4" />
@@ -408,20 +522,48 @@ export default function SonaChat() {
           <section className={`${showSidebarMobile ? "hidden" : "flex"} h-full min-w-0 flex-1 flex-col md:flex`}>
             {active ? (
               <>
-                <header className="flex items-center gap-3 border-b bg-card px-3 py-2.5 md:px-4">
+                <header className="relative flex items-center gap-3 border-b bg-card px-3 py-2.5 md:px-4">
                   <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary md:hidden" aria-label="Back">
                     <ArrowLeft className="h-4 w-4" />
                   </button>
                   <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{chatTitle(active, me.id)}</div>
+                    <div className="truncate font-semibold flex items-center gap-1.5">
+                      {chatTitle(active, me.id)}
+                      {active.is_hidden && <Lock className="h-3.5 w-3.5 text-skyblue-deep" />}
+                    </div>
                     <div className="truncate text-xs text-muted-foreground">
                       {typingNames.length > 0
                         ? <span className="text-skyblue-deep">{typingNames.join(", ")} typing…</span>
                         : isAIChat(active) ? "AI companion · always on" : `${active.members.length} members`}
                     </div>
                   </div>
-                  <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary"><MoreVertical className="h-4 w-4" /></button>
+                  <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Menu">
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {showHeaderMenu && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setShowHeaderMenu(false)} />
+                      <div className="absolute right-3 top-14 z-40 w-56 rounded-xl border bg-popover p-1 shadow-xl">
+                        <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-secondary">
+                          <Sparkles className="h-4 w-4 text-skyblue-deep" /> Summarize chat
+                        </button>
+                        <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-secondary">
+                          {active.is_hidden ? <><Unlock className="h-4 w-4" /> Unhide chat</> : <><Shield className="h-4 w-4" /> Hide & encrypt</>}
+                        </button>
+                        {active.is_hidden && isUnlocked(active.id) && (
+                          <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-secondary">
+                            <Lock className="h-4 w-4" /> Lock now
+                          </button>
+                        )}
+                        {!isAIChat(active) && !active.is_group && (
+                          <button onClick={blockOther} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-secondary">
+                            <Ban className="h-4 w-4" /> Block user
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </header>
 
                 <div ref={scrollRef} className="scrollbar-thin chat-pattern flex-1 overflow-y-auto px-3 py-4 md:px-8">
@@ -433,6 +575,9 @@ export default function SonaChat() {
                       const prev = messages[idx - 1];
                       const groupWithPrev = prev && prev.sender_id === m.sender_id
                         && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
+                      const overrideBody = m.is_encrypted
+                        ? (decrypted[m.id] ?? "🔒 Locked message — unlock this chat to read")
+                        : undefined;
                       return (
                         <Bubble
                           key={m.id}
@@ -446,6 +591,8 @@ export default function SonaChat() {
                           opening={reactingOn === m.id}
                           onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
                           grouped={!!groupWithPrev}
+                          overrideBody={overrideBody}
+                          onDelete={() => deleteMessage(m.id)}
                         />
                       );
                     })}
@@ -509,6 +656,37 @@ export default function SonaChat() {
           onCreated={(id) => { setActiveId(id); setShowSidebarMobile(false); setShowNewChat(false); loadChats(); }}
         />
       )}
+
+      {showSettings && me && (
+        <SettingsModal
+          me={me}
+          onClose={() => setShowSettings(false)}
+          onSaved={(p) => { setMe(p); setProfiles((prev) => ({ ...prev, [p.id]: p })); }}
+        />
+      )}
+
+      {needsUnlock && activeId && active?.is_hidden && (
+        <UnlockModal
+          chatId={activeId}
+          onUnlocked={() => setNeedsUnlock(false)}
+          onCancel={() => { setNeedsUnlock(false); setActiveId(null); }}
+        />
+      )}
+
+      {summary !== null && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setSummary(null)}>
+          <div className="w-full max-w-md rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-skyblue-deep" />
+              <h3 className="text-base font-semibold">Chat summary</h3>
+            </div>
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{summary}</p>
+            <div className="mt-4 flex justify-end">
+              <button onClick={() => setSummary(null)} className="rounded-xl bg-secondary px-3 py-2 text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -532,10 +710,12 @@ function TickIcon({ status, className }: { status: ReadStatus; className?: strin
 
 function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped,
+  overrideBody, onDelete,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
   onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean;
+  overrideBody?: string; onDelete: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -564,11 +744,20 @@ function Bubble({
           {msg.kind === "voice" && msg.media_url && (
             <VoicePlayer url={msg.media_url} durationMs={msg.duration_ms ?? 0} mine={mine} />
           )}
-          {msg.body && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{msg.body}</p>}
+          {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{overrideBody ?? msg.body}</p>}
           <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] opacity-70">
             <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
+          {mine && (
+            <button
+              onClick={onDelete}
+              className={`absolute -left-8 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100 text-destructive`}
+              aria-label="Delete for everyone"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button
             onClick={onOpenPicker}
             className={`absolute ${mine ? "-left-8" : "-right-8"} top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100`}
@@ -736,7 +925,13 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
     try {
       const { data: prof, error: pErr } = await supabase.from("profiles").select("*").eq("email", target).maybeSingle();
       if (pErr) throw pErr;
-      if (!prof) { toast.error("No Sona user with that email yet."); return; }
+      if (!prof) {
+        const subject = encodeURIComponent("Join me on Sona — talk gold");
+        const body = encodeURIComponent(`Hey! I'm on Sona. Sign up with this email (${target}) at ${window.location.origin}/auth and we'll be connected automatically.`);
+        window.location.href = `mailto:${target}?subject=${subject}&body=${body}`;
+        toast.info("No Sona user yet — we opened an invite email for you.");
+        return;
+      }
       if (prof.id === meId) { toast.error("That's you 🙂"); return; }
 
       const { data: myChats } = await supabase.from("chat_members").select("chat_id").eq("user_id", meId);
@@ -777,6 +972,77 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
           <button disabled={busy} onClick={create} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
             {busy ? "…" : "Start"}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
+  const [name, setName] = useState(me.display_name ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend" }).eq("id", me.id).select().single();
+      if (error) throw error;
+      onSaved(data as Profile);
+      toast.success("Saved");
+      onClose();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-3">
+          <Settings className="h-4 w-4 text-skyblue-deep" />
+          <h3 className="text-base font-semibold">Settings</h3>
+        </div>
+        <label className="text-xs text-muted-foreground">Display name</label>
+        <input value={name} onChange={(e) => setName(e.target.value)}
+          className="mt-1 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+        <p className="mt-3 text-xs text-muted-foreground">Signed in as {me.email}</p>
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-destructive hover:bg-secondary">Sign out</button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
+            <button disabled={busy} onClick={save} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+              {busy ? "…" : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; onUnlocked: () => void; onCancel: () => void }) {
+  const [pass, setPass] = useState("");
+  const submit = () => {
+    if (!pass) return;
+    unlockChat(chatId, pass);
+    onUnlocked();
+  };
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-3">
+          <Lock className="h-4 w-4 text-skyblue-deep" />
+          <h3 className="text-base font-semibold">Unlock hidden chat</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">Enter your passcode to decrypt messages. It never leaves your device.</p>
+        <input type="password" value={pass} onChange={(e) => setPass(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          placeholder="Passcode"
+          className="w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
+          <button onClick={submit} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground">Unlock</button>
         </div>
       </div>
     </div>
