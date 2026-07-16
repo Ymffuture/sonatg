@@ -522,10 +522,6 @@ export default function SonaChat() {
           <section className={`${showSidebarMobile ? "hidden" : "flex"} h-full min-w-0 flex-1 flex-col md:flex`}>
             {active ? (
               <>
-                <header className="flex items-center gap-3 border-b bg-card px-3 py-2.5 md:px-4">
-                  <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary md:hidden" aria-label="Back">
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
                 <header className="relative flex items-center gap-3 border-b bg-card px-3 py-2.5 md:px-4">
                   <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary md:hidden" aria-label="Back">
                     <ArrowLeft className="h-4 w-4" />
