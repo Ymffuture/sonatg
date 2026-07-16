@@ -713,11 +713,20 @@ function Bubble({
           {msg.kind === "voice" && msg.media_url && (
             <VoicePlayer url={msg.media_url} durationMs={msg.duration_ms ?? 0} mine={mine} />
           )}
-          {msg.body && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{msg.body}</p>}
+          {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{overrideBody ?? msg.body}</p>}
           <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] opacity-70">
             <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
+          {mine && (
+            <button
+              onClick={onDelete}
+              className={`absolute -left-8 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100 text-destructive`}
+              aria-label="Delete for everyone"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button
             onClick={onOpenPicker}
             className={`absolute ${mine ? "-left-8" : "-right-8"} top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100`}
