@@ -360,6 +360,60 @@ export default function SonaChat() {
     setReactingOn(null);
   };
 
+  // Delete a message for everyone (RLS allows sender delete)
+  const deleteMessage = async (messageId: string) => {
+    if (!me) return;
+    if (!confirm("Delete this message for everyone?")) return;
+    const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me.id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  };
+
+  // Block the other user in a 1:1 chat
+  const blockOther = async () => {
+    if (!me || !active) return;
+    const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
+    if (!other) { toast.error("Can't block in this chat."); return; }
+    const { error } = await supabase.from("blocks").insert({ blocker_id: me.id, blocked_id: other });
+    if (error) { toast.error(error.message); return; }
+    setBlockedIds((prev) => new Set(prev).add(other));
+    toast.success("User blocked");
+    setShowHeaderMenu(false);
+    setActiveId(null);
+  };
+
+  // Toggle hide/lock a chat (encrypts new messages once unlocked)
+  const toggleHideChat = async () => {
+    if (!active) return;
+    const next = !active.is_hidden;
+    const { error } = await supabase.from("chats").update({ is_hidden: next }).eq("id", active.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Chat hidden — set a passcode to unlock" : "Chat is no longer hidden");
+    setShowHeaderMenu(false);
+    loadChats();
+  };
+
+  // AI chat summary on demand
+  const runSummary = async () => {
+    if (!activeId) return;
+    setShowHeaderMenu(false);
+    toast.loading("Summarizing…", { id: "sum" });
+    try {
+      const r = await askSummary({ data: { chatId: activeId } }) as { summary: string };
+      setSummary(r.summary);
+      toast.success("Summary ready", { id: "sum" });
+    } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
+  };
+
+  // Lock chat (forget key in-memory)
+  const relock = () => {
+    if (!activeId) return;
+    lockChat(activeId);
+    setDecrypted({});
+    setNeedsUnlock(true);
+    setShowHeaderMenu(false);
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth" });
