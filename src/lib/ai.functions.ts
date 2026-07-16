@@ -2,77 +2,136 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
+const MODEL = "openai/gpt-5.5";
+const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-type AskInput = { chatId: string; prompt: string };
+type AskInput = { chatId: string; prompt: string; imageUrl?: string | null };
+type SummarizeInput = { chatId: string };
+
+async function callGateway(messages: unknown[], key: string): Promise<string> {
+  const res = await fetch(GATEWAY, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model: MODEL, messages }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    if (res.status === 429) throw new Error("Sona AI is busy right now, try again in a moment.");
+    if (res.status === 402) throw new Error("AI credits exhausted. Please upgrade your workspace plan.");
+    throw new Error(`AI request failed [${res.status}]: ${body}`);
+  }
+  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  return json.choices?.[0]?.message?.content?.trim() || "…";
+}
 
 export const askSonaAI = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: AskInput) => {
     if (!data?.chatId || !data?.prompt) throw new Error("chatId and prompt required");
-    return { chatId: String(data.chatId), prompt: String(data.prompt).slice(0, 4000) };
+    return {
+      chatId: String(data.chatId),
+      prompt: String(data.prompt).slice(0, 4000),
+      imageUrl: data.imageUrl ? String(data.imageUrl).slice(0, 2000) : null,
+    };
   })
   .handler(async ({ data, context }) => {
-    // Verify caller is a member of the chat
-    const { data: memberRow, error: memberErr } = await context.supabase
-      .from("chat_members")
-      .select("chat_id")
-      .eq("chat_id", data.chatId)
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    if (memberErr) throw memberErr;
+    const { data: memberRow } = await context.supabase
+      .from("chat_members").select("chat_id")
+      .eq("chat_id", data.chatId).eq("user_id", context.userId).maybeSingle();
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
 
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
-    // Pull recent context (last 12 messages)
+    // Personalize with the user's display name
+    const { data: myProfile } = await context.supabase
+      .from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
+    const userName = (myProfile?.display_name as string | undefined) || "friend";
+
     const { data: recent } = await context.supabase
       .from("messages")
-      .select("sender_id, kind, body")
+      .select("sender_id, kind, body, media_url")
       .eq("chat_id", data.chatId)
       .order("created_at", { ascending: false })
       .limit(12);
 
     const history = (recent ?? []).reverse().map((m) => ({
       role: m.sender_id === SONA_AI_ID ? "assistant" : "user",
-      content: m.kind === "text" ? (m.body ?? "") : m.kind === "image" ? "[image]" : "[voice note]",
+      content: m.kind === "text" ? (m.body ?? "") : m.kind === "image" ? "[shared an image]" : "[voice note]",
     }));
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Sona AI, a warm, witty chat companion inside the Sona messaging app. Keep replies short, friendly, and conversational — like a good friend texting back. Use emoji sparingly.",
-          },
-          ...history,
-          { role: "user", content: data.prompt },
-        ],
-      }),
-    });
+    // Build the current turn — multimodal if an image is attached
+    const userContent: unknown = data.imageUrl
+      ? [
+          { type: "text", text: data.prompt || "What's in this image?" },
+          { type: "image_url", image_url: { url: data.imageUrl } },
+        ]
+      : data.prompt;
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      if (res.status === 429) throw new Error("Sona AI is busy right now, try again in a moment.");
-      if (res.status === 402) throw new Error("AI credits exhausted for this workspace.");
-      throw new Error(`AI request failed [${res.status}]: ${body}`);
-    }
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const reply = json.choices?.[0]?.message?.content?.trim() || "…";
+    const messages = [
+      {
+        role: "system",
+        content:
+          `You are Sona AI, a warm, witty chat companion inside the Sona messaging app. ` +
+          `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
+          `Keep replies short, friendly, and conversational — like a good friend texting back. ` +
+          `You can look at images the user shares and describe or discuss them. Use emoji sparingly.`,
+      },
+      ...history,
+      { role: "user", content: userContent },
+    ];
 
-    // Insert as AI (bypass RLS with admin)
+    const reply = await callGateway(messages, key);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: insErr } = await supabaseAdmin.from("messages").insert({
-      chat_id: data.chatId,
-      sender_id: SONA_AI_ID,
-      kind: "text",
-      body: reply,
+      chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: reply,
     });
     if (insErr) throw insErr;
-
     return { ok: true };
+  });
+
+export const summarizeChat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: SummarizeInput) => {
+    if (!data?.chatId) throw new Error("chatId required");
+    return { chatId: String(data.chatId) };
+  })
+  .handler(async ({ data, context }) => {
+    const { data: memberRow } = await context.supabase
+      .from("chat_members").select("chat_id")
+      .eq("chat_id", data.chatId).eq("user_id", context.userId).maybeSingle();
+    if (!memberRow) throw new Error("Forbidden: not a member of chat");
+
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+
+    const { data: recent } = await context.supabase
+      .from("messages")
+      .select("sender_id, kind, body, created_at")
+      .eq("chat_id", data.chatId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    const rows = (recent ?? []).reverse();
+    if (rows.length === 0) return { summary: "No messages yet to summarize." };
+
+    const memberIds = Array.from(new Set(rows.map((r) => r.sender_id as string)));
+    const { data: profs } = await context.supabase
+      .from("profiles").select("id, display_name").in("id", memberIds);
+    const nameById: Record<string, string> = {};
+    (profs ?? []).forEach((p) => { nameById[(p as { id: string }).id] = (p as { display_name: string }).display_name; });
+
+    const transcript = rows.map((r) => {
+      const who = r.sender_id === SONA_AI_ID ? "Sona AI" : (nameById[r.sender_id as string] ?? "Someone");
+      const body = r.kind === "text" ? (r.body ?? "") : r.kind === "image" ? "[image]" : "[voice note]";
+      return `${who}: ${body}`;
+    }).join("\n");
+
+    const summary = await callGateway([
+      { role: "system", content: "You summarize chat transcripts. Return a concise TL;DR (2–4 bullet points) covering the main topics, decisions, and any open questions. Use plain text, no markdown headers." },
+      { role: "user", content: `Summarize this chat:\n\n${transcript}` },
+    ], key);
+
+    return { summary };
   });

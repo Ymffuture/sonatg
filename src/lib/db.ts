@@ -6,6 +6,7 @@ export type Profile = {
   display_name: string;
   avatar_url: string | null;
   is_ai: boolean;
+  is_pro?: boolean;
 };
 
 export type MessageRow = {
@@ -17,6 +18,7 @@ export type MessageRow = {
   media_url: string | null;
   duration_ms: number | null;
   created_at: string;
+  is_encrypted?: boolean;
 };
 
 export type ChatRow = {
@@ -25,6 +27,7 @@ export type ChatRow = {
   title: string | null;
   created_by: string | null;
   last_message_at: string;
+  is_hidden?: boolean;
 };
 
 export type ReactionRow = {
@@ -38,6 +41,18 @@ export type MessageReadRow = {
   message_id: string;
   user_id: string;
   read_at: string;
+};
+
+export type BlockRow = {
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+};
+
+export type SubscriptionRow = {
+  user_id: string;
+  tier: "free" | "pro";
+  current_period_end: string | null;
 };
 
 export const fmtTime = (iso: string) =>
