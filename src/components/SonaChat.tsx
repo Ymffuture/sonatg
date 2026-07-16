@@ -575,6 +575,9 @@ export default function SonaChat() {
                       const prev = messages[idx - 1];
                       const groupWithPrev = prev && prev.sender_id === m.sender_id
                         && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
+                      const overrideBody = m.is_encrypted
+                        ? (decrypted[m.id] ?? "🔒 Locked message — unlock this chat to read")
+                        : undefined;
                       return (
                         <Bubble
                           key={m.id}
@@ -588,6 +591,8 @@ export default function SonaChat() {
                           opening={reactingOn === m.id}
                           onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
                           grouped={!!groupWithPrev}
+                          overrideBody={overrideBody}
+                          onDelete={() => deleteMessage(m.id)}
                         />
                       );
                     })}
