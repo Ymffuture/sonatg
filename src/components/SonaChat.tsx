@@ -977,3 +977,74 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
     </div>
   );
 }
+
+function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
+  const [name, setName] = useState(me.display_name ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend" }).eq("id", me.id).select().single();
+      if (error) throw error;
+      onSaved(data as Profile);
+      toast.success("Saved");
+      onClose();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-3">
+          <Settings className="h-4 w-4 text-skyblue-deep" />
+          <h3 className="text-base font-semibold">Settings</h3>
+        </div>
+        <label className="text-xs text-muted-foreground">Display name</label>
+        <input value={name} onChange={(e) => setName(e.target.value)}
+          className="mt-1 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+        <p className="mt-3 text-xs text-muted-foreground">Signed in as {me.email}</p>
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-destructive hover:bg-secondary">Sign out</button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
+            <button disabled={busy} onClick={save} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+              {busy ? "…" : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; onUnlocked: () => void; onCancel: () => void }) {
+  const [pass, setPass] = useState("");
+  const submit = () => {
+    if (!pass) return;
+    unlockChat(chatId, pass);
+    onUnlocked();
+  };
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-3">
+          <Lock className="h-4 w-4 text-skyblue-deep" />
+          <h3 className="text-base font-semibold">Unlock hidden chat</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">Enter your passcode to decrypt messages. It never leaves your device.</p>
+        <input type="password" value={pass} onChange={(e) => setPass(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          placeholder="Passcode"
+          className="w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
+          <button onClick={submit} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground">Unlock</button>
+        </div>
+      </div>
+    </div>
+  );
+}
