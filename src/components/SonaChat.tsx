@@ -298,9 +298,15 @@ export default function SonaChat() {
   }, [activeId, messages.length]);
 
   const active = chats.find((c) => c.id === activeId);
-  const filtered = useMemo(() => chats.filter((c) =>
-    me ? chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase()) : true
-  ), [chats, query, me]);
+  const filtered = useMemo(() => chats.filter((c) => {
+    if (!me) return true;
+    // hide 1:1 chats with a blocked user
+    if (!c.is_group) {
+      const other = c.memberIds.find((id) => id !== me.id);
+      if (other && blockedIds.has(other)) return false;
+    }
+    return chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase());
+  }), [chats, query, me, blockedIds]);
 
   // Send
   const send = async () => {
@@ -316,21 +322,30 @@ export default function SonaChat() {
       media_url = signed?.signedUrl ?? null;
       kind = "image";
     }
-    const body = draft.trim() || null;
+    const plaintext = draft.trim();
+    let body: string | null = plaintext || null;
+    let is_encrypted = false;
+
+    if (active?.is_hidden && body && isUnlocked(activeId)) {
+      const enc = await encryptBody(activeId, body);
+      if (enc) { body = enc; is_encrypted = true; }
+    }
 
     const { error } = await supabase.from("messages").insert({
-      chat_id: activeId, sender_id: me.id, kind, body, media_url,
+      chat_id: activeId, sender_id: me.id, kind, body, media_url, is_encrypted,
     });
     if (error) { toast.error(error.message); return; }
 
-    const prompt = draft.trim();
+    const prompt = plaintext;
+    const attachedImageUrl = media_url;
     setDraft(""); setPendingImage(null); setShowEmoji(false);
 
-    if (active) {
+    if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
       const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
-      if ((isAI || mentionsSona) && prompt) {
-        askAI({ data: { chatId: activeId, prompt } }).catch((e) => toast.error(e.message));
+      if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
+        askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
+          .catch((e) => toast.error(e.message));
       }
     }
   };
