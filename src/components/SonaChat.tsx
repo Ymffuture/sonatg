@@ -925,7 +925,13 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
     try {
       const { data: prof, error: pErr } = await supabase.from("profiles").select("*").eq("email", target).maybeSingle();
       if (pErr) throw pErr;
-      if (!prof) { toast.error("No Sona user with that email yet."); return; }
+      if (!prof) {
+        const subject = encodeURIComponent("Join me on Sona — talk gold");
+        const body = encodeURIComponent(`Hey! I'm on Sona. Sign up with this email (${target}) at ${window.location.origin}/auth and we'll be connected automatically.`);
+        window.location.href = `mailto:${target}?subject=${subject}&body=${body}`;
+        toast.info("No Sona user yet — we opened an invite email for you.");
+        return;
+      }
       if (prof.id === meId) { toast.error("That's you 🙂"); return; }
 
       const { data: myChats } = await supabase.from("chat_members").select("chat_id").eq("user_id", meId);
