@@ -120,10 +120,12 @@ export type Database = {
           chat_id: string
           created_at: string
           duration_ms: number | null
+          edited_at: string | null
           id: string
           is_encrypted: boolean
           kind: string
           media_url: string | null
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -131,10 +133,12 @@ export type Database = {
           chat_id: string
           created_at?: string
           duration_ms?: number | null
+          edited_at?: string | null
           id?: string
           is_encrypted?: boolean
           kind?: string
           media_url?: string | null
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -142,10 +146,12 @@ export type Database = {
           chat_id?: string
           created_at?: string
           duration_ms?: number | null
+          edited_at?: string | null
           id?: string
           is_encrypted?: boolean
           kind?: string
           media_url?: string | null
+          reply_to_id?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -154,6 +160,13 @@ export type Database = {
             columns: ["chat_id"]
             isOneToOne: false
             referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]

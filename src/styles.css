@@ -46,12 +46,13 @@
 :root {
   --radius: 0.9rem;
 
-  --charcoal: oklch(0.23 0.012 250);
-  --milky: oklch(0.985 0.006 90);
-  --skyblue: oklch(0.82 0.09 230);
-  --skyblue-deep: oklch(0.58 0.14 235);
+  --charcoal: oklch(0.22 0.012 60);
+  --milky: oklch(0.985 0.008 70);
+  /* Warm orange, Claude-like */
+  --skyblue: oklch(0.82 0.11 55);
+  --skyblue-deep: oklch(0.62 0.16 45);
 
-  --background: var(--milky);
+  --background: oklch(0.975 0.012 75);
   --foreground: var(--charcoal);
   --card: oklch(1 0 0);
   --card-foreground: var(--charcoal);
@@ -60,63 +61,65 @@
 
   --primary: var(--skyblue-deep);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.955 0.008 230);
+  --secondary: oklch(0.955 0.02 70);
   --secondary-foreground: var(--charcoal);
-  --muted: oklch(0.955 0.008 230);
-  --muted-foreground: oklch(0.5 0.02 250);
+  --muted: oklch(0.955 0.02 70);
+  --muted-foreground: oklch(0.5 0.02 60);
   --accent: var(--skyblue);
   --accent-foreground: var(--charcoal);
   --destructive: oklch(0.6 0.22 25);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9 0.01 240);
-  --input: oklch(0.94 0.008 240);
+  --border: oklch(0.9 0.015 65);
+  --input: oklch(0.94 0.012 65);
   --ring: var(--skyblue-deep);
 
-  --sidebar: oklch(0.98 0.005 240);
+  --sidebar: oklch(0.985 0.012 70);
   --sidebar-foreground: var(--charcoal);
 
-  --chat-bg: oklch(0.94 0.02 225);
-  --bubble-me: oklch(0.86 0.09 220);
+  --chat-bg: oklch(0.955 0.024 65);
+  --bubble-me: oklch(0.86 0.09 55);
   --bubble-me-foreground: var(--charcoal);
   --bubble-them: oklch(1 0 0);
   --bubble-them-foreground: var(--charcoal);
-  --tick-read: oklch(0.6 0.16 235);
+  --tick-read: oklch(0.6 0.16 45);
 
   --shadow-bubble: 0 1px 1px oklch(0.2 0 0 / 0.13);
 }
 
+
 .dark {
   --background: var(--charcoal);
   --foreground: var(--milky);
-  --card: oklch(0.28 0.014 250);
+  --card: oklch(0.27 0.014 60);
   --card-foreground: var(--milky);
-  --popover: oklch(0.28 0.014 250);
+  --popover: oklch(0.27 0.014 60);
   --popover-foreground: var(--milky);
 
   --primary: var(--skyblue);
   --primary-foreground: var(--charcoal);
-  --secondary: oklch(0.3 0.014 250);
+  --secondary: oklch(0.3 0.016 60);
   --secondary-foreground: var(--milky);
-  --muted: oklch(0.3 0.014 250);
-  --muted-foreground: oklch(0.72 0.02 240);
+  --muted: oklch(0.3 0.016 60);
+  --muted-foreground: oklch(0.72 0.02 65);
   --accent: var(--skyblue-deep);
   --accent-foreground: var(--milky);
-  --border: oklch(0.35 0.015 250);
-  --input: oklch(0.32 0.015 250);
+  --border: oklch(0.35 0.018 60);
+  --input: oklch(0.32 0.016 60);
   --ring: var(--skyblue);
 
-  --sidebar: oklch(0.2 0.012 250);
+  --sidebar: oklch(0.19 0.012 60);
   --sidebar-foreground: var(--milky);
 
-  --chat-bg: oklch(0.17 0.014 245);
-  --bubble-me: oklch(0.32 0.06 230);
+  --chat-bg: oklch(0.17 0.016 55);
+  --bubble-me: oklch(0.38 0.09 45);
   --bubble-me-foreground: var(--milky);
-  --bubble-them: oklch(0.26 0.012 250);
+  --bubble-them: oklch(0.26 0.014 60);
   --bubble-them-foreground: var(--milky);
-  --tick-read: oklch(0.78 0.12 225);
+  --tick-read: oklch(0.78 0.13 55);
 
   --shadow-bubble: 0 1px 1px oklch(0 0 0 / 0.35);
 }
+
 
 @layer base {
   * { border-color: var(--color-border); }
@@ -131,13 +134,13 @@
 /* WhatsApp-style doodle background: hearts, stars, dots, bubbles */
 @utility chat-pattern {
   background-color: var(--color-chat-bg);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%233b6f9c' stroke-opacity='0.09' stroke-width='1.5'><circle cx='30' cy='40' r='6'/><circle cx='200' cy='90' r='4'/><circle cx='60' cy='180' r='5'/><path d='M110 30 q10 -8 20 0 q10 8 0 18 l-10 10 l-10 -10 q-10 -10 0 -18z'/><path d='M170 200 l4 -10 l4 10 l10 2 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6z'/><path d='M40 100 q15 -15 30 0 q15 15 0 30 l-15 15 l-15 -15 q-15 -15 0 -30z' opacity='0.5'/><circle cx='150' cy='150' r='3' fill='%233b6f9c' fill-opacity='0.12'/><circle cx='90' cy='60' r='2.5' fill='%233b6f9c' fill-opacity='0.12'/><path d='M210 40 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/><path d='M20 210 h20 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-14 l-6 6 v-10 a4 4 0 0 1 0 -14z'/></g></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%23c96442' stroke-opacity='0.10' stroke-width='1.5'><circle cx='30' cy='40' r='6'/><circle cx='200' cy='90' r='4'/><circle cx='60' cy='180' r='5'/><path d='M110 30 q10 -8 20 0 q10 8 0 18 l-10 10 l-10 -10 q-10 -10 0 -18z'/><path d='M170 200 l4 -10 l4 10 l10 2 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6z'/><path d='M40 100 q15 -15 30 0 q15 15 0 30 l-15 15 l-15 -15 q-15 -15 0 -30z' opacity='0.5'/><circle cx='150' cy='150' r='3' fill='%23c96442' fill-opacity='0.12'/><circle cx='90' cy='60' r='2.5' fill='%23c96442' fill-opacity='0.12'/><path d='M210 40 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/><path d='M20 210 h20 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-14 l-6 6 v-10 a4 4 0 0 1 0 -14z'/></g></svg>");
   background-size: 220px 220px;
   background-repeat: repeat;
 }
 .dark .chat-pattern,
 [data-theme="dark"] .chat-pattern {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%23a9d1ff' stroke-opacity='0.08' stroke-width='1.5'><circle cx='30' cy='40' r='6'/><circle cx='200' cy='90' r='4'/><circle cx='60' cy='180' r='5'/><path d='M110 30 q10 -8 20 0 q10 8 0 18 l-10 10 l-10 -10 q-10 -10 0 -18z'/><path d='M170 200 l4 -10 l4 10 l10 2 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6z'/><path d='M40 100 q15 -15 30 0 q15 15 0 30 l-15 15 l-15 -15 q-15 -15 0 -30z' opacity='0.5'/><circle cx='150' cy='150' r='3' fill='%23a9d1ff' fill-opacity='0.1'/><circle cx='90' cy='60' r='2.5' fill='%23a9d1ff' fill-opacity='0.1'/><path d='M210 40 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/><path d='M20 210 h20 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-14 l-6 6 v-10 a4 4 0 0 1 0 -14z'/></g></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='%23f3b58a' stroke-opacity='0.09' stroke-width='1.5'><circle cx='30' cy='40' r='6'/><circle cx='200' cy='90' r='4'/><circle cx='60' cy='180' r='5'/><path d='M110 30 q10 -8 20 0 q10 8 0 18 l-10 10 l-10 -10 q-10 -10 0 -18z'/><path d='M170 200 l4 -10 l4 10 l10 2 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6z'/><path d='M40 100 q15 -15 30 0 q15 15 0 30 l-15 15 l-15 -15 q-15 -15 0 -30z' opacity='0.5'/><circle cx='150' cy='150' r='3' fill='%23f3b58a' fill-opacity='0.11'/><circle cx='90' cy='60' r='2.5' fill='%23f3b58a' fill-opacity='0.11'/><path d='M210 40 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/><path d='M20 210 h20 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-14 l-6 6 v-10 a4 4 0 0 1 0 -14z'/></g></svg>");
 }
 
 /* WhatsApp-style bubble tails */

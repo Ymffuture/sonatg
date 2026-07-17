@@ -3,8 +3,9 @@ import {
   Search, MoreVertical, Paperclip, Smile, Send, Mic, ArrowLeft, Moon, Sun,
   Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
   Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
-  Ban, UserX,
+  Ban, Reply, Pencil, Crown, Users, Bell,
 } from "lucide-react";
+
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -92,6 +93,9 @@ export default function SonaChat() {
   const [summary, setSummary] = useState<string | null>(null);
   const [needsUnlock, setNeedsUnlock] = useState(false);
   const [decrypted, setDecrypted] = useState<Record<string, string>>({});
+  const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
+  const [editing, setEditing] = useState<MessageRow | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -310,7 +314,28 @@ export default function SonaChat() {
 
   // Send
   const send = async () => {
-    if (!me || !activeId || (!draft.trim() && !pendingImage)) return;
+    if (!me || !activeId) return;
+
+    // Editing existing text message
+    if (editing) {
+      const newText = draft.trim();
+      if (!newText) return;
+      let body: string | null = newText;
+      if (active?.is_hidden && isUnlocked(activeId)) {
+        const enc = await encryptBody(activeId, newText);
+        if (enc) body = enc;
+      }
+      const { error } = await supabase
+        .from("messages")
+        .update({ body, edited_at: new Date().toISOString() })
+        .eq("id", editing.id).eq("sender_id", me.id);
+      if (error) { toast.error(error.message); return; }
+      setMessages((prev) => prev.map((m) => m.id === editing.id ? { ...m, body, edited_at: new Date().toISOString() } : m));
+      setEditing(null); setDraft(""); setShowEmoji(false);
+      return;
+    }
+
+    if (!draft.trim() && !pendingImage) return;
     let media_url: string | null = null;
     let kind: "text" | "image" = "text";
 
@@ -333,12 +358,13 @@ export default function SonaChat() {
 
     const { error } = await supabase.from("messages").insert({
       chat_id: activeId, sender_id: me.id, kind, body, media_url, is_encrypted,
+      reply_to_id: replyTo?.id ?? null,
     });
     if (error) { toast.error(error.message); return; }
 
     const prompt = plaintext;
     const attachedImageUrl = media_url;
-    setDraft(""); setPendingImage(null); setShowEmoji(false);
+    setDraft(""); setPendingImage(null); setShowEmoji(false); setReplyTo(null);
 
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
@@ -350,7 +376,15 @@ export default function SonaChat() {
     }
   };
 
+  const startEdit = (m: MessageRow) => {
+    if (m.sender_id !== me?.id || m.kind !== "text") return;
+    const text = m.is_encrypted ? (decrypted[m.id] ?? "") : (m.body ?? "");
+    setEditing(m); setDraft(text); setReplyTo(null);
+  };
+  const startReply = (m: MessageRow) => { setReplyTo(m); setEditing(null); };
+
   const onPickFile = (f?: File | null) => { if (f) setPendingImage(f); };
+
 
   const toggleReaction = async (messageId: string, emoji: string) => {
     if (!me) return;
@@ -578,6 +612,11 @@ export default function SonaChat() {
                       const overrideBody = m.is_encrypted
                         ? (decrypted[m.id] ?? "🔒 Locked message — unlock this chat to read")
                         : undefined;
+                      const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
+                      const parentBody = parentMsg
+                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? "📷 Photo" : parentMsg.kind === "voice" ? "🎤 Voice note" : "")))
+                        : undefined;
+                      const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
                       return (
                         <Bubble
                           key={m.id}
@@ -593,9 +632,14 @@ export default function SonaChat() {
                           grouped={!!groupWithPrev}
                           overrideBody={overrideBody}
                           onDelete={() => deleteMessage(m.id)}
+                          onReply={() => startReply(m)}
+                          onEdit={() => startEdit(m)}
+                          parentName={parentName}
+                          parentBody={parentBody}
                         />
                       );
                     })}
+
                     {typingNames.length > 0 && (
                       <div className="flex items-end gap-2 mt-1">
                         <div className="rounded-2xl rounded-bl-md bg-bubble-them text-bubble-them-foreground shadow-bubble px-3 py-2.5 flex items-center gap-1">
@@ -608,7 +652,26 @@ export default function SonaChat() {
                   </div>
                 </div>
 
+                {(replyTo || editing) && (
+                  <div className="border-t bg-card px-3 py-2 md:px-6">
+                    <div className="mx-auto flex max-w-3xl items-center gap-3">
+                      <div className="flex-1 rounded-lg border-l-2 border-skyblue-deep bg-secondary/60 px-3 py-1.5 text-xs">
+                        <div className="font-semibold text-skyblue-deep flex items-center gap-1">
+                          {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
+                        </div>
+                        <div className="truncate opacity-80">
+                          {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? "📷 Photo" : replyTo?.kind === "voice" ? "🎤 Voice note" : ""))}
+                        </div>
+                      </div>
+                      <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-secondary" aria-label="Cancel">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {pendingImage && (
+
                   <div className="border-t bg-card px-3 py-2 md:px-6">
                     <div className="mx-auto flex max-w-3xl items-center gap-3">
                       <img src={URL.createObjectURL(pendingImage)} alt="" className="h-14 w-14 rounded-lg object-cover" />
@@ -710,13 +773,16 @@ function TickIcon({ status, className }: { status: ReadStatus; className?: strin
 
 function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped,
-  overrideBody, onDelete,
+  overrideBody, onDelete, onReply, onEdit, parentName, parentBody,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
   onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean;
   overrideBody?: string; onDelete: () => void;
+  onReply: () => void; onEdit: () => void;
+  parentName?: string; parentBody?: string;
 }) {
+
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
   const counts: Record<string, number> = {};
@@ -738,6 +804,12 @@ function Bubble({
               {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
             </div>
           )}
+          {parentBody !== undefined && (
+            <div className={`mb-1.5 rounded-lg border-l-2 border-skyblue-deep px-2 py-1 text-[11px] ${mine ? "bg-black/5" : "bg-black/5 dark:bg-white/5"}`}>
+              <div className="font-semibold text-skyblue-deep">{parentName}</div>
+              <div className="truncate opacity-80 max-w-[240px]">{parentBody}</div>
+            </div>
+          )}
           {msg.kind === "image" && msg.media_url && (
             <img src={msg.media_url} alt="" loading="lazy" className="mb-1 max-h-72 w-full rounded-xl object-cover" />
           )}
@@ -746,25 +818,30 @@ function Bubble({
           )}
           {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{overrideBody ?? msg.body}</p>}
           <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] opacity-70">
+            {msg.edited_at && <span className="italic">edited</span>}
             <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
-          {mine && (
-            <button
-              onClick={onDelete}
-              className={`absolute -left-8 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100 text-destructive`}
-              aria-label="Delete for everyone"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
+          {/* Hover action rail */}
+          <div className={`absolute ${mine ? "-left-2 -translate-x-full" : "-right-2 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition group-hover:opacity-100`}>
+            <button onClick={onReply} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="Reply">
+              <Reply className="h-3.5 w-3.5" />
             </button>
-          )}
-          <button
-            onClick={onOpenPicker}
-            className={`absolute ${mine ? "-left-8" : "-right-8"} top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100`}
-            aria-label="React"
-          >
-            <SmilePlus className="h-3.5 w-3.5" />
-          </button>
+            <button onClick={onOpenPicker} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="React">
+              <SmilePlus className="h-3.5 w-3.5" />
+            </button>
+            {mine && msg.kind === "text" && (
+              <button onClick={onEdit} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="Edit">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {mine && (
+              <button onClick={onDelete} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow text-destructive" aria-label="Delete">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           {opening && (
             <div className={`absolute -top-10 ${mine ? "right-0" : "left-0"} z-10 flex gap-1 rounded-full border bg-popover px-2 py-1 shadow-lg`}>
               {REACT_EMOJIS.map((e) => (
@@ -915,25 +992,29 @@ function Composer({
 }
 
 function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () => void; onCreated: (id: string) => void }) {
-  const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState("");
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const create = async () => {
-    const target = email.trim().toLowerCase();
-    if (!target) return;
-    setBusy(true);
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.from("profiles").select("*").neq("id", meId).order("display_name", { ascending: true }).limit(200);
+      if (error) toast.error(error.message);
+      setUsers((data ?? []) as Profile[]);
+      setLoading(false);
+    })();
+  }, [meId]);
+
+  const filtered = users.filter((u) => {
+    const s = q.trim().toLowerCase();
+    if (!s) return true;
+    return (u.display_name ?? "").toLowerCase().includes(s) || (u.email ?? "").toLowerCase().includes(s);
+  });
+
+  const startWith = async (prof: Profile) => {
+    setBusyId(prof.id);
     try {
-      const { data: prof, error: pErr } = await supabase.from("profiles").select("*").eq("email", target).maybeSingle();
-      if (pErr) throw pErr;
-      if (!prof) {
-        const subject = encodeURIComponent("Join me on Sona — talk gold");
-        const body = encodeURIComponent(`Hey! I'm on Sona. Sign up with this email (${target}) at ${window.location.origin}/auth and we'll be connected automatically.`);
-        window.location.href = `mailto:${target}?subject=${subject}&body=${body}`;
-        toast.info("No Sona user yet — we opened an invite email for you.");
-        return;
-      }
-      if (prof.id === meId) { toast.error("That's you 🙂"); return; }
-
       const { data: myChats } = await supabase.from("chat_members").select("chat_id").eq("user_id", meId);
       const ids = (myChats ?? []).map((r: { chat_id: string }) => r.chat_id);
       if (ids.length) {
@@ -944,7 +1025,6 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
           if (count === 2) { onCreated(cid); return; }
         }
       }
-
       const { data: chat, error: cErr } = await supabase.from("chats").insert({ is_group: false, created_by: meId }).select().single();
       if (cErr) throw cErr;
       const { error: mErr } = await supabase.from("chat_members").insert([
@@ -954,24 +1034,44 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
       if (mErr) throw mErr;
       onCreated(chat.id);
     } catch (e) { toast.error((e as Error).message); }
-    finally { setBusy(false); }
+    finally { setBusyId(null); }
   };
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2">
-          <Plus className="h-4 w-4 text-skyblue-deep" />
-          <h3 className="text-base font-semibold">Start a new chat</h3>
+          <Users className="h-4 w-4 text-skyblue-deep" />
+          <h3 className="text-base font-semibold">Choose a friend</h3>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">Enter a Sona user's email to connect.</p>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="friend@example.com"
-          className="mt-4 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
-          <button disabled={busy} onClick={create} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
-            {busy ? "…" : "Start"}
-          </button>
+        <p className="mt-1 text-xs text-muted-foreground">Pick from Sona users or search by name / email.</p>
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none" />
+        </div>
+        <div className="scrollbar-thin mt-3 max-h-80 overflow-y-auto rounded-xl border">
+          {loading ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">No users found</div>
+          ) : filtered.map((u) => (
+            <button key={u.id} disabled={busyId === u.id} onClick={() => startWith(u)}
+              className="flex w-full items-center gap-3 border-b p-3 text-left last:border-0 hover:bg-secondary/60 disabled:opacity-60">
+              <Avatar url={u.avatar_url} name={u.display_name} size={38} ai={u.is_ai} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="truncate text-sm font-semibold">{u.display_name}</div>
+                  {u.is_ai && <Sparkles className="h-3 w-3 text-skyblue-deep" />}
+                  {u.is_pro && <Crown className="h-3 w-3 text-skyblue-deep" />}
+                </div>
+                <div className="truncate text-xs text-muted-foreground">{u.email}</div>
+              </div>
+              {busyId === u.id ? <span className="text-xs text-muted-foreground">…</span> : <Plus className="h-4 w-4 text-skyblue-deep" />}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Close</button>
         </div>
       </div>
     </div>
@@ -979,8 +1079,10 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
 }
 
 function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
+  const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
   const [busy, setBusy] = useState(false);
+  const [notif, setNotif] = useState<NotificationPermission>(typeof Notification !== "undefined" ? Notification.permission : "default");
 
   const save = async () => {
     setBusy(true);
@@ -996,30 +1098,112 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
 
+  const upgrade = async () => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ is_pro: true }).eq("id", me.id);
+      if (error) throw error;
+      onSaved({ ...me, is_pro: true });
+      toast.success("Welcome to Sona Pro ✨");
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const askNotif = async () => {
+    if (typeof Notification === "undefined") return;
+    const p = await Notification.requestPermission();
+    setNotif(p);
+  };
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 mb-3">
+      <div className="w-full max-w-md rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-4">
           <Settings className="h-4 w-4 text-skyblue-deep" />
           <h3 className="text-base font-semibold">Settings</h3>
+          {me.is_pro && <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-skyblue/30 px-2 py-0.5 text-[10px] font-semibold text-skyblue-deep"><Crown className="h-3 w-3" /> Pro</span>}
         </div>
-        <label className="text-xs text-muted-foreground">Display name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
-        <p className="mt-3 text-xs text-muted-foreground">Signed in as {me.email}</p>
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-destructive hover:bg-secondary">Sign out</button>
-          <div className="flex gap-2">
-            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
-            <button disabled={busy} onClick={save} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
-              {busy ? "…" : "Save"}
+        <div className="mb-4 flex gap-1 rounded-xl bg-secondary p-1 text-xs">
+          {(["profile", "advanced", "subscription"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 rounded-lg px-2 py-1.5 capitalize ${tab === t ? "bg-card font-semibold shadow" : "text-muted-foreground"}`}>
+              {t}
             </button>
+          ))}
+        </div>
+
+        {tab === "profile" && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Display name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <p className="text-xs text-muted-foreground">Signed in as {me.email}</p>
+          </div>
+        )}
+
+        {tab === "advanced" && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border p-3">
+              <div className="flex items-center gap-2 font-semibold"><Bell className="h-4 w-4 text-skyblue-deep" /> Push notifications</div>
+              <p className="mt-1 text-xs text-muted-foreground">Status: {notif}</p>
+              {notif !== "granted" && (
+                <button onClick={askNotif} className="mt-2 rounded-lg bg-secondary px-3 py-1.5 text-xs hover:bg-secondary/80">Enable</button>
+              )}
+            </div>
+            <div className="rounded-xl border p-3">
+              <div className="flex items-center gap-2 font-semibold"><Shield className="h-4 w-4 text-skyblue-deep" /> Security</div>
+              <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                <li>• End-to-end AES-GCM encryption for hidden chats</li>
+                <li>• Passcodes never leave your device</li>
+                <li>• Row-level security on every message</li>
+              </ul>
+            </div>
+            <div className="rounded-xl border p-3">
+              <div className="flex items-center gap-2 font-semibold"><Lock className="h-4 w-4 text-skyblue-deep" /> Hidden chats</div>
+              <p className="mt-1 text-xs text-muted-foreground">Toggle "Hide & encrypt" from the chat menu to store messages encrypted at rest.</p>
+            </div>
+          </div>
+        )}
+
+        {tab === "subscription" && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-2xl border bg-gradient-to-br from-skyblue/40 to-skyblue-deep/20 p-4">
+              <div className="flex items-center gap-2 font-semibold"><Crown className="h-4 w-4 text-skyblue-deep" /> Sona Pro</div>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>✨ Unlimited AI chat summaries</li>
+                <li>🖼️ Vision — Sona reads your images</li>
+                <li>🔒 Unlimited hidden encrypted chats</li>
+                <li>🎨 Premium themes</li>
+              </ul>
+              {me.is_pro ? (
+                <div className="mt-3 text-xs text-skyblue-deep font-semibold">You're a Pro member 💛</div>
+              ) : (
+                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+                  Upgrade to Pro
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center justify-between gap-2 border-t pt-4">
+          <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-destructive hover:bg-secondary flex items-center gap-1"><LogOut className="h-3.5 w-3.5" /> Sign out</button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Close</button>
+            {tab === "profile" && (
+              <button disabled={busy} onClick={save} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+                {busy ? "…" : "Save"}
+              </button>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; onUnlocked: () => void; onCancel: () => void }) {
   const [pass, setPass] = useState("");

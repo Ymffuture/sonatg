@@ -19,7 +19,10 @@ export type MessageRow = {
   duration_ms: number | null;
   created_at: string;
   is_encrypted?: boolean;
+  reply_to_id?: string | null;
+  edited_at?: string | null;
 };
+
 
 export type ChatRow = {
   id: string;
