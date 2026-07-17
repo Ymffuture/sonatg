@@ -992,25 +992,29 @@ function Composer({
 }
 
 function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () => void; onCreated: (id: string) => void }) {
-  const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState("");
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const create = async () => {
-    const target = email.trim().toLowerCase();
-    if (!target) return;
-    setBusy(true);
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.from("profiles").select("*").neq("id", meId).order("display_name", { ascending: true }).limit(200);
+      if (error) toast.error(error.message);
+      setUsers((data ?? []) as Profile[]);
+      setLoading(false);
+    })();
+  }, [meId]);
+
+  const filtered = users.filter((u) => {
+    const s = q.trim().toLowerCase();
+    if (!s) return true;
+    return (u.display_name ?? "").toLowerCase().includes(s) || (u.email ?? "").toLowerCase().includes(s);
+  });
+
+  const startWith = async (prof: Profile) => {
+    setBusyId(prof.id);
     try {
-      const { data: prof, error: pErr } = await supabase.from("profiles").select("*").eq("email", target).maybeSingle();
-      if (pErr) throw pErr;
-      if (!prof) {
-        const subject = encodeURIComponent("Join me on Sona — talk gold");
-        const body = encodeURIComponent(`Hey! I'm on Sona. Sign up with this email (${target}) at ${window.location.origin}/auth and we'll be connected automatically.`);
-        window.location.href = `mailto:${target}?subject=${subject}&body=${body}`;
-        toast.info("No Sona user yet — we opened an invite email for you.");
-        return;
-      }
-      if (prof.id === meId) { toast.error("That's you 🙂"); return; }
-
       const { data: myChats } = await supabase.from("chat_members").select("chat_id").eq("user_id", meId);
       const ids = (myChats ?? []).map((r: { chat_id: string }) => r.chat_id);
       if (ids.length) {
@@ -1021,7 +1025,6 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
           if (count === 2) { onCreated(cid); return; }
         }
       }
-
       const { data: chat, error: cErr } = await supabase.from("chats").insert({ is_group: false, created_by: meId }).select().single();
       if (cErr) throw cErr;
       const { error: mErr } = await supabase.from("chat_members").insert([
@@ -1031,24 +1034,44 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
       if (mErr) throw mErr;
       onCreated(chat.id);
     } catch (e) { toast.error((e as Error).message); }
-    finally { setBusy(false); }
+    finally { setBusyId(null); }
   };
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2">
-          <Plus className="h-4 w-4 text-skyblue-deep" />
-          <h3 className="text-base font-semibold">Start a new chat</h3>
+          <Users className="h-4 w-4 text-skyblue-deep" />
+          <h3 className="text-base font-semibold">Choose a friend</h3>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">Enter a Sona user's email to connect.</p>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="friend@example.com"
-          className="mt-4 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
-          <button disabled={busy} onClick={create} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
-            {busy ? "…" : "Start"}
-          </button>
+        <p className="mt-1 text-xs text-muted-foreground">Pick from Sona users or search by name / email.</p>
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3 py-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none" />
+        </div>
+        <div className="scrollbar-thin mt-3 max-h-80 overflow-y-auto rounded-xl border">
+          {loading ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">No users found</div>
+          ) : filtered.map((u) => (
+            <button key={u.id} disabled={busyId === u.id} onClick={() => startWith(u)}
+              className="flex w-full items-center gap-3 border-b p-3 text-left last:border-0 hover:bg-secondary/60 disabled:opacity-60">
+              <Avatar url={u.avatar_url} name={u.display_name} size={38} ai={u.is_ai} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="truncate text-sm font-semibold">{u.display_name}</div>
+                  {u.is_ai && <Sparkles className="h-3 w-3 text-skyblue-deep" />}
+                  {u.is_pro && <Crown className="h-3 w-3 text-skyblue-deep" />}
+                </div>
+                <div className="truncate text-xs text-muted-foreground">{u.email}</div>
+              </div>
+              {busyId === u.id ? <span className="text-xs text-muted-foreground">…</span> : <Plus className="h-4 w-4 text-skyblue-deep" />}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Close</button>
         </div>
       </div>
     </div>
@@ -1056,8 +1079,10 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
 }
 
 function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
+  const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
   const [busy, setBusy] = useState(false);
+  const [notif, setNotif] = useState<NotificationPermission>(typeof Notification !== "undefined" ? Notification.permission : "default");
 
   const save = async () => {
     setBusy(true);
@@ -1073,30 +1098,112 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
 
+  const upgrade = async () => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ is_pro: true }).eq("id", me.id);
+      if (error) throw error;
+      onSaved({ ...me, is_pro: true });
+      toast.success("Welcome to Sona Pro ✨");
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const askNotif = async () => {
+    if (typeof Notification === "undefined") return;
+    const p = await Notification.requestPermission();
+    setNotif(p);
+  };
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 mb-3">
+      <div className="w-full max-w-md rounded-2xl border bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-4">
           <Settings className="h-4 w-4 text-skyblue-deep" />
           <h3 className="text-base font-semibold">Settings</h3>
+          {me.is_pro && <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-skyblue/30 px-2 py-0.5 text-[10px] font-semibold text-skyblue-deep"><Crown className="h-3 w-3" /> Pro</span>}
         </div>
-        <label className="text-xs text-muted-foreground">Display name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
-        <p className="mt-3 text-xs text-muted-foreground">Signed in as {me.email}</p>
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-destructive hover:bg-secondary">Sign out</button>
-          <div className="flex gap-2">
-            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Cancel</button>
-            <button disabled={busy} onClick={save} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
-              {busy ? "…" : "Save"}
+        <div className="mb-4 flex gap-1 rounded-xl bg-secondary p-1 text-xs">
+          {(["profile", "advanced", "subscription"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 rounded-lg px-2 py-1.5 capitalize ${tab === t ? "bg-card font-semibold shadow" : "text-muted-foreground"}`}>
+              {t}
             </button>
+          ))}
+        </div>
+
+        {tab === "profile" && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Display name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded-xl bg-secondary px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <p className="text-xs text-muted-foreground">Signed in as {me.email}</p>
+          </div>
+        )}
+
+        {tab === "advanced" && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border p-3">
+              <div className="flex items-center gap-2 font-semibold"><Bell className="h-4 w-4 text-skyblue-deep" /> Push notifications</div>
+              <p className="mt-1 text-xs text-muted-foreground">Status: {notif}</p>
+              {notif !== "granted" && (
+                <button onClick={askNotif} className="mt-2 rounded-lg bg-secondary px-3 py-1.5 text-xs hover:bg-secondary/80">Enable</button>
+              )}
+            </div>
+            <div className="rounded-xl border p-3">
+              <div className="flex items-center gap-2 font-semibold"><Shield className="h-4 w-4 text-skyblue-deep" /> Security</div>
+              <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                <li>• End-to-end AES-GCM encryption for hidden chats</li>
+                <li>• Passcodes never leave your device</li>
+                <li>• Row-level security on every message</li>
+              </ul>
+            </div>
+            <div className="rounded-xl border p-3">
+              <div className="flex items-center gap-2 font-semibold"><Lock className="h-4 w-4 text-skyblue-deep" /> Hidden chats</div>
+              <p className="mt-1 text-xs text-muted-foreground">Toggle "Hide & encrypt" from the chat menu to store messages encrypted at rest.</p>
+            </div>
+          </div>
+        )}
+
+        {tab === "subscription" && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-2xl border bg-gradient-to-br from-skyblue/40 to-skyblue-deep/20 p-4">
+              <div className="flex items-center gap-2 font-semibold"><Crown className="h-4 w-4 text-skyblue-deep" /> Sona Pro</div>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>✨ Unlimited AI chat summaries</li>
+                <li>🖼️ Vision — Sona reads your images</li>
+                <li>🔒 Unlimited hidden encrypted chats</li>
+                <li>🎨 Premium themes</li>
+              </ul>
+              {me.is_pro ? (
+                <div className="mt-3 text-xs text-skyblue-deep font-semibold">You're a Pro member 💛</div>
+              ) : (
+                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+                  Upgrade to Pro
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center justify-between gap-2 border-t pt-4">
+          <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-destructive hover:bg-secondary flex items-center gap-1"><LogOut className="h-3.5 w-3.5" /> Sign out</button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-secondary">Close</button>
+            {tab === "profile" && (
+              <button disabled={busy} onClick={save} className="rounded-xl bg-gradient-to-br from-skyblue to-skyblue-deep px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+                {busy ? "…" : "Save"}
+              </button>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; onUnlocked: () => void; onCancel: () => void }) {
   const [pass, setPass] = useState("");
