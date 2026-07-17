@@ -90,35 +90,36 @@
 .dark {
   --background: var(--charcoal);
   --foreground: var(--milky);
-  --card: oklch(0.28 0.014 250);
+  --card: oklch(0.27 0.014 60);
   --card-foreground: var(--milky);
-  --popover: oklch(0.28 0.014 250);
+  --popover: oklch(0.27 0.014 60);
   --popover-foreground: var(--milky);
 
   --primary: var(--skyblue);
   --primary-foreground: var(--charcoal);
-  --secondary: oklch(0.3 0.014 250);
+  --secondary: oklch(0.3 0.016 60);
   --secondary-foreground: var(--milky);
-  --muted: oklch(0.3 0.014 250);
-  --muted-foreground: oklch(0.72 0.02 240);
+  --muted: oklch(0.3 0.016 60);
+  --muted-foreground: oklch(0.72 0.02 65);
   --accent: var(--skyblue-deep);
   --accent-foreground: var(--milky);
-  --border: oklch(0.35 0.015 250);
-  --input: oklch(0.32 0.015 250);
+  --border: oklch(0.35 0.018 60);
+  --input: oklch(0.32 0.016 60);
   --ring: var(--skyblue);
 
-  --sidebar: oklch(0.2 0.012 250);
+  --sidebar: oklch(0.19 0.012 60);
   --sidebar-foreground: var(--milky);
 
-  --chat-bg: oklch(0.17 0.014 245);
-  --bubble-me: oklch(0.32 0.06 230);
+  --chat-bg: oklch(0.17 0.016 55);
+  --bubble-me: oklch(0.38 0.09 45);
   --bubble-me-foreground: var(--milky);
-  --bubble-them: oklch(0.26 0.012 250);
+  --bubble-them: oklch(0.26 0.014 60);
   --bubble-them-foreground: var(--milky);
-  --tick-read: oklch(0.78 0.12 225);
+  --tick-read: oklch(0.78 0.13 55);
 
   --shadow-bubble: 0 1px 1px oklch(0 0 0 / 0.35);
 }
+
 
 @layer base {
   * { border-color: var(--color-border); }
