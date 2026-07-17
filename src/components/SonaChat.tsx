@@ -3,8 +3,9 @@ import {
   Search, MoreVertical, Paperclip, Smile, Send, Mic, ArrowLeft, Moon, Sun,
   Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
   Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
-  Ban, UserX,
+  Ban, Reply, Pencil, Crown, Users, Bell,
 } from "lucide-react";
+
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
