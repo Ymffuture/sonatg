@@ -785,6 +785,12 @@ function Bubble({
               {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
             </div>
           )}
+          {parentBody !== undefined && (
+            <div className={`mb-1.5 rounded-lg border-l-2 border-skyblue-deep px-2 py-1 text-[11px] ${mine ? "bg-black/5" : "bg-black/5 dark:bg-white/5"}`}>
+              <div className="font-semibold text-skyblue-deep">{parentName}</div>
+              <div className="truncate opacity-80 max-w-[240px]">{parentBody}</div>
+            </div>
+          )}
           {msg.kind === "image" && msg.media_url && (
             <img src={msg.media_url} alt="" loading="lazy" className="mb-1 max-h-72 w-full rounded-xl object-cover" />
           )}
@@ -793,25 +799,30 @@ function Bubble({
           )}
           {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{overrideBody ?? msg.body}</p>}
           <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] opacity-70">
+            {msg.edited_at && <span className="italic">edited</span>}
             <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
-          {mine && (
-            <button
-              onClick={onDelete}
-              className={`absolute -left-8 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100 text-destructive`}
-              aria-label="Delete for everyone"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
+          {/* Hover action rail */}
+          <div className={`absolute ${mine ? "-left-2 -translate-x-full" : "-right-2 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition group-hover:opacity-100`}>
+            <button onClick={onReply} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="Reply">
+              <Reply className="h-3.5 w-3.5" />
             </button>
-          )}
-          <button
-            onClick={onOpenPicker}
-            className={`absolute ${mine ? "-left-8" : "-right-8"} top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-card border shadow opacity-0 transition group-hover:opacity-100`}
-            aria-label="React"
-          >
-            <SmilePlus className="h-3.5 w-3.5" />
-          </button>
+            <button onClick={onOpenPicker} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="React">
+              <SmilePlus className="h-3.5 w-3.5" />
+            </button>
+            {mine && msg.kind === "text" && (
+              <button onClick={onEdit} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="Edit">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {mine && (
+              <button onClick={onDelete} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow text-destructive" aria-label="Delete">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           {opening && (
             <div className={`absolute -top-10 ${mine ? "right-0" : "left-0"} z-10 flex gap-1 rounded-full border bg-popover px-2 py-1 shadow-lg`}>
               {REACT_EMOJIS.map((e) => (
