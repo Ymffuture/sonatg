@@ -314,7 +314,28 @@ export default function SonaChat() {
 
   // Send
   const send = async () => {
-    if (!me || !activeId || (!draft.trim() && !pendingImage)) return;
+    if (!me || !activeId) return;
+
+    // Editing existing text message
+    if (editing) {
+      const newText = draft.trim();
+      if (!newText) return;
+      let body: string | null = newText;
+      if (active?.is_hidden && isUnlocked(activeId)) {
+        const enc = await encryptBody(activeId, newText);
+        if (enc) body = enc;
+      }
+      const { error } = await supabase
+        .from("messages")
+        .update({ body, edited_at: new Date().toISOString() })
+        .eq("id", editing.id).eq("sender_id", me.id);
+      if (error) { toast.error(error.message); return; }
+      setMessages((prev) => prev.map((m) => m.id === editing.id ? { ...m, body, edited_at: new Date().toISOString() } : m));
+      setEditing(null); setDraft(""); setShowEmoji(false);
+      return;
+    }
+
+    if (!draft.trim() && !pendingImage) return;
     let media_url: string | null = null;
     let kind: "text" | "image" = "text";
 
@@ -337,12 +358,13 @@ export default function SonaChat() {
 
     const { error } = await supabase.from("messages").insert({
       chat_id: activeId, sender_id: me.id, kind, body, media_url, is_encrypted,
+      reply_to_id: replyTo?.id ?? null,
     });
     if (error) { toast.error(error.message); return; }
 
     const prompt = plaintext;
     const attachedImageUrl = media_url;
-    setDraft(""); setPendingImage(null); setShowEmoji(false);
+    setDraft(""); setPendingImage(null); setShowEmoji(false); setReplyTo(null);
 
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
@@ -354,7 +376,14 @@ export default function SonaChat() {
     }
   };
 
-  const onPickFile = (f?: File | null) => { if (f) setPendingImage(f); };
+  const startEdit = (m: MessageRow) => {
+    if (m.sender_id !== me?.id || m.kind !== "text") return;
+    const text = m.is_encrypted ? (decrypted[m.id] ?? "") : (m.body ?? "");
+    setEditing(m); setDraft(text); setReplyTo(null);
+  };
+  const startReply = (m: MessageRow) => { setReplyTo(m); setEditing(null); };
+
+
 
   const toggleReaction = async (messageId: string, emoji: string) => {
     if (!me) return;
