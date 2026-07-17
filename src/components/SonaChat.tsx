@@ -383,6 +383,7 @@ export default function SonaChat() {
   };
   const startReply = (m: MessageRow) => { setReplyTo(m); setEditing(null); };
 
+  const onPickFile = (f?: File | null) => { if (f) setPendingImage(f); };
 
 
   const toggleReaction = async (messageId: string, emoji: string) => {
