@@ -612,6 +612,11 @@ export default function SonaChat() {
                       const overrideBody = m.is_encrypted
                         ? (decrypted[m.id] ?? "🔒 Locked message — unlock this chat to read")
                         : undefined;
+                      const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
+                      const parentBody = parentMsg
+                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? "📷 Photo" : parentMsg.kind === "voice" ? "🎤 Voice note" : "")))
+                        : undefined;
+                      const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
                       return (
                         <Bubble
                           key={m.id}
@@ -627,9 +632,14 @@ export default function SonaChat() {
                           grouped={!!groupWithPrev}
                           overrideBody={overrideBody}
                           onDelete={() => deleteMessage(m.id)}
+                          onReply={() => startReply(m)}
+                          onEdit={() => startEdit(m)}
+                          parentName={parentName}
+                          parentBody={parentBody}
                         />
                       );
                     })}
+
                     {typingNames.length > 0 && (
                       <div className="flex items-end gap-2 mt-1">
                         <div className="rounded-2xl rounded-bl-md bg-bubble-them text-bubble-them-foreground shadow-bubble px-3 py-2.5 flex items-center gap-1">
