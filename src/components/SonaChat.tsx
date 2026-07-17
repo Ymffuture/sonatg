@@ -93,6 +93,9 @@ export default function SonaChat() {
   const [summary, setSummary] = useState<string | null>(null);
   const [needsUnlock, setNeedsUnlock] = useState(false);
   const [decrypted, setDecrypted] = useState<Record<string, string>>({});
+  const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
+  const [editing, setEditing] = useState<MessageRow | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
