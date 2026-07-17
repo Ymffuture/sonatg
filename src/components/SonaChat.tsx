@@ -652,7 +652,26 @@ export default function SonaChat() {
                   </div>
                 </div>
 
+                {(replyTo || editing) && (
+                  <div className="border-t bg-card px-3 py-2 md:px-6">
+                    <div className="mx-auto flex max-w-3xl items-center gap-3">
+                      <div className="flex-1 rounded-lg border-l-2 border-skyblue-deep bg-secondary/60 px-3 py-1.5 text-xs">
+                        <div className="font-semibold text-skyblue-deep flex items-center gap-1">
+                          {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
+                        </div>
+                        <div className="truncate opacity-80">
+                          {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? "📷 Photo" : replyTo?.kind === "voice" ? "🎤 Voice note" : ""))}
+                        </div>
+                      </div>
+                      <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-secondary" aria-label="Cancel">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {pendingImage && (
+
                   <div className="border-t bg-card px-3 py-2 md:px-6">
                     <div className="mx-auto flex max-w-3xl items-center gap-3">
                       <img src={URL.createObjectURL(pendingImage)} alt="" className="h-14 w-14 rounded-lg object-cover" />
