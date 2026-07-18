@@ -95,6 +95,9 @@ export default function SonaChat() {
   const [decrypted, setDecrypted] = useState<Record<string, string>>({});
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
   const [editing, setEditing] = useState<MessageRow | null>(null);
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+  const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
+
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -273,6 +276,20 @@ export default function SonaChat() {
       setTypingOthers([]);
     };
   }, [me, activeId]);
+
+  // Global presence: who's online right now
+  useEffect(() => {
+    if (!me) return;
+    const chan = supabase.channel("sona-presence", { config: { presence: { key: me.id } } });
+    chan.on("presence", { event: "sync" }, () => {
+      const state = chan.presenceState() as Record<string, unknown[]>;
+      setOnlineIds(new Set(Object.keys(state)));
+    }).subscribe(async (status) => {
+      if (status === "SUBSCRIBED") await chan.track({ online_at: new Date().toISOString() });
+    });
+    return () => { supabase.removeChannel(chan); };
+  }, [me]);
+
 
   const sendTyping = useCallback(() => {
     const chan = typingChanRef.current;
@@ -488,15 +505,8 @@ export default function SonaChat() {
               </div>
             </div>
 
-            <div className="px-3 pb-2 flex items-center gap-2">
-              <Avatar url={me.avatar_url} name={me.display_name} size={36} />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{me.display_name}</div>
-                <div className="truncate text-[11px] text-muted-foreground">{me.email}</div>
-              </div>
-            </div>
-
             <div className="px-3 pb-2">
+
               <div className="flex items-center gap-2 rounded-full bg-secondary px-3 py-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats" className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
@@ -567,11 +577,25 @@ export default function SonaChat() {
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-skyblue-deep" />}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {typingNames.length > 0
-                        ? <span className="text-skyblue-deep">{typingNames.join(", ")} typing…</span>
-                        : isAIChat(active) ? "AI companion · always on" : `${active.members.length} members`}
+                      {typingNames.length > 0 ? (
+                        <span className="text-skyblue-deep">{typingNames.join(", ")} typing…</span>
+                      ) : isAIChat(active) ? (
+                        "AI companion · always on"
+                      ) : active.is_group ? (
+                        `${active.members.length} members`
+                      ) : (() => {
+                        const otherId = active.memberIds.find((id) => id !== me.id);
+                        const online = otherId ? onlineIds.has(otherId) : false;
+                        return online ? (
+                          <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> online</span>
+                        ) : (
+                          <span>offline · last seen recently</span>
+                        );
+                      })()}
                     </div>
                   </div>
+
+
                   <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Menu">
                     <MoreVertical className="h-4 w-4" />
                   </button>
@@ -636,7 +660,10 @@ export default function SonaChat() {
                           onEdit={() => startEdit(m)}
                           parentName={parentName}
                           parentBody={parentBody}
+                          actionsOpen={openBubbleId === m.id}
+                          onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
                         />
+
                       );
                     })}
 
@@ -773,7 +800,7 @@ function TickIcon({ status, className }: { status: ReadStatus; className?: strin
 
 function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped,
-  overrideBody, onDelete, onReply, onEdit, parentName, parentBody,
+  overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -781,7 +808,9 @@ function Bubble({
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: string;
+  actionsOpen: boolean; onToggleActions: () => void;
 }) {
+
 
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -794,11 +823,12 @@ function Bubble({
       {!mine && !grouped && <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />}
       {!mine && grouped && <div className="w-7 shrink-0" />}
       <div className="relative max-w-[78%]">
-        <div className={`relative px-3 py-2 text-sm shadow-bubble ${
+        <div onClick={onToggleActions} className={`relative cursor-pointer px-3 py-2 text-sm shadow-bubble ${
           mine
             ? `bg-bubble-me text-bubble-me-foreground rounded-2xl ${grouped ? "rounded-br-2xl" : "rounded-br-sm"}`
             : `bg-bubble-them text-bubble-them-foreground rounded-2xl ${grouped ? "rounded-bl-2xl" : "rounded-bl-sm"}`
         }`}>
+
           {!mine && !grouped && (
             <div className="mb-0.5 text-[11px] font-semibold text-skyblue-deep flex items-center gap-1">
               {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
@@ -822,8 +852,9 @@ function Bubble({
             <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
-          {/* Hover action rail */}
-          <div className={`absolute ${mine ? "-left-2 -translate-x-full" : "-right-2 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition group-hover:opacity-100`}>
+          {/* Action rail: open on click (tap) or hover */}
+          <div className={`absolute ${mine ? "-left-2 -translate-x-full" : "-right-2 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-1 transition ${actionsOpen ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"}`}
+            onClick={(e) => e.stopPropagation()}>
             <button onClick={onReply} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="Reply">
               <Reply className="h-3.5 w-3.5" />
             </button>
@@ -841,6 +872,7 @@ function Bubble({
               </button>
             )}
           </div>
+
 
           {opening && (
             <div className={`absolute -top-10 ${mine ? "right-0" : "left-0"} z-10 flex gap-1 rounded-full border bg-popover px-2 py-1 shadow-lg`}>
