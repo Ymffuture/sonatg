@@ -595,9 +595,7 @@ export default function SonaChat() {
                     </div>
                   </div>
 
-                        : isAIChat(active) ? "AI companion · always on" : `${active.members.length} members`}
-                    </div>
-                  </div>
+
                   <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary" aria-label="Menu">
                     <MoreVertical className="h-4 w-4" />
                   </button>
