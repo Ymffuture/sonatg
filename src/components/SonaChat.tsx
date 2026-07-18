@@ -660,7 +660,10 @@ export default function SonaChat() {
                           onEdit={() => startEdit(m)}
                           parentName={parentName}
                           parentBody={parentBody}
+                          actionsOpen={openBubbleId === m.id}
+                          onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
                         />
+
                       );
                     })}
 
