@@ -1032,6 +1032,7 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
         { chat_id: chat.id, user_id: prof.id },
       ]);
       if (mErr) throw mErr;
+      toast.success(`Chat with ${prof.display_name} created`);
       onCreated(chat.id);
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusyId(null); }
