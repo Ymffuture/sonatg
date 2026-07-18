@@ -277,6 +277,20 @@ export default function SonaChat() {
     };
   }, [me, activeId]);
 
+  // Global presence: who's online right now
+  useEffect(() => {
+    if (!me) return;
+    const chan = supabase.channel("sona-presence", { config: { presence: { key: me.id } } });
+    chan.on("presence", { event: "sync" }, () => {
+      const state = chan.presenceState() as Record<string, unknown[]>;
+      setOnlineIds(new Set(Object.keys(state)));
+    }).subscribe(async (status) => {
+      if (status === "SUBSCRIBED") await chan.track({ online_at: new Date().toISOString() });
+    });
+    return () => { supabase.removeChannel(chan); };
+  }, [me]);
+
+
   const sendTyping = useCallback(() => {
     const chan = typingChanRef.current;
     if (!chan || !me) return;
