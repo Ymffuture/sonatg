@@ -95,6 +95,9 @@ export default function SonaChat() {
   const [decrypted, setDecrypted] = useState<Record<string, string>>({});
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
   const [editing, setEditing] = useState<MessageRow | null>(null);
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+  const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
+
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
