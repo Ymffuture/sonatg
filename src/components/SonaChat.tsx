@@ -1027,14 +1027,17 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
       }
       const { data: chat, error: cErr } = await supabase.from("chats").insert({ is_group: false, created_by: meId }).select().single();
       if (cErr) throw cErr;
-      const { error: mErr } = await supabase.from("chat_members").insert([
-        { chat_id: chat.id, user_id: meId },
-        { chat_id: chat.id, user_id: prof.id },
-      ]);
-      if (mErr) throw mErr;
+      // Insert self first so RLS sees us as a member before adding the friend.
+      const { error: m1 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: meId });
+      if (m1) throw m1;
+      const { error: m2 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: prof.id });
+      if (m2) throw m2;
       toast.success(`Chat with ${prof.display_name} created`);
       onCreated(chat.id);
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) {
+      console.error("startWith failed", e);
+      toast.error(`Couldn't start chat: ${(e as Error).message || "unknown error"}`);
+    }
     finally { setBusyId(null); }
   };
 
