@@ -3,7 +3,7 @@ import {
   Search, MoreVertical, Paperclip, Smile, Send, Mic, ArrowLeft, Moon, Sun,
   Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
   Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
-  Ban, Reply, Pencil, Crown, Users, Bell, Phone, Video, Camera,
+  Ban, Reply, Pencil, Crown, Users, Bell, Phone, Video, CheckSquare, Square,
 } from "lucide-react";
 
 import { useNavigate } from "@tanstack/react-router";
@@ -48,7 +48,7 @@ const REACT_EMOJIS = ["❤️","😂","👍","🔥","😮","🙏"];
 
 function Avatar({ url, name, size = 40, ai = false }: { url?: string | null; name: string; size?: number; ai?: boolean }) {
   if (ai) return <img src={sonaAi} alt="Sona AI" width={size} height={size} loading="lazy" style={{ width: size, height: size }} className="rounded-full object-cover shrink-0 bg-white" />;
-  const src = url || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=AEE4FF&textColor=1F2937`;
+  const src = url || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=F4A261&textColor=2D3436`;
   return <img src={src} alt={name} loading="lazy" style={{ width: size, height: size }} className="rounded-full object-cover shrink-0" />;
 }
 
@@ -97,6 +97,10 @@ export default function SonaChat() {
   const [editing, setEditing] = useState<MessageRow | null>(null);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
+
+  // Chat selection for bulk delete
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -253,7 +257,7 @@ export default function SonaChat() {
     return () => { supabase.removeChannel(channel); };
   }, [me, activeId, loadChats]);
 
-  // Typing indicator: subscribe to broadcast per active chat
+  // Typing indicator
   useEffect(() => {
     if (!me || !activeId) return;
     const chan = supabase.channel(`typing:${activeId}`, { config: { broadcast: { self: false } } });
@@ -274,7 +278,7 @@ export default function SonaChat() {
     };
   }, [me, activeId]);
 
-  // Global presence: who's online right now
+  // Global presence
   useEffect(() => {
     if (!me) return;
     const chan = supabase.channel("sona-presence", { config: { presence: { key: me.id } } });
@@ -293,7 +297,7 @@ export default function SonaChat() {
     chan.send({ type: "broadcast", event: "typing", payload: { user_id: me.id } });
   }, [me]);
 
-  // Auto-mark unread messages as read when active chat is open
+  // Auto-mark unread messages as read
   useEffect(() => {
     if (!me || !activeId || messages.length === 0) return;
     const toMark = messages.filter((m) => m.sender_id !== me.id).map((m) => m.id);
@@ -323,6 +327,33 @@ export default function SonaChat() {
     }
     return chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase());
   }), [chats, query, me, blockedIds]);
+
+  // Selection handlers
+  const toggleChatSelection = (chatId: string) => {
+    setSelectedChatIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(chatId)) next.delete(chatId);
+      else next.add(chatId);
+      return next;
+    });
+  };
+
+  const deleteSelectedChats = async () => {
+    if (!me || selectedChatIds.size === 0) return;
+    if (!confirm(`Delete ${selectedChatIds.size} chat(s)? This will remove you from these chats.`)) return;
+    for (const cid of selectedChatIds) {
+      await supabase.from("chat_members").delete().eq("chat_id", cid).eq("user_id", me.id);
+    }
+    setSelectedChatIds(new Set());
+    setSelectMode(false);
+    loadChats();
+    toast.success("Chats deleted");
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedChatIds(new Set());
+  };
 
   // Send
   const send = async () => {
@@ -379,7 +410,7 @@ export default function SonaChat() {
 
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
-      const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
+      const mentionsSona = /(^|\s)@sona/i.test(prompt);
       if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
         askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
           .catch((e) => toast.error(e.message));
@@ -393,6 +424,7 @@ export default function SonaChat() {
     setEditing(m); setDraft(text); setReplyTo(null);
   };
   const startReply = (m: MessageRow) => { setReplyTo(m); setEditing(null); };
+
   const onPickFile = (f?: File | null) => { if (f) setPendingImage(f); };
 
   const toggleReaction = async (messageId: string, emoji: string) => {
@@ -458,7 +490,7 @@ export default function SonaChat() {
   };
 
   if (!me) {
-    return <div className="grid min-h-dvh place-items-center text-muted-foreground bg-[#f0f2f5] dark:bg-[#0b141a]">Loading Sona…</div>;
+    return <div className="grid min-h-dvh place-items-center text-[#8C8C8C]">Loading Sona…</div>;
   }
 
   const typingNames = typingOthers
@@ -466,47 +498,62 @@ export default function SonaChat() {
     .filter(Boolean) as string[];
 
   return (
-    <div className="h-dvh w-full bg-[#f0f2f5] dark:bg-[#0b141a] text-foreground">
-      {/* WhatsApp Web top bar */}
-      <div className="h-[127px] w-full bg-skyblue-deep absolute top-0 left-0 z-0" />
-
-      <div className="relative z-10 mx-auto flex h-full max-w-[1600px] overflow-hidden p-0 md:p-4">
-        <div className="flex h-full w-full overflow-hidden rounded-none bg-white dark:bg-[#111b21] shadow-2xl md:rounded-none md:border border-[#d1d7db] dark:border-[#2a3942]">
+    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
+      <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
+        <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
           {/* Sidebar */}
-          <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#d1d7db] dark:border-[#2a3942] bg-[#f0f2f5] dark:bg-[#111b21] md:flex md:w-[380px] lg:w-[420px]`}>
-            {/* WhatsApp-style header */}
-            <div className="flex items-center justify-between gap-2 bg-[#f0f2f5] dark:bg-[#1f2c34] px-4 py-3 border-b border-[#d1d7db] dark:border-[#2a3942]">
-              <div className="flex items-center gap-3 min-w-0">
-                <Avatar url={me.avatar_url} name={me.display_name || "Me"} size={40} />
-                <span className="font-semibold text-[17px] truncate">{me.display_name || "Sona"}</span>
+          <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[340px] lg:w-[380px]`}>
+            {/* Header */}
+            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-[#E07A5F]">
+              <div className="flex items-center gap-2 min-w-0">
+                <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />
+                <div className="leading-tight min-w-0">
+                  <div className="text-base font-bold truncate text-white">Sona</div>
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/70">talk gold</div>
+                </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={toggle} className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[#54656f] dark:text-[#aebac1]" aria-label="Toggle theme">
-                  {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Toggle theme">
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
-                <button onClick={() => setShowSettings(true)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[#54656f] dark:text-[#aebac1]" aria-label="Settings">
-                  <Settings className="h-5 w-5" />
+                <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Settings">
+                  <Settings className="h-4 w-4" />
                 </button>
-                <button onClick={signOut} className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[#54656f] dark:text-[#aebac1]" aria-label="Sign out">
-                  <LogOut className="h-5 w-5" />
+                <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Sign out">
+                  <LogOut className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            {/* Search bar - WhatsApp style */}
-            <div className="px-3 py-2 bg-white dark:bg-[#111b21] border-b border-[#d1d7db] dark:border-[#2a3942]">
-              <div className="flex items-center gap-2 rounded-lg bg-[#f0f2f5] dark:bg-[#1f2c34] px-3 py-1.5">
-                <Search className="h-4 w-4 text-[#54656f] dark:text-[#8696a0]" />
-                <input 
-                  value={query} 
-                  onChange={(e) => setQuery(e.target.value)} 
-                  placeholder="Search or start new chat" 
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-[#54656f] dark:placeholder:text-[#8696a0] text-[#3b4a54] dark:text-[#d1d7db]" 
-                />
+            {/* Selection mode bar */}
+            {selectMode && (
+              <div className="flex items-center justify-between gap-2 px-4 py-2 bg-[#F4A261]/20 border-b border-[#E07A5F]/10">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#E07A5F]">
+                  <CheckSquare className="h-4 w-4" />
+                  {selectedChatIds.size} selected
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={deleteSelectedChats} disabled={selectedChatIds.size === 0}
+                    className="flex items-center gap-1 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-red-600 transition">
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                  <button onClick={exitSelectMode}
+                    className="rounded-lg bg-[#2D3436] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#3D4446] transition">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="px-3 pb-2 pt-2">
+              <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
+                <Search className="h-4 w-4 text-[#8C8C8C]" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats" 
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#111b21]">
+            <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
               {filtered.map((c) => {
                 const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
                 const last = c.lastMessage;
@@ -514,98 +561,89 @@ export default function SonaChat() {
                 const previewText = last?.kind === "image" ? "📷 Photo" : last?.kind === "voice" ? "🎤 Voice note" : (last?.body ?? "");
                 const isActive = c.id === activeId;
                 const ai = isAIChat(c);
-                const unread = c.unread;
-
+                const isSelected = selectedChatIds.has(c.id);
                 return (
-                  <button 
-                    key={c.id} 
-                    onClick={() => { setActiveId(c.id); setShowSidebarMobile(false); }}
-                    className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-[#f5f6f6] dark:hover:bg-[#202c33] ${isActive ? "bg-[#f5f6f6] dark:bg-[#2a3942]" : ""}`}
-                  >
+                  <div key={c.id} 
+                    onClick={() => {
+                      if (selectMode) {
+                        toggleChatSelection(c.id);
+                      } else {
+                        setActiveId(c.id); 
+                        setShowSidebarMobile(false);
+                      }
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (!selectMode) {
+                        setSelectMode(true);
+                        setSelectedChatIds(new Set([c.id]));
+                      }
+                    }}
+                    className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
+                    {selectMode && (
+                      <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
+                        {isSelected ? 
+                          <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> : 
+                          <Square className="h-5 w-5 text-[#8C8C8C]" />
+                        }
+                      </div>
+                    )}
                     <div className="relative shrink-0">
-                      <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={49} ai={ai} />
-                      {(() => {
-                        const otherId = c.memberIds.find((id) => id !== me.id);
-                        const online = otherId ? onlineIds.has(otherId) : false;
-                        return online ? (
-                          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#00a884] border-2 border-white dark:border-[#111b21]" />
-                        ) : null;
-                      })()}
+                      <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
+                      {!ai && c.unread > 0 && !selectMode && (
+                        <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
+                          {c.unread > 99 ? "99+" : c.unread}
+                        </span>
+                      )}
                     </div>
-                    <div className="min-w-0 flex-1 border-b border-[#e9edef] dark:border-[#222e35] pb-3 -mb-3">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-medium text-[17px] text-[#111b21] dark:text-[#e9edef]">{title}</span>
-                        <span className={`text-xs shrink-0 ${unread > 0 ? "text-[#00a884] font-semibold" : "text-[#667781] dark:text-[#8696a0]"}`}>
+                        <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{title}</span>
+                        <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
                           {last ? fmtTime(last.created_at) : ""}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#667781] dark:text-[#8696a0]">
-                          {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-4 w-4 shrink-0" />}
-                          <span className="truncate text-[14px]">{previewText}</span>
+                        <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
+                          {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
+                          <span className="truncate">{previewText}</span>
                         </div>
-                        {unread > 0 && (
-                          <span className="grid min-w-[20px] h-5 px-1.5 place-items-center rounded-full bg-[#00a884] text-white text-xs font-semibold shrink-0">
-                            {unread > 99 ? "99+" : unread}
-                          </span>
-                        )}
+                        {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
-              {filtered.length === 0 && (
-                <div className="p-6 text-center text-sm text-[#667781] dark:text-[#8696a0]">
-                  No chats yet. Tap + to start one.
-                </div>
-              )}
+              {filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
             </div>
 
             {/* Floating New-Chat FAB */}
             <button
               onClick={() => setShowNewChat(true)}
               aria-label="New chat"
-              className="absolute bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-[#00a884] text-white shadow-lg transition hover:scale-105 active:scale-95"
+              className="absolute bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
             >
               <MessageSquarePlus className="h-6 w-6" />
             </button>
           </aside>
 
           {/* Chat panel */}
-          <section className={`${showSidebarMobile ? "hidden" : "flex"} h-full min-w-0 flex-1 flex-col bg-[#efeae2] dark:bg-[#0b141a] md:flex relative`}>
+          <section className={`${showSidebarMobile ? "hidden" : "flex"} h-full min-w-0 flex-1 flex-col md:flex bg-[#F0EBE3] dark:bg-[#1A1A1A]`}>
             {active ? (
               <>
-                {/* Chat background pattern */}
-                <div 
-                  className="absolute inset-0 opacity-40 dark:opacity-20 pointer-events-none"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='600' height='600' viewBox='0 0 600 600' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                    backgroundRepeat: "repeat"
-                  }}
-                />
-
-                {/* Header */}
-                <header className="relative z-10 flex items-center gap-3 bg-[#f0f2f5] dark:bg-[#1f2c34] px-3 py-2 md:px-4 border-b border-[#d1d7db] dark:border-[#2a3942]">
-                  <button onClick={() => setShowSidebarMobile(true)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 md:hidden text-[#54656f] dark:text-[#aebac1]" aria-label="Back">
-                    <ArrowLeft className="h-5 w-5" />
+                <header className="relative flex items-center gap-3 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2.5 md:px-4">
+                  <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
+                    <ArrowLeft className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
-                  <div className="relative">
-                    <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} size={40} />
-                    {(() => {
-                      const otherId = active.memberIds.find((id) => id !== me.id);
-                      const online = otherId ? onlineIds.has(otherId) : false;
-                      return online && !active.is_group && !isAIChat(active) ? (
-                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#00a884] border-2 border-[#f0f2f5] dark:border-[#1f2c34]" />
-                      ) : null;
-                    })()}
-                  </div>
+                  <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-[16px] text-[#111b21] dark:text-[#e9edef]">
+                    <div className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8]">
                       {chatTitle(active, me.id)}
+                      {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
                     </div>
-                    <div className="truncate text-[13px] text-[#667781] dark:text-[#8696a0]">
+                    <div className="truncate text-xs text-[#8C8C8C]">
                       {typingNames.length > 0 ? (
-                        <span className="text-[#00a884]">{typingNames.join(", ")} typing…</span>
+                        <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
                         "AI companion · always on"
                       ) : active.is_group ? (
@@ -613,38 +651,47 @@ export default function SonaChat() {
                       ) : (() => {
                         const otherId = active.memberIds.find((id) => id !== me.id);
                         const online = otherId ? onlineIds.has(otherId) : false;
-                        return online ? "online" : "last seen recently";
+                        return online ? (
+                          <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> online</span>
+                        ) : (
+                          <span>offline · last seen recently</span>
+                        );
                       })()}
                     </div>
                   </div>
 
-                  <button className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[#54656f] dark:text-[#aebac1] hidden md:grid">
-                    <Video className="h-5 w-5" />
-                  </button>
-                  <button className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[#54656f] dark:text-[#aebac1] hidden md:grid">
-                    <Phone className="h-5 w-5" />
-                  </button>
-                  <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[#54656f] dark:text-[#aebac1]" aria-label="Menu">
-                    <MoreVertical className="h-5 w-5" />
-                  </button>
+                  {/* Call / Video buttons */}
+                  {!isAIChat(active) && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Voice call">
+                        <Phone className="h-4 w-4" />
+                      </button>
+                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Video call">
+                        <Video className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
 
+                  <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
+                    <MoreVertical className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+                  </button>
                   {showHeaderMenu && (
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setShowHeaderMenu(false)} />
-                      <div className="absolute right-3 top-14 z-40 w-56 rounded-lg border border-[#d1d7db] dark:border-[#2a3942] bg-white dark:bg-[#233138] py-2 shadow-xl">
-                        <button onClick={runSummary} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#3b4a54] dark:text-[#d1d7db] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">
-                          <Sparkles className="h-4 w-4 text-skyblue-deep" /> Summarize chat
+                      <div className="absolute right-3 top-14 z-40 w-56 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-1 shadow-xl">
+                        <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
+                          <Sparkles className="h-4 w-4 text-[#E07A5F]" /> Summarize chat
                         </button>
-                        <button onClick={toggleHideChat} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#3b4a54] dark:text-[#d1d7db] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">
-                          {active.is_hidden ? <><Unlock className="h-4 w-4" /> Unhide chat</> : <><Shield className="h-4 w-4" /> Hide & encrypt</>}
+                        <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
+                          {active.is_hidden ? <><Unlock className="h-4 w-4 text-[#8C8C8C]" /> Unhide chat</> : <><Shield className="h-4 w-4 text-[#8C8C8C]" /> Hide & encrypt</>}
                         </button>
                         {active.is_hidden && isUnlocked(active.id) && (
-                          <button onClick={relock} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#3b4a54] dark:text-[#d1d7db] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">
-                            <Lock className="h-4 w-4" /> Lock now
+                          <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
+                            <Lock className="h-4 w-4 text-[#8C8C8C]" /> Lock now
                           </button>
                         )}
                         {!isAIChat(active) && !active.is_group && (
-                          <button onClick={blockOther} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#ea0038] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">
+                          <button onClick={blockOther} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
                             <Ban className="h-4 w-4" /> Block user
                           </button>
                         )}
@@ -653,25 +700,16 @@ export default function SonaChat() {
                   )}
                 </header>
 
-                <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto px-4 py-4 md:px-10">
-                  <div className="mx-auto flex max-w-[800px] flex-col gap-[2px]">
-                    {/* Encryption notice */}
-                    {active.is_hidden && (
-                      <div className="mx-auto mb-4 rounded-lg bg-[#ffeecd] dark:bg-[#2a2117] px-3 py-2 text-center">
-                        <div className="flex items-center justify-center gap-1.5 text-[12px] text-[#54656f] dark:text-[#8696a0]">
-                          <Lock className="h-3 w-3" />
-                          <span>Messages are end-to-end encrypted. No one outside of this chat can read them.</span>
-                        </div>
-                      </div>
-                    )}
-
+                <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8"
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23E07A5F\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
+                  <div className="mx-auto flex max-w-3xl flex-col gap-0.5">
+                    <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
+                      {isAIChat(active) ? "Chat with Sona AI ✨" : "Type @sona to summon the AI"}
+                    </div>
                     {messages.map((m, idx) => {
                       const prev = messages[idx - 1];
-                      const next = messages[idx + 1];
                       const groupWithPrev = prev && prev.sender_id === m.sender_id
-                        && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 120_000;
-                      const groupWithNext = next && next.sender_id === m.sender_id
-                        && new Date(next.created_at).getTime() - new Date(m.created_at).getTime() < 120_000;
+                        && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
                       const overrideBody = m.is_encrypted
                         ? (decrypted[m.id] ?? "🔒 Locked message — unlock this chat to read")
                         : undefined;
@@ -680,7 +718,6 @@ export default function SonaChat() {
                         ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? "📷 Photo" : parentMsg.kind === "voice" ? "🎤 Voice note" : "")))
                         : undefined;
                       const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
-
                       return (
                         <Bubble
                           key={m.id}
@@ -694,7 +731,6 @@ export default function SonaChat() {
                           opening={reactingOn === m.id}
                           onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
                           grouped={!!groupWithPrev}
-                          groupNext={!!groupWithNext}
                           overrideBody={overrideBody}
                           onDelete={() => deleteMessage(m.id)}
                           onReply={() => startReply(m)}
@@ -709,10 +745,10 @@ export default function SonaChat() {
 
                     {typingNames.length > 0 && (
                       <div className="flex items-end gap-2 mt-1">
-                        <div className="rounded-lg rounded-bl-none bg-white dark:bg-[#202c33] px-3 py-2.5 flex items-center gap-1 shadow-sm">
-                          <span className="typing-dot h-2 w-2 rounded-full bg-[#8696a0] inline-block" />
-                          <span className="typing-dot h-2 w-2 rounded-full bg-[#8696a0] inline-block" />
-                          <span className="typing-dot h-2 w-2 rounded-full bg-[#8696a0] inline-block" />
+                        <div className="rounded-2xl rounded-bl-md bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm px-3 py-2.5 flex items-center gap-1 border border-[#E07A5F]/10">
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                       </div>
                     )}
@@ -720,31 +756,29 @@ export default function SonaChat() {
                 </div>
 
                 {(replyTo || editing) && (
-                  <div className="relative z-10 border-t border-[#d1d7db] dark:border-[#2a3942] bg-[#f0f2f5] dark:bg-[#1f2c34] px-4 py-2 md:px-8">
-                    <div className="mx-auto flex max-w-[800px] items-center gap-3">
-                      <div className="flex-1 rounded-lg border-l-4 border-[#00a884] bg-white dark:bg-[#2a3942] px-3 py-2 text-sm">
-                        <div className="font-medium text-[#00a884] text-[13px] flex items-center gap-1">
-                          {editing ? (<><Pencil className="h-3 w-3" /> Editing</>) : (<><Reply className="h-3 w-3" /> {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
+                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
+                    <div className="mx-auto flex max-w-3xl items-center gap-3">
+                      <div className="flex-1 rounded-lg border-l-2 border-[#E07A5F] bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-1.5 text-xs">
+                        <div className="font-semibold text-[#E07A5F] flex items-center gap-1">
+                          {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
                         </div>
-                        <div className="truncate text-[#667781] dark:text-[#8696a0] text-[13px]">
+                        <div className="truncate opacity-80 text-[#2D3436] dark:text-[#E8E8E8]">
                           {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? "📷 Photo" : replyTo?.kind === "voice" ? "🎤 Voice note" : ""))}
                         </div>
                       </div>
-                      <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5" aria-label="Cancel">
-                        <X className="h-4 w-4 text-[#54656f] dark:text-[#aebac1]" />
+                      <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Cancel">
+                        <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
                       </button>
                     </div>
                   </div>
                 )}
 
                 {pendingImage && (
-                  <div className="relative z-10 border-t border-[#d1d7db] dark:border-[#2a3942] bg-[#f0f2f5] dark:bg-[#1f2c34] px-4 py-2 md:px-8">
-                    <div className="mx-auto flex max-w-[800px] items-center gap-3">
-                      <img src={URL.createObjectURL(pendingImage)} alt="" className="h-14 w-14 rounded-lg object-cover" />
-                      <span className="flex-1 text-sm text-[#667781] dark:text-[#8696a0] truncate">{pendingImage.name}</span>
-                      <button onClick={() => setPendingImage(null)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-                        <X className="h-4 w-4 text-[#54656f] dark:text-[#aebac1]" />
-                      </button>
+                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
+                    <div className="mx-auto flex max-w-3xl items-center gap-3">
+                      <img src={URL.createObjectURL(pendingImage)} alt="" className="h-14 w-14 rounded-lg object-cover border border-[#E07A5F]/20" />
+                      <span className="flex-1 text-sm text-[#8C8C8C] truncate">{pendingImage.name}</span>
+                      <button onClick={() => setPendingImage(null)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20"><X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" /></button>
                     </div>
                   </div>
                 )}
@@ -769,10 +803,11 @@ export default function SonaChat() {
                 />
               </>
             ) : (
-              <div className="relative z-10 grid flex-1 place-items-center p-6 text-center">
+              <div className="grid flex-1 place-items-center p-6 text-center text-[#8C8C8C]"
+                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23E07A5F\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
                 <div>
-                  <img src={sonaLogo} alt="" className="mx-auto h-32 w-32 opacity-20" />
-                  <p className="mt-4 text-[#667781] dark:text-[#8696a0] text-[14px]">Pick a chat or tap + to start a new one.</p>
+                  <img src={sonaLogo} alt="" className="mx-auto h-24 w-24 opacity-60" />
+                  <p className="mt-4 text-[#8C8C8C]">Pick a chat or tap + to start a new one.</p>
                 </div>
               </div>
             )}
@@ -805,31 +840,19 @@ export default function SonaChat() {
       )}
 
       {summary !== null && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={() => setSummary(null)}>
-          <div className="w-full max-w-md rounded-lg border border-[#d1d7db] dark:border-[#2a3942] bg-white dark:bg-[#111b21] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setSummary(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-4 w-4 text-skyblue-deep" />
-              <h3 className="text-base font-semibold text-[#111b21] dark:text-[#e9edef]">Chat summary</h3>
+              <Sparkles className="h-4 w-4 text-[#E07A5F]" />
+              <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Chat summary</h3>
             </div>
-            <p className="whitespace-pre-wrap text-sm text-[#667781] dark:text-[#8696a0]">{summary}</p>
+            <p className="whitespace-pre-wrap text-sm text-[#8C8C8C]">{summary}</p>
             <div className="mt-4 flex justify-end">
-              <button onClick={() => setSummary(null)} className="rounded-lg bg-[#00a884] px-4 py-2 text-sm font-medium text-white hover:bg-[#008f6f]">Close</button>
+              <button onClick={() => setSummary(null)} className="rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/20 transition">Close</button>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes typingBounce {
-          0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-4px); }
-        }
-        .typing-dot {
-          animation: typingBounce 1.4s infinite ease-in-out both;
-        }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-      `}</style>
     </div>
   );
 }
@@ -846,18 +869,18 @@ function readStatusFor(msg: MessageRow, reads: MessageReadRow[], memberIds: stri
 }
 
 function TickIcon({ status, className }: { status: ReadStatus; className?: string }) {
-  if (status === "read") return <CheckCheck className={`${className ?? ""} text-[#53bdeb]`} />;
-  if (status === "delivered") return <CheckCheck className={`${className ?? ""} text-[#8696a0]`} />;
-  return <Check className={`${className ?? ""} text-[#8696a0]`} />;
+  if (status === "read") return <CheckCheck className={`${className ?? ""} text-[#E07A5F]`} />;
+  if (status === "delivered") return <CheckCheck className={className} />;
+  return <Check className={className} />;
 }
 
 function Bubble({
-  msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, groupNext,
+  msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
-  onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean; groupNext: boolean;
+  onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean;
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: string;
@@ -870,91 +893,76 @@ function Bubble({
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
   return (
-    <div className={`group flex items-end gap-1 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-[2px]" : "mt-2"}`}>
+    <div className={`group flex items-end gap-2 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}>
       {!mine && !grouped && <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />}
       {!mine && grouped && <div className="w-7 shrink-0" />}
-      <div className="relative max-w-[65%] md:max-w-[55%]">
-        <div 
-          onClick={onToggleActions}
-          className={`relative cursor-pointer px-2 py-1.5 text-[14.2px] leading-[19px] shadow-sm ${
-            mine
-              ? `bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-lg ${grouped ? "rounded-tr-lg" : "rounded-tr-none"} ${groupNext ? "rounded-br-lg" : "rounded-br-none"}`
-              : `bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-lg ${grouped ? "rounded-tl-lg" : "rounded-tl-none"} ${groupNext ? "rounded-bl-lg" : "rounded-bl-none"}`
-          }`}
-        >
-          {/* Tail for first message in group */}
-          {!grouped && (
-            <div className={`absolute bottom-0 ${mine ? "-right-2" : "-left-2"} w-4 h-4 overflow-hidden`}>
-              <div className={`absolute ${mine ? "-left-2" : "-right-2"} bottom-0 w-4 h-4 ${mine ? "bg-[#d9fdd3] dark:bg-[#005c4b]" : "bg-white dark:bg-[#202c33]"} rounded-full`} />
-            </div>
-          )}
+      <div className="relative max-w-[78%]">
+        <div onClick={onToggleActions} className={`relative cursor-pointer px-3 py-2 text-sm shadow-sm ${
+          mine
+            ? `bg-[#E07A5F] text-white rounded-2xl ${grouped ? "rounded-br-2xl" : "rounded-br-sm"}`
+            : `bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] rounded-2xl ${grouped ? "rounded-bl-2xl" : "rounded-bl-sm"} border border-[#E07A5F]/10`
+        }`}>
 
           {!mine && !grouped && (
-            <div className="mb-0.5 text-[12.5px] font-medium text-skyblue-deep">
+            <div className="mb-0.5 text-[11px] font-semibold text-[#E07A5F] flex items-center gap-1">
               {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
             </div>
           )}
           {parentBody !== undefined && (
-            <div className={`mb-1 rounded-md border-l-4 border-[#00a884] px-2 py-1 text-[12px] ${mine ? "bg-black/5" : "bg-black/5 dark:bg-white/5"}`}>
-              <div className="font-medium text-[#00a884]">{parentName}</div>
-              <div className="truncate opacity-70 max-w-[240px]">{parentBody}</div>
+            <div className={`mb-1.5 rounded-lg border-l-2 border-[#E07A5F] px-2 py-1 text-[11px] ${mine ? "bg-black/10" : "bg-[#F5F0E8] dark:bg-white/5"}`}>
+              <div className="font-semibold text-[#E07A5F]">{parentName}</div>
+              <div className="truncate opacity-80 max-w-[240px]">{parentBody}</div>
             </div>
           )}
           {msg.kind === "image" && msg.media_url && (
-            <img src={msg.media_url} alt="" loading="lazy" className="mb-1 max-h-72 w-full rounded-md object-cover" />
+            <img src={msg.media_url} alt="" loading="lazy" className="mb-1 max-h-72 w-full rounded-xl object-cover" />
           )}
           {msg.kind === "voice" && msg.media_url && (
             <VoicePlayer url={msg.media_url} durationMs={msg.duration_ms ?? 0} mine={mine} />
           )}
-          {(overrideBody ?? msg.body) && (
-            <p className="whitespace-pre-wrap break-words pr-16">{overrideBody ?? msg.body}</p>
-          )}
-          <div className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-[#667781] dark:text-[#8696a0]">
+          {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{overrideBody ?? msg.body}</p>}
+          <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/80" : "text-[#8C8C8C]"}`}>
             {msg.edited_at && <span className="italic">edited</span>}
-            <span className="tabular-nums">{fmtTime(msg.created_at)}</span>
+            <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
-
           {/* Action rail */}
-          <div 
-            className={`absolute ${mine ? "-left-1 -translate-x-full" : "-right-1 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity ${actionsOpen ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={onReply} className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-[#233138] border border-[#d1d7db] dark:border-[#2a3942] shadow-sm" aria-label="Reply">
-              <Reply className="h-3.5 w-3.5 text-[#54656f] dark:text-[#aebac1]" />
+          <div className={`absolute ${mine ? "-left-2 -translate-x-full" : "-right-2 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-1 transition ${actionsOpen ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"}`}
+            onClick={(e) => e.stopPropagation()}>
+            <button onClick={onReply} className="grid h-7 w-7 place-items-center rounded-full bg-[#FFFDF9] dark:bg-[#3A3A3A] border border-[#E07A5F]/20 shadow-sm" aria-label="Reply">
+              <Reply className="h-3.5 w-3.5 text-[#E07A5F]" />
             </button>
-            <button onClick={onOpenPicker} className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-[#233138] border border-[#d1d7db] dark:border-[#2a3942] shadow-sm" aria-label="React">
-              <SmilePlus className="h-3.5 w-3.5 text-[#54656f] dark:text-[#aebac1]" />
+            <button onClick={onOpenPicker} className="grid h-7 w-7 place-items-center rounded-full bg-[#FFFDF9] dark:bg-[#3A3A3A] border border-[#E07A5F]/20 shadow-sm" aria-label="React">
+              <SmilePlus className="h-3.5 w-3.5 text-[#E07A5F]" />
             </button>
             {mine && msg.kind === "text" && (
-              <button onClick={onEdit} className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-[#233138] border border-[#d1d7db] dark:border-[#2a3942] shadow-sm" aria-label="Edit">
-                <Pencil className="h-3.5 w-3.5 text-[#54656f] dark:text-[#aebac1]" />
+              <button onClick={onEdit} className="grid h-7 w-7 place-items-center rounded-full bg-[#FFFDF9] dark:bg-[#3A3A3A] border border-[#E07A5F]/20 shadow-sm" aria-label="Edit">
+                <Pencil className="h-3.5 w-3.5 text-[#E07A5F]" />
               </button>
             )}
             {mine && (
-              <button onClick={onDelete} className="grid h-7 w-7 place-items-center rounded-full bg-white dark:bg-[#233138] border border-[#d1d7db] dark:border-[#2a3942] shadow-sm text-[#ea0038]" aria-label="Delete">
+              <button onClick={onDelete} className="grid h-7 w-7 place-items-center rounded-full bg-[#FFFDF9] dark:bg-[#3A3A3A] border border-[#E07A5F]/20 shadow-sm text-red-500" aria-label="Delete">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
 
           {opening && (
-            <div className={`absolute -top-10 ${mine ? "right-0" : "left-0"} z-10 flex gap-1 rounded-full border border-[#d1d7db] dark:border-[#2a3942] bg-white dark:bg-[#233138] px-2 py-1 shadow-lg`}>
+            <div className={`absolute -top-10 ${mine ? "right-0" : "left-0"} z-10 flex gap-1 rounded-full border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] px-2 py-1 shadow-lg`}>
               {REACT_EMOJIS.map((e) => (
                 <button key={e} onClick={() => onReact(e)} className="text-lg hover:scale-125 transition">{e}</button>
               ))}
             </div>
           )}
         </div>
-
         {Object.keys(counts).length > 0 && (
-          <div className={`mt-0.5 flex flex-wrap gap-1 ${mine ? "justify-end" : "justify-start"}`}>
+          <div className={`mt-1 flex flex-wrap gap-1 ${mine ? "justify-end" : "justify-start"}`}>
             {Object.entries(counts).map(([e, n]) => {
               const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
               return (
                 <button key={e} onClick={() => onReact(e)}
-                  className={`flex items-center gap-1 rounded-full border border-[#d1d7db] dark:border-[#2a3942] px-2 py-0.5 text-xs bg-white dark:bg-[#233138] ${mineReacted ? "ring-1 ring-[#00a884]" : ""}`}>
-                  <span>{e}</span><span className="text-[10px] text-[#667781] dark:text-[#8696a0]">{n}</span>
+                  className={`flex items-center gap-1 rounded-full border border-[#E07A5F]/20 px-2 py-0.5 text-xs bg-[#FFFDF9] dark:bg-[#2A2A2A] ${mineReacted ? "ring-1 ring-[#E07A5F]" : ""}`}>
+                  <span>{e}</span><span className="text-[10px] text-[#8C8C8C]">{n}</span>
                 </button>
               );
             })}
@@ -983,13 +991,13 @@ function VoicePlayer({ url, durationMs, mine }: { url: string; durationMs: numbe
   const secs = Math.round(durationMs / 1000);
   return (
     <div className="flex items-center gap-2 min-w-[180px] py-1">
-      <button onClick={toggle} className={`grid h-8 w-8 place-items-center rounded-full ${mine ? "bg-[#00a884]/20" : "bg-[#00a884]/20"}`}>
-        {playing ? <Pause className="h-4 w-4 text-[#00a884]" /> : <Play className="h-4 w-4 text-[#00a884]" />}
+      <button onClick={toggle} className={`grid h-8 w-8 place-items-center rounded-full ${mine ? "bg-white/30 text-white" : "bg-[#E07A5F]/20 text-[#E07A5F]"}`}>
+        {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </button>
-      <div className="flex-1 h-1 rounded-full bg-[#d1d7db] dark:bg-[#2a3942] overflow-hidden">
-        <div className="h-full bg-[#00a884]" style={{ width: `${progress * 100}%` }} />
+      <div className="flex-1 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+        <div className="h-full bg-current opacity-80" style={{ width: `${progress * 100}%` }} />
       </div>
-      <span className="text-[11px] text-[#667781] dark:text-[#8696a0] tabular-nums">
+      <span className="text-[10px] opacity-70 tabular-nums">
         {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
       </span>
     </div>
@@ -1046,54 +1054,41 @@ function Composer({
   };
 
   return (
-    <div className="relative z-10 border-t border-[#d1d7db] dark:border-[#2a3942] bg-[#f0f2f5] dark:bg-[#1f2c34] px-2 py-2 md:px-4 md:py-3">
+    <div className="relative border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-2 py-2 md:px-6 md:py-3">
       {showEmoji && (
-        <div className="absolute bottom-full left-2 mb-2 grid max-w-xs grid-cols-8 gap-1 rounded-2xl border border-[#d1d7db] dark:border-[#2a3942] bg-white dark:bg-[#233138] p-2 shadow-xl md:left-6">
+        <div className="absolute bottom-full left-2 mb-2 grid max-w-xs grid-cols-8 gap-1 rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
           {EMOJIS.map((e) => (
-            <button key={e} onClick={() => setDraft(draft + e)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">{e}</button>
+            <button key={e} onClick={() => setDraft(draft + e)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-[#F4A261]/20">{e}</button>
           ))}
         </div>
       )}
       {recording ? (
-        <div className="mx-auto flex max-w-[800px] items-center gap-3">
-          <button onClick={() => stopRec(true)} className="grid h-11 w-11 place-items-center rounded-full bg-[#f5f6f6] dark:bg-[#202c33] text-[#ea0038]">
-            <Trash2 className="h-5 w-5" />
-          </button>
-          <div className="flex flex-1 items-center gap-2 rounded-full bg-white dark:bg-[#2a3942] px-4 py-3">
-            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#ea0038]" />
-            <span className="text-sm text-[#111b21] dark:text-[#e9edef]">Recording… {String(Math.floor(elapsed / 60)).padStart(1, "0")}:{String(elapsed % 60).padStart(2, "0")}</span>
+        <div className="mx-auto flex max-w-3xl items-center gap-3">
+          <button onClick={() => stopRec(true)} className="grid h-11 w-11 place-items-center rounded-full bg-[#F5F0E8] dark:bg-[#3A3A3A] text-red-500"><Trash2 className="h-5 w-5" /></button>
+          <div className="flex flex-1 items-center gap-2 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-4 py-3 border border-[#E07A5F]/10">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+            <span className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">Recording… {String(Math.floor(elapsed / 60)).padStart(1, "0")}:{String(elapsed % 60).padStart(2, "0")}</span>
           </div>
-          <button onClick={() => stopRec(false)} className="grid h-11 w-11 place-items-center rounded-full bg-[#00a884] text-white shadow-md">
-            <Send className="h-5 w-5" />
-          </button>
+          <button onClick={() => stopRec(false)} className="grid h-11 w-11 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition"><Send className="h-5 w-5" /></button>
         </div>
       ) : (
-        <div className="mx-auto flex max-w-[800px] items-end gap-2">
-          <button onClick={() => setShowEmoji((s) => !s)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5">
-            <Smile className="h-6 w-6" />
-          </button>
-          <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5" aria-label="Attach">
-            <Paperclip className="h-6 w-6" />
-          </button>
-          <div className="flex flex-1 items-center rounded-lg bg-white dark:bg-[#2a3942] px-3 py-2">
+        <div className="mx-auto flex max-w-3xl items-end gap-2">
+          <div className="flex flex-1 items-center gap-1.5 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5 border border-[#E07A5F]/10">
+            <button onClick={() => setShowEmoji((s) => !s)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20"><Smile className="h-5 w-5" /></button>
             <textarea
-              value={draft} 
-              onChange={(e) => setDraft(e.target.value)}
+              value={draft} onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
-              rows={1} 
-              placeholder="Type a message"
-              className="max-h-32 min-h-5 flex-1 resize-none bg-transparent text-[15px] outline-none placeholder:text-[#667781] dark:placeholder:text-[#8696a0] text-[#111b21] dark:text-[#d1d7db] py-0.5"
+              rows={1} placeholder="Type a message · @sona for AI"
+              className="max-h-32 min-h-6 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-1.5"
             />
+            <button onClick={() => fileRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20" aria-label="Attach"><Paperclip className="h-5 w-5" /></button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
+            <button onClick={() => fileRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20" aria-label="Image"><ImageIcon className="h-5 w-5" /></button>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
           {draft.trim() ? (
-            <button onClick={onSend} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#00a884] text-white shadow-sm hover:bg-[#008f6f]">
-              <Send className="h-5 w-5" />
-            </button>
+            <button onClick={onSend} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition"><Send className="h-5 w-5" /></button>
           ) : (
-            <button onClick={startRec} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5">
-              <Mic className="h-6 w-6" />
-            </button>
+            <button onClick={startRec} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition"><Mic className="h-5 w-5" /></button>
           )}
         </div>
       )}
@@ -1151,41 +1146,40 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-lg border border-[#d1d7db] dark:border-[#2a3942] bg-white dark:bg-[#111b21] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 p-5 pb-3">
-          <Users className="h-5 w-5 text-skyblue-deep" />
-          <h3 className="text-lg font-semibold text-[#111b21] dark:text-[#e9edef]">New chat</h3>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-[#E07A5F]" />
+          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Choose a friend</h3>
         </div>
-        <div className="px-5 pb-3">
-          <div className="flex items-center gap-2 rounded-lg bg-[#f0f2f5] dark:bg-[#1f2c34] px-3 py-2">
-            <Search className="h-4 w-4 text-[#54656f] dark:text-[#8696a0]" />
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#111b21] dark:text-[#e9edef] placeholder:text-[#667781] dark:placeholder:text-[#8696a0]" />
-          </div>
+        <p className="mt-1 text-xs text-[#8C8C8C]">Pick from Sona users or search by name / email.</p>
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 border border-[#E07A5F]/10">
+          <Search className="h-4 w-4 text-[#8C8C8C]" />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]" />
         </div>
-        <div className="max-h-80 overflow-y-auto px-2 pb-2">
+        <div className="scrollbar-thin mt-3 max-h-80 overflow-y-auto rounded-xl border border-[#E07A5F]/10">
           {loading ? (
-            <div className="p-4 text-center text-sm text-[#667781] dark:text-[#8696a0]">Loading…</div>
+            <div className="p-4 text-center text-sm text-[#8C8C8C]">Loading…</div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-center text-sm text-[#667781] dark:text-[#8696a0]">No users found</div>
+            <div className="p-6 text-center text-sm text-[#8C8C8C]">No users found</div>
           ) : filtered.map((u) => (
             <button key={u.id} disabled={busyId === u.id} onClick={() => startWith(u)}
-              className="flex w-full items-center gap-3 rounded-lg p-3 text-left hover:bg-[#f5f6f6] dark:hover:bg-[#202c33] disabled:opacity-60">
-              <Avatar url={u.avatar_url} name={u.display_name} size={40} ai={u.is_ai} />
+              className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-3 text-left last:border-0 hover:bg-[#F4A261]/10 disabled:opacity-60">
+              <Avatar url={u.avatar_url} name={u.display_name} size={38} ai={u.is_ai} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <div className="truncate text-[15px] font-medium text-[#111b21] dark:text-[#e9edef]">{u.display_name}</div>
-                  {u.is_ai && <Sparkles className="h-3.5 w-3.5 text-skyblue-deep" />}
-                  {u.is_pro && <Crown className="h-3.5 w-3.5 text-skyblue-deep" />}
+                  <div className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</div>
+                  {u.is_ai && <Sparkles className="h-3 w-3 text-[#E07A5F]" />}
+                  {u.is_pro && <Crown className="h-3 w-3 text-[#E07A5F]" />}
                 </div>
-                <div className="truncate text-[13px] text-[#667781] dark:text-[#8696a0]">{u.email}</div>
+                <div className="truncate text-xs text-[#8C8C8C]">{u.email}</div>
               </div>
-              {busyId === u.id ? <span className="text-xs text-[#667781]">…</span> : <Plus className="h-5 w-5 text-skyblue-deep" />}
+              {busyId === u.id ? <span className="text-xs text-[#8C8C8C]">…</span> : <Plus className="h-4 w-4 text-[#E07A5F]" />}
             </button>
           ))}
         </div>
-        <div className="p-4 pt-2 flex justify-end border-t border-[#e9edef] dark:border-[#222e35]">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">Close</button>
+        <div className="mt-4 flex justify-end">
+          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]">Close</button>
         </div>
       </div>
     </div>
@@ -1230,90 +1224,84 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-lg border border-[#d1d7db] dark:border-[#2a3942] bg-white dark:bg-[#111b21] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 p-5 pb-3">
-          <Settings className="h-5 w-5 text-skyblue-deep" />
-          <h3 className="text-lg font-semibold text-[#111b21] dark:text-[#e9edef]">Settings</h3>
-          {me.is_pro && <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-skyblue/30 px-2 py-0.5 text-[10px] font-semibold text-skyblue-deep"><Crown className="h-3 w-3" /> Pro</span>}
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-4">
+          <Settings className="h-4 w-4 text-[#E07A5F]" />
+          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Settings</h3>
+          {me.is_pro && <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/20 px-2 py-0.5 text-[10px] font-semibold text-[#E07A5F]"><Crown className="h-3 w-3" /> Pro</span>}
         </div>
-        <div className="px-5 pb-3">
-          <div className="flex gap-1 rounded-lg bg-[#f0f2f5] dark:bg-[#1f2c34] p-1 text-sm">
-            {(["profile", "advanced", "subscription"] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 rounded-md px-2 py-1.5 capitalize text-[13px] ${tab === t ? "bg-white dark:bg-[#2a3942] font-medium shadow-sm text-[#111b21] dark:text-[#e9edef]" : "text-[#667781] dark:text-[#8696a0]"}`}>
-                {t}
-              </button>
-            ))}
+        <div className="mb-4 flex gap-1 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] p-1 text-xs border border-[#E07A5F]/10">
+          {(["profile", "advanced", "subscription"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 rounded-lg px-2 py-1.5 capitalize ${tab === t ? "bg-[#FFFDF9] dark:bg-[#2A2A2A] font-semibold shadow text-[#2D3436] dark:text-[#E8E8E8]" : "text-[#8C8C8C]"}`}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {tab === "profile" && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-[#8C8C8C]">Display name</label>
+              <input value={name} onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/50 text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10" />
+            </div>
+            <p className="text-xs text-[#8C8C8C]">Signed in as {me.email}</p>
           </div>
-        </div>
+        )}
 
-        <div className="px-5 pb-4 max-h-[60vh] overflow-y-auto">
-          {tab === "profile" && (
-            <div className="space-y-3">
-              <div>
-                <label className="text-[13px] text-[#667781] dark:text-[#8696a0]">Display name</label>
-                <input value={name} onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-[#f0f2f5] dark:bg-[#1f2c34] px-3 py-2.5 text-[15px] outline-none focus:ring-2 focus:ring-skyblue text-[#111b21] dark:text-[#e9edef]" />
-              </div>
-              <p className="text-[13px] text-[#667781] dark:text-[#8696a0]">Signed in as {me.email}</p>
+        {tab === "advanced" && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border border-[#E07A5F]/10 p-3">
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Bell className="h-4 w-4 text-[#E07A5F]" /> Push notifications</div>
+              <p className="mt-1 text-xs text-[#8C8C8C]">Status: {notif}</p>
+              {notif !== "granted" && (
+                <button onClick={askNotif} className="mt-2 rounded-lg bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-1.5 text-xs hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]">Enable</button>
+              )}
             </div>
-          )}
-
-          {tab === "advanced" && (
-            <div className="space-y-3 text-sm">
-              <div className="rounded-lg border border-[#e9edef] dark:border-[#222e35] p-3">
-                <div className="flex items-center gap-2 font-medium text-[#111b21] dark:text-[#e9edef]"><Bell className="h-4 w-4 text-skyblue-deep" /> Push notifications</div>
-                <p className="mt-1 text-[13px] text-[#667781] dark:text-[#8696a0]">Status: {notif}</p>
-                {notif !== "granted" && (
-                  <button onClick={askNotif} className="mt-2 rounded-lg bg-[#00a884] px-4 py-1.5 text-[13px] text-white hover:bg-[#008f6f]">Enable</button>
-                )}
-              </div>
-              <div className="rounded-lg border border-[#e9edef] dark:border-[#222e35] p-3">
-                <div className="flex items-center gap-2 font-medium text-[#111b21] dark:text-[#e9edef]"><Shield className="h-4 w-4 text-skyblue-deep" /> Security</div>
-                <ul className="mt-1 space-y-1 text-[13px] text-[#667781] dark:text-[#8696a0]">
-                  <li>• End-to-end AES-GCM encryption for hidden chats</li>
-                  <li>• Passcodes never leave your device</li>
-                  <li>• Row-level security on every message</li>
-                </ul>
-              </div>
-              <div className="rounded-lg border border-[#e9edef] dark:border-[#222e35] p-3">
-                <div className="flex items-center gap-2 font-medium text-[#111b21] dark:text-[#e9edef]"><Lock className="h-4 w-4 text-skyblue-deep" /> Hidden chats</div>
-                <p className="mt-1 text-[13px] text-[#667781] dark:text-[#8696a0]">Toggle "Hide & encrypt" from the chat menu to store messages encrypted at rest.</p>
-              </div>
+            <div className="rounded-xl border border-[#E07A5F]/10 p-3">
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Shield className="h-4 w-4 text-[#E07A5F]" /> Security</div>
+              <ul className="mt-1 space-y-1 text-xs text-[#8C8C8C]">
+                <li>• End-to-end AES-GCM encryption for hidden chats</li>
+                <li>• Passcodes never leave your device</li>
+                <li>• Row-level security on every message</li>
+              </ul>
             </div>
-          )}
-
-          {tab === "subscription" && (
-            <div className="space-y-3 text-sm">
-              <div className="rounded-2xl border border-[#e9edef] dark:border-[#222e35] bg-gradient-to-br from-skyblue/40 to-skyblue-deep/20 p-4">
-                <div className="flex items-center gap-2 font-semibold text-[#111b21] dark:text-[#e9edef]"><Crown className="h-4 w-4 text-skyblue-deep" /> Sona Pro</div>
-                <ul className="mt-2 space-y-1 text-[13px]">
-                  <li>✨ Unlimited AI chat summaries</li>
-                  <li>🖼️ Vision — Sona reads your images</li>
-                  <li>🔒 Unlimited hidden encrypted chats</li>
-                  <li>🎨 Premium themes</li>
-                </ul>
-                {me.is_pro ? (
-                  <div className="mt-3 text-[13px] text-skyblue-deep font-semibold">You're a Pro member 💛</div>
-                ) : (
-                  <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#00a884] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#008f6f] disabled:opacity-60">
-                    Upgrade to Pro
-                  </button>
-                )}
-              </div>
+            <div className="rounded-xl border border-[#E07A5F]/10 p-3">
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Lock className="h-4 w-4 text-[#E07A5F]" /> Hidden chats</div>
+              <p className="mt-1 text-xs text-[#8C8C8C]">Toggle "Hide & encrypt" from the chat menu to store messages encrypted at rest.</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="flex items-center justify-between gap-2 border-t border-[#e9edef] dark:border-[#222e35] p-4">
-          <button onClick={signOut} className="rounded-lg px-3 py-2 text-sm text-[#ea0038] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33] flex items-center gap-1">
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </button>
+        {tab === "subscription" && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-2xl border border-[#E07A5F]/20 bg-gradient-to-br from-[#E07A5F]/20 to-[#F4A261]/10 p-4">
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Crown className="h-4 w-4 text-[#E07A5F]" /> Sona Pro</div>
+              <ul className="mt-2 space-y-1 text-xs text-[#2D3436] dark:text-[#E8E8E8]">
+                <li>✨ Unlimited AI chat summaries</li>
+                <li>🖼️ Vision — Sona reads your images</li>
+                <li>🔒 Unlimited hidden encrypted chats</li>
+                <li>🎨 Premium themes</li>
+              </ul>
+              {me.is_pro ? (
+                <div className="mt-3 text-xs text-[#E07A5F] font-semibold">You're a Pro member 💛</div>
+              ) : (
+                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition">
+                  Upgrade to Pro
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center justify-between gap-2 border-t border-[#E07A5F]/10 pt-4">
+          <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-1"><LogOut className="h-3.5 w-3.5" /> Sign out</button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">Close</button>
+            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]">Close</button>
             {tab === "profile" && (
-              <button disabled={busy} onClick={save} className="rounded-lg bg-[#00a884] px-4 py-2 text-sm font-medium text-white hover:bg-[#008f6f] disabled:opacity-60">
+              <button disabled={busy} onClick={save} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition">
                 {busy ? "…" : "Save"}
               </button>
             )}
@@ -1332,20 +1320,20 @@ function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; onUnloc
     onUnlocked();
   };
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onCancel}>
-      <div className="w-full max-w-sm rounded-lg border border-[#d1d7db] dark:border-[#2a3942] bg-white dark:bg-[#111b21] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-3">
-          <Lock className="h-5 w-5 text-skyblue-deep" />
-          <h3 className="text-lg font-semibold text-[#111b21] dark:text-[#e9edef]">Unlock hidden chat</h3>
+          <Lock className="h-4 w-4 text-[#E07A5F]" />
+          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Unlock hidden chat</h3>
         </div>
-        <p className="text-[13px] text-[#667781] dark:text-[#8696a0] mb-3">Enter your passcode to decrypt messages. It never leaves your device.</p>
+        <p className="text-xs text-[#8C8C8C] mb-3">Enter your passcode to decrypt messages. It never leaves your device.</p>
         <input type="password" value={pass} onChange={(e) => setPass(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           placeholder="Passcode"
-          className="w-full rounded-lg bg-[#f0f2f5] dark:bg-[#1f2c34] px-3 py-2.5 text-[15px] outline-none focus:ring-2 focus:ring-skyblue text-[#111b21] dark:text-[#e9edef]" />
+          className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/50 text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10" />
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded-lg px-4 py-2 text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]">Cancel</button>
-          <button onClick={submit} className="rounded-lg bg-[#00a884] px-4 py-2 text-sm font-medium text-white hover:bg-[#008f6f]">Unlock</button>
+          <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]">Cancel</button>
+          <button onClick={submit} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#D4694F] transition">Unlock</button>
         </div>
       </div>
     </div>
