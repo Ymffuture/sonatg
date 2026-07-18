@@ -800,7 +800,7 @@ function TickIcon({ status, className }: { status: ReadStatus; className?: strin
 
 function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped,
-  overrideBody, onDelete, onReply, onEdit, parentName, parentBody,
+  overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -808,7 +808,9 @@ function Bubble({
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: string;
+  actionsOpen: boolean; onToggleActions: () => void;
 }) {
+
 
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
