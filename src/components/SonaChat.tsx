@@ -823,11 +823,12 @@ function Bubble({
       {!mine && !grouped && <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />}
       {!mine && grouped && <div className="w-7 shrink-0" />}
       <div className="relative max-w-[78%]">
-        <div className={`relative px-3 py-2 text-sm shadow-bubble ${
+        <div onClick={onToggleActions} className={`relative cursor-pointer px-3 py-2 text-sm shadow-bubble ${
           mine
             ? `bg-bubble-me text-bubble-me-foreground rounded-2xl ${grouped ? "rounded-br-2xl" : "rounded-br-sm"}`
             : `bg-bubble-them text-bubble-them-foreground rounded-2xl ${grouped ? "rounded-bl-2xl" : "rounded-bl-sm"}`
         }`}>
+
           {!mine && !grouped && (
             <div className="mb-0.5 text-[11px] font-semibold text-skyblue-deep flex items-center gap-1">
               {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
