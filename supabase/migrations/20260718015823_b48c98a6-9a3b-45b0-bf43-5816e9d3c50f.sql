@@ -1,0 +1,1 @@
+CREATE POLICY "chats visible to creator" ON public.chats FOR SELECT USING (created_by = auth.uid());
