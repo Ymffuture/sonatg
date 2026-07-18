@@ -505,15 +505,8 @@ export default function SonaChat() {
               </div>
             </div>
 
-            <div className="px-3 pb-2 flex items-center gap-2">
-              <Avatar url={me.avatar_url} name={me.display_name} size={36} />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{me.display_name}</div>
-                <div className="truncate text-[11px] text-muted-foreground">{me.email}</div>
-              </div>
-            </div>
-
             <div className="px-3 pb-2">
+
               <div className="flex items-center gap-2 rounded-full bg-secondary px-3 py-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats" className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
