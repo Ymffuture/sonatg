@@ -577,8 +577,24 @@ export default function SonaChat() {
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-skyblue-deep" />}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {typingNames.length > 0
-                        ? <span className="text-skyblue-deep">{typingNames.join(", ")} typing…</span>
+                      {typingNames.length > 0 ? (
+                        <span className="text-skyblue-deep">{typingNames.join(", ")} typing…</span>
+                      ) : isAIChat(active) ? (
+                        "AI companion · always on"
+                      ) : active.is_group ? (
+                        `${active.members.length} members`
+                      ) : (() => {
+                        const otherId = active.memberIds.find((id) => id !== me.id);
+                        const online = otherId ? onlineIds.has(otherId) : false;
+                        return online ? (
+                          <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> online</span>
+                        ) : (
+                          <span>offline · last seen recently</span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
                         : isAIChat(active) ? "AI companion · always on" : `${active.members.length} members`}
                     </div>
                   </div>
