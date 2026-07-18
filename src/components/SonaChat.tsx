@@ -852,8 +852,9 @@ function Bubble({
             <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
           </div>
-          {/* Hover action rail */}
-          <div className={`absolute ${mine ? "-left-2 -translate-x-full" : "-right-2 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 transition group-hover:opacity-100`}>
+          {/* Action rail: open on click (tap) or hover */}
+          <div className={`absolute ${mine ? "-left-2 -translate-x-full" : "-right-2 translate-x-full"} top-1/2 -translate-y-1/2 flex items-center gap-1 transition ${actionsOpen ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"}`}
+            onClick={(e) => e.stopPropagation()}>
             <button onClick={onReply} className="grid h-7 w-7 place-items-center rounded-full bg-card border shadow" aria-label="Reply">
               <Reply className="h-3.5 w-3.5" />
             </button>
@@ -871,6 +872,7 @@ function Bubble({
               </button>
             )}
           </div>
+
 
           {opening && (
             <div className={`absolute -top-10 ${mine ? "right-0" : "left-0"} z-10 flex gap-1 rounded-full border bg-popover px-2 py-1 shadow-lg`}>
