@@ -238,9 +238,13 @@ export default function SonaChat() {
       .channel("sona-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
         const m = p.new as MessageRow;
-        if (m.chat_id === activeId) setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+        if (m.chat_id === activeId) {
+          setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+          if (m.sender_id !== me.id) playReceiveSound();
+        }
         loadChats();
       })
+
       .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, (p) => {
         if (p.eventType === "INSERT") {
           const r = p.new as ReactionRow;
