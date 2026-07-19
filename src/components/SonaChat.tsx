@@ -410,6 +410,7 @@ export default function SonaChat() {
       reply_to_id: replyTo?.id ?? null,
     });
     if (error) { toast.error(error.message); return; }
+    playSendSound();
 
     const prompt = plaintext;
     const attachedImageUrl = media_url;
@@ -417,10 +418,16 @@ export default function SonaChat() {
 
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
-      const mentionsSona = /(^|\s)@sona/i.test(prompt);
+      const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
       if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
+        if (!isAI && !active.memberIds.includes(SONA_AI_ID)) {
+          const { error: memErr } = await supabase.from("chat_members").insert({ chat_id: activeId, user_id: SONA_AI_ID });
+          if (memErr) { toast.error(`Couldn't summon Sona: ${memErr.message}`); return; }
+        }
+        toast.loading("Sona is thinking…", { id: "sona-ai" });
         askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
-          .catch((e) => toast.error(e.message));
+          .then(() => toast.dismiss("sona-ai"))
+          .catch((e) => toast.error(e.message, { id: "sona-ai" }));
       }
     }
   };
