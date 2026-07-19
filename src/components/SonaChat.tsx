@@ -546,9 +546,13 @@ export default function SonaChat() {
                 <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Toggle theme">
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
+                <Link to="/learn" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Learn">
+                  <BookOpen className="h-4 w-4" />
+                </Link>
                 <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Settings">
                   <Settings className="h-4 w-4" />
                 </button>
+
                 <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Sign out">
                   <LogOut className="h-4 w-4" />
                 </button>
