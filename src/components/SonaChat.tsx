@@ -419,11 +419,16 @@ export default function SonaChat() {
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
       const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
+      // Only reply when explicitly @mentioned. We deliberately do NOT add
+      // Sona as a permanent chat_members row here — doing so used to make
+      // isAIChat() return true forever afterwards, which made Sona reply to
+      // every future message in the chat and relabeled the whole
+      // conversation as "Chat with Sona AI". RLS on `messages` only checks
+      // the *requesting* user's membership to read a message, not the
+      // sender's, so Sona never actually needed a membership row for other
+      // participants to see her reply — this keeps her a one-off, blended
+      // participant instead of hijacking the thread.
       if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
-        if (!isAI && !active.memberIds.includes(SONA_AI_ID)) {
-          const { error: memErr } = await supabase.from("chat_members").insert({ chat_id: activeId, user_id: SONA_AI_ID });
-          if (memErr) { toast.error(`Couldn't summon Sona: ${memErr.message}`); return; }
-        }
         toast.loading("Sona is thinking…", { id: "sona-ai" });
         askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
           .then(() => toast.dismiss("sona-ai"))
