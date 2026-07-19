@@ -716,10 +716,13 @@ export default function SonaChat() {
                       <div className="absolute right-3 top-14 z-40 w-56 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-1 shadow-xl">
                         <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
                           <Sparkles className="h-4 w-4 text-[#E07A5F]" /> Summarize chat
+                          {!me.is_pro && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
                         </button>
                         <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
                           {active.is_hidden ? <><Unlock className="h-4 w-4 text-[#8C8C8C]" /> Unhide chat</> : <><Shield className="h-4 w-4 text-[#8C8C8C]" /> Hide & encrypt</>}
+                          {!me.is_pro && !active.is_hidden && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
                         </button>
+
                         {active.is_hidden && isUnlocked(active.id) && (
                           <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
                             <Lock className="h-4 w-4 text-[#8C8C8C]" /> Lock now
