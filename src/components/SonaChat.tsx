@@ -1182,26 +1182,40 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-[#E07A5F]" />
-          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Choose a friend</h3>
+    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50 animate-in fade-in duration-200" onClick={onClose}>
+      <div
+        className="w-full rounded-t-3xl border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Grabber */}
+        <div className="pt-2.5 pb-1 flex justify-center">
+          <div className="h-1.5 w-10 rounded-full bg-[#E07A5F]/30" />
         </div>
-        <p className="mt-1 text-xs text-[#8C8C8C]">Pick from Sona users or search by name / email.</p>
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 border border-[#E07A5F]/10">
-          <Search className="h-4 w-4 text-[#8C8C8C]" />
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]" />
+        <div className="px-5 pt-2 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-[#E07A5F]" />
+            <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Choose a friend</h3>
+          </div>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close">
+            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
         </div>
-        <div className="scrollbar-thin mt-3 max-h-80 overflow-y-auto rounded-xl border border-[#E07A5F]/10">
+        <div className="px-5 pb-3">
+          <p className="text-xs text-[#8C8C8C]">Pick from Sona users or search by name / email.</p>
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 border border-[#E07A5F]/10">
+            <Search className="h-4 w-4 text-[#8C8C8C]" />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]" />
+          </div>
+        </div>
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-6">
           {loading ? (
             <div className="p-4 text-center text-sm text-[#8C8C8C]">Loading…</div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-sm text-[#8C8C8C]">No users found</div>
           ) : filtered.map((u) => (
             <button key={u.id} disabled={busyId === u.id} onClick={() => startWith(u)}
-              className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-3 text-left last:border-0 hover:bg-[#F4A261]/10 disabled:opacity-60">
-              <Avatar url={u.avatar_url} name={u.display_name} size={38} ai={u.is_ai} />
+              className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-3 text-left last:border-0 hover:bg-[#F4A261]/10 disabled:opacity-60 rounded-lg">
+              <Avatar url={u.avatar_url} name={u.display_name} size={42} ai={u.is_ai} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <div className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</div>
@@ -1214,13 +1228,11 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
             </button>
           ))}
         </div>
-        <div className="mt-4 flex justify-end">
-          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]">Close</button>
-        </div>
       </div>
     </div>
   );
 }
+
 
 function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
   const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
