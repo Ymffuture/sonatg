@@ -1246,7 +1246,7 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
   const upgrade = async () => {
     setBusy(true);
     try {
-      const r = await paystackCheckout({ data: undefined as unknown as never }) as { url: string };
+      const r = await paystackCheckout() as { url: string };
       toast.success("Redirecting to Paystack…");
       window.location.href = r.url;
     } catch (e) { toast.error((e as Error).message); }
