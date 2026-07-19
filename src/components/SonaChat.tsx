@@ -469,8 +469,17 @@ export default function SonaChat() {
     setActiveId(null);
   };
 
+  const requirePro = (feature: string): boolean => {
+    if (me?.is_pro) return true;
+    toast.error(`${feature} is a Sona Pro feature — upgrade in Settings → Subscription.`);
+    setShowHeaderMenu(false);
+    setShowSettings(true);
+    return false;
+  };
+
   const toggleHideChat = async () => {
     if (!active) return;
+    if (!active.is_hidden && !requirePro("Hide & encrypt")) return;
     const next = !active.is_hidden;
     const { error } = await supabase.from("chats").update({ is_hidden: next }).eq("id", active.id);
     if (error) { toast.error(error.message); return; }
@@ -481,6 +490,7 @@ export default function SonaChat() {
 
   const runSummary = async () => {
     if (!activeId) return;
+    if (!requirePro("AI chat summary")) return;
     setShowHeaderMenu(false);
     toast.loading("Summarizing…", { id: "sum" });
     try {
@@ -489,6 +499,12 @@ export default function SonaChat() {
       toast.success("Summary ready", { id: "sum" });
     } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
   };
+
+  const startCall = (kind: "voice" | "video") => {
+    if (!requirePro(kind === "voice" ? "Voice calls" : "Video calls")) return;
+    toast.success(`${kind === "voice" ? "Voice" : "Video"} call starting…`);
+  };
+
 
   const relock = () => {
     if (!activeId) return;
