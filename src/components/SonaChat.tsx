@@ -1310,9 +1310,21 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
         .single();
       if (cErr) throw cErr;
 
-      const memberRows = [meId, ...Array.from(selectedIds)].map((user_id) => ({ chat_id: chat.id, user_id }));
-      const { error: mErr } = await supabase.from("chat_members").insert(memberRows);
-      if (mErr) throw mErr;
+      // Must add the creator's own membership row FIRST, in its own insert,
+      // and wait for it to commit before adding anyone else. The RLS policy
+      // on chat_members is `user_id = auth.uid() OR is_chat_member(chat_id,
+      // auth.uid())` — until the creator's own row exists, is_chat_member()
+      // is false for them too, so a single bulk insert containing both the
+      // creator's row and other members' rows gets rejected entirely for
+      // every row except the creator's.
+      const { error: selfErr } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: meId });
+      if (selfErr) throw selfErr;
+
+      const otherRows = Array.from(selectedIds).map((user_id) => ({ chat_id: chat.id, user_id }));
+      if (otherRows.length) {
+        const { error: mErr } = await supabase.from("chat_members").insert(otherRows);
+        if (mErr) throw mErr;
+      }
 
       toast.success(`"${groupTitle.trim()}" group created`);
       onCreated(chat.id);
