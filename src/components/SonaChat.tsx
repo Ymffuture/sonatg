@@ -46,7 +46,16 @@ function useTheme() {
   return { theme, toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")) };
 }
 
-const EMOJIS = ["😀","😂","🥲","😍","😎","🤔","🙌","👍","🔥","🎉","❤️","✨","🥂","📷","🙏","😴"];
+const EMOJIS = [
+  "😀","😂","🥲","😍","😎","🤔","🙌","👍",
+  "🔥","🎉","❤️","✨","🥂","📷","🙏","😴",
+  "😁","🤣","😊","😉","😌","😋","😜","🤩",
+  "🥳","😇","😭","😅","😬","🙃","😏","😮",
+  "😱","😡","🤯","🥰","😘","🤗","👏","💪",
+  "👀","💯","⭐","🌟","💫","⚡","🌈","☀️",
+  "🌙","🍕","🍔","🍩","☕","🍷","🎵","🎮",
+  "🏆","🚀","💎","🫶","💖","💔","✅","❌"
+];
 const REACT_EMOJIS = ["❤️","😂","👍","🔥","😮","🙏"];
 
 function Avatar({ url, name, size = 40, ai = false }: { url?: string | null; name: string; size?: number; ai?: boolean }) {
@@ -818,7 +827,7 @@ export default function SonaChat() {
                 {pendingImage && (
                   <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
                     <div className="mx-auto flex max-w-3xl items-center gap-3">
-                      <img src={URL.createObjectURL(pendingImage)} alt="" className="h-14 w-14 rounded-lg object-cover border border-[#E07A5F]/20" />
+                      <img src={URL.createObjectURL(pendingImage)} alt="" className="h-28 w-28 rounded-lg object-cover border border-[#E07A5F]/20" />
                       <span className="flex-1 text-sm text-[#8C8C8C] truncate">{pendingImage.name}</span>
                       <button onClick={() => setPendingImage(null)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20"><X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" /></button>
                     </div>
