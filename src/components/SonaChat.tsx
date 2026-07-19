@@ -693,12 +693,13 @@ export default function SonaChat() {
                   {/* Call / Video buttons */}
                   {!isAIChat(active) && (
                     <div className="flex items-center gap-1 shrink-0">
-                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Voice call">
+                      <button onClick={() => startCall("voice")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Voice call">
                         <Phone className="h-4 w-4" />
                       </button>
-                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Video call">
+                      <button onClick={() => startCall("video")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Video call">
                         <Video className="h-4 w-4" />
                       </button>
+
                     </div>
                   )}
 
