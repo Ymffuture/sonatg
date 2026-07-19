@@ -4,6 +4,7 @@ import {
   Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
   Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Bell, Phone, Video, CheckSquare, Square, BookOpen,
+  Download, Share2, GraduationCap, Briefcase, LifeBuoy, PartyPopper, Tag,
 } from "lucide-react";
 
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -12,9 +13,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
 import {
-  SONA_AI_ID, fmtTime,
+  SONA_AI_ID, fmtTime, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
-  type BlockRow,
+  type BlockRow, type ChatCategory,
 } from "@/lib/db";
 import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
 import { playSendSound, playReceiveSound } from "@/lib/sounds";
@@ -46,16 +47,7 @@ function useTheme() {
   return { theme, toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")) };
 }
 
-const EMOJIS = [
-  "😀","😂","🥲","😍","😎","🤔","🙌","👍",
-  "🔥","🎉","❤️","✨","🥂","📷","🙏","😴",
-  "😁","🤣","😊","😉","😌","😋","😜","🤩",
-  "🥳","😇","😭","😅","😬","🙃","😏","😮",
-  "😱","😡","🤯","🥰","😘","🤗","👏","💪",
-  "👀","💯","⭐","🌟","💫","⚡","🌈","☀️",
-  "🌙","🍕","🍔","🍩","☕","🍷","🎵","🎮",
-  "🏆","🚀","💎","🫶","💖","💔","✅","❌"
-];
+const EMOJIS = ["😀","😂","🥲","😍","😎","🤔","🙌","👍","🔥","🎉","❤️","✨","🥂","📷","🙏","😴"];
 const REACT_EMOJIS = ["❤️","😂","👍","🔥","😮","🙏"];
 
 function Avatar({ url, name, size = 40, ai = false }: { url?: string | null; name: string; size?: number; ai?: boolean }) {
@@ -77,6 +69,63 @@ function chatAvatarUrl(c: ChatWithMeta, meId: string) {
 function isAIChat(c: ChatWithMeta) {
   return c.memberIds.includes(SONA_AI_ID);
 }
+
+// Downloads a file to the user's device, WhatsApp-style. Fetching as a blob
+// (rather than a plain <a href download>) is necessary because the image
+// URL is a cross-origin Supabase Storage signed URL — browsers ignore the
+// `download` attribute on cross-origin links, so a direct anchor click would
+// just open the image in a new tab instead of saving it.
+async function downloadFile(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch (e) {
+    toast.error("Couldn't download image");
+    console.error("downloadFile failed", e);
+  }
+}
+
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+const URL_REGEX_TEST = /^https?:\/\/[^\s]+$/;
+
+// Renders message text with any URLs turned into clickable links, so shared
+// support links / app links etc. aren't just inert plain text.
+function linkify(text: string) {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX_TEST.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="underline underline-offset-2 opacity-90 hover:opacity-100 break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+const categoryMeta: Record<ChatCategory, { emoji: string; label: string; icon: typeof GraduationCap }> = {
+  general: { emoji: "💬", label: "General", icon: Users },
+  education: { emoji: "📚", label: "Education", icon: GraduationCap },
+  business: { emoji: "💼", label: "Business", icon: Briefcase },
+  support: { emoji: "🛟", label: "Support", icon: LifeBuoy },
+  social: { emoji: "🎉", label: "Social", icon: PartyPopper },
+  other: { emoji: "📌", label: "Other", icon: Tag },
+};
 
 export default function SonaChat() {
   const { theme, toggle } = useTheme();
@@ -557,6 +606,21 @@ export default function SonaChat() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => {
+                    const shareUrl = window.location.origin;
+                    if (navigator.share) {
+                      navigator.share({ title: "Sona", text: "Chat with me on Sona!", url: shareUrl }).catch(() => {});
+                    } else {
+                      navigator.clipboard.writeText(shareUrl);
+                      toast.success("App link copied to clipboard!");
+                    }
+                  }}
+                  className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white"
+                  aria-label="Share app"
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
                 <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Toggle theme">
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
@@ -646,7 +710,14 @@ export default function SonaChat() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{title}</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{title}</span>
+                          {c.is_group && c.category && c.category !== "general" && (
+                            <span className="shrink-0 text-[13px]" title={categoryMeta[c.category].label}>
+                              {categoryMeta[c.category].emoji}
+                            </span>
+                          )}
+                        </span>
                         <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
                           {last ? fmtTime(last.created_at) : ""}
                         </span>
@@ -688,6 +759,11 @@ export default function SonaChat() {
                     <div className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8]">
                       {chatTitle(active, me.id)}
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
+                      {active.is_group && active.category && active.category !== "general" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-medium text-[#E07A5F]">
+                          {categoryMeta[active.category].emoji} {categoryMeta[active.category].label}
+                        </span>
+                      )}
                     </div>
                     <div className="truncate text-xs text-[#8C8C8C]">
                       {typingNames.length > 0 ? (
@@ -827,7 +903,7 @@ export default function SonaChat() {
                 {pendingImage && (
                   <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
                     <div className="mx-auto flex max-w-3xl items-center gap-3">
-                      <img src={URL.createObjectURL(pendingImage)} alt="" className="h-28 w-28 rounded-lg object-cover border border-[#E07A5F]/20" />
+                      <img src={URL.createObjectURL(pendingImage)} alt="" className="h-14 w-14 rounded-lg object-cover border border-[#E07A5F]/20" />
                       <span className="flex-1 text-sm text-[#8C8C8C] truncate">{pendingImage.name}</span>
                       <button onClick={() => setPendingImage(null)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20"><X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" /></button>
                     </div>
@@ -965,12 +1041,24 @@ function Bubble({
             </div>
           )}
           {msg.kind === "image" && msg.media_url && (
-            <img src={msg.media_url} alt="" loading="lazy" className="mb-1 max-h-72 w-full rounded-xl object-cover" />
+            <div className="relative mb-1 group/image">
+              <img src={msg.media_url} alt="" loading="lazy" className="max-h-72 w-full rounded-xl object-cover" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadFile(msg.media_url!, `sona-photo-${msg.id}.jpg`);
+                }}
+                aria-label="Download image"
+                className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm opacity-80 hover:opacity-100 active:scale-95 transition"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            </div>
           )}
           {msg.kind === "voice" && msg.media_url && (
             <VoicePlayer url={msg.media_url} durationMs={msg.duration_ms ?? 0} mine={mine} />
           )}
-          {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{overrideBody ?? msg.body}</p>}
+          {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{linkify(overrideBody ?? msg.body ?? "")}</p>}
           <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/80" : "text-[#8C8C8C]"}`}>
             {msg.edited_at && <span className="italic">edited</span>}
             <span>{fmtTime(msg.created_at)}</span>
@@ -1147,10 +1235,17 @@ function Composer({
 }
 
 function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () => void; onCreated: (id: string) => void }) {
+  const [mode, setMode] = useState<"direct" | "group">("direct");
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Group-mode state
+  const [groupTitle, setGroupTitle] = useState("");
+  const [category, setCategory] = useState<ChatCategory>("general");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [creatingGroup, setCreatingGroup] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -1195,6 +1290,40 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
     finally { setBusyId(null); }
   };
 
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const createGroup = async () => {
+    if (!groupTitle.trim()) return toast.error("Give your group a name");
+    if (selectedIds.size === 0) return toast.error("Pick at least one person to add");
+    setCreatingGroup(true);
+    try {
+      const { data: chat, error: cErr } = await supabase
+        .from("chats")
+        .insert({ is_group: true, title: groupTitle.trim(), category, created_by: meId })
+        .select()
+        .single();
+      if (cErr) throw cErr;
+
+      const memberRows = [meId, ...Array.from(selectedIds)].map((user_id) => ({ chat_id: chat.id, user_id }));
+      const { error: mErr } = await supabase.from("chat_members").insert(memberRows);
+      if (mErr) throw mErr;
+
+      toast.success(`"${groupTitle.trim()}" group created`);
+      onCreated(chat.id);
+    } catch (e) {
+      console.error("createGroup failed", e);
+      toast.error(`Couldn't create group: ${(e as Error).message || "unknown error"}`);
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50 animate-in fade-in duration-200" onClick={onClose}>
       <div
@@ -1208,27 +1337,82 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
         <div className="px-5 pt-2 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-[#E07A5F]" />
-            <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Choose a friend</h3>
+            <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+              {mode === "direct" ? "Choose a friend" : "New group"}
+            </h3>
           </div>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close">
             <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
           </button>
         </div>
+
+        {/* Mode tabs */}
+        <div className="px-5 pb-3 flex gap-2">
+          <button
+            onClick={() => setMode("direct")}
+            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "direct" ? "bg-[#E07A5F] text-white" : "bg-[#F5F0E8] dark:bg-[#3A3A3A] text-[#8C8C8C]"}`}
+          >
+            Direct message
+          </button>
+          <button
+            onClick={() => setMode("group")}
+            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "group" ? "bg-[#E07A5F] text-white" : "bg-[#F5F0E8] dark:bg-[#3A3A3A] text-[#8C8C8C]"}`}
+          >
+            New group
+          </button>
+        </div>
+
+        {mode === "group" && (
+          <div className="px-5 pb-3 space-y-3">
+            <input
+              value={groupTitle}
+              onChange={(e) => setGroupTitle(e.target.value)}
+              placeholder="Group name (e.g. Grade 11 Study Group)"
+              className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-[#E07A5F]/10"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {CHAT_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => setCategory(cat.value)}
+                  className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    category === cat.value
+                      ? "bg-[#E07A5F] text-white"
+                      : "bg-[#F5F0E8] dark:bg-[#3A3A3A] text-[#8C8C8C]"
+                  }`}
+                >
+                  <span>{cat.emoji}</span>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+            {selectedIds.size > 0 && (
+              <p className="text-xs text-[#8C8C8C]">{selectedIds.size} {selectedIds.size === 1 ? "person" : "people"} selected</p>
+            )}
+          </div>
+        )}
+
         <div className="px-5 pb-3">
-          <p className="text-xs text-[#8C8C8C]">Pick from Sona users or search by name / email.</p>
+          <p className="text-xs text-[#8C8C8C]">
+            {mode === "direct" ? "Pick from Sona users or search by name / email." : "Select the people to add to your group."}
+          </p>
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 border border-[#E07A5F]/10">
             <Search className="h-4 w-4 text-[#8C8C8C]" />
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]" />
           </div>
         </div>
-        <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-6">
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-3">
           {loading ? (
             <div className="p-4 text-center text-sm text-[#8C8C8C]">Loading…</div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-sm text-[#8C8C8C]">No users found</div>
           ) : filtered.map((u) => (
-            <button key={u.id} disabled={busyId === u.id} onClick={() => startWith(u)}
-              className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-3 text-left last:border-0 hover:bg-[#F4A261]/10 disabled:opacity-60 rounded-lg">
+            <button
+              key={u.id}
+              disabled={mode === "direct" && busyId === u.id}
+              onClick={() => (mode === "direct" ? startWith(u) : toggleSelected(u.id))}
+              className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-3 text-left last:border-0 hover:bg-[#F4A261]/10 disabled:opacity-60 rounded-lg"
+            >
               <Avatar url={u.avatar_url} name={u.display_name} size={42} ai={u.is_ai} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
@@ -1238,10 +1422,28 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
                 </div>
                 <div className="truncate text-xs text-[#8C8C8C]">{u.email}</div>
               </div>
-              {busyId === u.id ? <span className="text-xs text-[#8C8C8C]">…</span> : <Plus className="h-4 w-4 text-[#E07A5F]" />}
+              {mode === "direct" ? (
+                busyId === u.id ? <span className="text-xs text-[#8C8C8C]">…</span> : <Plus className="h-4 w-4 text-[#E07A5F]" />
+              ) : selectedIds.has(u.id) ? (
+                <CheckSquare className="h-5 w-5 text-[#E07A5F]" />
+              ) : (
+                <Square className="h-5 w-5 text-[#8C8C8C]" />
+              )}
             </button>
           ))}
         </div>
+
+        {mode === "group" && (
+          <div className="px-5 pb-6 pt-2 border-t border-[#E07A5F]/10">
+            <button
+              onClick={createGroup}
+              disabled={creatingGroup}
+              className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-md transition hover:opacity-90 disabled:opacity-60"
+            >
+              {creatingGroup ? "Creating…" : "Create group"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
