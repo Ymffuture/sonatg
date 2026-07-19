@@ -3,22 +3,25 @@ import {
   Search, MoreVertical, Paperclip, Smile, Send, Mic, ArrowLeft, Moon, Sun,
   Image as ImageIcon, Plus, X, LogOut, Play, Pause, Trash2, SmilePlus,
   Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
-  Ban, Reply, Pencil, Crown, Users, Bell, Phone, Video, CheckSquare, Square,
+  Ban, Reply, Pencil, Crown, Users, Bell, Phone, Video, CheckSquare, Square, BookOpen,
 } from "lucide-react";
 
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
+import { startPaystackCheckout } from "@/lib/paystack.functions";
 import {
   SONA_AI_ID, fmtTime,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
   type BlockRow,
 } from "@/lib/db";
 import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
+import { playSendSound, playReceiveSound } from "@/lib/sounds";
 import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
 import sonaAi from "@/assets/sona-ai.png";
+
 
 type ChatWithMeta = ChatRow & {
   memberIds: string[];
@@ -235,9 +238,13 @@ export default function SonaChat() {
       .channel("sona-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
         const m = p.new as MessageRow;
-        if (m.chat_id === activeId) setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+        if (m.chat_id === activeId) {
+          setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
+          if (m.sender_id !== me.id) playReceiveSound();
+        }
         loadChats();
       })
+
       .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, (p) => {
         if (p.eventType === "INSERT") {
           const r = p.new as ReactionRow;
@@ -403,6 +410,7 @@ export default function SonaChat() {
       reply_to_id: replyTo?.id ?? null,
     });
     if (error) { toast.error(error.message); return; }
+    playSendSound();
 
     const prompt = plaintext;
     const attachedImageUrl = media_url;
@@ -410,10 +418,16 @@ export default function SonaChat() {
 
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
-      const mentionsSona = /(^|\s)@sona/i.test(prompt);
+      const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
       if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
+        if (!isAI && !active.memberIds.includes(SONA_AI_ID)) {
+          const { error: memErr } = await supabase.from("chat_members").insert({ chat_id: activeId, user_id: SONA_AI_ID });
+          if (memErr) { toast.error(`Couldn't summon Sona: ${memErr.message}`); return; }
+        }
+        toast.loading("Sona is thinking…", { id: "sona-ai" });
         askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
-          .catch((e) => toast.error(e.message));
+          .then(() => toast.dismiss("sona-ai"))
+          .catch((e) => toast.error(e.message, { id: "sona-ai" }));
       }
     }
   };
@@ -455,8 +469,17 @@ export default function SonaChat() {
     setActiveId(null);
   };
 
+  const requirePro = (feature: string): boolean => {
+    if (me?.is_pro) return true;
+    toast.error(`${feature} is a Sona Pro feature — upgrade in Settings → Subscription.`);
+    setShowHeaderMenu(false);
+    setShowSettings(true);
+    return false;
+  };
+
   const toggleHideChat = async () => {
     if (!active) return;
+    if (!active.is_hidden && !requirePro("Hide & encrypt")) return;
     const next = !active.is_hidden;
     const { error } = await supabase.from("chats").update({ is_hidden: next }).eq("id", active.id);
     if (error) { toast.error(error.message); return; }
@@ -467,6 +490,7 @@ export default function SonaChat() {
 
   const runSummary = async () => {
     if (!activeId) return;
+    if (!requirePro("AI chat summary")) return;
     setShowHeaderMenu(false);
     toast.loading("Summarizing…", { id: "sum" });
     try {
@@ -475,6 +499,12 @@ export default function SonaChat() {
       toast.success("Summary ready", { id: "sum" });
     } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
   };
+
+  const startCall = (kind: "voice" | "video") => {
+    if (!requirePro(kind === "voice" ? "Voice calls" : "Video calls")) return;
+    toast.success(`${kind === "voice" ? "Voice" : "Video"} call starting…`);
+  };
+
 
   const relock = () => {
     if (!activeId) return;
@@ -516,9 +546,13 @@ export default function SonaChat() {
                 <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Toggle theme">
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
+                <Link to="/learn" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Learn">
+                  <BookOpen className="h-4 w-4" />
+                </Link>
                 <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Settings">
                   <Settings className="h-4 w-4" />
                 </button>
+
                 <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Sign out">
                   <LogOut className="h-4 w-4" />
                 </button>
@@ -663,12 +697,13 @@ export default function SonaChat() {
                   {/* Call / Video buttons */}
                   {!isAIChat(active) && (
                     <div className="flex items-center gap-1 shrink-0">
-                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Voice call">
+                      <button onClick={() => startCall("voice")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Voice call">
                         <Phone className="h-4 w-4" />
                       </button>
-                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Video call">
+                      <button onClick={() => startCall("video")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Video call">
                         <Video className="h-4 w-4" />
                       </button>
+
                     </div>
                   )}
 
@@ -681,10 +716,13 @@ export default function SonaChat() {
                       <div className="absolute right-3 top-14 z-40 w-56 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-1 shadow-xl">
                         <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
                           <Sparkles className="h-4 w-4 text-[#E07A5F]" /> Summarize chat
+                          {!me.is_pro && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
                         </button>
                         <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
                           {active.is_hidden ? <><Unlock className="h-4 w-4 text-[#8C8C8C]" /> Unhide chat</> : <><Shield className="h-4 w-4 text-[#8C8C8C]" /> Hide & encrypt</>}
+                          {!me.is_pro && !active.is_hidden && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
                         </button>
+
                         {active.is_hidden && isUnlocked(active.id) && (
                           <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
                             <Lock className="h-4 w-4 text-[#8C8C8C]" /> Lock now
@@ -700,8 +738,7 @@ export default function SonaChat() {
                   )}
                 </header>
 
-                <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8"
-                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23E07A5F\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
+                <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
                   <div className="mx-auto flex max-w-3xl flex-col gap-0.5">
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
                       {isAIChat(active) ? "Chat with Sona AI ✨" : "Type @sona to summon the AI"}
@@ -803,8 +840,7 @@ export default function SonaChat() {
                 />
               </>
             ) : (
-              <div className="grid flex-1 place-items-center p-6 text-center text-[#8C8C8C]"
-                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23E07A5F\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
+              <div className="grid flex-1 place-items-center p-6 text-center text-[#8C8C8C] chat-pattern">
                 <div>
                   <img src={sonaLogo} alt="" className="mx-auto h-24 w-24 opacity-60" />
                   <p className="mt-4 text-[#8C8C8C]">Pick a chat or tap + to start a new one.</p>
@@ -1146,26 +1182,40 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-[#E07A5F]" />
-          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Choose a friend</h3>
+    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50 animate-in fade-in duration-200" onClick={onClose}>
+      <div
+        className="w-full rounded-t-3xl border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Grabber */}
+        <div className="pt-2.5 pb-1 flex justify-center">
+          <div className="h-1.5 w-10 rounded-full bg-[#E07A5F]/30" />
         </div>
-        <p className="mt-1 text-xs text-[#8C8C8C]">Pick from Sona users or search by name / email.</p>
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 border border-[#E07A5F]/10">
-          <Search className="h-4 w-4 text-[#8C8C8C]" />
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]" />
+        <div className="px-5 pt-2 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-[#E07A5F]" />
+            <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Choose a friend</h3>
+          </div>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close">
+            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
         </div>
-        <div className="scrollbar-thin mt-3 max-h-80 overflow-y-auto rounded-xl border border-[#E07A5F]/10">
+        <div className="px-5 pb-3">
+          <p className="text-xs text-[#8C8C8C]">Pick from Sona users or search by name / email.</p>
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 border border-[#E07A5F]/10">
+            <Search className="h-4 w-4 text-[#8C8C8C]" />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]" />
+          </div>
+        </div>
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-6">
           {loading ? (
             <div className="p-4 text-center text-sm text-[#8C8C8C]">Loading…</div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-sm text-[#8C8C8C]">No users found</div>
           ) : filtered.map((u) => (
             <button key={u.id} disabled={busyId === u.id} onClick={() => startWith(u)}
-              className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-3 text-left last:border-0 hover:bg-[#F4A261]/10 disabled:opacity-60">
-              <Avatar url={u.avatar_url} name={u.display_name} size={38} ai={u.is_ai} />
+              className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-3 text-left last:border-0 hover:bg-[#F4A261]/10 disabled:opacity-60 rounded-lg">
+              <Avatar url={u.avatar_url} name={u.display_name} size={42} ai={u.is_ai} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <div className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</div>
@@ -1178,13 +1228,11 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
             </button>
           ))}
         </div>
-        <div className="mt-4 flex justify-end">
-          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]">Close</button>
-        </div>
       </div>
     </div>
   );
 }
+
 
 function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
   const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
@@ -1206,16 +1254,17 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
 
+  const paystackCheckout = useServerFn(startPaystackCheckout);
   const upgrade = async () => {
     setBusy(true);
     try {
-      const { error } = await supabase.from("profiles").update({ is_pro: true }).eq("id", me.id);
-      if (error) throw error;
-      onSaved({ ...me, is_pro: true });
-      toast.success("Welcome to Sona Pro ✨");
+      const r = await paystackCheckout() as { url: string };
+      toast.success("Redirecting to Paystack…");
+      window.location.href = r.url;
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
   };
+
 
   const askNotif = async () => {
     if (typeof Notification === "undefined") return;
