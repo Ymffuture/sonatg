@@ -1,5 +1,16 @@
 export const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 
+export type ChatCategory = "general" | "education" | "business" | "support" | "social" | "other";
+
+export const CHAT_CATEGORIES: { value: ChatCategory; label: string; emoji: string }[] = [
+  { value: "general", label: "General", emoji: "💬" },
+  { value: "education", label: "Education", emoji: "📚" },
+  { value: "business", label: "Business", emoji: "💼" },
+  { value: "support", label: "Support", emoji: "🛟" },
+  { value: "social", label: "Social", emoji: "🎉" },
+  { value: "other", label: "Other", emoji: "📌" },
+];
+
 export type Profile = {
   id: string;
   email: string | null;
@@ -31,6 +42,7 @@ export type ChatRow = {
   created_by: string | null;
   last_message_at: string;
   is_hidden?: boolean;
+  category?: ChatCategory | null;
 };
 
 export type ReactionRow = {
