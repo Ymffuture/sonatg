@@ -1242,16 +1242,17 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
 
+  const paystackCheckout = useServerFn(startPaystackCheckout);
   const upgrade = async () => {
     setBusy(true);
     try {
-      const { error } = await supabase.from("profiles").update({ is_pro: true }).eq("id", me.id);
-      if (error) throw error;
-      onSaved({ ...me, is_pro: true });
-      toast.success("Welcome to Sona Pro ✨");
+      const r = await paystackCheckout({ data: undefined as unknown as never }) as { url: string };
+      toast.success("Redirecting to Paystack…");
+      window.location.href = r.url;
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
   };
+
 
   const askNotif = async () => {
     if (typeof Notification === "undefined") return;
