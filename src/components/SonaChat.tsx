@@ -127,6 +127,51 @@ const categoryMeta: Record<ChatCategory, { emoji: string; label: string; icon: t
   other: { emoji: "📌", label: "Other", icon: Tag },
 };
 
+// Turns cryptic Postgres/PostgREST/Supabase error text into a plain-language
+// explanation, so a failed action shows something actually actionable
+// instead of a raw error string most people can't parse.
+function explainSupabaseError(err: unknown): { title: string; explanation: string; raw: string } {
+  const raw = (err as { message?: string })?.message || String(err);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("column") && lower.includes("does not exist")) {
+    return {
+      title: "Database is missing a column",
+      explanation:
+        "The app expects a database column that isn't there yet. This usually means a migration file exists in the repo but hasn't actually been run against your Supabase project. Run `supabase db push`, or paste the migration's SQL into the Supabase SQL Editor and run it manually.",
+      raw,
+    };
+  }
+  if (lower.includes("row-level security") || lower.includes("row level security") || lower.includes("policy")) {
+    return {
+      title: "Blocked by a database permission rule",
+      explanation:
+        "Supabase's Row-Level Security rejected this action — the database doesn't think you're allowed to do this yet (for example, adding people to a chat before you're a confirmed member of it yourself). If you didn't just change any RLS policies, this is likely a bug in the app's request order rather than something wrong on your end.",
+      raw,
+    };
+  }
+  if (lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("network request failed")) {
+    return {
+      title: "Couldn't reach the database",
+      explanation:
+        "This looks like a network problem — check your internet connection, and make sure your Supabase project isn't paused (free-tier projects pause after inactivity and need a manual resume from the Supabase dashboard).",
+      raw,
+    };
+  }
+  if (lower.includes("jwt") || lower.includes("unauthorized") || lower.includes("401")) {
+    return {
+      title: "Your session may have expired",
+      explanation: "Try signing out and back in — your login session may no longer be valid.",
+      raw,
+    };
+  }
+  return {
+    title: "Something went wrong",
+    explanation: "Here's the exact error from the database, which should help pinpoint the cause:",
+    raw,
+  };
+}
+
 export default function SonaChat() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
@@ -1246,6 +1291,7 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
   const [category, setCategory] = useState<ChatCategory>("general");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [creatingGroup, setCreatingGroup] = useState(false);
+  const [groupError, setGroupError] = useState<{ title: string; explanation: string; raw: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -1285,7 +1331,9 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
       onCreated(chat.id);
     } catch (e) {
       console.error("startWith failed", e);
-      toast.error(`Couldn't start chat: ${(e as Error).message || "unknown error"}`);
+      const explained = explainSupabaseError(e);
+      toast.error(explained.title);
+      setGroupError(explained);
     }
     finally { setBusyId(null); }
   };
@@ -1330,7 +1378,9 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
       onCreated(chat.id);
     } catch (e) {
       console.error("createGroup failed", e);
-      toast.error(`Couldn't create group: ${(e as Error).message || "unknown error"}`);
+      const explained = explainSupabaseError(e);
+      toast.error(explained.title);
+      setGroupError(explained);
     } finally {
       setCreatingGroup(false);
     }
@@ -1457,6 +1507,39 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
           </div>
         )}
       </div>
+
+      {groupError && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-2xl bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-2xl">
+            <div className="mb-3 flex items-center gap-2 text-red-500">
+              <Ban className="h-5 w-5" />
+              <h4 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{groupError.title}</h4>
+            </div>
+            <p className="mb-3 text-sm leading-relaxed text-[#5C5C5C] dark:text-[#B8B8B8]">{groupError.explanation}</p>
+            <details className="mb-4 rounded-lg bg-[#F5F0E8] dark:bg-[#3A3A3A] p-2.5 text-xs text-[#8C8C8C]">
+              <summary className="cursor-pointer select-none font-medium">Technical details</summary>
+              <p className="mt-1.5 break-words font-mono">{groupError.raw}</p>
+            </details>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(groupError.raw);
+                  toast.success("Error copied to clipboard");
+                }}
+                className="flex-1 rounded-full border border-[#E07A5F]/30 py-2 text-sm font-medium text-[#E07A5F]"
+              >
+                Copy error
+              </button>
+              <button
+                onClick={() => setGroupError(null)}
+                className="flex-1 rounded-full bg-[#E07A5F] py-2 text-sm font-semibold text-white"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
