@@ -1109,11 +1109,7 @@ function Bubble({
 
           {!mine && !grouped && (
             <div className="mb-0.5 text-[11px] font-semibold text-[#E07A5F] flex items-center gap-1">
-              {isAI ? (
-  <span className="flex items-center gap-3">
-   <span className ="flex gap-1" >Sona AI <Sparkles className="h-3 w-3 text-white" /> </span> <span className ="text-sm text-blue-400" >Learn more</span>
-  </span>
-) : ""}
+              {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
             </div>
           )}
           {parentBody !== undefined && (
@@ -1138,7 +1134,13 @@ function Bubble({
             </div>
           )}
           {msg.kind === "voice" && msg.media_url && (
-            <VoicePlayer url={msg.media_url} durationMs={msg.duration_ms ?? 0} mine={mine} />
+            <VoicePlayer
+              url={msg.media_url}
+              durationMs={msg.duration_ms ?? 0}
+              mine={mine}
+              avatarUrl={sender?.avatar_url}
+              avatarName={sender?.display_name ?? "?"}
+            />
           )}
           {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{linkify(overrideBody ?? msg.body ?? "")}</p>}
           <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/80" : "text-[#8C8C8C]"}`}>
@@ -1209,7 +1211,7 @@ function waveformBars(seed: string, count = 32): number[] {
   return bars;
 }
 
-function VoicePlayer({ url, durationMs, mine }: { url: string; durationMs: number; mine: boolean }) {
+function VoicePlayer({ url, durationMs, mine, avatarUrl, avatarName }: { url: string; durationMs: number; mine: boolean; avatarUrl?: string | null; avatarName?: string }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [hasPlayed, setHasPlayed] = useState(false);
@@ -1235,7 +1237,7 @@ function VoicePlayer({ url, durationMs, mine }: { url: string; durationMs: numbe
   const mutedColor = mine ? "bg-white/35" : "bg-[#E07A5F]/30";
 
   return (
-    <div className="min-w-[220px] py-1">
+    <div className="min-w-[240px] py-1">
       <div className="flex items-center gap-2">
         <button onClick={toggle} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${mine ? "bg-white/25 text-white" : "bg-[#E07A5F]/15 text-[#E07A5F]"}`}>
           {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
@@ -1260,6 +1262,14 @@ function VoicePlayer({ url, durationMs, mine }: { url: string; durationMs: numbe
             );
           })}
         </button>
+
+        {/* Sender avatar with a mic badge, WhatsApp-style */}
+        <div className="relative shrink-0">
+          <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
+          <span className={`absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full ring-2 ${mine ? "bg-white text-[#E07A5F] ring-[#E07A5F]" : "bg-[#E07A5F] text-white ring-white dark:ring-[#2A2A2A]"}`}>
+            <Mic className="h-2.5 w-2.5" />
+          </span>
+        </div>
       </div>
 
       <div className="mt-1 flex items-center justify-between pl-11">
