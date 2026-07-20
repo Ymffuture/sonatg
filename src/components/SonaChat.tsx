@@ -975,7 +975,7 @@ export default function SonaChat() {
                         <img
                           src={pendingImageUrl}
                           alt=""
-                          className="max-h-[25vh] max-w-[25vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
+                          className="max-h-[50vh] max-w-[50vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
                         />
                         <button
                           onClick={() => setPendingImage(null)}
@@ -1100,8 +1100,6 @@ function Bubble({
 
   return (
     <div className={`group flex items-end gap-2 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}>
-      {!mine && !grouped && <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />}
-      {!mine && grouped && <div className="w-7 shrink-0" />}
       <div className="relative max-w-[78%]">
         <div onClick={onToggleActions} className={`relative cursor-pointer px-3 py-2 text-sm shadow-sm ${
           mine
@@ -1191,10 +1189,29 @@ function Bubble({
   );
 }
 
+// Deterministic pseudo-random bar heights seeded by the audio URL, so each
+// voice note gets a distinct-but-stable waveform shape on every render
+// (there's no real amplitude data to draw from without decoding the audio
+// file, which the browser's Web Audio API can do but isn't wired up here —
+// this is a visual approximation, same trick many chat-UI clones use).
+function waveformBars(seed: string, count = 32): number[] {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const bars: number[] = [];
+  for (let i = 0; i < count; i++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    bars.push(0.25 + (h % 1000) / 1000 * 0.75); // 0.25–1.0 range, never fully flat
+  }
+  return bars;
+}
+
 function VoicePlayer({ url, durationMs, mine }: { url: string; durationMs: number; mine: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [hasPlayed, setHasPlayed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const bars = useMemo(() => waveformBars(url), [url]);
+
   useEffect(() => {
     const a = new Audio(url);
     audioRef.current = a;
@@ -1202,22 +1219,56 @@ function VoicePlayer({ url, durationMs, mine }: { url: string; durationMs: numbe
     a.addEventListener("ended", () => { setPlaying(false); setProgress(0); });
     return () => { a.pause(); audioRef.current = null; };
   }, [url]);
+
   const toggle = () => {
     const a = audioRef.current; if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); } else { a.play(); setPlaying(true); }
+    if (playing) { a.pause(); setPlaying(false); }
+    else { a.play(); setPlaying(true); setHasPlayed(true); }
   };
+
   const secs = Math.round(durationMs / 1000);
+  const filledColor = mine ? "bg-white" : "bg-[#E07A5F]";
+  const mutedColor = mine ? "bg-white/35" : "bg-[#E07A5F]/30";
+
   return (
-    <div className="flex items-center gap-2 min-w-[180px] py-1">
-      <button onClick={toggle} className={`grid h-8 w-8 place-items-center rounded-full ${mine ? "bg-white/30 text-white" : "bg-[#E07A5F]/20 text-[#E07A5F]"}`}>
-        {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-      </button>
-      <div className="flex-1 h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-        <div className="h-full bg-current opacity-80" style={{ width: `${progress * 100}%` }} />
+    <div className="min-w-[220px] py-1">
+      <div className="flex items-center gap-2">
+        <button onClick={toggle} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${mine ? "bg-white/25 text-white" : "bg-[#E07A5F]/15 text-[#E07A5F]"}`}>
+          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+        </button>
+
+        {/* Unplayed indicator dot, WhatsApp-style — disappears once played */}
+        {!hasPlayed && (
+          <span className={`h-2 w-2 shrink-0 rounded-full ${mine ? "bg-white" : "bg-[#4FA6E0]"}`} />
+        )}
+
+        {/* Waveform */}
+        <button onClick={toggle} className="flex flex-1 items-center gap-[2px] h-8" aria-label={playing ? "Pause" : "Play"}>
+          {bars.map((h, i) => {
+            const barProgress = i / bars.length;
+            const isFilled = barProgress <= progress;
+            return (
+              <span
+                key={i}
+                className={`w-[3px] rounded-full transition-colors ${isFilled ? filledColor : mutedColor}`}
+                style={{ height: `${Math.round(h * 100)}%` }}
+              />
+            );
+          })}
+        </button>
       </div>
-      <span className="text-[10px] opacity-70 tabular-nums">
-        {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
-      </span>
+
+      <div className="mt-1 flex items-center justify-between pl-11">
+        <button
+          onClick={(e) => { e.stopPropagation(); toast.info("Transcription is coming soon"); }}
+          className={`text-[11px] font-medium ${mine ? "text-white/90" : "text-[#E07A5F]"} hover:underline`}
+        >
+          Transcribe
+        </button>
+        <span className={`text-[10px] tabular-nums ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+          {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
+        </span>
+      </div>
     </div>
   );
 }
@@ -1274,7 +1325,7 @@ function Composer({
   return (
     <div className="relative border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-2 py-2 md:px-6 md:py-3">
       {showEmoji && (
-        <div className="absolute bottom-full left-2 mb-2 grid max-w-xs grid-cols-8 gap-1 rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
+        <div className="absolute bottom-full left-2 mb-2 grid max-h-56 max-w-xs grid-cols-8 gap-1 overflow-y-auto rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
           {EMOJIS.map((e) => (
             <button key={e} onClick={() => setDraft(draft + e)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-[#F4A261]/20">{e}</button>
           ))}
