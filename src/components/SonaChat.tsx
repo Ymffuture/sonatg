@@ -190,6 +190,13 @@ export default function SonaChat() {
   const [draft, setDraft] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const pendingImageUrl = useMemo(
+    () => (pendingImage ? URL.createObjectURL(pendingImage) : null),
+    [pendingImage]
+  );
+  useEffect(() => {
+    return () => { if (pendingImageUrl) URL.revokeObjectURL(pendingImageUrl); };
+  }, [pendingImageUrl]);
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
   const [showNewChat, setShowNewChat] = useState(false);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
@@ -451,14 +458,29 @@ export default function SonaChat() {
 
   const deleteSelectedChats = async () => {
     if (!me || selectedChatIds.size === 0) return;
-    if (!confirm(`Delete ${selectedChatIds.size} chat(s)? This will remove you from these chats.`)) return;
+    const count = selectedChatIds.size;
+    if (!confirm(`Delete ${count} chat${count === 1 ? "" : "s"}? This will remove you from ${count === 1 ? "this chat" : "these chats"}.`)) return;
+
+    let failed = 0;
     for (const cid of selectedChatIds) {
-      await supabase.from("chat_members").delete().eq("chat_id", cid).eq("user_id", me.id);
+      const { error } = await supabase.from("chat_members").delete().eq("chat_id", cid).eq("user_id", me.id);
+      if (error) {
+        failed++;
+        console.error("Failed to delete chat", cid, error);
+      }
     }
+
     setSelectedChatIds(new Set());
     setSelectMode(false);
     loadChats();
-    toast.success("Chats deleted");
+
+    if (failed === 0) {
+      toast.success(count === 1 ? "Chat deleted" : `${count} chats deleted`);
+    } else if (failed === count) {
+      toast.error(count === 1 ? "Couldn't delete chat" : "Couldn't delete any of the selected chats");
+    } else {
+      toast.warning(`Deleted ${count - failed} of ${count} chats — ${failed} failed`);
+    }
   };
 
   const exitSelectMode = () => {
@@ -946,12 +968,24 @@ export default function SonaChat() {
                   </div>
                 )}
 
-                {pendingImage && (
-                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
-                    <div className="mx-auto flex max-w-3xl items-center gap-3">
-                      <img src={URL.createObjectURL(pendingImage)} alt="" className="h-42 w-42 rounded-lg object-cover border border-[#E07A5F]/20" />
-                      <span className="flex-1 text-sm text-[#8C8C8C] truncate">{pendingImage.name}</span>
-                      <button onClick={() => setPendingImage(null)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20"><X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" /></button>
+                {pendingImage && pendingImageUrl && (
+                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-3 md:px-6">
+                    <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
+                      <div className="relative flex w-full justify-center">
+                        <img
+                          src={pendingImageUrl}
+                          alt=""
+                          className="max-h-[50vh] max-w-[50vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
+                        />
+                        <button
+                          onClick={() => setPendingImage(null)}
+                          aria-label="Remove image"
+                          className="absolute -top-2 -right-2 grid h-8 w-8 place-items-center rounded-full bg-[#2D3436] shadow-md hover:bg-black"
+                        >
+                          <X className="h-4 w-4 text-white" />
+                        </button>
+                      </div>
+                      <span className="text-sm text-[#8C8C8C] truncate max-w-full">{pendingImage.name}</span>
                     </div>
                   </div>
                 )}
