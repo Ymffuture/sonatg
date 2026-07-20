@@ -975,7 +975,7 @@ export default function SonaChat() {
                         <img
                           src={pendingImageUrl}
                           alt=""
-                          className="max-h-[50vh] max-w-[50vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
+                          className="max-h-[25vh] max-w-[25vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
                         />
                         <button
                           onClick={() => setPendingImage(null)}
@@ -1109,7 +1109,11 @@ function Bubble({
 
           {!mine && !grouped && (
             <div className="mb-0.5 text-[11px] font-semibold text-[#E07A5F] flex items-center gap-1">
-              {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
+              {isAI ? (
+  <span className="flex items-center gap-3">
+   <span className ="flex gap-1" >Sona AI <Sparkles className="h-3 w-3 text-white" /> </span> <span className ="text-sm text-blue-400" >Learn more</span>
+  </span>
+) : ""}
             </div>
           )}
           {parentBody !== undefined && (
@@ -1265,9 +1269,9 @@ function VoicePlayer({ url, durationMs, mine, avatarUrl, avatarName }: { url: st
 
         {/* Sender avatar with a mic badge, WhatsApp-style */}
         <div className="relative shrink-0">
-          <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
+          <Avatar url={avatarUrl} name={avatarName ?? "?"} size={38} />
           <span className={`absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full ring-2 ${mine ? "bg-white text-[#E07A5F] ring-[#E07A5F]" : "bg-[#E07A5F] text-white ring-white dark:ring-[#2A2A2A]"}`}>
-            <Mic className="h-2.5 w-2.5" />
+            <Mic className="h-2.8 w-2.8" />
           </span>
         </div>
       </div>
