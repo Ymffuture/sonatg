@@ -1443,7 +1443,7 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
                       : "bg-[#F5F0E8] dark:bg-[#3A3A3A] text-[#8C8C8C]"
                   }`}
                 >
-                  <span>{cat.emoji}</span>
+                  <span>{cat.icon}</span>
                   {cat.label}
                 </button>
               ))}
