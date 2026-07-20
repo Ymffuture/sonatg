@@ -975,7 +975,7 @@ export default function SonaChat() {
                         <img
                           src={pendingImageUrl}
                           alt=""
-                          className="max-h-[50vh] max-w-[50vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
+                          className="max-h-[25vh] max-w-[25vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
                         />
                         <button
                           onClick={() => setPendingImage(null)}
