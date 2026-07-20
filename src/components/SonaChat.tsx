@@ -1109,7 +1109,11 @@ function Bubble({
 
           {!mine && !grouped && (
             <div className="mb-0.5 text-[11px] font-semibold text-[#E07A5F] flex items-center gap-1">
-              {isAI ? "Sona AI ✨" : sender?.display_name ?? "…"}
+              {isAI ? (
+  <span className="flex items-center gap-3">
+   <span className ="flex gap-1" >Sona AI <Sparkles className="h-3 w-3 text-white" /> </span> <span className ="text-sm text-blue-400" >Learn more</span>
+  </span>
+) : ""}
             </div>
           )}
           {parentBody !== undefined && (
