@@ -1,31 +1,15 @@
-import { defineConfig } from "vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import viteReact from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
+// or the app will break with duplicate plugins:
+//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,
+//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
+//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
+// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
+import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
-  resolve: {
-    tsconfigPaths: true,
+  tanstackStart: {
+    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
+    // nitro/vite builds from this
+    server: { entry: "server" },
   },
-  server: {
-    port: 5173,
-    strictPort: false,
-  },
-  plugins: [
-    // Must come before viteReact() — this is what makes __root.tsx's
-    // shellComponent/<Scripts/> actually work. Without it, Vite has no
-    // idea how to build the app's HTML entry (which is why a stray
-    // index.html + missing src/main.tsx caused the Vercel build to fail —
-    // TanStack Start generates its own entry, it was never supposed to
-    // need either of those files).
-    tanstackStart({
-      // Points at the existing SSR error-wrapper entry already in the repo.
-      start: { entry: "./src/start.ts" },
-    }),
-    viteReact(),
-    // Tailwind v4 uses its own Vite plugin, not the old PostCSS-plugin
-    // approach — styles.css already uses v4's `@import "tailwindcss"`
-    // syntax, so this must be this plugin, not `postcss: { plugins: [...] }`.
-    tailwindcss(),
-  ],
 });
