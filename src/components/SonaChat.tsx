@@ -839,7 +839,7 @@ export default function SonaChat() {
                       ) : isAIChat(active) ? (
                         "AI companion · always on"
                       ) : active.is_group ? (
-                        `${active.members.length} members`
+                        `${active.members.length} participates`
                       ) : (() => {
                         const otherId = active.memberIds.find((id) => id !== me.id);
                         const online = otherId ? onlineIds.has(otherId) : false;
@@ -856,17 +856,17 @@ export default function SonaChat() {
                   {!isAIChat(active) && (
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => startCall("voice")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Voice call">
-                        <Phone className="h-4 w-4" />
+                        <Phone className="h-6 w-6" />
                       </button>
                       <button onClick={() => startCall("video")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Video call">
-                        <Video className="h-4 w-4" />
+                        <Video className="h-6 w-6" />
                       </button>
 
                     </div>
                   )}
 
                   <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
-                    <MoreVertical className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+                    <MoreVertical className="h-8 w-8 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
                   {showHeaderMenu && (
                     <>
@@ -1113,12 +1113,12 @@ function Bubble({
         }`}>
 
           {!mine && !grouped && (isAI || isGroup) && (
-            <div className="mb-0.5 text-[11px] font-semibold text-[#E07A5F] flex items-center gap-1">
+            <div className="mb-0.5 text-[11px] text-[#E07A5F] flex items-center gap-1">
               {isAI ? (
   <span className="flex items-center gap-3">
    <span className ="flex gap-1" >Sona AI <Sparkles className="h-3 w-3 text-white" /> </span> <span className ="text-sm text-blue-400" >Learn more</span>
   </span>
-) : (sender?.display_name ?? "Unknown")}
+) : (<span className="text-[8px] text-gray-500 "> ~{sender?.display_name} </span> ?? "Sonatg")}
             </div>
           )}
           {parentBody !== undefined && (
@@ -1276,7 +1276,7 @@ function VoicePlayer({ url, durationMs, mine, avatarUrl, avatarName }: { url: st
         <div className="relative shrink-0">
           <Avatar url={avatarUrl} name={avatarName ?? "?"} size={38} />
           <span className={`absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full ring-2 ${mine ? "bg-white text-[#E07A5F] ring-[#E07A5F]" : "bg-[#E07A5F] text-white ring-white dark:ring-[#2A2A2A]"}`}>
-            <Mic className="h-2.8 w-2.8" />
+            <Mic className="h-2.5 w-2.8" />
           </span>
         </div>
       </div>
