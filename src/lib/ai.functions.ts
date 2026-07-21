@@ -2,10 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
-// OpenRouter model slug — swap to any model it hosts (e.g. "anthropic/claude-sonnet-4.6",
-// "google/gemini-2.5-flash"). See https://openrouter.ai/models
-const MODEL = process.env.AI_MODEL || "openai/gpt-4o-mini";
-const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
+const MODEL = "openai/gpt-5.5";
+const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 type AskInput = { chatId: string; prompt: string; imageUrl?: string | null };
 type SummarizeInput = { chatId: string };
@@ -13,20 +11,13 @@ type SummarizeInput = { chatId: string };
 async function callGateway(messages: unknown[], key: string): Promise<string> {
   const res = await fetch(GATEWAY, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-      // Optional but recommended by OpenRouter — attributes requests to your
-      // app on their dashboard/rankings. Harmless to leave as-is.
-      "HTTP-Referer": process.env.APP_URL || "https://sonatg.vercel.app",
-      "X-Title": "Sona AI",
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({ model: MODEL, messages }),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     if (res.status === 429) throw new Error("Sona AI is busy right now, try again in a moment.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Please top up your OpenRouter balance.");
+    if (res.status === 402) throw new Error("AI credits exhausted. Please upgrade your workspace plan.");
     throw new Error(`AI request failed [${res.status}]: ${body}`);
   }
   const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
@@ -49,8 +40,8 @@ export const askSonaAI = createServerFn({ method: "POST" })
       .eq("chat_id", data.chatId).eq("user_id", context.userId).maybeSingle();
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
 
-    const key = process.env.OPENROUTER_API_KEY;
-    if (!key) throw new Error("Missing OPENROUTER_API_KEY");
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
     // Personalize with the user's display name
     const { data: myProfile } = await context.supabase
@@ -112,8 +103,8 @@ export const summarizeChat = createServerFn({ method: "POST" })
       .eq("chat_id", data.chatId).eq("user_id", context.userId).maybeSingle();
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
 
-    const key = process.env.OPENROUTER_API_KEY;
-    if (!key) throw new Error("Missing OPENROUTER_API_KEY");
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
     const { data: recent } = await context.supabase
       .from("messages")
