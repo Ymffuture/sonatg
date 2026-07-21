@@ -919,6 +919,7 @@ export default function SonaChat() {
                           msg={m}
                           me={me}
                           sender={profiles[m.sender_id]}
+                          isGroup={!!active.is_group}
                           reactions={reactions.filter((r) => r.message_id === m.id)}
                           reads={reads}
                           otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
@@ -1081,12 +1082,12 @@ function TickIcon({ status, className }: { status: ReadStatus; className?: strin
 }
 
 function Bubble({
-  msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped,
+  msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
-  onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean;
+  onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean; isGroup: boolean;
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: string;
@@ -1100,6 +1101,10 @@ function Bubble({
 
   return (
     <div className={`group flex items-end gap-2 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}>
+      {!mine && isGroup && !grouped && (
+        <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />
+      )}
+      {!mine && isGroup && grouped && <div className="w-7 shrink-0" />}
       <div className="relative max-w-[78%]">
         <div onClick={onToggleActions} className={`relative cursor-pointer px-3 py-2 text-sm shadow-sm ${
           mine
@@ -1107,13 +1112,13 @@ function Bubble({
             : `bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] rounded-2xl ${grouped ? "rounded-bl-2xl" : "rounded-bl-sm"} border border-[#E07A5F]/10`
         }`}>
 
-          {!mine && !grouped && (
+          {!mine && !grouped && (isAI || isGroup) && (
             <div className="mb-0.5 text-[11px] font-semibold text-[#E07A5F] flex items-center gap-1">
               {isAI ? (
   <span className="flex items-center gap-3">
    <span className ="flex gap-1" >Sona AI <Sparkles className="h-3 w-3 text-white" /> </span> <span className ="text-sm text-blue-400" >Learn more</span>
   </span>
-) : ""}
+) : (sender?.display_name ?? "Unknown")}
             </div>
           )}
           {parentBody !== undefined && (
@@ -1653,7 +1658,38 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
   const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
   const [busy, setBusy] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(me.avatar_url ?? "");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [notif, setNotif] = useState<NotificationPermission>(typeof Notification !== "undefined" ? Notification.permission : "default");
+
+  const pickAvatar = () => avatarInputRef.current?.click();
+
+  const uploadAvatar = async (file: File) => {
+    if (!file.type.startsWith("image/")) return toast.error("Please choose an image file");
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      // Fixed filename per user (not a random uuid) so re-uploading replaces
+      // the old picture instead of accumulating unused files in storage.
+      const path = `${me.id}/avatar.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      // Cache-bust so the new picture shows immediately instead of the
+      // browser reusing a cached copy of the old file at the same URL.
+      const freshUrl = `${pub.publicUrl}?v=${Date.now()}`;
+      const { data, error } = await supabase.from("profiles").update({ avatar_url: freshUrl }).eq("id", me.id).select().single();
+      if (error) throw error;
+      setAvatarUrl(freshUrl);
+      onSaved(data as Profile);
+      toast.success("Profile picture updated");
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't upload picture");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const save = async () => {
     setBusy(true);
@@ -1706,6 +1742,29 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
 
         {tab === "profile" && (
           <div className="space-y-3">
+            <div className="flex flex-col items-center gap-2 pb-1">
+              <div className="relative">
+                <Avatar url={avatarUrl} name={name || "?"} size={72} />
+                <button
+                  onClick={pickAvatar}
+                  disabled={uploadingAvatar}
+                  aria-label="Change profile picture"
+                  className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] disabled:opacity-60"
+                >
+                  {uploadingAvatar ? <span className="text-[10px]">…</span> : <Pencil className="h-3.5 w-3.5" />}
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ""; }}
+                />
+              </div>
+              <button onClick={pickAvatar} disabled={uploadingAvatar} className="text-xs font-medium text-[#E07A5F] hover:underline disabled:opacity-60">
+                {uploadingAvatar ? "Uploading…" : "Change photo"}
+              </button>
+            </div>
             <div>
               <label className="text-xs text-[#8C8C8C]">Display name</label>
               <input value={name} onChange={(e) => setName(e.target.value)}
