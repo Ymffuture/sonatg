@@ -5,6 +5,7 @@ import {
   Check, CheckCheck, MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Bell, Phone, Video, CheckSquare, Square, BookOpen,
   Download, Share2, GraduationCap, Briefcase, LifeBuoy, PartyPopper, Tag,
+  BadgeCheck, FileText, File as FileIcon, Camera, UserPlus, DoorOpen, ShieldOff,
 } from "lucide-react";
 
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -15,7 +16,7 @@ import { startPaystackCheckout } from "@/lib/paystack.functions";
 import {
   SONA_AI_ID, fmtTime, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
-  type BlockRow, type ChatCategory,
+  type BlockRow, type ChatCategory, type ChatMemberRole,
 } from "@/lib/db";
 import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
 import { playSendSound, playReceiveSound } from "@/lib/sounds";
@@ -27,6 +28,7 @@ import sonaAi from "@/assets/sona-ai.png";
 type ChatWithMeta = ChatRow & {
   memberIds: string[];
   members: Profile[];
+  memberRoles: Record<string, ChatMemberRole>;
   lastMessage?: MessageRow;
   unread: number;
 };
@@ -171,6 +173,7 @@ export default function SonaChat() {
 
   const [me, setMe] = useState<Profile | null>(null);
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
+  const [loadingChats, setLoadingChats] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
@@ -189,6 +192,8 @@ export default function SonaChat() {
   }, [pendingImageUrl]);
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
   const [showNewChat, setShowNewChat] = useState(false);
+  const [showMemberList, setShowMemberList] = useState(false);
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
@@ -223,15 +228,16 @@ export default function SonaChat() {
   // Load chats + members + latest messages + unread counts
   const loadChats = useCallback(async () => {
     if (!me) return;
+    setLoadingChats(true);
     const { data: memberships } = await supabase
       .from("chat_members").select("chat_id").eq("user_id", me.id);
     const chatIds = (memberships ?? []).map((m: { chat_id: string }) => m.chat_id);
-    if (chatIds.length === 0) { setChats([]); return; }
+    if (chatIds.length === 0) { setChats([]); setLoadingChats(false); return; }
 
     const { data: chatRows } = await supabase
       .from("chats").select("*").in("id", chatIds).order("last_message_at", { ascending: false });
     const { data: allMembers } = await supabase
-      .from("chat_members").select("chat_id, user_id").in("chat_id", chatIds);
+      .from("chat_members").select("chat_id, user_id, role").in("chat_id", chatIds);
     const memberIds = Array.from(new Set((allMembers ?? []).map((m: { user_id: string }) => m.user_id)));
     const { data: profs } = await supabase.from("profiles").select("*").in("id", memberIds);
 
@@ -260,8 +266,10 @@ export default function SonaChat() {
     });
 
     const memsByChat: Record<string, string[]> = {};
-    (allMembers ?? []).forEach((m: { chat_id: string; user_id: string }) => {
+    const rolesByChat: Record<string, Record<string, ChatMemberRole>> = {};
+    (allMembers ?? []).forEach((m: { chat_id: string; user_id: string; role?: ChatMemberRole }) => {
       (memsByChat[m.chat_id] ||= []).push(m.user_id);
+      (rolesByChat[m.chat_id] ||= {})[m.user_id] = m.role ?? "member";
     });
 
     const result: ChatWithMeta[] = (chatRows ?? []).map((c) => {
@@ -271,11 +279,13 @@ export default function SonaChat() {
         ...chat,
         memberIds: ids,
         members: ids.map((id) => profMap[id]).filter(Boolean),
+        memberRoles: rolesByChat[chat.id] ?? {},
         lastMessage: lastByChat[chat.id],
         unread: unreadByChat[chat.id] ?? 0,
       };
     });
     setChats(result);
+    setLoadingChats(false);
     if (!activeId && result.length > 0) setActiveId(result[0].id);
   }, [me, activeId]);
 
@@ -444,6 +454,28 @@ export default function SonaChat() {
       else next.add(chatId);
       return next;
     });
+  };
+
+  const leaveGroup = async (chatId: string) => {
+    if (!me) return;
+    if (!confirm("Leave this group? You'll need to be re-added to rejoin.")) return;
+    const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", me.id);
+    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    toast.success("You left the group");
+    setShowMemberList(false);
+    if (activeId === chatId) setActiveId(null);
+    loadChats();
+  };
+
+  const deleteGroup = async (chatId: string) => {
+    if (!confirm("Delete this group for everyone? This can't be undone.")) return;
+    const { error } = await supabase.from("chats").delete().eq("id", chatId);
+    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    toast.success("Group deleted");
+    setShowGroupSettings(false);
+    setShowMemberList(false);
+    if (activeId === chatId) setActiveId(null);
+    loadChats();
   };
 
   const deleteSelectedChats = async () => {
@@ -649,7 +681,7 @@ export default function SonaChat() {
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
         <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
           {/* Sidebar */}
-          <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[340px] lg:w-[380px]`}>
+          <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-4 py-3 bg-[#E07A5F]">
               <div className="flex items-center gap-2 min-w-0">
@@ -720,7 +752,20 @@ export default function SonaChat() {
             </div>
 
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
-              {filtered.map((c) => {
+              {loadingChats ? (
+                <div className="space-y-1 px-2 pt-1">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+                      <div className="h-12 w-12 shrink-0 rounded-full bg-black/10 dark:bg-white/10" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-2/5 rounded bg-black/10 dark:bg-white/10" />
+                        <div className="h-2.5 w-4/5 rounded bg-black/10 dark:bg-white/10" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+              filtered.map((c) => {
                 const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
                 const last = c.lastMessage;
                 const mine = last?.sender_id === me.id;
@@ -786,8 +831,9 @@ export default function SonaChat() {
                     </div>
                   </div>
                 );
-              })}
-              {filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
+              })
+              )}
+              {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
             </div>
 
             {/* Floating New-Chat FAB */}
@@ -808,24 +854,39 @@ export default function SonaChat() {
                   <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
                     <ArrowLeft className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
-                  <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
+                  <button
+                    onClick={() => active.is_group && setShowMemberList(true)}
+                    disabled={!active.is_group}
+                    className="shrink-0"
+                  >
+                    <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
+                  </button>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8]">
+                    <button
+                      onClick={() => active.is_group && setShowMemberList(true)}
+                      className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8] text-left"
+                    >
                       {chatTitle(active, me.id)}
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
+                      {active.memberRoles[me.id] === "admin" && active.is_group && (
+                        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0]" />
+                      )}
                       {active.is_group && active.category && active.category !== "general" && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-medium text-[#E07A5F]">
                           {categoryMeta[active.category].emoji} {categoryMeta[active.category].label}
                         </span>
                       )}
-                    </div>
-                    <div className="truncate text-xs text-[#8C8C8C]">
+                    </button>
+                    <button
+                      onClick={() => active.is_group && setShowMemberList(true)}
+                      className="truncate text-xs text-[#8C8C8C] text-left w-full"
+                    >
                       {typingNames.length > 0 ? (
                         <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
                         "AI companion · always on"
                       ) : active.is_group ? (
-                        `${active.members.length} participates`
+                        active.members.map((m) => m.display_name).join(", ")
                       ) : (() => {
                         const otherId = active.memberIds.find((id) => id !== me.id);
                         const online = otherId ? onlineIds.has(otherId) : false;
@@ -835,7 +896,7 @@ export default function SonaChat() {
                           <span>offline · last seen recently</span>
                         );
                       })()}
-                    </div>
+                    </button>
                   </div>
 
                   {/* Call / Video buttons */}
@@ -1373,6 +1434,244 @@ function Composer({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Member list modal: view all participants, admin badges, leave group ───
+function MemberListModal({
+  chat, meId, isAdmin, onClose, onOpenSettings, onLeave,
+}: {
+  chat: ChatWithMeta; meId: string; isAdmin: boolean;
+  onClose: () => void; onOpenSettings: () => void; onLeave: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50" onClick={onClose}>
+      <div
+        className="w-full max-h-[80vh] flex flex-col rounded-t-3xl border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="pt-2.5 pb-1 flex justify-center">
+          <div className="h-1.5 w-10 rounded-full bg-[#E07A5F]/30" />
+        </div>
+        <div className="px-5 pt-2 pb-3 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+            {chat.title || "Group"} · {chat.members.length} {chat.members.length === 1 ? "member" : "members"}
+          </h3>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close">
+            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
+        </div>
+
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-2">
+          {chat.members.map((m) => {
+            const role = chat.memberRoles[m.id] ?? "member";
+            return (
+              <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg">
+                <Avatar url={m.avatar_url} name={m.display_name} size={40} ai={m.is_ai} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                      {m.display_name}{m.id === meId ? " (you)" : ""}
+                    </span>
+                    {role === "admin" && <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] shrink-0" titleAccess="Admin" />}
+                  </div>
+                  <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Admin" : "Member"}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="px-5 pb-6 pt-2 border-t border-[#E07A5F]/10 space-y-2">
+          {isAdmin && (
+            <button
+              onClick={onOpenSettings}
+              className="w-full flex items-center justify-center gap-2 rounded-full bg-[#E07A5F] py-2.5 text-sm font-semibold text-white hover:opacity-90 transition"
+            >
+              <Settings className="h-4 w-4" /> Group settings
+            </button>
+          )}
+          <button
+            onClick={onLeave}
+            className="w-full flex items-center justify-center gap-2 rounded-full border border-red-300 dark:border-red-500/30 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+          >
+            <DoorOpen className="h-4 w-4" /> Leave group
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Group settings modal (admin-only entry point): rename, re-photo, add members, delete ───
+function GroupSettingsModal({
+  chat, meId, onClose, onUpdated, onDelete,
+}: {
+  chat: ChatWithMeta; meId: string; onClose: () => void;
+  onUpdated: () => void; onDelete: () => void;
+}) {
+  const [title, setTitle] = useState(chat.title ?? "");
+  const [saving, setSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const avatarPreview = useMemo(() => (avatarFile ? URL.createObjectURL(avatarFile) : null), [avatarFile]);
+  useEffect(() => () => { if (avatarPreview) URL.revokeObjectURL(avatarPreview); }, [avatarPreview]);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [candidates, setCandidates] = useState<Profile[]>([]);
+  const [addSelected, setAddSelected] = useState<Set<string>>(new Set());
+  const [addBusy, setAddBusy] = useState(false);
+
+  useEffect(() => {
+    if (!addOpen) return;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("*").not("id", "in", `(${chat.memberIds.join(",")})`).limit(200);
+      setCandidates((data ?? []) as Profile[]);
+    })();
+  }, [addOpen, chat.memberIds]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      let avatar_url = chat.avatar_url;
+      if (avatarFile) {
+        const path = `${chat.id}/${meId}/group-avatar-${crypto.randomUUID()}-${avatarFile.name}`;
+        const { error: upErr } = await supabase.storage.from("chat-media").upload(path, avatarFile);
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+        avatar_url = signed?.signedUrl ?? avatar_url;
+      }
+      const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url }).eq("id", chat.id);
+      if (error) throw error;
+      toast.success("Group updated");
+      onUpdated();
+      onClose();
+    } catch (e) {
+      const explained = explainSupabaseError(e);
+      toast.error(explained.title);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addMembers = async () => {
+    if (addSelected.size === 0) return;
+    setAddBusy(true);
+    try {
+      const rows = Array.from(addSelected).map((user_id) => ({ chat_id: chat.id, user_id }));
+      const { error } = await supabase.from("chat_members").insert(rows);
+      if (error) throw error;
+      toast.success(`Added ${addSelected.size} ${addSelected.size === 1 ? "person" : "people"}`);
+      setAddOpen(false);
+      setAddSelected(new Set());
+      onUpdated();
+    } catch (e) {
+      toast.error(explainSupabaseError(e).title);
+    } finally {
+      setAddBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[55] flex flex-col justify-end bg-black/50" onClick={onClose}>
+      <div
+        className="w-full max-h-[85vh] flex flex-col rounded-t-3xl border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="pt-2.5 pb-1 flex justify-center">
+          <div className="h-1.5 w-10 rounded-full bg-[#E07A5F]/30" />
+        </div>
+        <div className="px-5 pt-2 pb-3 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Group settings</h3>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close">
+            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
+        </div>
+
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-5 pb-4 space-y-4">
+          {/* Avatar */}
+          <div className="flex justify-center">
+            <label className="relative cursor-pointer">
+              <Avatar url={avatarPreview ?? chat.avatar_url} name={chat.title ?? "Group"} size={84} />
+              <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-[#E07A5F] text-white ring-2 ring-[#FFFDF9] dark:ring-[#2A2A2A]">
+                <Camera className="h-3.5 w-3.5" />
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} />
+            </label>
+          </div>
+
+          {/* Name */}
+          <div>
+            <label className="text-xs font-medium text-[#8C8C8C]">Group name</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1 w-full rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+            />
+          </div>
+
+          {/* Add members */}
+          <div>
+            <button
+              onClick={() => setAddOpen((v) => !v)}
+              className="w-full flex items-center gap-2 rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8]"
+            >
+              <UserPlus className="h-4 w-4 text-[#E07A5F]" /> Add members
+              {addSelected.size > 0 && <span className="ml-auto text-xs text-[#E07A5F]">{addSelected.size} selected</span>}
+            </button>
+            {addOpen && (
+              <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-[#E07A5F]/10">
+                {candidates.length === 0 ? (
+                  <p className="p-3 text-center text-xs text-[#8C8C8C]">Everyone's already in this group.</p>
+                ) : candidates.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => setAddSelected((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(u.id)) next.delete(u.id); else next.add(u.id);
+                      return next;
+                    })}
+                    className="flex w-full items-center gap-3 border-b border-[#E07A5F]/5 p-2.5 last:border-0 hover:bg-[#F4A261]/10"
+                  >
+                    <Avatar url={u.avatar_url} name={u.display_name} size={32} />
+                    <span className="flex-1 truncate text-sm text-left text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</span>
+                    {addSelected.has(u.id) ? <CheckSquare className="h-4 w-4 text-[#E07A5F]" /> : <Square className="h-4 w-4 text-[#8C8C8C]" />}
+                  </button>
+                ))}
+                {candidates.length > 0 && (
+                  <button
+                    onClick={addMembers}
+                    disabled={addBusy || addSelected.size === 0}
+                    className="w-full py-2 text-sm font-semibold text-white bg-[#E07A5F] disabled:opacity-50"
+                  >
+                    {addBusy ? "Adding…" : "Add selected"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Danger zone */}
+          <div className="pt-2 border-t border-[#E07A5F]/10">
+            <button
+              onClick={onDelete}
+              className="w-full flex items-center justify-center gap-2 rounded-full border border-red-300 dark:border-red-500/30 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+            >
+              <Trash2 className="h-4 w-4" /> Delete group
+            </button>
+          </div>
+        </div>
+
+        <div className="px-5 pb-6 pt-2 border-t border-[#E07A5F]/10">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-md hover:opacity-90 disabled:opacity-60 transition"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
