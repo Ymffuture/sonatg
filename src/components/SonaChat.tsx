@@ -71,11 +71,6 @@ function isAIChat(c: ChatWithMeta) {
   return c.memberIds.includes(SONA_AI_ID);
 }
 
-// Downloads a file to the user's device, WhatsApp-style. Fetching as a blob
-// (rather than a plain <a href download>) is necessary because the image
-// URL is a cross-origin Supabase Storage signed URL — browsers ignore the
-// `download` attribute on cross-origin links, so a direct anchor click would
-// just open the image in a new tab instead of saving it.
 async function downloadFile(url: string, filename: string) {
   try {
     const res = await fetch(url);
@@ -97,8 +92,6 @@ async function downloadFile(url: string, filename: string) {
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 const URL_REGEX_TEST = /^https?:\/\/[^\s]+$/;
 
-// Renders message text with any URLs turned into clickable links, so shared
-// support links / app links etc. aren't just inert plain text.
 function linkify(text: string) {
   const parts = text.split(URL_REGEX);
   return parts.map((part, i) =>
@@ -128,9 +121,6 @@ const categoryMeta: Record<ChatCategory, { emoji: string; label: string; icon: t
   other: { emoji: "📌", label: "Other", icon: Tag },
 };
 
-// Turns cryptic Postgres/PostgREST/Supabase error text into a plain-language
-// explanation, so a failed action shows something actually actionable
-// instead of a raw error string most people can't parse.
 function explainSupabaseError(err: unknown): { title: string; explanation: string; raw: string } {
   const raw = (err as { message?: string })?.message || String(err);
   const lower = raw.toLowerCase();
@@ -545,15 +535,11 @@ export default function SonaChat() {
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
       const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
-      // Only reply when explicitly @mentioned. We deliberately do NOT add
+       // Only reply when explicitly @mentioned. We deliberately do NOT add
       // Sona as a permanent chat_members row here — doing so used to make
       // isAIChat() return true forever afterwards, which made Sona reply to
       // every future message in the chat and relabeled the whole
-      // conversation as "Chat with Sona AI". RLS on `messages` only checks
-      // the *requesting* user's membership to read a message, not the
-      // sender's, so Sona never actually needed a membership row for other
-      // participants to see her reply — this keeps her a one-off, blended
-      // participant instead of hijacking the thread.
+      // conversation as "Chat with Sona AI".
       if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
         toast.loading("Sona is thinking…", { id: "sona-ai" });
         askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
@@ -1212,11 +1198,6 @@ function Bubble({
   );
 }
 
-// Deterministic pseudo-random bar heights seeded by the audio URL, so each
-// voice note gets a distinct-but-stable waveform shape on every render
-// (there's no real amplitude data to draw from without decoding the audio
-// file, which the browser's Web Audio API can do but isn't wired up here —
-// this is a visual approximation, same trick many chat-UI clones use).
 function waveformBars(seed: string, count = 32): number[] {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -1474,14 +1455,7 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
         .select()
         .single();
       if (cErr) throw cErr;
-
-      // Must add the creator's own membership row FIRST, in its own insert,
-      // and wait for it to commit before adding anyone else. The RLS policy
-      // on chat_members is `user_id = auth.uid() OR is_chat_member(chat_id,
-      // auth.uid())` — until the creator's own row exists, is_chat_member()
-      // is false for them too, so a single bulk insert containing both the
-      // creator's row and other members' rows gets rejected entirely for
-      // every row except the creator's.
+    
       const { error: selfErr } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: meId });
       if (selfErr) throw selfErr;
 
