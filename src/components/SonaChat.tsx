@@ -1160,21 +1160,24 @@ function Bubble({
         }`}>
 
           {!mine && !grouped && (isAI || isGroup) && (
-            <div className="mb-0.5 text-[11px] text-[#E07A5F] flex items-center gap-1">
-              {isAI ? (
-  <div className="flex items-center gap-2">
-    <span className="flex items-center gap-1.5 font-semibold text-emerald-400 text-sm">
-      <Sparkles className="h-3.5 w-3.5" />
-      Sona AI
-    </span>
-    <span className="text-[11px] text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer">
-      Learn more
-    </span>
+  <div className="mb-0.5 text-[11px] text-[#E07A5F] flex items-center gap-1">
+    {isAI ? (
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1.5 font-semibold text-emerald-400 text-sm">
+          <Sparkles className="h-3.5 w-3.5" />
+          Sona AI
+        </span>
+
+        <span className="text-[11px] text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer">
+          Learn more
+        </span>
+      </div>
+    ) : (
+      <span className="text-xs font-medium text-gray-400">
+        ~{sender?.display_name ?? "Sonatg"}
+      </span>
+    )}
   </div>
-) : (
-  <span className="text-xs font-medium text-gray-400">
-    ~{sender?.display_name ?? "Sonatg"}
-  </span>
 )}
           {parentBody !== undefined && (
             <div className={`mb-1.5 rounded-lg border-l-2 border-[#E07A5F] px-2 py-1 text-[11px] ${mine ? "bg-black/10" : "bg-[#F5F0E8] dark:bg-white/5"}`}>
