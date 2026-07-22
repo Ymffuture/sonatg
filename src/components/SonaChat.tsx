@@ -66,9 +66,27 @@ function chatTitle(c: ChatWithMeta, meId: string) {
   return other?.display_name || c.title || "Chat";
 }
 function chatAvatarUrl(c: ChatWithMeta, meId: string) {
+  if (c.is_group) return c.avatar_url ?? null;
   const other = c.members.find((m) => m.id !== meId);
   return other?.avatar_url ?? null;
 }
+const MAX_IMAGES = 10;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_DOCS = 2;
+const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5MB
+const DOC_EXTENSIONS = [".pdf", ".docx", ".json", ".js", ".jsx", ".ts", ".tsx", ".java", ".py", ".c", ".cpp", ".go", ".rb", ".php", ".txt", ".md", ".css", ".html", ".sql", ".yaml", ".yml"];
+
+function docExtOf(name: string) {
+  const i = name.lastIndexOf(".");
+  return i === -1 ? "" : name.slice(i).toLowerCase();
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function isAIChat(c: ChatWithMeta) {
   return c.memberIds.includes(SONA_AI_ID);
 }
@@ -182,14 +200,15 @@ export default function SonaChat() {
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
-  const [pendingImage, setPendingImage] = useState<File | null>(null);
-  const pendingImageUrl = useMemo(
-    () => (pendingImage ? URL.createObjectURL(pendingImage) : null),
-    [pendingImage]
+  const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const pendingImageUrls = useMemo(
+    () => pendingImages.map((f) => URL.createObjectURL(f)),
+    [pendingImages]
   );
   useEffect(() => {
-    return () => { if (pendingImageUrl) URL.revokeObjectURL(pendingImageUrl); };
-  }, [pendingImageUrl]);
+    return () => { pendingImageUrls.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [pendingImageUrls]);
+  const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
   const [showNewChat, setShowNewChat] = useState(false);
   const [showMemberList, setShowMemberList] = useState(false);
@@ -213,6 +232,7 @@ export default function SonaChat() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const docRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Bootstrap: current user + profile
@@ -532,37 +552,55 @@ export default function SonaChat() {
       return;
     }
 
-    if (!draft.trim() && !pendingImage) return;
-    let media_url: string | null = null;
-    let kind: "text" | "image" = "text";
+    if (!draft.trim() && pendingImages.length === 0 && pendingDocs.length === 0) return;
 
-    if (pendingImage) {
-      const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${pendingImage.name}`;
-      const { error: upErr } = await supabase.storage.from("chat-media").upload(path, pendingImage);
-      if (upErr) { toast.error(upErr.message); return; }
-      const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
-      media_url = signed?.signedUrl ?? null;
-      kind = "image";
-    }
     const plaintext = draft.trim();
-    let body: string | null = plaintext || null;
     let is_encrypted = false;
-
-    if (active?.is_hidden && body && isUnlocked(activeId)) {
-      const enc = await encryptBody(activeId, body);
-      if (enc) { body = enc; is_encrypted = true; }
+    let firstBody: string | null = plaintext || null;
+    if (active?.is_hidden && firstBody && isUnlocked(activeId)) {
+      const enc = await encryptBody(activeId, firstBody);
+      if (enc) { firstBody = enc; is_encrypted = true; }
     }
 
-    const { error } = await supabase.from("messages").insert({
-      chat_id: activeId, sender_id: me.id, kind, body, media_url, is_encrypted,
-      reply_to_id: replyTo?.id ?? null,
-    });
-    if (error) { toast.error(error.message); return; }
+    type Outgoing = { kind: "text" | "image" | "file"; media_url?: string | null; file_name?: string; file_size?: number };
+    const outgoing: Outgoing[] = [];
+
+    for (const img of pendingImages) {
+      const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${img.name}`;
+      const { error: upErr } = await supabase.storage.from("chat-media").upload(path, img);
+      if (upErr) { toast.error(`Couldn't upload ${img.name}: ${explainSupabaseError(upErr).title}`); continue; }
+      const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+      outgoing.push({ kind: "image", media_url: signed?.signedUrl ?? null });
+    }
+    for (const doc of pendingDocs) {
+      const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${doc.name}`;
+      const { error: upErr } = await supabase.storage.from("chat-media").upload(path, doc, { contentType: doc.type || "application/octet-stream" });
+      if (upErr) { toast.error(`Couldn't upload ${doc.name}: ${explainSupabaseError(upErr).title}`); continue; }
+      const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+      outgoing.push({ kind: "file", media_url: signed?.signedUrl ?? null, file_name: doc.name, file_size: doc.size });
+    }
+    if (outgoing.length === 0 && plaintext) outgoing.push({ kind: "text" });
+
+    let firstAttachedImageUrl: string | null = null;
+    for (let i = 0; i < outgoing.length; i++) {
+      const item = outgoing[i];
+      if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
+      const { error } = await supabase.from("messages").insert({
+        chat_id: activeId, sender_id: me.id, kind: item.kind,
+        body: i === 0 ? firstBody : null,
+        media_url: item.media_url ?? null,
+        file_name: item.file_name ?? null,
+        file_size: item.file_size ?? null,
+        is_encrypted: i === 0 ? is_encrypted : false,
+        reply_to_id: i === 0 ? (replyTo?.id ?? null) : null,
+      });
+      if (error) { toast.error(error.message); continue; }
+    }
     playSendSound();
 
     const prompt = plaintext;
-    const attachedImageUrl = media_url;
-    setDraft(""); setPendingImage(null); setShowEmoji(false); setReplyTo(null);
+    const attachedImageUrl = firstAttachedImageUrl;
+    setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
 
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
@@ -588,7 +626,41 @@ export default function SonaChat() {
   };
   const startReply = (m: MessageRow) => { setReplyTo(m); setEditing(null); };
 
-  const onPickFile = (f?: File | null) => { if (f) setPendingImage(f); };
+  const onPickImages = (files?: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const incoming = Array.from(files);
+    const oversized = incoming.filter((f) => f.size > MAX_IMAGE_BYTES);
+    const valid = incoming.filter((f) => f.size <= MAX_IMAGE_BYTES);
+    if (oversized.length) toast.error(`${oversized.length} image${oversized.length === 1 ? "" : "s"} skipped — over 2MB`);
+
+    setPendingImages((prev) => {
+      const combined = [...prev, ...valid];
+      if (combined.length > MAX_IMAGES) {
+        toast.error(`Max ${MAX_IMAGES} images at once — extra ones skipped`);
+        return combined.slice(0, MAX_IMAGES);
+      }
+      return combined;
+    });
+  };
+
+  const onPickDocs = (files?: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const incoming = Array.from(files);
+    const wrongType = incoming.filter((f) => !DOC_EXTENSIONS.includes(docExtOf(f.name)));
+    const oversized = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size > MAX_DOC_BYTES);
+    const valid = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size <= MAX_DOC_BYTES);
+    if (wrongType.length) toast.error(`Unsupported file type: ${wrongType.map((f) => f.name).join(", ")}`);
+    if (oversized.length) toast.error(`${oversized.length} file${oversized.length === 1 ? "" : "s"} skipped — over 5MB`);
+
+    setPendingDocs((prev) => {
+      const combined = [...prev, ...valid];
+      if (combined.length > MAX_DOCS) {
+        toast.error(`Max ${MAX_DOCS} files at once — extra ones skipped`);
+        return combined.slice(0, MAX_DOCS);
+      }
+      return combined;
+    });
+  };
 
   const toggleReaction = async (messageId: string, emoji: string) => {
     if (!me) return;
@@ -1016,24 +1088,52 @@ export default function SonaChat() {
                   </div>
                 )}
 
-                {pendingImage && pendingImageUrl && (
+                {(pendingImages.length > 0 || pendingDocs.length > 0) && (
                   <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-3 md:px-6">
-                    <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
-                      <div className="relative flex w-full justify-center">
-                        <img
-                          src={pendingImageUrl}
-                          alt=""
-                          className="max-h-[25vh] max-w-[25vw] w-auto h-auto rounded-lg object-contain border border-[#E07A5F]/20 bg-black/5"
-                        />
-                        <button
-                          onClick={() => setPendingImage(null)}
-                          aria-label="Remove image"
-                          className="absolute -top-2 -right-2 grid h-8 w-8 place-items-center rounded-full bg-[#2D3436] shadow-md hover:bg-black"
-                        >
-                          <X className="h-4 w-4 text-white" />
-                        </button>
-                      </div>
-                      <span className="text-sm text-[#8C8C8C] truncate max-w-full">{pendingImage.name}</span>
+                    <div className="mx-auto max-w-3xl space-y-2">
+                      {pendingImages.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {pendingImages.map((f, i) => (
+                            <div key={i} className="relative shrink-0">
+                              <img
+                                src={pendingImageUrls[i]}
+                                alt=""
+                                className="h-20 w-20 rounded-lg object-cover border border-[#E07A5F]/20 bg-black/5"
+                              />
+                              <button
+                                onClick={() => setPendingImages((prev) => prev.filter((_, idx) => idx !== i))}
+                                aria-label="Remove image"
+                                className="absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#2D3436] shadow-md hover:bg-black"
+                              >
+                                <X className="h-3 w-3 text-white" />
+                              </button>
+                            </div>
+                          ))}
+                          <div className="flex items-center px-1 text-xs text-[#8C8C8C] shrink-0">
+                            {pendingImages.length}/{MAX_IMAGES}
+                          </div>
+                        </div>
+                      )}
+                      {pendingDocs.length > 0 && (
+                        <div className="space-y-1.5">
+                          {pendingDocs.map((f, i) => (
+                            <div key={i} className="flex items-center gap-2 rounded-lg border border-[#E07A5F]/20 bg-white dark:bg-[#2A2A2A] px-3 py-2">
+                              <FileText className="h-5 w-5 text-[#E07A5F] shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">{f.name}</p>
+                                <p className="text-xs text-[#8C8C8C]">{formatBytes(f.size)}</p>
+                              </div>
+                              <button
+                                onClick={() => setPendingDocs((prev) => prev.filter((_, idx) => idx !== i))}
+                                aria-label="Remove file"
+                                className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20"
+                              >
+                                <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1042,7 +1142,7 @@ export default function SonaChat() {
                   draft={draft}
                   setDraft={(v) => { setDraft(v); if (v) sendTyping(); }}
                   showEmoji={showEmoji} setShowEmoji={setShowEmoji}
-                  onPickFile={onPickFile} fileRef={fileRef}
+                  onPickImages={onPickImages} fileRef={fileRef} onPickDocs={onPickDocs} docRef={docRef}
                   onSend={send}
                   onVoiceUploaded={async (blob, durationMs) => {
                     if (!me || !activeId) return;
@@ -1074,6 +1174,27 @@ export default function SonaChat() {
           meId={me.id}
           onClose={() => setShowNewChat(false)}
           onCreated={(id) => { setActiveId(id); setShowSidebarMobile(false); setShowNewChat(false); loadChats(); }}
+        />
+      )}
+
+      {showMemberList && me && active && active.is_group && (
+        <MemberListModal
+          chat={active}
+          meId={me.id}
+          isAdmin={active.memberRoles[me.id] === "admin"}
+          onClose={() => setShowMemberList(false)}
+          onOpenSettings={() => { setShowMemberList(false); setShowGroupSettings(true); }}
+          onLeave={() => leaveGroup(active.id)}
+        />
+      )}
+
+      {showGroupSettings && me && active && active.is_group && (
+        <GroupSettingsModal
+          chat={active}
+          meId={me.id}
+          onClose={() => setShowGroupSettings(false)}
+          onUpdated={loadChats}
+          onDelete={() => deleteGroup(active.id)}
         />
       )}
 
@@ -1160,24 +1281,21 @@ function Bubble({
         }`}>
 
           {!mine && !grouped && (isAI || isGroup) && (
-  <div className="mb-0.5 text-[11px] text-[#E07A5F] flex items-center gap-1">
-    {isAI ? (
-      <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 font-semibold text-emerald-400 text-sm">
-          <Sparkles className="h-3.5 w-3.5" />
-          Sona AI
-        </span>
-
-        <span className="text-[11px] text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer">
-          Learn more
-        </span>
-      </div>
-    ) : (
-      <span className="text-xs font-medium text-gray-400">
-        ~{sender?.display_name ?? "Sonatg"}
-      </span>
-    )}
+            <div className="mb-0.5 text-[11px] text-[#E07A5F] flex items-center gap-1">
+              {isAI ? (
+  <div className="flex items-center gap-2">
+    <span className="flex items-center gap-1.5 font-semibold text-emerald-400 text-sm">
+      <Sparkles className="h-3.5 w-3.5" />
+      Sona AI
+    </span>
+    <span className="text-[11px] text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer">
+      Learn more
+    </span>
   </div>
+) : (
+  <span className="text-xs font-medium text-gray-400">
+    ~{sender?.display_name ?? "Sonatg"}
+  </span>
 )}
           {parentBody !== undefined && (
             <div className={`mb-1.5 rounded-lg border-l-2 border-[#E07A5F] px-2 py-1 text-[11px] ${mine ? "bg-black/10" : "bg-[#F5F0E8] dark:bg-white/5"}`}>
@@ -1200,6 +1318,27 @@ function Bubble({
               </button>
             </div>
           )}
+          {msg.kind === "file" && msg.media_url && (
+            <button
+              onClick={(e) => { e.stopPropagation(); downloadFile(msg.media_url!, msg.file_name || "file"); }}
+              className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                mine ? "border-white/25 bg-white/10 hover:bg-white/15" : "border-[#E07A5F]/20 bg-[#F5F0E8] dark:bg-[#3A3A3A] hover:bg-[#EFE6D8] dark:hover:bg-[#454545]"
+              }`}
+            >
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${mine ? "bg-white/20 text-white" : "bg-[#E07A5F]/15 text-[#E07A5F]"}`}>
+                <FileIcon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`block truncate text-sm font-medium ${mine ? "text-white" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+                  {msg.file_name || "File"}
+                </span>
+                <span className={`block text-xs ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+                  {msg.file_size ? formatBytes(msg.file_size) : ""}
+                </span>
+              </span>
+              <Download className={`h-4 w-4 shrink-0 ${mine ? "text-white/80" : "text-[#8C8C8C]"}`} />
+            </button>
+          )}
           {msg.kind === "voice" && msg.media_url && (
             <VoicePlayer
               url={msg.media_url}
@@ -1210,7 +1349,26 @@ function Bubble({
             />
           )}
           {(overrideBody ?? msg.body) && <p className="whitespace-pre-wrap break-words leading-relaxed pr-12">{linkify(overrideBody ?? msg.body ?? "")}</p>}
-          <div className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/80" : "text-[#8C8C8C]"}`}>
+          <div className={`mt-0.5 flex items-center justify-end gap-1.5 text-[10px] ${mine ? "text-white/80" : "text-[#8C8C8C]"}`}>
+            {/* Reactions come before the timestamp, in the same row */}
+            {Object.keys(counts).length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 mr-auto">
+                {Object.entries(counts).map(([e, n]) => {
+                  const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
+                  return (
+                    <button
+                      key={e}
+                      onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
+                      className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] ${
+                        mine ? "border-white/25 bg-white/10" : "border-[#E07A5F]/20 bg-[#FFFDF9] dark:bg-[#2A2A2A]"
+                      } ${mineReacted ? "ring-1 ring-[#E07A5F]" : ""}`}
+                    >
+                      <span>{e}</span><span className="text-[9px] opacity-80">{n}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {msg.edited_at && <span className="italic">edited</span>}
             <span>{fmtTime(msg.created_at)}</span>
             {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
@@ -1244,19 +1402,6 @@ function Bubble({
             </div>
           )}
         </div>
-        {Object.keys(counts).length > 0 && (
-          <div className={`mt-1 flex flex-wrap gap-1 ${mine ? "justify-end" : "justify-start"}`}>
-            {Object.entries(counts).map(([e, n]) => {
-              const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
-              return (
-                <button key={e} onClick={() => onReact(e)}
-                  className={`flex items-center gap-1 rounded-full border border-[#E07A5F]/20 px-2 py-0.5 text-xs bg-[#FFFDF9] dark:bg-[#2A2A2A] ${mineReacted ? "ring-1 ring-[#E07A5F]" : ""}`}>
-                  <span>{e}</span><span className="text-[10px] text-[#8C8C8C]">{n}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1350,12 +1495,14 @@ function VoicePlayer({ url, durationMs, mine, avatarUrl, avatarName }: { url: st
 }
 
 function Composer({
-  draft, setDraft, showEmoji, setShowEmoji, onPickFile, fileRef, onSend, onVoiceUploaded,
+  draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
-  onPickFile: (f?: File | null) => void;
+  onPickImages: (files?: FileList | null) => void;
   fileRef: React.RefObject<HTMLInputElement | null>;
+  onPickDocs: (files?: FileList | null) => void;
+  docRef: React.RefObject<HTMLInputElement | null>;
   onSend: () => void;
   onVoiceUploaded: (blob: Blob, durationMs: number) => void;
 }) {
@@ -1426,9 +1573,20 @@ function Composer({
               rows={1} placeholder="Type a message · @sona for AI"
               className="max-h-32 min-h-6 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-1.5"
             />
-            <button onClick={() => fileRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20" aria-label="Attach"><Paperclip className="h-5 w-5" /></button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickFile(e.target.files?.[0])} />
-            <button onClick={() => fileRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20" aria-label="Image"><ImageIcon className="h-5 w-5" /></button>
+            <button onClick={() => docRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20" aria-label="Attach file">
+              <Paperclip className="h-5 w-5" />
+            </button>
+            <input
+              ref={docRef} type="file" multiple accept={DOC_EXTENSIONS.join(",")}
+              className="hidden" onChange={(e) => { onPickDocs(e.target.files); e.target.value = ""; }}
+            />
+            <button onClick={() => fileRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20" aria-label="Image">
+              <ImageIcon className="h-5 w-5" />
+            </button>
+            <input
+              ref={fileRef} type="file" multiple accept="image/*"
+              className="hidden" onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
+            />
           </div>
           {draft.trim() ? (
             <button onClick={onSend} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition"><Send className="h-5 w-5" /></button>
@@ -1758,7 +1916,7 @@ function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () 
         .single();
       if (cErr) throw cErr;
     
-      const { error: selfErr } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: meId });
+      const { error: selfErr } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: meId, role: "admin" });
       if (selfErr) throw selfErr;
 
       const otherRows = Array.from(selectedIds).map((user_id) => ({ chat_id: chat.id, user_id }));
