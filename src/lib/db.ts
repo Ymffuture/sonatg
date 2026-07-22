@@ -24,7 +24,7 @@ export type MessageRow = {
   id: string;
   chat_id: string;
   sender_id: string;
-  kind: "text" | "image" | "voice";
+  kind: "text" | "image" | "voice" | "file";
   body: string | null;
   media_url: string | null;
   duration_ms: number | null;
@@ -32,6 +32,8 @@ export type MessageRow = {
   is_encrypted?: boolean;
   reply_to_id?: string | null;
   edited_at?: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
 };
 
 
@@ -43,7 +45,10 @@ export type ChatRow = {
   last_message_at: string;
   is_hidden?: boolean;
   category?: ChatCategory | null;
+  avatar_url?: string | null;
 };
+
+export type ChatMemberRole = "admin" | "member";
 
 export type ReactionRow = {
   id: string;
