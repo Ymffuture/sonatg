@@ -757,11 +757,11 @@ export default function SonaChat() {
           {/* Sidebar */}
           <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
             {/* Header */}
-            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-[#E07A5F]">
+            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-transparent dark:text-white text-gray-600 ">
               <div className="flex items-center gap-2 min-w-0">
                 {/*    <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />*/} 
                 <div className="leading-tight min-w-0">
-                  <div className="text-base font-bold truncate text-white">SonaTG</div>
+                  <div className="text-base font-bold truncate text-white text-[18px]">SonaTG</div>
 {/*   <div className="text-[10px] uppercase tracking-[0.2em] text-white/70">talk gold</div>*/} 
                 </div>
               </div>
