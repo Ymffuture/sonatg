@@ -761,11 +761,13 @@ export default function SonaChat() {
               <div className="flex items-center gap-2 min-w-0">
                 {/*    <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />*/} 
                 <div className="leading-tight min-w-0">
-                  <div className="text-base font-bold truncate text-white text-[18px]">SonaTG</div>
+                  <div className="truncate text-[24px] font-bold tracking-[-0.6px] text-white font-sans">
+  Sona<span className ="font-semibold text-[#E07A5F]" >TG</span>
+</div>
 {/*   <div className="text-[10px] uppercase tracking-[0.2em] text-white/70">talk gold</div>*/} 
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0">
                 <button
                   onClick={() => {
                     const shareUrl = window.location.origin;
