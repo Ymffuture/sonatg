@@ -1297,6 +1297,8 @@ function Bubble({
     ~{sender?.display_name ?? "Sonatg"}
   </span>
 )}
+            </div>
+          )}
           {parentBody !== undefined && (
             <div className={`mb-1.5 rounded-lg border-l-2 border-[#E07A5F] px-2 py-1 text-[11px] ${mine ? "bg-black/10" : "bg-[#F5F0E8] dark:bg-white/5"}`}>
               <div className="font-semibold text-[#E07A5F]">{parentName}</div>
