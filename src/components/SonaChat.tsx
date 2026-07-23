@@ -759,10 +759,10 @@ export default function SonaChat() {
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-4 py-3 bg-[#E07A5F]">
               <div className="flex items-center gap-2 min-w-0">
-                <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />
+                {/*    <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />*/} 
                 <div className="leading-tight min-w-0">
-                  <div className="text-base font-bold truncate text-white">Sona</div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/70">talk gold</div>
+                  <div className="text-base font-bold truncate text-white">SonaTG</div>
+{/*   <div className="text-[10px] uppercase tracking-[0.2em] text-white/70">talk gold</div>*/} 
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -819,7 +819,7 @@ export default function SonaChat() {
 
             <div className="px-3 pb-2 pt-2">
               <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
-                <Search className="h-4 w-4 text-[#8C8C8C]" />
+                <Search className="h-8 w-8 text-[#8C8C8C]" />
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats" 
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
@@ -828,7 +828,7 @@ export default function SonaChat() {
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
               {loadingChats ? (
                 <div className="space-y-1 px-2 pt-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
+                  {[1, 2, 3, 4, 5, 6,7,8,9,10,11,12,13].map((i) => (
                     <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
                       <div className="h-12 w-12 shrink-0 rounded-full bg-black/10 dark:bg-white/10" />
                       <div className="flex-1 space-y-2">
@@ -1287,8 +1287,8 @@ function Bubble({
               {isAI ? (
   <div className="flex items-center gap-2">
     <span className="flex items-center gap-1.5 font-semibold text-emerald-400 text-sm">
-      Sona AI
-      <VscVerifiedFilled className="h-3.5 w-3.5" />
+      Sona
+      <VscVerifiedFilled className="h-3.5 w-3.5 text-blue-600" />
       
     </span>
     <span className="text-[11px] text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer">
@@ -2272,7 +2272,7 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
             <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]">Close</button>
             {tab === "profile" && (
               <button disabled={busy} onClick={save} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition">
-                {busy ? "…" : "Save"}
+                {busy ? "Saving…" : "Save"}
               </button>
             )}
           </div>
