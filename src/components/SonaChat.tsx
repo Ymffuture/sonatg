@@ -1320,7 +1320,7 @@ function Bubble({
     </span>
   </div>
 ) : (
-  <span className="text-xs font-medium text-gray-400">
+  <span className="text-xs font-medium gap-1 flex text-gray-400 italic">
     ~{sender?.display_name ?? "Sonatg"}
   </span>
 )}
@@ -1388,9 +1388,9 @@ function Bubble({
                     <button
                       key={e}
                       onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-                      className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] ${
+                      className={`flex items-center gap-2 rounded-full px-1.5 py-0.5 text-[11px] ${
                         mine ? "border-white/25 bg-white/10" : "border-[#E07A5F]/20 bg-[#FFFDF9] dark:bg-[#2A2A2A]"
-                      } ${mineReacted ? "ring-1 ring-[#E07A5F]" : ""}`}
+                      } ${mineReacted ? "bg-transparent" : ""}`}
                     >
                       <span>{e}</span><span className="text-[9px] opacity-80">{n}</span>
                     </button>
