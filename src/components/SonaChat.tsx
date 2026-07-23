@@ -64,7 +64,7 @@ function Avatar({ url, name, size = 40, ai = false }: { url?: string | null; nam
 function chatTitle(c: ChatWithMeta, meId: string) {
   if (c.title && c.is_group) return c.title;
   const other = c.members.find((m) => m.id !== meId);
-  if (other?.is_ai) return "Sona AI";
+  if (other?.is_ai) return (<span className="flex gap-2">Sona <VscVerifiedFilled className="text-blue-600" /></span>) ;
   return other?.display_name || c.title || "Chat";
 }
 function chatAvatarUrl(c: ChatWithMeta, meId: string) {
