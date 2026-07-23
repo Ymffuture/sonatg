@@ -1647,7 +1647,7 @@ function MemberListModal({
         </div>
         <div className="px-5 pt-2 pb-3 flex items-center justify-between">
           <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-            {chat.title || "Group"} · {chat.members.length} {chat.members.length === 1 ? "member" : "members"}
+            {chat.title || "Group"} · {chat.members.length} {chat.members.length === 1 ? "participate" : "participates"}
           </h3>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close">
             <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
@@ -1667,7 +1667,7 @@ function MemberListModal({
                     </span>
                     {role === "admin" && <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] shrink-0" titleAccess="Admin" />}
                   </div>
-                  <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Admin" : "Member"}</span>
+                  <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Admin" : "participant"}</span>
                 </div>
               </div>
             );
