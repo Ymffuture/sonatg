@@ -958,7 +958,7 @@ export default function SonaChat() {
                       {typingNames.length > 0 ? (
                         <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
-                        "AI companion · always on"
+                        ""
                       ) : active.is_group ? (
                         active.members.map((m) => m.display_name).join(", ")
                       ) : (() => {
@@ -1020,7 +1020,7 @@ export default function SonaChat() {
                 <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
                   <div className="mx-auto flex max-w-3xl flex-col gap-0.5">
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
-                      {isAIChat(active) ? "Chat with Sona AI ✨" : "Type @sona to summon the AI"}
+                      {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
                     </div>
                     {messages.map((m, idx) => {
                       const prev = messages[idx - 1];
