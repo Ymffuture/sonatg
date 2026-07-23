@@ -26,6 +26,7 @@ import sonaAi from "@/assets/sona01.png";
 import { VscVerifiedFilled } from "react-icons/vsc" ;
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
+import { MdPrivateConnectivity } from "react-icons/md";
 
 type ChatWithMeta = ChatRow & {
   memberIds: string[];
@@ -1033,7 +1034,7 @@ export default function SonaChat() {
                         )}
                         {!isAIChat(active) && !active.is_group && (
                           <button onClick={blockOther} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
-                            <Ban className="h-4 w-4" /> Block user
+                            <MdPrivateConnectivity className="h-4 w-4" /> Go private
                           </button>
                         )}
                       </div>
