@@ -22,7 +22,7 @@ import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/li
 import { playSendSound, playReceiveSound } from "@/lib/sounds";
 import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
-import sonaAi from "@/assets/sona-ai.png";
+import sonaAi from "@/assets/sona01.png";
 import { VscVerifiedFilled } from "react-icons/vsc" ;
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
@@ -64,7 +64,7 @@ function Avatar({ url, name, size = 40, ai = false }: { url?: string | null; nam
 function chatTitle(c: ChatWithMeta, meId: string) {
   if (c.title && c.is_group) return c.title;
   const other = c.members.find((m) => m.id !== meId);
-  if (other?.is_ai) return (<span className="flex gap-2">Sona <VscVerifiedFilled className="text-blue-600" /></span>) ;
+  if (other?.is_ai) return "Sona" ;
   return other?.display_name || c.title || "Chat";
 }
 function chatAvatarUrl(c: ChatWithMeta, meId: string) {
@@ -940,7 +940,17 @@ export default function SonaChat() {
                       onClick={() => active.is_group && setShowMemberList(true)}
                       className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8] text-left"
                     >
-                      {chatTitle(active, me.id)}
+                      <div className="flex items-center gap-1.5">
+  <span>{chatTitle(active, me.id)}</span>
+
+  {isAIChat(active) && (
+    <VscVerifiedFilled
+      className="h-4 w-4 text-blue-500"
+      aria-label="Verified Sona AI"
+      title="Verified"
+    />
+  )}
+</div>
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
                       {active.memberRoles[me.id] === "admin" && active.is_group && (
                         <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0]" />
