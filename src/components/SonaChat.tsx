@@ -23,7 +23,9 @@ import { playSendSound, playReceiveSound } from "@/lib/sounds";
 import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
 import sonaAi from "@/assets/sona-ai.png";
-
+import { VscVerifiedFilled } from "react-icons/vsc" ;
+import { MdInsertPhoto } from "react-icons/md";
+import { IoMdMic } from "react-icons/io";
 
 type ChatWithMeta = ChatRow & {
   memberIds: string[];
@@ -841,7 +843,7 @@ export default function SonaChat() {
                 const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
                 const last = c.lastMessage;
                 const mine = last?.sender_id === me.id;
-                const previewText = last?.kind === "image" ? "📷 Photo" : last?.kind === "voice" ? "🎤 Voice note" : (last?.body ?? "");
+                const previewText = last?.kind === "image" ? `${<MdInsertPhoto/>} Photo` : last?.kind === "voice" ? `${<IoMdMic/>} Voice note` : (last?.body ?? "");
                 const isActive = c.id === activeId;
                 const ai = isAIChat(c);
                 const isSelected = selectedChatIds.has(c.id);
@@ -1029,7 +1031,7 @@ export default function SonaChat() {
                         : undefined;
                       const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
                       const parentBody = parentMsg
-                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? "📷 Photo" : parentMsg.kind === "voice" ? "🎤 Voice note" : "")))
+                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? `${ <MdInsertPhoto/>} Photo`: parentMsg.kind === "voice" ? `${<IoMdMic/>} Voice note` : "")))
                         : undefined;
                       const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
                       return (
@@ -1078,7 +1080,7 @@ export default function SonaChat() {
                           {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
                         </div>
                         <div className="truncate opacity-80 text-[#2D3436] dark:text-[#E8E8E8]">
-                          {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? "📷 Photo" : replyTo?.kind === "voice" ? "🎤 Voice note" : ""))}
+                          {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? `${ <MdInsertPhoto/>} Photo` : replyTo?.kind === "voice" ? `${<IoMdMic/>} Voice note` : ""))}
                         </div>
                       </div>
                       <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Cancel">
@@ -1285,8 +1287,9 @@ function Bubble({
               {isAI ? (
   <div className="flex items-center gap-2">
     <span className="flex items-center gap-1.5 font-semibold text-emerald-400 text-sm">
-      <Sparkles className="h-3.5 w-3.5" />
       Sona AI
+      <VscVerifiedFilled className="h-3.5 w-3.5" />
+      
     </span>
     <span className="text-[11px] text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer">
       Learn more
@@ -2248,7 +2251,7 @@ function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => v
               <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Crown className="h-4 w-4 text-[#E07A5F]" /> Sona Pro</div>
               <ul className="mt-2 space-y-1 text-xs text-[#2D3436] dark:text-[#E8E8E8]">
                 <li>✨ Unlimited AI chat summaries</li>
-                <li>🖼️ Vision — Sona reads your images</li>
+                <li className="flex gap-1" ><MdInsertPhoto/> Vision — Sona reads your images</li>
                 <li>🔒 Unlimited hidden encrypted chats</li>
                 <li>🎨 Premium themes</li>
               </ul>
