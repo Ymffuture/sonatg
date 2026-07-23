@@ -884,7 +884,13 @@ export default function SonaChat() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-1.5 min-w-0">
-                          <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{title}</span>
+                          <span className="truncate flex gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{title} {ai && (
+      <VscVerifiedFilled
+        className="h-4 w-4 shrink-0 text-blue-500"
+        aria-label="Verified Sona AI"
+        title="Verified Sona AI"
+      />
+    )}</span>
                           {c.is_group && c.category && c.category !== "general" && (
                             <span className="shrink-0 text-[13px]" title={categoryMeta[c.category].label}>
                               {categoryMeta[c.category].emoji}
