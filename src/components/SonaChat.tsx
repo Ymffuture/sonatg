@@ -778,7 +778,7 @@ export default function SonaChat() {
                       toast.success("App link copied to clipboard!");
                     }
                   }}
-                  className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white"
+                  className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white"
                   aria-label="Share app"
                 >
                   <Share2 className="h-4 w-4" />
