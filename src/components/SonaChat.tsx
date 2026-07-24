@@ -772,88 +772,89 @@ export default function SonaChat() {
             </div>
 
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
-              { (
-                filtered.map((c) => {
-                  const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
-                  const last = c.lastMessage;
-                  const mine = last?.sender_id === me.id;
-                  const previewText = last?.kind === "image" ? "Photo" : last?.kind === "voice" ? "Voice note" : (last?.body ?? "");
-                  const isActive = c.id === activeId;
-                  const ai = isAIChat(c);
-                  const isSelected = selectedChatIds.has(c.id);
-                  return (
-                    <div key={c.id}
-                      onClick={() => {
-                        if (selectMode) {
-                          toggleChatSelection(c.id);
-                        } else {
-                          setActiveId(c.id);
-                          setShowSidebarMobile(false);
-                        }
-                      }}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        if (!selectMode) {
-                          setSelectMode(true);
-                          setSelectedChatIds(new Set([c.id]));
-                        }
-                      }}
-                      className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
-                      {selectMode && (
-                        <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
-                          {isSelected ?
-                            <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> :
-                            <Square className="h-5 w-5 text-[#8C8C8C]" />
-                          }
-                        </div>
-                      )}
-                      <div className="relative shrink-0">
-                        <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
-                        {!ai && c.unread > 0 && !selectMode && (
-                          <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
-                            {c.unread > 9 ? "9+" : c.unread}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 min-w-0">
-                            <span className="flex min-w-0 items-center gap-1.5">
-                              <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-                                {title}
-                              </span>
-                              {ai && (
-                                <VscVerifiedFilled
-                                  className="h-[15px] w-[15px] shrink-0 text-blue-500"
-                                  aria-label="Verified Sona AI"
-                                  title="Verified Sona AI"
-                                />
-                              )}
-                            </span>
-                            {c.is_group && c.category && c.category !== "general" && (
-                              <span className="shrink-0 text-[#E07A5F]" title={categoryMeta[c.category].label}>
-                                <CategoryIcon category={c.category} />
-                              </span>
-                            )}
-                          </span>
-                          <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
-                            {last ? fmtTime(last.created_at) : ""}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-0.5">
-                          <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
-                            {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
-                            <span className="truncate">{previewText}</span>
-                          </div>
-                          {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
+  { (
+    filtered.map((c) => {
+      const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
+      const last = c.lastMessage;
+      const mine = last?.sender_id === me.id;
+      const isActive = c.id === activeId;
+      const ai = isAIChat(c);
+      const isSelected = selectedChatIds.has(c.id);
+      return (
+        <div key={c.id}
+          onClick={() => {
+            if (selectMode) {
+              toggleChatSelection(c.id);
+            } else {
+              setActiveId(c.id);
+              setShowSidebarMobile(false);
+            }
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (!selectMode) {
+              setSelectMode(true);
+              setSelectedChatIds(new Set([c.id]));
+            }
+          }}
+          className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
+          {selectMode && (
+            <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
+              {isSelected ?
+                <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> :
+                <Square className="h-5 w-5 text-[#8C8C8C]" />
+              }
             </div>
+          )}
+          <div className="relative shrink-0">
+            <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
+            {!ai && c.unread > 0 && !selectMode && (
+              <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
+                {c.unread > 9 ? "9+" : c.unread}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 min-w-0">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                    {title}
+                  </span>
+                  {ai && (
+                    <VscVerifiedFilled
+                      className="h-[15px] w-[15px] shrink-0 text-blue-500"
+                      aria-label="Verified Sona AI"
+                      title="Verified Sona AI"
+                    />
+                  )}
+                </span>
+                {c.is_group && c.category && c.category !== "general" && (
+                  <span className="shrink-0 text-[#E07A5F]" title={categoryMeta[c.category].label}>
+                    <CategoryIcon category={c.category} />
+                  </span>
+                )}
+              </span>
+              <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
+                {last ? fmtTime(last.created_at) : ""}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
+                {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
+                <span className="truncate inline-flex items-center gap-1">
+                  <MessagePreview msg={last} />
+                </span>
+              </div>
+              {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
+            </div>
+          </div>
+        </div>
+      );
+    })
+  )}
+  {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
+</div>
 
             {/* Floating New-Chat FAB */}
             <button
