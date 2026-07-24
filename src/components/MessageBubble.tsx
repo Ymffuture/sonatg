@@ -514,7 +514,7 @@ export function Bubble({
                     </span>
                   </div>
                 ) : (
-                  <span className="text-xs font-medium text-[#E07A5F]">
+                  <span className="text-xs font-medium italic text-[#E07A5F]">
                     {sender?.display_name ?? "Unknown"}
                   </span>
                 )}
