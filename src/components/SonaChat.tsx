@@ -711,8 +711,8 @@ export default function SonaChat() {
                 </div>
                 <div className="flex items-center gap-3">
                   {  loadingChats ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#E07A5F]" />
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 py-2">
+                  <Loader2 className="h-3 w-3 animate-spin text-[#E07A5F]" />
                   <span className="text-sm text-[#8C8C8C]">upcoming chats…</span>
                 </div>) :(
                   <button onClick={deleteSelectedChats} disabled={selectedChatIds.size === 0}
@@ -876,7 +876,7 @@ export default function SonaChat() {
                       {typingNames.length > 0 ? (
                         <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
-                        ""
+                        "~ Online"
                       ) : active.is_group ? (
                         active.members.map((m) => m.display_name).join(", ")
                       ) : (() => {
@@ -991,7 +991,8 @@ export default function SonaChat() {
                   </div>
                 </div>
 
-                {/* Floating Sona AI */}
+                {/* Floating Sona AI 
+                
                 {active && !isAIChat(active) && (
                   <button
                     onClick={() => {
@@ -1006,7 +1007,7 @@ export default function SonaChat() {
                     <Sparkles className="h-6 w-6" />
                   </button>
                 )}
-
+*/} 
                 {(replyTo || editing) && (
                   <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
                     <div className="mx-auto flex max-w-3xl items-center gap-3">
