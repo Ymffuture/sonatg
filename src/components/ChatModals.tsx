@@ -13,7 +13,7 @@ import { unlockChat } from "@/lib/crypto";
 import {
   CHAT_CATEGORIES, type Profile, type ChatCategory,
 } from "@/lib/db";
-import { type ChatWithMeta, explainSupabaseError } from "@/utils";
+import { type ChatWithMeta, explainSupabaseError } from "@/utils/utils";
 import { Avatar } from "./Avatar";
 
 export function MemberListModal({
