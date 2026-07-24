@@ -40,7 +40,6 @@ function GlassSheet({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
-      {/* Backdrop with blur */}
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div
         className={`relative w-full flex flex-col rounded-t-3xl border-t border-white/20 dark:border-white/10 bg-white/75 dark:bg-[#1a1a1a]/75 backdrop-blur-xl shadow-2xl ${className}`}
@@ -480,7 +479,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                   {u.is_ai && <Sparkles className="h-3 w-3 text-[#E07A5F]" />}
                   {u.is_pro && <Crown className="h-3 w-3 text-[#E07A5F]" />}
                 </div>
-                <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.email)}</div>
+                <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.display_name, u.email)}</div>
               </div>
               {mode === "direct" ? (
                 busyId === u.id ? <span className="text-xs text-[#8C8C8C]">…</span> : <Plus className="h-4 w-4 text-[#E07A5F]" />
