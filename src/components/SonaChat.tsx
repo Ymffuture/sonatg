@@ -34,6 +34,42 @@ import {
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
+import { Mic, Image as ImageIcon} from "lucide-react";
+
+/* ─── Inline preview with icons (no emojis) ─── */
+function MessagePreview({ msg, decrypted }: { msg: MessageRow; decrypted?: Record<string, string> }) {
+  if (msg.is_encrypted) {
+    return (
+      <span className="inline-flex items-center gap-1 opacity-70">
+        <Lock className="h-3 w-3 shrink-0" /> Locked
+      </span>
+    );
+  }
+  if (msg.body) return <span className="truncate">{msg.body}</span>;
+
+  switch (msg.kind) {
+    case "image":
+      return (
+        <span className="inline-flex items-center gap-1">
+          <ImageIcon className="h-3 w-3 shrink-0" /> Photo
+        </span>
+      );
+    case "voice":
+      return (
+        <span className="inline-flex items-center gap-1">
+          <Mic className="h-3 w-3 shrink-0" /> Voice note
+        </span>
+      );
+    case "file":
+      return (
+        <span className="inline-flex items-center gap-1">
+          <FileText className="h-3 w-3 shrink-0" /> {msg.file_name || "File"}
+        </span>
+      );
+    default:
+      return <span>…</span>;
+  }
+        }
 
 /* ─── Category Icons (no emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: string; className?: string }) {
@@ -941,43 +977,46 @@ export default function SonaChat() {
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
                       {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
                     </div>
-                    {messages.map((m, idx) => {
-                      const prev = messages[idx - 1];
-                      const groupWithPrev = prev && prev.sender_id === m.sender_id
-                        && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
-                      const overrideBody = m.is_encrypted
-                        ? (decrypted[m.id] ?? "🔒 Locked message — unlock this chat to read")
-                        : undefined;
-                      const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
-                      const parentBody = parentMsg
-                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? "Photo" : parentMsg.kind === "voice" ? "Voice note" : "")))
-                        : undefined;
-                      const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
-                      return (
-                        <Bubble
-                          key={m.id}
-                          msg={m}
-                          me={me}
-                          sender={profiles[m.sender_id]}
-                          isGroup={!!active.is_group}
-                          reactions={reactions.filter((r) => r.message_id === m.id)}
-                          reads={reads}
-                          otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
-                          onReact={(emoji) => toggleReaction(m.id, emoji)}
-                          opening={reactingOn === m.id}
-                          onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
-                          grouped={!!groupWithPrev}
-                          overrideBody={overrideBody}
-                          onDelete={() => deleteMessage(m.id)}
-                          onReply={() => startReply(m)}
-                          onEdit={() => startEdit(m)}
-                          parentName={parentName}
-                          parentBody={parentBody}
-                          actionsOpen={openBubbleId === m.id}
-                          onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
-                        />
-                      );
-                    })}
+ {messages.map((m, idx) => {
+  const prev = messages[idx - 1];
+  const groupWithPrev = prev && prev.sender_id === m.sender_id
+    && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
+
+  const overrideBody = m.is_encrypted
+    ? (decrypted[m.id] ?? "Locked message — unlock this chat to read")
+    : undefined;
+
+  const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
+  const parentBody = parentMsg ? <MessagePreview msg={parentMsg} decrypted={decrypted} /> : undefined;
+  const parentName = parentMsg
+    ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…"))
+    : undefined;
+
+  return (
+    <Bubble
+      key={m.id}
+      msg={m}
+      me={me}
+      sender={profiles[m.sender_id]}
+      isGroup={!!active.is_group}
+      reactions={reactions.filter((r) => r.message_id === m.id)}
+      reads={reads}
+      otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
+      onReact={(emoji) => toggleReaction(m.id, emoji)}
+      opening={reactingOn === m.id}
+      onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
+      grouped={!!groupWithPrev}
+      overrideBody={overrideBody}
+      onDelete={() => deleteMessage(m.id)}
+      onReply={() => startReply(m)}
+      onEdit={() => startEdit(m)}
+      parentName={parentName}
+      parentBody={parentBody}
+      actionsOpen={openBubbleId === m.id}
+      onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
+    />
+  );
+})}
 
                     {typingNames.length > 0 && (
                       <div className="flex items-end gap-2 mt-1">
