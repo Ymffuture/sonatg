@@ -622,7 +622,7 @@ export default function SonaChat() {
                 <div className="h-10 rounded-full bg-[#E07A5F]/10 animate-pulse" />
               </div>
               <div className="flex-1 space-y-1 px-2 pt-1">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
+                {[1, 2, 3, 4, 5, 6, 7,8,9,10,11,12,13].map((i) => (
                   <div key={i} className="flex items-center gap-3 p-3">
                     <div className="h-12 w-12 shrink-0 rounded-full bg-[#E07A5F]/10 animate-pulse" />
                     <div className="flex-1 space-y-2">
