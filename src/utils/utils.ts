@@ -80,10 +80,22 @@ export function formatBytes(n: number) {
 // Derives a display-friendly "username" handle from an email address,
 // so raw addresses never need to be shown in the UI (e.g. "j.doe@x.com"
 // becomes "@j.doe").
-export function usernameFromEmail(email?: string | null): string {
-  if (!email) return "";
-  const local = email.split("@")[0] ?? "";
-  return `@${local}`;
+// Short, deterministic 6-character uppercase alphanumeric suffix derived
+// from an email address — same email always produces the same suffix, so
+// two people with the same display name still get distinct handles.
+function emailSuffix(email: string): string {
+  let h = 0;
+  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0;
+  return h.toString(36).toUpperCase().padStart(6, "0").slice(-6);
+}
+
+// Derives a display-friendly "username" handle combining a person's display
+// name with a short suffix from their email, so the raw email address never
+// needs to be shown in the UI (e.g. "Jane Doe" + "jane@x.com" -> "JaneDoe_UD35H5").
+export function usernameFromEmail(displayName?: string | null, email?: string | null): string {
+  const namePart = (displayName || "user").replace(/\s+/g, "");
+  if (!email) return namePart;
+  return `${namePart}_${emailSuffix(email)}`;
 }
 
 // Downloads a file to the user's device, WhatsApp-style. Fetching as a blob
