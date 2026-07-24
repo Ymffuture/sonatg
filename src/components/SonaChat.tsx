@@ -29,7 +29,7 @@ import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
   explainSupabaseError, categoryMeta, readStatusFor,
   MAX_IMAGES, MAX_IMAGE_BYTES, MAX_DOCS, MAX_DOC_BYTES, DOC_EXTENSIONS, docExtOf, formatBytes,
-} from "@/utils";
+} from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
