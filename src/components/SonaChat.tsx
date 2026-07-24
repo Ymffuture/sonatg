@@ -606,6 +606,7 @@ export default function SonaChat() {
           {/* Sidebar */}
           <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
             {/* Header */}
+            
             <div className="flex items-center justify-between gap-2 px-4 py-3 bg-transparent dark:text-white text-gray-600 ">
               <div className="flex items-center gap-2 min-w-0">
                 {/*    <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />*/} 
