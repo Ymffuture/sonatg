@@ -66,7 +66,7 @@ export function MemberListModal({
       </div>
       <div className="px-5 pt-2 pb-3 flex items-center justify-between">
         <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-          {chat.title || "Group"} · {chat.members.length} {chat.members.length === 1 ? "member" : "members"}
+          {chat.title || "Group"} · {chat.members.length} {chat.members.length === 1 ? "participant" : "participants"}
         </h3>
         <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#E07A5F]/10 transition" aria-label="Close">
           <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
@@ -75,7 +75,7 @@ export function MemberListModal({
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-2">
         {chat.members.map((m) => {
-          const role = chat.memberRoles[m.id] ?? "member";
+          const role = chat.memberRoles[m.id] ?? "participant";
           return (
             <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/40 dark:hover:bg-white/5 transition">
               <Avatar url={m.avatar_url} name={m.display_name} size={40} ai={m.is_ai} />
@@ -86,7 +86,7 @@ export function MemberListModal({
                   </span>
                   {role === "admin" && <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] shrink-0" titleAccess="Admin" />}
                 </div>
-                <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Admin" : "Member"}</span>
+                <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Owner" : "participant"}</span>
               </div>
             </div>
           );
