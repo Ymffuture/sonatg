@@ -5,6 +5,7 @@ import {
   MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen,
   Share2, BadgeCheck, FileText, DoorOpen,
+  Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
 } from "lucide-react";
 
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -33,6 +34,21 @@ import {
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
+
+/* ─── Category Icons (no emojis) ─── */
+function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: string; className?: string }) {
+  switch (category) {
+    case "business": return <Briefcase className={className} />;
+    case "gaming": return <Gamepad2 className={className} />;
+    case "education": return <GraduationCap className={className} />;
+    case "lifestyle": return <Heart className={className} />;
+    case "entertainment": return <Music className={className} />;
+    case "travel": return <Plane className={className} />;
+    case "news": return <Newspaper className={className} />;
+    case "support": return <HelpCircle className={className} />;
+    default: return <Users className={className} />;
+  }
+}
 
 export default function SonaChat() {
   const { theme, toggle } = useTheme();
@@ -456,11 +472,6 @@ export default function SonaChat() {
     if (active && !active.is_hidden) {
       const isAI = isAIChat(active);
       const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
-       // Only reply when explicitly @mentioned. We deliberately do NOT add
-      // Sona as a permanent chat_members row here — doing so used to make
-      // isAIChat() return true forever afterwards, which made Sona reply to
-      // every future message in the chat and relabeled the whole
-      // conversation as "Chat with Sona AI".
       if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
         toast.loading("Sona is thinking…", { id: "sona-ai" });
         askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
@@ -577,7 +588,6 @@ export default function SonaChat() {
     toast.success(`${kind === "voice" ? "Voice" : "Video"} call starting…`);
   };
 
-
   const relock = () => {
     if (!activeId) return;
     lockChat(activeId);
@@ -591,8 +601,55 @@ export default function SonaChat() {
     navigate({ to: "/auth" });
   };
 
+  /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
-    return <div className="grid min-h-dvh place-items-center text-[#8C8C8C]">Loading Sona…</div>;
+    return (
+      <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
+        <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
+          <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
+            {/* Sidebar with nav bar skeleton */}
+            <aside className="relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]">
+              {/* Nav bar skeleton */}
+              <div className="flex items-center justify-between gap-2 px-4 py-3">
+                <div className="h-8 w-28 rounded-lg bg-[#E07A5F]/10 animate-pulse" />
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-9 w-9 rounded-full bg-[#E07A5F]/10 animate-pulse" />
+                  ))}
+                </div>
+              </div>
+              <div className="px-3 pb-2 pt-2">
+                <div className="h-10 rounded-full bg-[#E07A5F]/10 animate-pulse" />
+              </div>
+              <div className="flex-1 space-y-1 px-2 pt-1">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3">
+                    <div className="h-12 w-12 shrink-0 rounded-full bg-[#E07A5F]/10 animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-2/5 rounded bg-[#E07A5F]/10 animate-pulse" />
+                      <div className="h-2.5 w-4/5 rounded bg-[#E07A5F]/10 animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </aside>
+            {/* Main page loader */}
+            <section className="hidden md:flex h-full flex-1 flex-col bg-[#F0EBE3] dark:bg-[#1A1A1A] items-center justify-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <div className="h-16 w-16 rounded-2xl bg-[#E07A5F]/20 animate-pulse" />
+                  <img src={sonaLogo} alt="" className="absolute inset-0 h-16 w-16 rounded-2xl object-contain p-2 opacity-80" />
+                </div>
+                <div className="flex items-center gap-2 text-[#8C8C8C]">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#E07A5F]" />
+                  <span className="text-sm font-medium">Loading Sona…</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const typingNames = typingOthers
@@ -606,18 +663,15 @@ export default function SonaChat() {
           {/* Sidebar */}
           <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
             {/* Header */}
-            
-            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-transparent dark:text-white text-gray-600 ">
+            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0">
-                {/*    <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />*/} 
                 <div className="leading-tight min-w-0">
                   <div className="truncate text-[24px] font-bold tracking-[-0.6px] dark:text-white text-gray-600 font-sans">
-  Sona<span className ="font-semibold text-[#E07A5F]" >TG</span>
-</div>
-{/*   <div className="text-[10px] uppercase tracking-[0.2em] text-white/70">talk gold</div>*/} 
+                    Sona<span className="font-semibold text-[#E07A5F]">TG</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 border border-slate-800 dark:text-gray-600 rounded border-[1px]">
+              <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 border border-slate-800 dark:border-slate-700 rounded-md">
                 <button
                   onClick={() => {
                     const shareUrl = window.location.origin;
@@ -639,11 +693,10 @@ export default function SonaChat() {
                 <Link to="/learn" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Learn">
                   <BookOpen className="h-4 w-4" />
                 </Link>
-                <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600 " aria-label="Settings">
+                <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Settings">
                   <Settings className="h-4 w-4" />
                 </button>
-
-                <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-[#2D3436] " aria-label="Sign out">
+                <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-[#2D3436]" aria-label="Sign out">
                   <LogOut className="h-4 w-4" />
                 </button>
               </div>
@@ -657,12 +710,17 @@ export default function SonaChat() {
                   {selectedChatIds.size} selected
                 </div>
                 <div className="flex items-center gap-3">
+                  {  loadingChats ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#E07A5F]" />
+                  <span className="text-sm text-[#8C8C8C]">upcoming chats…</span>
+                </div>) :(
                   <button onClick={deleteSelectedChats} disabled={selectedChatIds.size === 0}
                     className="flex items-center gap-1 rounded bg-red-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-red-600 transition">
                     <Trash2 className="h-3.5 w-3.5" /> Delete
-                  </button>
+                  </button>)} 
                   <button onClick={exitSelectMode}
-                    className="rounded border-[1px] border-[#2D3436] px-3 py-1.5 text-xs font-semibold dark:text-white text-[#2D3436] hover:bg-[#3D4446] transition">
+                    className="rounded border border-[#2D3436] px-3 py-1.5 text-xs font-semibold dark:text-white text-[#2D3436] hover:bg-[#3D4446] transition">
                     Cancel
                   </button>
                 </div>
@@ -671,105 +729,92 @@ export default function SonaChat() {
 
             <div className="px-3 pb-2 pt-2">
               <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
-                <Search className="h-8 w-8 text-[#8C8C8C]" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats" 
+                <Search className="h-4 w-4 text-[#8C8C8C]" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
             </div>
 
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
-              {loadingChats ? (
-                <div className="space-y-1 px-2 pt-1">
-                  {[1, 2, 3, 4, 5, 6,7,8,9,10,11,12,13].map((i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
-                      <div className="h-12 w-12 shrink-0 rounded-full bg-black/10 dark:bg-white/10" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 w-2/5 rounded bg-black/10 dark:bg-white/10" />
-                        <div className="h-2.5 w-4/5 rounded bg-black/10 dark:bg-white/10" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-              filtered.map((c) => {
-                const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
-                const last = c.lastMessage;
-                const mine = last?.sender_id === me.id;
-                const previewText = last?.kind === "image" ? `${<MdInsertPhoto/>} Photo` : last?.kind === "voice" ? `${<IoMdMic/>} Voice note` : (last?.body ?? "");
-                const isActive = c.id === activeId;
-                const ai = isAIChat(c);
-                const isSelected = selectedChatIds.has(c.id);
-                return (
-                  <div key={c.id} 
-                    onClick={() => {
-                      if (selectMode) {
-                        toggleChatSelection(c.id);
-                      } else {
-                        setActiveId(c.id); 
-                        setShowSidebarMobile(false);
-                      }
-                    }}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      if (!selectMode) {
-                        setSelectMode(true);
-                        setSelectedChatIds(new Set([c.id]));
-                      }
-                    }}
-                    className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
-                    {selectMode && (
-                      <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
-                        {isSelected ? 
-                          <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> : 
-                          <Square className="h-5 w-5 text-[#8C8C8C]" />
+              { (
+                filtered.map((c) => {
+                  const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
+                  const last = c.lastMessage;
+                  const mine = last?.sender_id === me.id;
+                  const previewText = last?.kind === "image" ? "Photo" : last?.kind === "voice" ? "Voice note" : (last?.body ?? "");
+                  const isActive = c.id === activeId;
+                  const ai = isAIChat(c);
+                  const isSelected = selectedChatIds.has(c.id);
+                  return (
+                    <div key={c.id}
+                      onClick={() => {
+                        if (selectMode) {
+                          toggleChatSelection(c.id);
+                        } else {
+                          setActiveId(c.id);
+                          setShowSidebarMobile(false);
                         }
-                      </div>
-                    )}
-                    <div className="relative shrink-0">
-                      <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
-                      {!ai && c.unread > 0 && !selectMode && (
-                        <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
-                          {c.unread > 99 ? "99+" : c.unread}
-                        </span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-1.5 min-w-0">
-  <span className="flex min-w-0 items-center gap-1.5">                   
-  <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-    {title}
-  </span>
-
-  {ai && (
-    <VscVerifiedFilled
-      className="h-[15px] w-[15px] shrink-0 text-blue-500"
-      aria-label="Verified Sona AI"
-      title="Verified Sona AI"
-    />
-  )}
-</span>
-                          {c.is_group && c.category && c.category !== "general" && (
-                            <span className="shrink-0 text-[13px]" title={categoryMeta[c.category].label}>
-                              {categoryMeta[c.category].emoji}
-                            </span>
-                          )}
-                        </span>
-                        <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
-                          {last ? fmtTime(last.created_at) : ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
-                          {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
-                          <span className="truncate">{previewText}</span>
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (!selectMode) {
+                          setSelectMode(true);
+                          setSelectedChatIds(new Set([c.id]));
+                        }
+                      }}
+                      className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
+                      {selectMode && (
+                        <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
+                          {isSelected ?
+                            <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> :
+                            <Square className="h-5 w-5 text-[#8C8C8C]" />
+                          }
                         </div>
-                        {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
+                      )}
+                      <div className="relative shrink-0">
+                        <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
+                        {!ai && c.unread > 0 && !selectMode && (
+                          <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
+                            {c.unread > 9 ? "9+" : c.unread}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                                {title}
+                              </span>
+                              {ai && (
+                                <VscVerifiedFilled
+                                  className="h-[15px] w-[15px] shrink-0 text-blue-500"
+                                  aria-label="Verified Sona AI"
+                                  title="Verified Sona AI"
+                                />
+                              )}
+                            </span>
+                            {c.is_group && c.category && c.category !== "general" && (
+                              <span className="shrink-0 text-[#E07A5F]" title={categoryMeta[c.category].label}>
+                                <CategoryIcon category={c.category} />
+                              </span>
+                            )}
+                          </span>
+                          <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
+                            {last ? fmtTime(last.created_at) : ""}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
+                            {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="truncate">{previewText}</span>
+                          </div>
+                          {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })
               )}
               {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
             </div>
@@ -785,7 +830,7 @@ export default function SonaChat() {
           </aside>
 
           {/* Chat panel */}
-          <section className={`${showSidebarMobile ? "hidden" : "flex"} h-full min-w-0 flex-1 flex-col md:flex bg-[#F0EBE3] dark:bg-[#1A1A1A]`}>
+          <section className={`${showSidebarMobile ? "hidden" : "flex"} relative h-full min-w-0 flex-1 flex-col md:flex bg-[#F0EBE3] dark:bg-[#1A1A1A]`}>
             {active ? (
               <>
                 <header className="relative flex items-center gap-3 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2.5 md:px-4">
@@ -805,23 +850,22 @@ export default function SonaChat() {
                       className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8] text-left"
                     >
                       <div className="flex items-center gap-1.5">
-  <span>{chatTitle(active, me.id)}</span>
-
-  {isAIChat(active) && (
-    <VscVerifiedFilled
-      className="h-4 w-4 text-blue-500"
-      aria-label="Verified Sona AI"
-      title="Verified"
-    />
-  )}
-</div>
+                        <span>{chatTitle(active, me.id)}</span>
+                        {isAIChat(active) && (
+                          <VscVerifiedFilled
+                            className="h-4 w-4 text-blue-500"
+                            aria-label="Verified Sona AI"
+                            title="Verified"
+                          />
+                        )}
+                      </div>
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
                       {active.memberRoles[me.id] === "admin" && active.is_group && (
                         <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0]" />
                       )}
                       {active.is_group && active.category && active.category !== "general" && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-medium text-[#E07A5F]">
-                          {categoryMeta[active.category].emoji} {categoryMeta[active.category].label}
+                          <CategoryIcon category={active.category} className="h-3 w-3" /> {categoryMeta[active.category].label}
                         </span>
                       )}
                     </button>
@@ -851,44 +895,45 @@ export default function SonaChat() {
                   {!isAIChat(active) && (
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => startCall("voice")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Voice call">
-                        <Phone className="h-6 w-6" />
+                        <Phone className="h-5 w-5" />
                       </button>
                       <button onClick={() => startCall("video")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#E07A5F]" aria-label="Video call">
-                        <Video className="h-6 w-6" />
+                        <Video className="h-5 w-5" />
                       </button>
-
                     </div>
                   )}
 
-                  <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
-                    <MoreVertical className="h-8 w-8 text-[#2D3436] dark:text-[#E8E8E8]" />
-                  </button>
-                  {showHeaderMenu && (
-                    <>
-                      <div className="fixed inset-0 z-30" onClick={() => setShowHeaderMenu(false)} />
-                      <div className="absolute right-3 top-14 z-40 w-56 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-1 shadow-xl">
-                        <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
-                          <Sparkles className="h-4 w-4 text-[#E07A5F]" /> Summarize chat
-                          {!me.is_pro && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
-                        </button>
-                        <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
-                          {active.is_hidden ? <><Unlock className="h-4 w-4 text-[#8C8C8C]" /> Unhide chat</> : <><Shield className="h-4 w-4 text-[#8C8C8C]" /> Hide & encrypt</>}
-                          {!me.is_pro && !active.is_hidden && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
-                        </button>
-
-                        {active.is_hidden && isUnlocked(active.id) && (
-                          <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
-                            <Lock className="h-4 w-4 text-[#8C8C8C]" /> Lock now
+                  <div className="relative">
+                    <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
+                      <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
+                    </button>
+                    {showHeaderMenu && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setShowHeaderMenu(false)} />
+                        {/* Expands to the left of the trigger */}
+                        <div className="absolute right-full mr-2 top-0 z-40 w-56 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-1 shadow-xl">
+                          <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
+                            <Sparkles className="h-4 w-4 text-[#E07A5F]" /> Summarize chat
+                            {!me.is_pro && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
                           </button>
-                        )}
-                        {!isAIChat(active) && !active.is_group && (
-                          <button onClick={blockOther} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
-                            <Ban className="h-4 w-4" /> Block user
+                          <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
+                            {active.is_hidden ? <><Unlock className="h-4 w-4 text-[#8C8C8C]" /> Unhide chat</> : <><Shield className="h-4 w-4 text-[#8C8C8C]" /> Hide & encrypt</>}
+                            {!me.is_pro && !active.is_hidden && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
                           </button>
-                        )}
-                      </div>
-                    </>
-                  )}
+                          {active.is_hidden && isUnlocked(active.id) && (
+                            <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
+                              <Lock className="h-4 w-4 text-[#8C8C8C]" /> Lock now
+                            </button>
+                          )}
+                          {!isAIChat(active) && !active.is_group && (
+                            <button onClick={blockOther} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                              <Ban className="h-4 w-4" /> Block user
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </header>
 
                 <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
@@ -905,7 +950,7 @@ export default function SonaChat() {
                         : undefined;
                       const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
                       const parentBody = parentMsg
-                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? `${ <MdInsertPhoto/>} Photo`: parentMsg.kind === "voice" ? `${<IoMdMic/>} Voice note` : "")))
+                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? "Photo" : parentMsg.kind === "voice" ? "Voice note" : "")))
                         : undefined;
                       const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
                       return (
@@ -946,6 +991,22 @@ export default function SonaChat() {
                   </div>
                 </div>
 
+                {/* Floating Sona AI */}
+                {active && !isAIChat(active) && (
+                  <button
+                    onClick={() => {
+                      setDraft((d) => {
+                        const prefix = d && !d.endsWith(' ') ? ' ' : '';
+                        return d + prefix + '@sona ';
+                      });
+                    }}
+                    className="absolute bottom-24 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#E07A5F] to-[#F4A261] text-white shadow-xl hover:scale-110 transition-all duration-200 border-2 border-white dark:border-[#2A2A2A]"
+                    title="Ask Sona AI"
+                  >
+                    <Sparkles className="h-6 w-6" />
+                  </button>
+                )}
+
                 {(replyTo || editing) && (
                   <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
                     <div className="mx-auto flex max-w-3xl items-center gap-3">
@@ -954,7 +1015,7 @@ export default function SonaChat() {
                           {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
                         </div>
                         <div className="truncate opacity-80 text-[#2D3436] dark:text-[#E8E8E8]">
-                          {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? `${ <MdInsertPhoto/>} Photo` : replyTo?.kind === "voice" ? `${<IoMdMic/>} Voice note` : ""))}
+                          {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? "Photo" : replyTo?.kind === "voice" ? "Voice note" : ""))}
                         </div>
                       </div>
                       <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Cancel">
