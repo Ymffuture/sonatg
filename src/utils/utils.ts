@@ -77,6 +77,15 @@ export function formatBytes(n: number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// Derives a display-friendly "username" handle from an email address,
+// so raw addresses never need to be shown in the UI (e.g. "j.doe@x.com"
+// becomes "@j.doe").
+export function usernameFromEmail(email?: string | null): string {
+  if (!email) return "";
+  const local = email.split("@")[0] ?? "";
+  return `@${local}`;
+}
+
 // Downloads a file to the user's device, WhatsApp-style. Fetching as a blob
 // (rather than a plain <a href download>) is necessary because the URL is a
 // cross-origin Supabase Storage signed URL — browsers ignore the `download`
