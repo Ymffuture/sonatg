@@ -95,7 +95,7 @@ function emailSuffix(email: string): string {
 export function usernameFromEmail(displayName?: string | null, email?: string | null): string {
   const namePart = (displayName || "user").replace(/\s+/g, "");
   if (!email) return namePart;
-  return `${namePart}_${emailSuffix(email)}`;
+  return `${namePart.slice(-3)}_${emailSuffix(email)}`;
 }
 
 // Downloads a file to the user's device, WhatsApp-style. Fetching as a blob
