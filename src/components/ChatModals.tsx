@@ -221,7 +221,7 @@ export function GroupSettingsModal({
             onClick={() => setAddOpen((v) => !v)}
             className="w-full flex items-center gap-2 rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-white/10 transition"
           >
-            <UserPlus className="h-4 w-4 text-[#E07A5F]" /> Add members
+            <UserPlus className="h-4 w-4 text-[#E07A5F]" /> Add participants
             {addSelected.size > 0 && <span className="ml-auto text-xs text-[#E07A5F]">{addSelected.size} selected</span>}
           </button>
           {addOpen && (
@@ -262,7 +262,7 @@ export function GroupSettingsModal({
             onClick={onDelete}
             className="w-full flex items-center justify-center gap-2 rounded-full border border-red-300/50 dark:border-red-500/30 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/10 transition backdrop-blur-sm"
           >
-            <Trash2 className="h-4 w-4" /> Delete group
+            <Trash2 className="h-4 w-4" /> Remove group
           </button>
         </div>
       </div>
