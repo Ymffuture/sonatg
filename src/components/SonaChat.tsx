@@ -611,13 +611,13 @@ export default function SonaChat() {
               <div className="flex items-center gap-2 min-w-0">
                 {/*    <img src={sonaLogo} alt="Sona" width={36} height={36} className="h-9 w-9 rounded-2xl shadow-md bg-white/90" />*/} 
                 <div className="leading-tight min-w-0">
-                  <div className="truncate text-[24px] font-bold tracking-[-0.6px] text-white font-sans">
+                  <div className="truncate text-[24px] font-bold tracking-[-0.6px] dark:text-white text-gray-600 font-sans">
   Sona<span className ="font-semibold text-[#E07A5F]" >TG</span>
 </div>
 {/*   <div className="text-[10px] uppercase tracking-[0.2em] text-white/70">talk gold</div>*/} 
                 </div>
               </div>
-              <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0">
+              <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 border border-slate-800 dark:text-gray-600 rounded border-[1px]">
                 <button
                   onClick={() => {
                     const shareUrl = window.location.origin;
@@ -633,17 +633,17 @@ export default function SonaChat() {
                 >
                   <Share2 className="h-4 w-4" />
                 </button>
-                <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Toggle theme">
+                <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Toggle theme">
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
-                <Link to="/learn" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Learn">
+                <Link to="/learn" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Learn">
                   <BookOpen className="h-4 w-4" />
                 </Link>
-                <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Settings">
+                <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600 " aria-label="Settings">
                   <Settings className="h-4 w-4" />
                 </button>
 
-                <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-white" aria-label="Sign out">
+                <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-[#2D3436] " aria-label="Sign out">
                   <LogOut className="h-4 w-4" />
                 </button>
               </div>
@@ -656,13 +656,13 @@ export default function SonaChat() {
                   <CheckSquare className="h-4 w-4" />
                   {selectedChatIds.size} selected
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button onClick={deleteSelectedChats} disabled={selectedChatIds.size === 0}
-                    className="flex items-center gap-1 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-red-600 transition">
+                    className="flex items-center gap-1 rounded bg-red-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-red-600 transition">
                     <Trash2 className="h-3.5 w-3.5" /> Delete
                   </button>
                   <button onClick={exitSelectMode}
-                    className="rounded-lg bg-[#2D3436] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#3D4446] transition">
+                    className="rounded border-[1px] border-[#2D3436] px-3 py-1.5 text-xs font-semibold dark:text-white text-[#2D3436] hover:bg-[#3D4446] transition">
                     Cancel
                   </button>
                 </div>
