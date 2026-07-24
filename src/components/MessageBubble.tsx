@@ -10,120 +10,172 @@ import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, t
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
   URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS,
-} from "@/utils/utils";
+} from "@/utils";
 import { Avatar, TickIcon } from "./Avatar";
 
-/* ─── WhatsApp-style Markdown Parser ─── */
-const MARKDOWN_PATTERNS = [
-  { regex: /```([\s\S]*?)```/g, type: "codeblock" },
-  { regex: /`([^`]+)`/g, type: "code" },
-  { regex: /\*\*([^*]+)\*\*/g, type: "bold" },
-  { regex: /\*([^*]+)\*/g, type: "italic" },
-  { regex: /__([^_]+)__/g, type: "bold" },
-  { regex: /_([^_]+)_/g, type: "italic" },
-  { regex: /~~([^~]+)~~/g, type: "strike" },
+/* ─── Block Types ─── */
+type Block =
+  | { type: "paragraph"; tokens: InlineToken[] }
+  | { type: "codeblock"; content: string; lang?: string }
+  | { type: "table"; headers: string[]; rows: string[][] };
+
+type InlineToken =
+  | { type: "text"; content: string }
+  | { type: "bold"; content: string }
+  | { type: "italic"; content: string }
+  | { type: "code"; content: string }
+  | { type: "strike"; content: string }
+  | { type: "link"; content: string; href: string }
+  | { type: "br" };
+
+/* ─── Inline Parser ─── */
+const INLINE_PATTERNS = [
+  { regex: /\*\*([^*]+)\*\*/g, type: "bold" as const },
+  { regex: /__([^_]+)__/g, type: "bold" as const },
+  { regex: /\*([^*]+)\*/g, type: "italic" as const },
+  { regex: /_([^_]+)_/g, type: "italic" as const },
+  { regex: /~~([^~]+)~~/g, type: "strike" as const },
+  { regex: /`([^`]+)`/g, type: "code" as const },
 ];
 
-interface MarkdownToken {
-  type: "text" | "bold" | "italic" | "code" | "codeblock" | "strike" | "link" | "br";
-  content: string;
-  href?: string;
-}
-
-function parseMarkdown(text: string): MarkdownToken[] {
+function parseInline(text: string): InlineToken[] {
   if (!text) return [];
-  
-  // Normalize newlines
-  const normalized = text.replace(/\r\n/g, "\n");
-  const tokens: MarkdownToken[] = [];
-  
-  // Split by newlines first to handle line breaks
-  const lines = normalized.split("\n");
-  
-  lines.forEach((line, lineIdx) => {
-    if (lineIdx > 0) tokens.push({ type: "br", content: "" });
-    
-    if (!line.trim()) return;
-    
-    // Find all markdown matches in this line
-    type Match = { start: number; end: number; type: string; content: string };
-    const matches: Match[] = [];
-    
-    MARKDOWN_PATTERNS.forEach(({ regex, type }) => {
-      let m: RegExpExecArray | null;
-      const localRegex = new RegExp(regex.source, regex.flags);
-      while ((m = localRegex.exec(line)) !== null) {
-        matches.push({ start: m.index, end: m.index + m[0].length, type, content: m[1] });
-      }
-    });
-    
-    // Sort by position
-    matches.sort((a, b) => a.start - b.start);
-    
-    // Remove overlapping matches (keep first)
-    const filtered: Match[] = [];
-    let lastEnd = -1;
-    for (const m of matches) {
-      if (m.start >= lastEnd) {
-        filtered.push(m);
-        lastEnd = m.end;
-      }
-    }
-    
-    // Build tokens
-    let pos = 0;
-    for (const m of filtered) {
-      if (m.start > pos) {
-        const textPart = line.slice(pos, m.start);
-        // Check for URLs in plain text parts
-        tokens.push(...tokenizeUrls(textPart));
-      }
-      tokens.push({ type: m.type as any, content: m.content });
-      pos = m.end;
-    }
-    if (pos < line.length) {
-      tokens.push(...tokenizeUrls(line.slice(pos)));
+  const tokens: InlineToken[] = [];
+  let pos = 0;
+
+  // Find all inline markdown matches
+  type Match = { start: number; end: number; type: InlineToken["type"]; content: string };
+  const matches: Match[] = [];
+
+  INLINE_PATTERNS.forEach(({ regex, type }) => {
+    let m: RegExpExecArray | null;
+    const localRegex = new RegExp(regex.source, regex.flags);
+    while ((m = localRegex.exec(text)) !== null) {
+      matches.push({ start: m.index, end: m.index + m[0].length, type, content: m[1] });
     }
   });
-  
+
+  // Find links
+  let lm: RegExpExecArray | null;
+  const linkRegex = new RegExp(URL_REGEX.source, URL_REGEX.flags);
+  while ((lm = linkRegex.exec(text)) !== null) {
+    matches.push({ start: lm.index, end: lm.index + lm[0].length, type: "link", content: lm[0] });
+  }
+
+  matches.sort((a, b) => a.start - b.start);
+
+  // Remove overlaps
+  const filtered: Match[] = [];
+  let lastEnd = -1;
+  for (const m of matches) {
+    if (m.start >= lastEnd) {
+      filtered.push(m);
+      lastEnd = m.end;
+    }
+  }
+
+  for (const m of filtered) {
+    if (m.start > pos) tokens.push({ type: "text", content: text.slice(pos, m.start) });
+    if (m.type === "link") tokens.push({ type: "link", content: m.content, href: m.content });
+    else tokens.push({ type: m.type, content: m.content });
+    pos = m.end;
+  }
+  if (pos < text.length) tokens.push({ type: "text", content: text.slice(pos) });
   return tokens;
 }
 
-function tokenizeUrls(text: string): MarkdownToken[] {
-  const parts = text.split(URL_REGEX);
-  return parts.map((part) =>
-    URL_REGEX_TEST.test(part)
-      ? { type: "link", content: part, href: part }
-      : { type: "text", content: part }
-  );
+/* ─── Block Parser (Tables + Code + Paragraphs) ─── */
+function parseBlocks(text: string): Block[] {
+  if (!text) return [];
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const blocks: Block[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Code block
+    if (line.trim().startsWith("```")) {
+      const lang = line.trim().slice(3).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      blocks.push({ type: "codeblock", content: codeLines.join("\n"), lang: lang || undefined });
+      continue;
+    }
+
+    // Table detection: current line has | and next line is separator |---|---|
+    if (line.includes("|")) {
+      const nextLine = lines[i + 1];
+      if (nextLine && /^\s*\|?[\s\-:|]+\|?\s*$/.test(nextLine) && nextLine.includes("|")) {
+        const rawHeaders = line.split("|").map((s) => s.trim()).filter(Boolean);
+        i += 2; // skip header and separator
+
+        const rows: string[][] = [];
+        while (i < lines.length && lines[i].includes("|")) {
+          const cells = lines[i].split("|").map((s) => s.trim()).filter(Boolean);
+          if (cells.length > 0) rows.push(cells);
+          i++;
+        }
+
+        if (rawHeaders.length > 0) {
+          blocks.push({ type: "table", headers: rawHeaders, rows });
+          continue;
+        }
+      }
+    }
+
+    // Paragraph (collect non-empty lines)
+    if (line.trim()) {
+      const paraLines: string[] = [line];
+      i++;
+      while (i < lines.length && lines[i].trim() && !lines[i].includes("|") && !lines[i].trim().startsWith("```")) {
+        paraLines.push(lines[i]);
+        i++;
+      }
+      const paraText = paraLines.join("\n");
+      // Split by newlines into tokens with br
+      const parts = paraText.split("\n");
+      const tokens: InlineToken[] = [];
+      parts.forEach((part, idx) => {
+        if (idx > 0) tokens.push({ type: "br", content: "" });
+        tokens.push(...parseInline(part));
+      });
+      blocks.push({ type: "paragraph", tokens });
+      continue;
+    }
+
+    i++; // skip empty line
+  }
+
+  return blocks;
 }
 
-function renderMarkdown(text: string) {
-  const tokens = parseMarkdown(text);
+/* ─── Render Inline Tokens ─── */
+function renderInline(tokens: InlineToken[], keyPrefix: string) {
   return tokens.map((token, i) => {
+    const key = `${keyPrefix}-${i}`;
     switch (token.type) {
       case "bold":
-        return <strong key={i} className="font-semibold">{token.content}</strong>;
+        return <strong key={key} className="font-semibold">{token.content}</strong>;
       case "italic":
-        return <em key={i} className="italic">{token.content}</em>;
+        return <em key={key} className="italic">{token.content}</em>;
       case "strike":
-        return <s key={i} className="line-through opacity-70">{token.content}</s>;
+        return <s key={key} className="line-through opacity-70">{token.content}</s>;
       case "code":
         return (
-          <code key={i} className="rounded bg-black/10 px-1 py-0.5 text-[0.9em] font-mono dark:bg-white/15">
+          <code key={key} className="rounded bg-black/10 px-1 py-0.5 text-[0.9em] font-mono dark:bg-white/15">
             {token.content}
           </code>
-        );
-      case "codeblock":
-        return (
-          <pre key={i} className="mt-1 mb-1 overflow-x-auto rounded-lg bg-black/5 p-2 text-xs font-mono dark:bg-white/10">
-            <code>{token.content}</code>
-          </pre>
         );
       case "link":
         return (
           <a
-            key={i}
+            key={key}
             href={token.href}
             target="_blank"
             rel="noopener noreferrer"
@@ -134,9 +186,102 @@ function renderMarkdown(text: string) {
           </a>
         );
       case "br":
-        return <br key={i} />;
+        return <br key={key} />;
       default:
-        return <span key={i}>{token.content}</span>;
+        return <span key={key}>{token.content}</span>;
+    }
+  });
+}
+
+/* ─── Table Renderer ─── */
+function TableRenderer({
+  headers,
+  rows,
+  mine,
+}: {
+  headers: string[];
+  rows: string[][];
+  mine: boolean;
+}) {
+  return (
+    <div className="my-2 overflow-x-auto rounded-lg border border-[#E07A5F]/20 dark:border-[#E07A5F]/15">
+      <table className="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr className={`${mine ? "bg-black/15" : "bg-[#E07A5F]/8 dark:bg-[#E07A5F]/15"}`}>
+            {headers.map((h, i) => (
+              <th
+                key={i}
+                className={`px-3 py-2 font-semibold border-b ${
+                  mine
+                    ? "border-white/20 text-white/95"
+                    : "border-[#E07A5F]/20 text-[#2D3436] dark:text-[#E8E8E8]"
+                } ${i < headers.length - 1 ? (mine ? "border-r border-white/10" : "border-r border-[#E07A5F]/10") : ""}`}
+              >
+                {renderInline(parseInline(h), `th-${i}`)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rIdx) => (
+            <tr
+              key={rIdx}
+              className={`${
+                mine
+                  ? rIdx % 2 === 0 ? "bg-black/5" : "bg-black/10"
+                  : rIdx % 2 === 0 ? "bg-transparent" : "bg-[#F5F0E8]/50 dark:bg-white/5"
+              } transition-colors hover:${mine ? "bg-black/15" : "bg-[#E07A5F]/5"}`}
+            >
+              {row.map((cell, cIdx) => (
+                <td
+                  key={cIdx}
+                  className={`px-3 py-2 border-b ${
+                    mine
+                      ? "border-white/10 text-white/90"
+                      : "border-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8]"
+                  } ${cIdx < row.length - 1 ? (mine ? "border-r border-white/10" : "border-r border-[#E07A5F]/10") : ""}`}
+                >
+                  {renderInline(parseInline(cell), `td-${rIdx}-${cIdx}`)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ─── Full Markdown Renderer ─── */
+function renderMarkdown(text: string, mine: boolean) {
+  const blocks = parseBlocks(text);
+  return blocks.map((block, i) => {
+    const key = `block-${i}`;
+    switch (block.type) {
+      case "codeblock":
+        return (
+          <pre
+            key={key}
+            className="my-2 overflow-x-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 text-xs font-mono border border-[#E07A5F]/10"
+          >
+            {block.lang && (
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#E07A5F] opacity-70">
+                {block.lang}
+              </div>
+            )}
+            <code className={mine ? "text-white/90" : "text-[#2D3436] dark:text-[#E8E8E8]"}>
+              {block.content}
+            </code>
+          </pre>
+        );
+      case "table":
+        return <TableRenderer key={key} headers={block.headers} rows={block.rows} mine={mine} />;
+      case "paragraph":
+        return (
+          <p key={key} className="whitespace-pre-wrap break-words leading-snug">
+            {renderInline(block.tokens, key)}
+          </p>
+        );
     }
   });
 }
@@ -198,7 +343,7 @@ function MessageContextMenu({
   onEdit: () => void; onDelete: () => void; onCopy: () => void; onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent) => {
@@ -210,7 +355,6 @@ function MessageContextMenu({
 
   if (!open) return null;
 
-  // Adjust position to stay in viewport
   const style: React.CSSProperties = {
     position: "fixed",
     left: Math.min(x, window.innerWidth - 220),
@@ -224,7 +368,6 @@ function MessageContextMenu({
       style={style}
       className="w-52 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
-      {/* Quick Reactions */}
       <div className="flex items-center justify-around border-b border-[#E07A5F]/10 px-2 py-2">
         {["❤️", "👍", "😂", "😮", "😢", "🙏"].map((emoji) => (
           <button
@@ -236,7 +379,7 @@ function MessageContextMenu({
           </button>
         ))}
       </div>
-      
+
       <div className="py-1">
         <MenuItem icon={<CornerUpLeft className="h-4 w-4" />} label="Reply" onClick={() => { onReply(); onClose(); }} />
         {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
@@ -281,7 +424,7 @@ export function Bubble({
   const counts: Record<string, number> = {};
   reactions.forEach((r) => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
-  
+
   const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
@@ -297,21 +440,13 @@ export function Bubble({
     navigator.clipboard.writeText(bodyText).then(() => toast.success("Copied to clipboard"));
   };
 
-  // WhatsApp-style bubble radius
   const bubbleRadius = mine
-    ? grouped
-      ? "rounded-2xl rounded-tr-sm"
-      : "rounded-2xl rounded-tr-sm"
-    : grouped
-      ? "rounded-2xl rounded-tl-sm"
-      : "rounded-2xl rounded-tl-sm";
+    ? grouped ? "rounded-2xl rounded-tr-sm" : "rounded-2xl rounded-tr-sm"
+    : grouped ? "rounded-2xl rounded-tl-sm" : "rounded-2xl rounded-tl-sm";
 
   return (
     <>
-      <div
-        className={`group flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}
-      >
-        {/* Avatar for group chats */}
+      <div className={`group flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}>
         {!mine && isGroup && !grouped && (
           <div className="mb-1">
             <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />
@@ -320,7 +455,6 @@ export function Bubble({
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
         <div className="relative max-w-[82%] sm:max-w-[75%]">
-          {/* WhatsApp-style action bar (desktop hover) */}
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
               mine ? "-left-8" : "-right-8"
@@ -357,7 +491,6 @@ export function Bubble({
             </button>
           </div>
 
-          {/* Main Bubble */}
           <div
             ref={bubbleRef}
             {...longPress}
@@ -368,7 +501,6 @@ export function Bubble({
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             }`}
           >
-            {/* Sender name in groups */}
             {!mine && !grouped && (isAI || isGroup) && (
               <div className="mb-0.5 text-[11px] flex items-center gap-1">
                 {isAI ? (
@@ -389,7 +521,6 @@ export function Bubble({
               </div>
             )}
 
-            {/* Reply Preview */}
             {parentBody !== undefined && (
               <div
                 className={`mb-1.5 rounded-lg border-l-[3px] border-[#E07A5F] px-2 py-1.5 text-[11px] ${
@@ -401,7 +532,6 @@ export function Bubble({
               </div>
             )}
 
-            {/* Image Message */}
             {msg.kind === "image" && msg.media_url && (
               <div className="relative mb-1 group/image -mx-1 -mt-1">
                 <img
@@ -420,14 +550,12 @@ export function Bubble({
                 >
                   <Download className="h-4 w-4" />
                 </button>
-                {/* Image timestamp overlay */}
                 <div className="absolute bottom-1 right-1 rounded bg-black/40 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
                   {fmtTime(msg.created_at)}
                 </div>
               </div>
             )}
 
-            {/* File Message */}
             {msg.kind === "file" && msg.media_url && (
               <button
                 onClick={(e) => { e.stopPropagation(); downloadFile(msg.media_url!, msg.file_name || "file"); }}
@@ -456,7 +584,6 @@ export function Bubble({
               </button>
             )}
 
-            {/* Voice Message */}
             {msg.kind === "voice" && msg.media_url && (
               <VoicePlayer
                 url={msg.media_url}
@@ -467,20 +594,17 @@ export function Bubble({
               />
             )}
 
-            {/* Text Body with Markdown */}
             {(overrideBody ?? msg.body) && (
-              <div className="whitespace-pre-wrap break-words text-[14.5px] leading-snug pr-14 pb-1">
-                {renderMarkdown(overrideBody ?? msg.body ?? "")}
+              <div className="text-[14.5px] leading-snug pr-14 pb-1">
+                {renderMarkdown(overrideBody ?? msg.body ?? "", mine)}
               </div>
             )}
 
-            {/* Meta row: Reactions + Timestamp + Ticks */}
             <div
               className={`flex items-end justify-end gap-1.5 -mt-1 ${
                 mine ? "text-white/85" : "text-[#8C8C8C]"
               }`}
             >
-              {/* Reactions */}
               {Object.keys(counts).length > 0 && (
                 <div className="flex flex-wrap items-center gap-1 mr-auto mb-0.5">
                   {Object.entries(counts).map(([e, n]) => {
@@ -513,7 +637,6 @@ export function Bubble({
         </div>
       </div>
 
-      {/* Context Menu Overlay */}
       <MessageContextMenu
         open={contextMenu.open}
         x={contextMenu.x}
@@ -531,7 +654,7 @@ export function Bubble({
   );
 }
 
-/* ─── Voice Player (WhatsApp-style) ─── */
+/* ─── Voice Player ─── */
 export function VoicePlayer({
   url, durationMs, mine, avatarUrl, avatarName,
 }: {
@@ -573,12 +696,10 @@ export function VoicePlayer({
           {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
         </button>
 
-        {/* Unplayed dot */}
         {!hasPlayed && (
           <span className={`h-2 w-2 shrink-0 rounded-full ${mine ? "bg-white" : "bg-[#4FA6E0]"}`} />
         )}
 
-        {/* Waveform */}
         <button
           onClick={toggle}
           className="flex flex-1 items-center gap-[3px] h-9"
@@ -597,7 +718,6 @@ export function VoicePlayer({
           })}
         </button>
 
-        {/* Avatar with mic badge */}
         <div className="relative shrink-0">
           <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
           <span
@@ -625,7 +745,7 @@ export function VoicePlayer({
   );
 }
 
-/* ─── Composer (WhatsApp-style) ─── */
+/* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded,
 }: {
@@ -682,7 +802,6 @@ export function Composer({
 
   return (
     <div className="relative border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-2 py-2 md:px-4 md:py-3">
-      {/* Emoji Picker */}
       {showEmoji && (
         <div className="absolute bottom-full left-2 mb-2 grid max-h-56 max-w-xs grid-cols-8 gap-1 overflow-y-auto rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
           {EMOJIS.map((e) => (
