@@ -10,7 +10,7 @@ import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, t
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
   URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS,
-} from "@/utils";
+} from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
 
 /* ─── Block Types ─── */
