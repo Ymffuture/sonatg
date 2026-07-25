@@ -16,6 +16,9 @@ import {
 } from "@/lib/db";
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/utils/utils";
 import { Avatar } from "./Avatar";
+import { Flex, Spin } from 'antd';
+import type { GetProp, SpinProps } from 'antd';
+import { createStaticStyles } from 'antd-style';
 
 /* ─── Category Icon Helper (zero emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: ChatCategory; className?: string }) {
@@ -380,6 +383,28 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
     }
   };
 
+const classNames = createStaticStyles(({ css }) => ({
+  root: css`
+    padding: 8px;
+  `,
+}));
+
+const stylesObject: SpinProps['styles'] = {
+  indicator: {
+    color: '#00d4ff',
+  },
+};
+
+const stylesFn: SpinProps['styles'] = ({ props }): GetProp<SpinProps, 'styles', 'Return'> => {
+  if (props.size === 'small') {
+    return {
+      indicator: {
+        color: '#722ed1',
+      },
+    };
+  }
+  return {};
+};
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end animate-in fade-in duration-200" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -482,7 +507,10 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                 <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.display_name, u.email)}</div>
               </div>
               {mode === "direct" ? (
-                busyId === u.id ? <span className="text-xs text-[#8C8C8C]">…</span> : <Plus className="h-4 w-4 text-[#E07A5F]" />
+                busyId === u.id ? <Flex align="center" gap="medium">
+      
+      <Spin {...sharedProps} styles={stylesFn} size="small" />
+    </Flex>: <Plus className="h-4 w-4 text-[#E07A5F]" />
               ) : selectedIds.has(u.id) ? (
                 <CheckSquare className="h-5 w-5 text-[#E07A5F]" />
               ) : (
