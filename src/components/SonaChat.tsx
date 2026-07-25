@@ -27,6 +27,13 @@ import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
 import { FaFileLines } from "react-icons/fa6";
 import { FaLock } from "react-icons/fa6"; 
+import { MdSearch } from "react-icons/md";
+
+
+
+
+
+
 
 import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
@@ -769,8 +776,8 @@ export default function SonaChat() {
 
             <div className="px-3 pb-2 pt-2">
               <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
-                <Search className="h-9 w-9 text-[#8C8C8C]" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
+                <MdSearch className="h-9 w-9 text-[#8C8C8C]" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask Sona AI or Search Chats"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
             </div>
