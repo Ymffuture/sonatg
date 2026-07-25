@@ -28,6 +28,8 @@ import { IoMdMic } from "react-icons/io";
 import { FaFileLines } from "react-icons/fa6";
 import { FaLock } from "react-icons/fa6"; 
 import { MdSearch } from "react-icons/md";
+import { BiSolidMessageSquareAdd } from "react-icons/bi";
+
 
 
 
@@ -873,7 +875,7 @@ export default function SonaChat() {
               aria-label="New chat"
               className="absolute bottom-8 right-5 grid h-18 w-18 place-items-center rounded-xl bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
             >
-              <MessageSquarePlus className="h-8 w-8" />
+              <BiSolidMessageSquareAdd className="h-8 w-8 text-[#E07A5F] scale-x-[-1]" />
             </button>
           </aside>
 
