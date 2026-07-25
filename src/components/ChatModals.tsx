@@ -499,7 +499,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
             <button
               onClick={createGroup}
               disabled={creatingGroup}
-              className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-60"
+              className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white items-center shadow-lg transition hover:opacity-90 disabled:opacity-60"
             >
               {creatingGroup ? (<span className ="flex items-center gap-2" > <Spin className="bg-[#E07A5F]" size="small" /> Creating…</span>) : "Create group"}
             </button>
