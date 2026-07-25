@@ -37,7 +37,9 @@ import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, Unloc
 import { Mic, Image as ImageIcon} from "lucide-react";
 
 /* ─── Inline preview with icons (no emojis) ─── */
-function MessagePreview({ msg, decrypted }: { msg: MessageRow; decrypted?: Record<string, string> }) {
+function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
+  if (!msg) return null; // ← add this guard
+
   if (msg.is_encrypted) {
     return (
       <span className="inline-flex items-center gap-1 opacity-70">
@@ -69,7 +71,7 @@ function MessagePreview({ msg, decrypted }: { msg: MessageRow; decrypted?: Recor
     default:
       return <span>…</span>;
   }
-        }
+}
 
 /* ─── Category Icons (no emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: string; className?: string }) {
