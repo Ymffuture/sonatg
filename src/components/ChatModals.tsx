@@ -26,8 +26,8 @@ const notify = {
       placement: "bottom",
       className:
         "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
-        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
-        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#E07A5F] " +
+        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#E07A5F]/80 " +
         "[&_.ant-notification-notice-icon]:!text-[#E07A5F]",
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
@@ -37,8 +37,8 @@ const notify = {
       placement: "bottom",
       className:
         "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
-        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
-        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#E07A5F] " +
+        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#E07A5F]/80 " +
         "[&_.ant-notification-notice-icon]:!text-red-400 dark:[&_.ant-notification-notice-icon]:!text-red-500",
     }),
 };
