@@ -32,7 +32,7 @@ const notify = {
       description,
       placement: "bottom",
       className:
-        "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
         "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
         "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
         "[&_.ant-notification-notice-icon]:!text-red-400 dark:[&_.ant-notification-notice-icon]:!text-red-500",
@@ -43,7 +43,7 @@ const notify = {
       description,
       placement: "bottom",
       className:
-        "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
         "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
         "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
         "[&_.ant-notification-notice-icon]:!text-[#4FA6E0]",
