@@ -15,7 +15,33 @@ import {
 } from "@/lib/db";
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/utils/utils";
 import { Avatar } from "./Avatar";
-import { Spin, Skeleton, Tooltip, notification } from 'antd';
+import { Spin, Skeleton, Tooltip, notification } from "antd";
+
+/* ─── Themed Notification Helper ─── */
+const notify = {
+  success: ({ message, description }: { message: string; description?: string }) =>
+    notification.success({
+      message,
+      description,
+      placement: "bottom",
+      className:
+        "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
+        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "[&_.ant-notification-notice-icon]:!text-[#E07A5F]",
+    }),
+  error: ({ message, description }: { message: string; description?: string }) =>
+    notification.error({
+      message,
+      description,
+      placement: "bottom",
+      className:
+        "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
+        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "[&_.ant-notification-notice-icon]:!text-red-400 dark:[&_.ant-notification-notice-icon]:!text-red-500",
+    }),
+};
 
 /* ─── Category Icon Helper (zero emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: ChatCategory; className?: string }) {
@@ -156,12 +182,12 @@ export function GroupSettingsModal({
       }
       const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url }).eq("id", chat.id);
       if (error) throw error;
-      notification.success({ message: "Group updated", placement: "top" });
+      notify.success({ message: "Group updated" });
       onUpdated();
       onClose();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
+      notify.error({ message: explained.title, description: explained.explanation });
     } finally {
       setSaving(false);
     }
@@ -174,16 +200,15 @@ export function GroupSettingsModal({
       const rows = Array.from(addSelected).map((user_id) => ({ chat_id: chat.id, user_id }));
       const { error } = await supabase.from("chat_members").insert(rows);
       if (error) throw error;
-      notification.success({ 
-        message: `Added ${addSelected.size} ${addSelected.size === 1 ? "person" : "people"}`, 
-        placement: "top" 
+      notify.success({
+        message: `Added ${addSelected.size} ${addSelected.size === 1 ? "person" : "people"}`,
       });
       setAddOpen(false);
       setAddSelected(new Set());
       onUpdated();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
+      notify.error({ message: explained.title, description: explained.explanation });
     } finally {
       setAddBusy(false);
     }
@@ -305,7 +330,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.from("profiles").select("*").neq("id", meId).order("display_name", { ascending: true }).limit(200);
-      if (error) notification.error({ message: error.message, placement: "bottom" });
+      if (error) notify.error({ message: error.message });
       setUsers((data ?? []) as Profile[]);
       setLoading(false);
     })();
@@ -336,12 +361,12 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
       if (m1) throw m1;
       const { error: m2 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: prof.id });
       if (m2) throw m2;
-      notification.success({ message: `Chat with ${prof.display_name} created`, placement: "bottom " });
+      notify.success({ message: `Chat with ${prof.display_name} created` });
       onCreated(chat.id);
     } catch (e) {
       console.error("startWith failed", e);
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
+      notify.error({ message: explained.title, description: explained.explanation });
       setGroupError(explained);
     }
     finally { setBusyId(null); }
@@ -356,8 +381,8 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   };
 
   const createGroup = async () => {
-    if (!groupTitle.trim()) return notification.error({ message: "Give your group a name", placement: "bottom" });
-    if (selectedIds.size === 0) return notification.error({ message: "Pick at least one person to add", placement: "bottom" });
+    if (!groupTitle.trim()) return notify.error({ message: "Give your group a name" });
+    if (selectedIds.size === 0) return notify.error({ message: "Pick at least one person to add" });
     setCreatingGroup(true);
     try {
       const { data: chat, error: cErr } = await supabase
@@ -376,12 +401,12 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         if (mErr) throw mErr;
       }
 
-      notification.success({ message: `"${groupTitle.trim()}" group created`, placement: "bottom" });
+      notify.success({ message: `"${groupTitle.trim()}" group created` });
       onCreated(chat.id);
     } catch (e) {
       console.error("createGroup failed", e);
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
+      notify.error({ message: explained.title, description: explained.explanation });
       setGroupError(explained);
     } finally {
       setCreatingGroup(false);
@@ -542,7 +567,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(groupError.raw);
-                  notification.success({ message: "Error copied to clipboard", placement: "top" });
+                  notify.success({ message: "Error copied to clipboard" });
                 }}
                 className="flex-1 rounded-full border border-[#E07A5F]/30 py-2 text-sm font-medium text-[#E07A5F] hover:bg-[#E07A5F]/10 transition"
               >
@@ -575,7 +600,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const pickAvatar = () => avatarInputRef.current?.click();
 
   const uploadAvatar = async (file: File) => {
-    if (!file.type.startsWith("image/")) return notification.error({ message: "Please choose an image file", placement: "top" });
+    if (!file.type.startsWith("image/")) return notify.error({ message: "Please choose an image file" });
     setUploadingAvatar(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
@@ -588,9 +613,9 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       if (error) throw error;
       setAvatarUrl(freshUrl);
       onSaved(data as Profile);
-      notification.success({ message: "Profile picture updated", placement: "bottom" });
+      notify.success({ message: "Profile picture updated" });
     } catch (e) {
-      notification.error({ message: (e as Error).message || "Couldn't upload picture", placement: "bottom" });
+      notify.error({ message: (e as Error).message || "Couldn't upload picture" });
     } finally {
       setUploadingAvatar(false);
     }
@@ -602,10 +627,10 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend" }).eq("id", me.id).select().single();
       if (error) throw error;
       onSaved(data as Profile);
-      notification.success({ message: "Saved", placement: "top" });
+      notify.success({ message: "Saved" });
       onClose();
     } catch (e) { 
-      notification.error({ message: (e as Error).message, placement: "bottom" }); 
+      notify.error({ message: (e as Error).message }); 
     }
     finally { setBusy(false); }
   };
@@ -617,10 +642,10 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     setBusy(true);
     try {
       const r = await paystackCheckout() as { url: string };
-      notification.success({ message: "Redirecting to Paystack…", placement: "bottom" });
+      notify.success({ message: "Redirecting to Paystack…" });
       window.location.href = r.url;
     } catch (e) { 
-      notification.error({ message: (e as Error).message, placement: "bottom" }); 
+      notify.error({ message: (e as Error).message }); 
     }
     finally { setBusy(false); }
   };
