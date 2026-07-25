@@ -28,7 +28,7 @@ const notify = {
         "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
         "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#E07A5F] " +
         "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#E07A5F]/80 " +
-        "[&_.ant-notification-notice-icon]:!text-[#E07A5F]",
+        "[&_.ant-notification-notice-icon]:!text-[#ffffff]",
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
     notification.error({
