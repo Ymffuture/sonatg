@@ -875,7 +875,7 @@ export default function SonaChat() {
               aria-label="New chat"
               className="absolute bottom-8 right-5 grid h-18 w-18 place-items-center rounded-xl bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
             >
-              <BiSolidMessageSquareAdd className="h-8 w-8 text-[#E07A5F] rotate-[180deg]" />
+              <BiSolidMessageSquareAdd className="h-8 w-8 text-white dark:text-zinc-400 rotate-[180deg]" />
             </button>
           </aside>
 
