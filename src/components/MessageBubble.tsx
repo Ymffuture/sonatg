@@ -2,16 +2,53 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Download, Reply, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
-  File as FileIcon, X, CornerUpLeft, MoreVertical
+  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock
 } from "lucide-react";
 import { VscVerifiedFilled } from "react-icons/vsc";
-import { toast } from "sonner";
+import { Skeleton, Tooltip, notification } from "antd";
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
   URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
+
+/* ─── Themed Notification Helper ─── */
+const notify = {
+  success: ({ message, description }: { message: string; description?: string }) =>
+    notification.success({
+      message,
+      description,
+      placement: "bottom",
+      className:
+        "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
+        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "[&_.ant-notification-notice-icon]:!text-[#E07A5F]",
+    }),
+  error: ({ message, description }: { message: string; description?: string }) =>
+    notification.error({
+      message,
+      description,
+      placement: "bottom",
+      className:
+        "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
+        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "[&_.ant-notification-notice-icon]:!text-red-400 dark:[&_.ant-notification-notice-icon]:!text-red-500",
+    }),
+  info: ({ message, description }: { message: string; description?: string }) =>
+    notification.info({
+      message,
+      description,
+      placement: "bottom",
+      className:
+        "!bg-[#2D3436] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
+        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "[&_.ant-notification-notice-icon]:!text-[#4FA6E0]",
+    }),
+};
 
 /* ─── Block Types ─── */
 type Block =
@@ -43,7 +80,6 @@ function parseInline(text: string): InlineToken[] {
   const tokens: InlineToken[] = [];
   let pos = 0;
 
-  // Find all inline markdown matches
   type Match = { start: number; end: number; type: InlineToken["type"]; content: string };
   const matches: Match[] = [];
 
@@ -55,7 +91,6 @@ function parseInline(text: string): InlineToken[] {
     }
   });
 
-  // Find links
   let lm: RegExpExecArray | null;
   const linkRegex = new RegExp(URL_REGEX.source, URL_REGEX.flags);
   while ((lm = linkRegex.exec(text)) !== null) {
@@ -64,7 +99,6 @@ function parseInline(text: string): InlineToken[] {
 
   matches.sort((a, b) => a.start - b.start);
 
-  // Remove overlaps
   const filtered: Match[] = [];
   let lastEnd = -1;
   for (const m of matches) {
@@ -94,7 +128,6 @@ function parseBlocks(text: string): Block[] {
   while (i < lines.length) {
     const line = lines[i];
 
-    // Code block
     if (line.trim().startsWith("```")) {
       const lang = line.trim().slice(3).trim();
       const codeLines: string[] = [];
@@ -103,17 +136,16 @@ function parseBlocks(text: string): Block[] {
         codeLines.push(lines[i]);
         i++;
       }
-      i++; // skip closing ```
+      i++;
       blocks.push({ type: "codeblock", content: codeLines.join("\n"), lang: lang || undefined });
       continue;
     }
 
-    // Table detection: current line has | and next line is separator |---|---|
     if (line.includes("|")) {
       const nextLine = lines[i + 1];
       if (nextLine && /^\s*\|?[\s\-:|]+\|?\s*$/.test(nextLine) && nextLine.includes("|")) {
         const rawHeaders = line.split("|").map((s) => s.trim()).filter(Boolean);
-        i += 2; // skip header and separator
+        i += 2;
 
         const rows: string[][] = [];
         while (i < lines.length && lines[i].includes("|")) {
@@ -129,7 +161,6 @@ function parseBlocks(text: string): Block[] {
       }
     }
 
-    // Paragraph (collect non-empty lines)
     if (line.trim()) {
       const paraLines: string[] = [line];
       i++;
@@ -138,7 +169,6 @@ function parseBlocks(text: string): Block[] {
         i++;
       }
       const paraText = paraLines.join("\n");
-      // Split by newlines into tokens with br
       const parts = paraText.split("\n");
       const tokens: InlineToken[] = [];
       parts.forEach((part, idx) => {
@@ -149,7 +179,7 @@ function parseBlocks(text: string): Block[] {
       continue;
     }
 
-    i++; // skip empty line
+    i++;
   }
 
   return blocks;
@@ -426,6 +456,7 @@ export function Bubble({
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
   const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const [imgLoaded, setImgLoaded] = useState(false);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
@@ -437,7 +468,17 @@ export function Bubble({
   }, 600);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(bodyText).then(() => toast.success("Copied to clipboard"));
+    navigator.clipboard.writeText(bodyText).then(() => notify.success({ message: "Copied to clipboard" }));
+  };
+
+  const getReactorNames = (emoji: string) => {
+    return reactions
+      .filter((r) => r.emoji === emoji)
+      .map((r) => {
+        if (r.user_id === me.id) return me.display_name || "You";
+        if (r.user_id === sender?.id) return sender.display_name || "Unknown";
+        return "User";
+      });
   };
 
   const bubbleRadius = mine
@@ -533,12 +574,20 @@ export function Bubble({
             )}
 
             {msg.kind === "image" && msg.media_url && (
-              <div className="relative mb-1 group/image -mx-1 -mt-1">
+              <div className="relative mb-1 group/image -mx-1 -mt-1 min-h-[160px]">
+                {!imgLoaded && (
+                  <div className="absolute inset-0 z-10 rounded-lg overflow-hidden bg-[#F5F0E8] dark:bg-[#2A2A2A] flex items-center justify-center">
+                    <Skeleton.Node active className="!w-full !h-full !rounded-lg">
+                      <ImageIcon className="h-8 w-8 text-[#8C8C8C]" />
+                    </Skeleton.Node>
+                  </div>
+                )}
                 <img
                   src={msg.media_url}
                   alt=""
                   loading="lazy"
-                  className="max-h-72 w-full rounded-lg object-cover"
+                  onLoad={() => setImgLoaded(true)}
+                  className={`max-h-72 w-full rounded-lg object-cover transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
                 />
                 <button
                   onClick={(e) => {
@@ -609,19 +658,21 @@ export function Bubble({
                 <div className="flex flex-wrap items-center gap-1 mr-auto mb-0.5">
                   {Object.entries(counts).map(([e, n]) => {
                     const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
+                    const reactorNames = getReactorNames(e);
                     return (
-                      <button
-                        key={e}
-                        onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-                        className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] shadow-sm transition active:scale-95 ${
-                          mine
-                            ? "border-white/20 bg-white/15"
-                            : "border-[#E07A5F]/15 bg-[#FFFDF9] dark:bg-[#2A2A2A]"
-                        } ${mineReacted ? "ring-1 ring-[#E07A5F]" : ""}`}
-                      >
-                        <span>{e}</span>
-                        <span className="text-[9px] opacity-80 font-medium">{n}</span>
-                      </button>
+                      <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
+                        <button
+                          onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
+                          className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] shadow-sm transition active:scale-95 ${
+                            mine
+                              ? "border-white/20 bg-white/15"
+                              : "border-[#E07A5F]/15 bg-[#FFFDF9] dark:bg-[#2A2A2A]"
+                          } ${mineReacted ? "ring-1 ring-[#E07A5F]" : ""}`}
+                        >
+                          <span>{e}</span>
+                          <span className="text-[9px] opacity-80 font-medium">{n}</span>
+                        </button>
+                      </Tooltip>
                     );
                   })}
                 </div>
@@ -664,7 +715,15 @@ export function VoicePlayer({
   const [progress, setProgress] = useState(0);
   const [hasPlayed, setHasPlayed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const bars = useMemo(() => waveformBars(url), [url]);
+  const bars = useMemo(() => {
+    const raw = waveformBars(url);
+    const dense: number[] = [];
+    for (let i = 0; i < raw.length; i++) {
+      dense.push(raw[i]);
+      if (i < raw.length - 1) dense.push((raw[i] + raw[i + 1]) / 2);
+    }
+    return dense;
+  }, [url]);
 
   useEffect(() => {
     const a = new Audio(url);
@@ -702,7 +761,7 @@ export function VoicePlayer({
 
         <button
           onClick={toggle}
-          className="flex flex-1 items-center gap-[3px] h-9"
+          className="flex flex-1 items-center gap-[1px] h-9"
           aria-label={playing ? "Pause" : "Play"}
         >
           {bars.map((h, i) => {
@@ -711,8 +770,8 @@ export function VoicePlayer({
             return (
               <span
                 key={i}
-                className={`w-[3px] rounded-full transition-all duration-150 ${isFilled ? filledColor : mutedColor}`}
-                style={{ height: `${Math.max(15, Math.round(h * 100))}%` }}
+                className={`w-[2px] rounded-full transition-all duration-150 ${isFilled ? filledColor : mutedColor}`}
+                style={{ height: `${Math.max(12, Math.round(h * 100))}%` }}
               />
             );
           })}
@@ -732,7 +791,7 @@ export function VoicePlayer({
 
       <div className="mt-1 flex items-center justify-between pl-12 pr-1">
         <button
-          onClick={(e) => { e.stopPropagation(); toast.info("Transcription is coming soon"); }}
+          onClick={(e) => { e.stopPropagation(); notify.info({ message: "Transcription is coming soon" }); }}
           className={`text-[11px] font-medium ${mine ? "text-white/80" : "text-[#E07A5F]"} hover:underline`}
         >
           Transcribe
@@ -759,13 +818,49 @@ export function Composer({
   onVoiceUploaded: (blob: Blob, durationMs: number) => void;
 }) {
   const [recording, setRecording] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [slideX, setSlideX] = useState(0);
+  const [slideY, setSlideY] = useState(0);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
+  const lockedRef = useRef(locked);
 
-  const startRec = async () => {
+  useEffect(() => { lockedRef.current = locked; }, [locked]);
+
+  const cleanupRecording = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    mediaRef.current = null;
+    startPosRef.current = null;
+    setRecording(false);
+    setLocked(false);
+    setSlideX(0);
+    setSlideY(0);
+    setElapsed(0);
+  }, []);
+
+  const cancelRecording = useCallback(() => {
+    chunksRef.current = [];
+    const rec = mediaRef.current;
+    if (rec) rec.stop();
+    // cleanup happens in onstop
+  }, []);
+
+  const lockRecording = useCallback(() => {
+    setLocked(true);
+  }, []);
+
+  const finalizeRecording = useCallback(() => {
+    const rec = mediaRef.current;
+    if (rec) rec.stop();
+    // cleanup happens in onstop
+  }, []);
+
+  const handleStartRec = useCallback(async (clientX: number, clientY: number) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -780,28 +875,64 @@ export function Composer({
         const dur = Date.now() - startedRef.current;
         const blob = new Blob(chunksRef.current, { type: mime });
         stream.getTracks().forEach((t) => t.stop());
-        if (blob.size > 1000) onVoiceUploaded(blob, dur);
+        if (blob.size > 1000 && chunksRef.current.length > 0) {
+          onVoiceUploaded(blob, dur);
+        }
+        chunksRef.current = [];
+        cleanupRecording();
       };
       startedRef.current = Date.now();
       rec.start();
       mediaRef.current = rec;
-      setRecording(true); setElapsed(0);
+      startPosRef.current = { x: clientX, y: clientY };
+      setRecording(true);
+      setLocked(false);
+      setSlideX(0);
+      setSlideY(0);
+      setElapsed(0);
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-    } catch { toast.error("Microphone permission denied"); }
-  };
+    } catch {
+      notify.error({ message: "Microphone permission denied" });
+    }
+  }, [onVoiceUploaded, cleanupRecording]);
 
-  const stopRec = (cancel = false) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    const rec = mediaRef.current;
-    if (!rec) return;
-    if (cancel) chunksRef.current = [];
-    rec.stop();
-    mediaRef.current = null;
-    setRecording(false); setElapsed(0);
-  };
+  useEffect(() => {
+    if (!recording) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (lockedRef.current) return;
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+      const start = startPosRef.current;
+      if (!start) return;
+      const dx = clientX - start.x;
+      const dy = start.y - clientY;
+      setSlideX(dx);
+      setSlideY(dy);
+      if (dx < -100) { cancelRecording(); }
+      else if (dy > 100) { lockRecording(); }
+    };
+
+    const handleUp = () => {
+      if (lockedRef.current) return;
+      finalizeRecording();
+    };
+
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+    document.addEventListener("touchmove", handleMove, { passive: false });
+    document.addEventListener("touchend", handleUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+      document.removeEventListener("touchmove", handleMove);
+      document.removeEventListener("touchend", handleUp);
+    };
+  }, [recording, cancelRecording, lockRecording, finalizeRecording]);
 
   return (
-    <div className="relative border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-2 py-2 md:px-4 md:py-3">
+    <div className="relative border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-2 py-2 md:px-4 md:py-3 select-none">
       {showEmoji && (
         <div className="absolute bottom-full left-2 mb-2 grid max-h-56 max-w-xs grid-cols-8 gap-1 overflow-y-auto rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
           {EMOJIS.map((e) => (
@@ -816,40 +947,87 @@ export function Composer({
         </div>
       )}
 
-      {recording ? (
+      {recording && !locked && (
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <button
-            onClick={() => stopRec(true)}
-            className="grid h-12 w-12 place-items-center rounded-full bg-[#F5F0E8] dark:bg-[#3A3A3A] text-red-500 hover:bg-red-50 transition"
+          <div
+            className={`flex items-center gap-1 transition-all duration-200 shrink-0 ${
+              slideX < -30 ? "opacity-100 translate-x-0" : "opacity-50 -translate-x-2"
+            }`}
           >
-            <Trash2 className="h-5 w-5" />
-          </button>
-          <div className="flex flex-1 items-center gap-3 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-5 py-3.5 border border-[#E07A5F]/10">
-            <span className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
-            <span className="text-sm text-[#2D3436] dark:text-[#E8E8E8] font-medium">
-              Recording… {String(Math.floor(elapsed / 60)).padStart(1, "0")}:{String(elapsed % 60).padStart(2, "0")}
+            <CornerUpLeft className="h-5 w-5 text-red-500" />
+            <span className="text-xs text-red-500 font-medium">Slide to cancel</span>
+          </div>
+
+          <div className="flex flex-1 items-center gap-3 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-5 py-3.5 border border-[#E07A5F]/10 relative overflow-hidden">
+            <span className="h-3 w-3 animate-pulse rounded-full bg-red-500 shrink-0" />
+            <span className="text-sm text-[#2D3436] dark:text-[#E8E8E8] font-medium shrink-0">
+              {String(Math.floor(elapsed / 60)).padStart(1, "0")}:{String(elapsed % 60).padStart(2, "0")}
             </span>
-            <div className="flex-1 flex items-center gap-[2px] justify-end">
-              {Array.from({ length: 20 }).map((_, i) => (
+
+            <div className="flex-1 flex items-center gap-[1px] justify-end h-8">
+              {Array.from({ length: 40 }).map((_, i) => (
                 <span
                   key={i}
                   className="w-[2px] rounded-full bg-red-400/60 animate-pulse"
                   style={{
-                    height: `${Math.random() * 16 + 4}px`,
-                    animationDelay: `${i * 0.05}s`,
+                    height: `${Math.random() * 20 + 4}px`,
+                    animationDelay: `${i * 0.03}s`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div
+              className={`flex flex-col items-center gap-0.5 transition-all duration-200 shrink-0 ${
+                slideY > 30 ? "opacity-100 -translate-y-1" : "opacity-50 translate-y-0"
+              }`}
+            >
+              <Lock className="h-4 w-4 text-[#E07A5F]" />
+              <span className="text-[10px] text-[#E07A5F] font-medium">Slide up</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {recording && locked && (
+        <div className="mx-auto flex max-w-3xl items-center gap-3">
+          <button
+            onClick={cancelRecording}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#F5F0E8] dark:bg-[#3A3A3A] text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <div className="flex flex-1 items-center gap-3 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-5 py-3.5 border border-[#E07A5F]/10">
+            <span className="h-3 w-3 rounded-full bg-red-500 shrink-0" />
+            <span className="text-sm text-[#2D3436] dark:text-[#E8E8E8] font-medium">
+              {String(Math.floor(elapsed / 60)).padStart(1, "0")}:{String(elapsed % 60).padStart(2, "0")}
+            </span>
+
+            <div className="flex-1 flex items-center gap-[1px] justify-end h-8">
+              {Array.from({ length: 40 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="w-[2px] rounded-full bg-red-400/60 animate-pulse"
+                  style={{
+                    height: `${Math.random() * 20 + 4}px`,
+                    animationDelay: `${i * 0.03}s`,
                   }}
                 />
               ))}
             </div>
           </div>
+
           <button
-            onClick={() => stopRec(false)}
-            className="grid h-12 w-12 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
+            onClick={finalizeRecording}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
           >
             <Check className="h-5 w-5" />
           </button>
         </div>
-      ) : (
+      )}
+
+      {!recording && (
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <div className="flex flex-1 items-end gap-1.5 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5 border border-[#E07A5F]/10">
             <button
@@ -910,7 +1088,15 @@ export function Composer({
             </button>
           ) : (
             <button
-              onClick={startRec}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleStartRec(e.clientX, e.clientY);
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleStartRec(touch.clientX, touch.clientY);
+              }}
               className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
             >
               <Mic className="h-5 w-5" />
