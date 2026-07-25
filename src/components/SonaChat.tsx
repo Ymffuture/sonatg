@@ -25,6 +25,8 @@ import sonaAi from "@/assets/sona01.png";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
+import { FaFileLines } from "react-icons/fa6";
+import { FaLock } from "react-icons/fa6"; 
 
 import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
@@ -43,7 +45,7 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
   if (msg.is_encrypted) {
     return (
       <span className="inline-flex items-center gap-1 opacity-70">
-        <Lock className="h-3 w-3 shrink-0" /> Locked
+        <FaLock className="h-4 w-4 shrink-0 text-red-500 " /> Locked
       </span>
     );
   }
@@ -59,13 +61,13 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
     case "voice":
       return (
         <span className="inline-flex items-center gap-1">
-          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice note
+          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message (0:10)
         </span>
       );
     case "file":
       return (
         <span className="inline-flex items-center gap-1">
-          <FileText className="h-3 w-3 shrink-0" /> {msg.file_name || "File"}
+          <FaFileLines className="h-4 w-4 shrink-0" /> {msg.file_name || "File"}
         </span>
       );
     default:
