@@ -161,7 +161,7 @@ export function GroupSettingsModal({
       onClose();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
+      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
     } finally {
       setSaving(false);
     }
@@ -183,7 +183,7 @@ export function GroupSettingsModal({
       onUpdated();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
+      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
     } finally {
       setAddBusy(false);
     }
@@ -305,7 +305,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.from("profiles").select("*").neq("id", meId).order("display_name", { ascending: true }).limit(200);
-      if (error) notification.error({ message: error.message, placement: "top" });
+      if (error) notification.error({ message: error.message, placement: "bottom" });
       setUsers((data ?? []) as Profile[]);
       setLoading(false);
     })();
@@ -336,12 +336,12 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
       if (m1) throw m1;
       const { error: m2 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: prof.id });
       if (m2) throw m2;
-      notification.success({ message: `Chat with ${prof.display_name} created`, placement: "top" });
+      notification.success({ message: `Chat with ${prof.display_name} created`, placement: "bottom " });
       onCreated(chat.id);
     } catch (e) {
       console.error("startWith failed", e);
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
+      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
       setGroupError(explained);
     }
     finally { setBusyId(null); }
@@ -356,8 +356,8 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   };
 
   const createGroup = async () => {
-    if (!groupTitle.trim()) return notification.error({ message: "Give your group a name", placement: "top" });
-    if (selectedIds.size === 0) return notification.error({ message: "Pick at least one person to add", placement: "top" });
+    if (!groupTitle.trim()) return notification.error({ message: "Give your group a name", placement: "bottom" });
+    if (selectedIds.size === 0) return notification.error({ message: "Pick at least one person to add", placement: "bottom" });
     setCreatingGroup(true);
     try {
       const { data: chat, error: cErr } = await supabase
@@ -376,12 +376,12 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         if (mErr) throw mErr;
       }
 
-      notification.success({ message: `"${groupTitle.trim()}" group created`, placement: "top" });
+      notification.success({ message: `"${groupTitle.trim()}" group created`, placement: "bottom" });
       onCreated(chat.id);
     } catch (e) {
       console.error("createGroup failed", e);
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
+      notification.error({ message: explained.title, description: explained.explanation, placement: "bottom" });
       setGroupError(explained);
     } finally {
       setCreatingGroup(false);
@@ -588,9 +588,9 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       if (error) throw error;
       setAvatarUrl(freshUrl);
       onSaved(data as Profile);
-      notification.success({ message: "Profile picture updated", placement: "top" });
+      notification.success({ message: "Profile picture updated", placement: "bottom" });
     } catch (e) {
-      notification.error({ message: (e as Error).message || "Couldn't upload picture", placement: "top" });
+      notification.error({ message: (e as Error).message || "Couldn't upload picture", placement: "bottom" });
     } finally {
       setUploadingAvatar(false);
     }
@@ -605,7 +605,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       notification.success({ message: "Saved", placement: "top" });
       onClose();
     } catch (e) { 
-      notification.error({ message: (e as Error).message, placement: "top" }); 
+      notification.error({ message: (e as Error).message, placement: "bottom" }); 
     }
     finally { setBusy(false); }
   };
@@ -617,10 +617,10 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     setBusy(true);
     try {
       const r = await paystackCheckout() as { url: string };
-      notification.success({ message: "Redirecting to Paystack…", placement: "top" });
+      notification.success({ message: "Redirecting to Paystack…", placement: "bottom" });
       window.location.href = r.url;
     } catch (e) { 
-      notification.error({ message: (e as Error).message, placement: "top" }); 
+      notification.error({ message: (e as Error).message, placement: "bottom" }); 
     }
     finally { setBusy(false); }
   };
