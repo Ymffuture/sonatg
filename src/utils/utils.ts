@@ -45,7 +45,7 @@ export const REACT_EMOJIS = ["❤️","😂","👍","🔥","😮","🙏", "😴"
 export function chatTitle(c: ChatWithMeta, meId: string) {
   if (c.title && c.is_group) return c.title;
   const other = c.members.find((m) => m.id !== meId);
-  if (other?.is_ai) return "Sona";
+  if (other?.is_ai) return "Sona AI";
   return other?.display_name || c.title || "Chat";
 }
 
