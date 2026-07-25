@@ -34,7 +34,7 @@ import {
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
-import { Mic, Image as ImageIcon} from "lucide-react";
+
 
 /* ─── Inline preview with icons (no emojis) ─── */
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
@@ -53,13 +53,13 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
     case "image":
       return (
         <span className="inline-flex items-center gap-1">
-          <ImageIcon className="h-3 w-3 shrink-0" /> Photo
+          <MdInsertPhoto className="h-4 w-4 shrink-0" /> Photo
         </span>
       );
     case "voice":
       return (
         <span className="inline-flex items-center gap-1">
-          <Mic className="h-3 w-3 shrink-0" /> Voice note
+          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice note
         </span>
       );
     case "file":
