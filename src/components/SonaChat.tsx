@@ -871,7 +871,7 @@ export default function SonaChat() {
             <button
               onClick={() => setShowNewChat(true)}
               aria-label="New chat"
-              className="absolute bottom-5 right-5 grid h-18 w-18 place-items-center rounded bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
+              className="absolute bottom-8 right-5 grid h-18 w-18 place-items-center rounded-xl bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
             >
               <MessageSquarePlus className="h-8 w-8" />
             </button>
