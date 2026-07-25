@@ -484,7 +484,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                 <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.display_name, u.email)}</div>
               </div>
               {mode === "direct" ? (
-                busyId === u.id ? <Spin className="bg-[#1F2933]" size="small" /> : <Plus className="h-4 w-4 text-[#E07A5F]" />
+                busyId === u.id ? <Spin className="bg-[#E07A5F]" size="small" /> : <Plus className="h-4 w-4 text-[#E07A5F]" />
               ) : selectedIds.has(u.id) ? (
                 <CheckSquare className="h-5 w-5 text-[#E07A5F]" />
               ) : (
@@ -501,7 +501,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               disabled={creatingGroup}
               className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-60"
             >
-              {creatingGroup ? "Creating…" : "Create group"}
+              {creatingGroup ? (<span className ="flex items-center gap-2" > <Spin className="bg-[#E07A5F]" size="small" /> Creating…</span>) : "Create group"}
             </button>
           </div>
         )}
