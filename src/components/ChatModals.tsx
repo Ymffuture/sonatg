@@ -6,7 +6,6 @@ import {
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
   Image as ImageIcon, Palette, Zap, MessageSquare,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
@@ -16,7 +15,7 @@ import {
 } from "@/lib/db";
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/utils/utils";
 import { Avatar } from "./Avatar";
-import { Spin, notification} from 'antd';
+import { Spin, Skeleton, Tooltip, notification } from 'antd';
 
 /* ─── Category Icon Helper (zero emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: ChatCategory; className?: string }) {
@@ -85,7 +84,11 @@ export function MemberListModal({
                   <span className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
                     {m.display_name}{m.id === meId ? " (you)" : ""}
                   </span>
-                  {role === "admin" && <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] shrink-0" titleAccess="Admin" />}
+                  {role === "admin" && (
+                    <Tooltip title="Admin">
+                      <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] shrink-0" />
+                    </Tooltip>
+                  )}
                 </div>
                 <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Owner" : "participant"}</span>
               </div>
@@ -153,12 +156,12 @@ export function GroupSettingsModal({
       }
       const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url }).eq("id", chat.id);
       if (error) throw error;
-      toast.success("Group updated");
+      notification.success({ message: "Group updated", placement: "top" });
       onUpdated();
       onClose();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      toast.error(explained.title);
+      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
     } finally {
       setSaving(false);
     }
@@ -171,12 +174,16 @@ export function GroupSettingsModal({
       const rows = Array.from(addSelected).map((user_id) => ({ chat_id: chat.id, user_id }));
       const { error } = await supabase.from("chat_members").insert(rows);
       if (error) throw error;
-      toast.success(`Added ${addSelected.size} ${addSelected.size === 1 ? "person" : "people"}`);
+      notification.success({ 
+        message: `Added ${addSelected.size} ${addSelected.size === 1 ? "person" : "people"}`, 
+        placement: "top" 
+      });
       setAddOpen(false);
       setAddSelected(new Set());
       onUpdated();
     } catch (e) {
-      toast.error(explainSupabaseError(e).title);
+      const explained = explainSupabaseError(e);
+      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
     } finally {
       setAddBusy(false);
     }
@@ -248,9 +255,9 @@ export function GroupSettingsModal({
                 <button
                   onClick={addMembers}
                   disabled={addBusy || addSelected.size === 0}
-                  className="w-full py-2 text-sm font-semibold text-white bg-[#E07A5F] disabled:opacity-50 hover:bg-[#D4694F] transition"
+                  className="w-full py-2 text-sm font-semibold text-white bg-[#E07A5F] disabled:opacity-50 hover:bg-[#D4694F] transition flex items-center justify-center gap-2"
                 >
-                  {addBusy ? "Adding…" : "Add selected"}
+                  {addBusy ? <><Spin size="small" /> Adding…</> : "Add selected"}
                 </button>
               )}
             </div>
@@ -272,9 +279,9 @@ export function GroupSettingsModal({
         <button
           onClick={save}
           disabled={saving}
-          className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-60 transition"
+          className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-60 transition flex items-center justify-center gap-2"
         >
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? <><Spin size="small" /> Saving…</> : "Save changes"}
         </button>
       </div>
     </GlassSheet>
@@ -298,7 +305,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.from("profiles").select("*").neq("id", meId).order("display_name", { ascending: true }).limit(200);
-      if (error) toast.error(error.message);
+      if (error) notification.error({ message: error.message, placement: "top" });
       setUsers((data ?? []) as Profile[]);
       setLoading(false);
     })();
@@ -329,12 +336,12 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
       if (m1) throw m1;
       const { error: m2 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: prof.id });
       if (m2) throw m2;
-      toast.success(`Chat with ${prof.display_name} created`);
+      notification.success({ message: `Chat with ${prof.display_name} created`, placement: "top" });
       onCreated(chat.id);
     } catch (e) {
       console.error("startWith failed", e);
       const explained = explainSupabaseError(e);
-      toast.error(explained.title);
+      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
       setGroupError(explained);
     }
     finally { setBusyId(null); }
@@ -349,8 +356,8 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   };
 
   const createGroup = async () => {
-    if (!groupTitle.trim()) return toast.error("Give your group a name");
-    if (selectedIds.size === 0) return toast.error("Pick at least one person to add");
+    if (!groupTitle.trim()) return notification.error({ message: "Give your group a name", placement: "top" });
+    if (selectedIds.size === 0) return notification.error({ message: "Pick at least one person to add", placement: "top" });
     setCreatingGroup(true);
     try {
       const { data: chat, error: cErr } = await supabase
@@ -369,12 +376,12 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         if (mErr) throw mErr;
       }
 
-      toast.success(`"${groupTitle.trim()}" group created`);
+      notification.success({ message: `"${groupTitle.trim()}" group created`, placement: "top" });
       onCreated(chat.id);
     } catch (e) {
       console.error("createGroup failed", e);
       const explained = explainSupabaseError(e);
-      toast.error(explained.title);
+      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
       setGroupError(explained);
     } finally {
       setCreatingGroup(false);
@@ -439,7 +446,9 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                       : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border-white/30 dark:border-white/10 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-white/10"
                   }`}
                 >
-                  <CategoryIcon category={cat.value} />
+                  <Tooltip title={cat.label}>
+                    <span className="flex items-center"><CategoryIcon category={cat.value} /></span>
+                  </Tooltip>
                   {cat.label}
                 </button>
               ))}
@@ -461,9 +470,11 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         </div>
         <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-3">
           {loading ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-8">
-              <div className="h-5 w-5 rounded-full border-2 border-[#E07A5F]/30 border-t-[#E07A5F] animate-spin" />
-              <span className="text-xs text-[#8C8C8C]">Loading people…</span>
+            <div className="px-4 py-6 space-y-3">
+              <Skeleton avatar paragraph={{ rows: 1 }} active />
+              <Skeleton avatar paragraph={{ rows: 1 }} active />
+              <Skeleton avatar paragraph={{ rows: 1 }} active />
+              <Skeleton avatar paragraph={{ rows: 1 }} active />
             </div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-sm text-[#8C8C8C]">No users found</div>
@@ -478,13 +489,21 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <div className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</div>
-                  {u.is_ai && <Sparkles className="h-3 w-3 text-[#E07A5F]" />}
-                  {u.is_pro && <Crown className="h-3 w-3 text-[#E07A5F]" />}
+                  {u.is_ai && (
+                    <Tooltip title="AI Assistant">
+                      <Sparkles className="h-3 w-3 text-[#E07A5F]" />
+                    </Tooltip>
+                  )}
+                  {u.is_pro && (
+                    <Tooltip title="Pro Member">
+                      <Crown className="h-3 w-3 text-[#E07A5F]" />
+                    </Tooltip>
+                  )}
                 </div>
                 <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.display_name, u.email)}</div>
               </div>
               {mode === "direct" ? (
-                busyId === u.id ? <Spin className="bg-[#E07A5F]" size="small" /> : <Plus className="h-4 w-4 text-[#E07A5F]" />
+                busyId === u.id ? <Spin size="small" /> : <Plus className="h-4 w-4 text-[#E07A5F]" />
               ) : selectedIds.has(u.id) ? (
                 <CheckSquare className="h-5 w-5 text-[#E07A5F]" />
               ) : (
@@ -499,9 +518,9 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
             <button
               onClick={createGroup}
               disabled={creatingGroup}
-              className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white items-center shadow-lg transition hover:opacity-90 disabled:opacity-60"
+              className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white items-center shadow-lg transition hover:opacity-90 disabled:opacity-60 flex justify-center gap-2"
             >
-              {creatingGroup ? (<span className ="flex items-center gap-2" > <Spin className="bg-[#E07A5F]" size="small" /> Creating…</span>) : "Create group"}
+              {creatingGroup ? (<span className="flex items-center gap-2"><Spin size="small" /> Creating…</span>) : "Create group"}
             </button>
           </div>
         )}
@@ -523,7 +542,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(groupError.raw);
-                  toast.success("Error copied to clipboard");
+                  notification.success({ message: "Error copied to clipboard", placement: "top" });
                 }}
                 className="flex-1 rounded-full border border-[#E07A5F]/30 py-2 text-sm font-medium text-[#E07A5F] hover:bg-[#E07A5F]/10 transition"
               >
@@ -556,7 +575,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const pickAvatar = () => avatarInputRef.current?.click();
 
   const uploadAvatar = async (file: File) => {
-    if (!file.type.startsWith("image/")) return toast.error("Please choose an image file");
+    if (!file.type.startsWith("image/")) return notification.error({ message: "Please choose an image file", placement: "top" });
     setUploadingAvatar(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
@@ -569,9 +588,9 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       if (error) throw error;
       setAvatarUrl(freshUrl);
       onSaved(data as Profile);
-      toast.success("Profile picture updated");
+      notification.success({ message: "Profile picture updated", placement: "top" });
     } catch (e) {
-      toast.error((e as Error).message || "Couldn't upload picture");
+      notification.error({ message: (e as Error).message || "Couldn't upload picture", placement: "top" });
     } finally {
       setUploadingAvatar(false);
     }
@@ -583,9 +602,11 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend" }).eq("id", me.id).select().single();
       if (error) throw error;
       onSaved(data as Profile);
-      toast.success("Saved");
+      notification.success({ message: "Saved", placement: "top" });
       onClose();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { 
+      notification.error({ message: (e as Error).message, placement: "top" }); 
+    }
     finally { setBusy(false); }
   };
 
@@ -596,9 +617,11 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     setBusy(true);
     try {
       const r = await paystackCheckout() as { url: string };
-      toast.success("Redirecting to Paystack…");
+      notification.success({ message: "Redirecting to Paystack…", placement: "top" });
       window.location.href = r.url;
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { 
+      notification.error({ message: (e as Error).message, placement: "top" }); 
+    }
     finally { setBusy(false); }
   };
 
@@ -614,7 +637,13 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
         <div className="flex items-center gap-2 mb-4">
           <Settings className="h-4 w-4 text-[#E07A5F]" />
           <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Settings</h3>
-          {me.is_pro && <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/20 px-2 py-0.5 text-[10px] font-semibold text-[#E07A5F] border border-[#E07A5F]/20"><Crown className="h-3 w-3" /> Pro</span>}
+          {me.is_pro && (
+            <Tooltip title="Pro Member">
+              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/20 px-2 py-0.5 text-[10px] font-semibold text-[#E07A5F] border border-[#E07A5F]/20 cursor-default">
+                <Crown className="h-3 w-3" /> Pro
+              </span>
+            </Tooltip>
+          )}
         </div>
         <div className="mb-4 flex gap-1 rounded-xl bg-white/50 dark:bg-white/5 p-1 text-xs border border-white/20 dark:border-white/10 backdrop-blur-sm">
           {(["profile", "advanced", "subscription"] as const).map((t) => (
@@ -636,7 +665,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                   aria-label="Change profile picture"
                   className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] disabled:opacity-60 transition"
                 >
-                  {uploadingAvatar ? <span className="text-[10px]">…</span> : <Pencil className="h-3.5 w-3.5" />}
+                  {uploadingAvatar ? <Spin size="small" /> : <Pencil className="h-3.5 w-3.5" />}
                 </button>
                 <input
                   ref={avatarInputRef}
@@ -696,8 +725,8 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
               {me.is_pro ? (
                 <div className="mt-3 text-xs text-[#E07A5F] font-semibold flex items-center gap-1"><Zap className="h-3 w-3" /> You're a Pro member</div>
               ) : (
-                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-lg">
-                  Upgrade to Pro
+                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-lg flex items-center justify-center gap-2">
+                  {busy ? <><Spin size="small" /> Processing…</> : "Upgrade to Pro"}
                 </button>
               )}
             </div>
@@ -709,8 +738,8 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
           <div className="flex gap-2">
             <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8] transition">Close</button>
             {tab === "profile" && (
-              <button disabled={busy} onClick={save} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-md">
-                {busy ? "Saving…" : "Save"}
+              <button disabled={busy} onClick={save} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-md flex items-center gap-2">
+                {busy ? <><Spin size="small" /> Saving…</> : "Save"}
               </button>
             )}
           </div>
