@@ -484,7 +484,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                 <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.display_name, u.email)}</div>
               </div>
               {mode === "direct" ? (
-                busyId === u.id ? (<span className="flex" ><Spin className="bg-[#1F2933] size="small" /></span>) : <Plus className="h-4 w-4 text-[#E07A5F]" />
+                busyId === u.id ? <Spin className="bg-[#1F2933]" size="small" /> : <Plus className="h-4 w-4 text-[#E07A5F]" />
               ) : selectedIds.has(u.id) ? (
                 <CheckSquare className="h-5 w-5 text-[#E07A5F]" />
               ) : (
