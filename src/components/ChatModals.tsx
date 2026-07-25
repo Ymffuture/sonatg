@@ -16,9 +16,7 @@ import {
 } from "@/lib/db";
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/utils/utils";
 import { Avatar } from "./Avatar";
-import { Flex, Spin } from 'antd';
-import type { GetProp, SpinProps } from 'antd';
-import { createStaticStyles } from 'antd-style';
+import { Spin, notification} from 'antd';
 
 /* ─── Category Icon Helper (zero emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: ChatCategory; className?: string }) {
@@ -486,10 +484,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                 <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.display_name, u.email)}</div>
               </div>
               {mode === "direct" ? (
-                busyId === u.id ? <Flex align="center" gap="medium" className="bg-[#1F2933]">
-      
-      <Spin className="bg-[#1F2933] size="small" />
-    </Flex>: <Plus className="h-4 w-4 text-[#E07A5F]" />
+                busyId === u.id ? (<span className="flex" ><Spin className="bg-[#1F2933] size="small" /></span>) : <Plus className="h-4 w-4 text-[#E07A5F]" />
               ) : selectedIds.has(u.id) ? (
                 <CheckSquare className="h-5 w-5 text-[#E07A5F]" />
               ) : (
