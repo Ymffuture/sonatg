@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+, import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
@@ -824,30 +824,29 @@ export default function SonaChat() {
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
               { (
                 filtered.map((c) => {
-                  const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
-                  const last = c.lastMessage;
-                  const mine = last?.sender_id === me.id;
-                  const previewText = last?.kind === "image" ? "Photo" : last?.kind === "voice" ? "Voice note" : (last?.body ?? "");
-                  const isActive = c.id === activeId;
-                  const ai = isAIChat(c);
-                  const isSelected = selectedChatIds.has(c.id);
-                  return (
-                    <div key={c.id}
-                      onClick={() => {
-                        if (selectMode) {
-                          toggleChatSelection(c.id);
-                        } else {
-                          setActiveId(c.id);
-                          setShowSidebarMobile(false);
-                        }
-                      }}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        if (!selectMode) {
-                          setSelectMode(true);
-                          setSelectedChatIds(new Set([c.id]));
-                        }
-                      }}
+      const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
+      const last = c.lastMessage;
+      const mine = last?.sender_id === me.id;
+      const isActive = c.id === activeId;
+      const ai = isAIChat(c);
+      const isSelected = selectedChatIds.has(c.id);
+      return (
+        <div key={c.id}
+          onClick={() => {
+            if (selectMode) {
+              toggleChatSelection(c.id);
+            } else {
+              setActiveId(c.id);
+              setShowSidebarMobile(false);
+            }
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (!selectMode) {
+              setSelectMode(true);
+              setSelectedChatIds(new Set([c.id]));
+            }
+          }}
                       className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
                       {selectMode && (
                         <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
