@@ -21,8 +21,8 @@ type GroupedStatuses = { user: Profile; statuses: StatusRow[]; unseenCount: numb
 const WA = {
   green: "#E07A5F",
   greenDark: "#128C7E",
-  darkBg: "#0B141A",
-  darkSurface: "#111B21",
+  darkBg: "transparent",
+  darkSurface: "transparent",
   darkElevated: "#1F2C34",
   gray: "#8696A0",
   grayLight: "#AEBAC1",
@@ -30,7 +30,7 @@ const WA = {
   textMuted: "#8696A0",
   ringSeen: "#8696A0",
   ringUnseenFrom: "#25D366",
-  ringUnseenTo: "#128C7E",
+  ringUnseenTo: "#E07A5F",
 };
 
 /* ─── Status bar (horizontal row of avatars, WhatsApp-style) ─── */
