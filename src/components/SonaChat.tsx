@@ -25,6 +25,11 @@ import sonaAi from "@/assets/sona01.png";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
+import { FaFileLines } from "react-icons/fa6";
+import { FaLock } from "react-icons/fa6"; 
+import { MdSearch } from "react-icons/md";
+import { BiSolidMessageSquareAdd } from "react-icons/bi";
+
 
 import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
@@ -106,6 +111,43 @@ export default function SonaChat() {
   const fileRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+    
+function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
+  if (!msg) return null; // ← add this guard
+
+  if (msg.is_encrypted) {
+    return (
+      <span className="inline-flex items-center gap-1 opacity-70">
+        <FaLock className="h-4 w-4 shrink-0 text-red-500 " /> Locked
+      </span>
+    );
+  }
+  if (msg.body) return <span className="truncate">{msg.body}</span>;
+
+  switch (msg.kind) {
+    case "image":
+      return (
+        <span className="inline-flex items-center gap-1">
+          <MdInsertPhoto className="h-4 w-4 shrink-0" /> Photo
+        </span>
+      );
+    case "voice":
+      return (
+        <span className="inline-flex items-center gap-1">
+          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message (0:10)
+        </span>
+      );
+    case "file":
+      return (
+        <span className="inline-flex items-center gap-1">
+          <FaFileLines className="h-4 w-4 shrink-0" /> {msg.file_name || "File"}
+        </span>
+      );
+    default:
+      return <span>…</span>;
+  }
+}
 
   // Bootstrap: current user + profile
   useEffect(() => {
