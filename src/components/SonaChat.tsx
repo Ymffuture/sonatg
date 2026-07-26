@@ -25,17 +25,6 @@ import sonaAi from "@/assets/sona01.png";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
-import { FaFileLines } from "react-icons/fa6";
-import { FaLock } from "react-icons/fa6"; 
-import { MdSearch } from "react-icons/md";
-import { BiSolidMessageSquareAdd } from "react-icons/bi";
-
-
-
-
-
-
-
 
 import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
@@ -45,44 +34,8 @@ import {
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
-
-
-/* ─── Inline preview with icons (no emojis) ─── */
-function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
-  if (!msg) return null; // ← add this guard
-
-  if (msg.is_encrypted) {
-    return (
-      <span className="inline-flex items-center gap-1 opacity-70">
-        <FaLock className="h-4 w-4 shrink-0 text-red-500 " /> Locked
-      </span>
-    );
-  }
-  if (msg.body) return <span className="truncate">{msg.body}</span>;
-
-  switch (msg.kind) {
-    case "image":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <MdInsertPhoto className="h-4 w-4 shrink-0" /> Photo
-        </span>
-      );
-    case "voice":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message (0:10)
-        </span>
-      );
-    case "file":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <FaFileLines className="h-4 w-4 shrink-0" /> {msg.file_name || "File"}
-        </span>
-      );
-    default:
-      return <span>…</span>;
-  }
-}
+import { ProfileViewModal } from "./ProfileView";
+import { StatusBar, StatusComposer, StatusViewer } from "./Status";
 
 /* ─── Category Icons (no emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: string; className?: string }) {
@@ -129,6 +82,9 @@ export default function SonaChat() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [showMemberList, setShowMemberList] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
+  const [showStatusComposer, setShowStatusComposer] = useState(false);
+  const [viewingStatusUserId, setViewingStatusUserId] = useState<string | null>(null);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
@@ -373,6 +329,13 @@ export default function SonaChat() {
   }, [activeId, messages.length]);
 
   const active = chats.find((c) => c.id === activeId);
+
+  const profilesById = useMemo(() => {
+    const map: Record<string, Profile> = {};
+    if (me) map[me.id] = me;
+    for (const c of chats) for (const m of c.members) map[m.id] = m;
+    return map;
+  }, [chats, me]);
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
     if (!c.is_group) {
@@ -390,6 +353,27 @@ export default function SonaChat() {
       else next.add(chatId);
       return next;
     });
+  };
+
+  const messageProfile = async (profile: Profile) => {
+    if (!me) return;
+    // Reuse an existing 1:1 chat if one's already loaded
+    const existing = chats.find((c) => !c.is_group && c.memberIds.includes(profile.id));
+    if (existing) { setActiveId(existing.id); setViewingProfile(null); return; }
+
+    try {
+      const { data: chat, error: cErr } = await supabase.from("chats").insert({ is_group: false, created_by: me.id }).select().single();
+      if (cErr) throw cErr;
+      const { error: m1 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: me.id });
+      if (m1) throw m1;
+      const { error: m2 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: profile.id });
+      if (m2) throw m2;
+      setActiveId(chat.id);
+      setViewingProfile(null);
+      loadChats();
+    } catch (e) {
+      toast.error(explainSupabaseError(e).title);
+    }
   };
 
   const leaveGroup = async (chatId: string) => {
@@ -778,104 +762,112 @@ export default function SonaChat() {
 
             <div className="px-3 pb-2 pt-2">
               <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
-                <MdSearch className="h-9 w-9 text-[#8C8C8C]" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask Sona AI or Search Chats"
+                <Search className="h-9 w-9 text-[#8C8C8C]" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
             </div>
 
-            <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
-  { (
-    filtered.map((c) => {
-      const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
-      const last = c.lastMessage;
-      const mine = last?.sender_id === me.id;
-      const isActive = c.id === activeId;
-      const ai = isAIChat(c);
-      const isSelected = selectedChatIds.has(c.id);
-      return (
-        <div key={c.id}
-          onClick={() => {
-            if (selectMode) {
-              toggleChatSelection(c.id);
-            } else {
-              setActiveId(c.id);
-              setShowSidebarMobile(false);
-            }
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            if (!selectMode) {
-              setSelectMode(true);
-              setSelectedChatIds(new Set([c.id]));
-            }
-          }}
-          className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
-          {selectMode && (
-            <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
-              {isSelected ?
-                <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> :
-                <Square className="h-5 w-5 text-[#8C8C8C]" />
-              }
-            </div>
-          )}
-          <div className="relative shrink-0">
-            <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
-            {!ai && c.unread > 0 && !selectMode && (
-              <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
-                {c.unread > 9 ? "9+" : c.unread}
-              </span>
+            {me && (
+              <StatusBar
+                meId={me.id}
+                profilesById={profilesById}
+                onOpenComposer={() => setShowStatusComposer(true)}
+                onOpenViewer={(userId) => setViewingStatusUserId(userId)}
+              />
             )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 min-w-0">
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-                    {title}
-                  </span>
-                  {ai && (
-                    <VscVerifiedFilled
-                      className="h-[15px] w-[15px] shrink-0 text-blue-500"
-                      aria-label="Verified Sona AI"
-                      title="Verified Sona AI"
-                    />
-                  )}
-                </span>
-                {c.is_group && c.category && c.category !== "general" && (
-                  <span className="shrink-0 text-[#E07A5F]" title={categoryMeta[c.category].label}>
-                    <CategoryIcon category={c.category} />
-                  </span>
-                )}
-              </span>
-              <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
-                {last ? fmtTime(last.created_at) : ""}
-              </span>
+
+            <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
+              { (
+                filtered.map((c) => {
+                  const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
+                  const last = c.lastMessage;
+                  const mine = last?.sender_id === me.id;
+                  const previewText = last?.kind === "image" ? "Photo" : last?.kind === "voice" ? "Voice note" : (last?.body ?? "");
+                  const isActive = c.id === activeId;
+                  const ai = isAIChat(c);
+                  const isSelected = selectedChatIds.has(c.id);
+                  return (
+                    <div key={c.id}
+                      onClick={() => {
+                        if (selectMode) {
+                          toggleChatSelection(c.id);
+                        } else {
+                          setActiveId(c.id);
+                          setShowSidebarMobile(false);
+                        }
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (!selectMode) {
+                          setSelectMode(true);
+                          setSelectedChatIds(new Set([c.id]));
+                        }
+                      }}
+                      className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
+                      {selectMode && (
+                        <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
+                          {isSelected ?
+                            <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> :
+                            <Square className="h-5 w-5 text-[#8C8C8C]" />
+                          }
+                        </div>
+                      )}
+                      <div className="relative shrink-0">
+                        <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
+                        {!ai && c.unread > 0 && !selectMode && (
+                          <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
+                            {c.unread > 9 ? "9+" : c.unread}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                                {title}
+                              </span>
+                              {ai && (
+                                <VscVerifiedFilled
+                                  className="h-[15px] w-[15px] shrink-0 text-blue-500"
+                                  aria-label="Verified Sona AI"
+                                  title="Verified Sona AI"
+                                />
+                              )}
+                            </span>
+                            {c.is_group && c.category && c.category !== "general" && (
+                              <span className="shrink-0 text-[#E07A5F]" title={categoryMeta[c.category].label}>
+                                <CategoryIcon category={c.category} />
+                              </span>
+                            )}
+                          </span>
+                          <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
+                            {last ? fmtTime(last.created_at) : ""}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
+                            {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="truncate">{previewText}</span>
+                          </div>
+                          {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
             </div>
-            <div className="flex items-center justify-between gap-2 mt-0.5">
-              <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
-                {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
-                <span className="truncate inline-flex items-center gap-1">
-                  <MessagePreview msg={last} />
-                </span>
-              </div>
-              {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
-            </div>
-          </div>
-        </div>
-      );
-    })
-  )}
-  {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
-</div>
 
             {/* Floating New-Chat FAB */}
             <button
               onClick={() => setShowNewChat(true)}
               aria-label="New chat"
-              className="absolute bottom-8 right-5 grid h-18 w-18 place-items-center rounded-xl bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
+              className="absolute bottom-5 right-5 grid h-14 w-14 place-items-center rounded-full bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
             >
-              <BiSolidMessageSquareAdd className="h-10 w-10 text-black dark:text-white rotate-[90deg]" />
+              <MessageSquarePlus className="h-6 w-6" />
             </button>
           </aside>
 
@@ -888,8 +880,12 @@ export default function SonaChat() {
                     <ArrowLeft className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
                   <button
-                    onClick={() => active.is_group && setShowMemberList(true)}
-                    disabled={!active.is_group}
+                    onClick={() => {
+                      if (active.is_group) { setShowMemberList(true); return; }
+                      const otherId = active.memberIds.find((id) => id !== me.id);
+                      const other = otherId ? profilesById[otherId] : undefined;
+                      if (other) setViewingProfile(other);
+                    }}
                     className="shrink-0"
                   >
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
@@ -991,46 +987,43 @@ export default function SonaChat() {
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
                       {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
                     </div>
- {messages.map((m, idx) => {
-  const prev = messages[idx - 1];
-  const groupWithPrev = prev && prev.sender_id === m.sender_id
-    && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
-
-  const overrideBody = m.is_encrypted
-    ? (decrypted[m.id] ?? "Locked message — unlock this chat to read")
-    : undefined;
-
-  const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
-  const parentBody = parentMsg ? <MessagePreview msg={parentMsg} decrypted={decrypted} /> : undefined;
-  const parentName = parentMsg
-    ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…"))
-    : undefined;
-
-  return (
-    <Bubble
-      key={m.id}
-      msg={m}
-      me={me}
-      sender={profiles[m.sender_id]}
-      isGroup={!!active.is_group}
-      reactions={reactions.filter((r) => r.message_id === m.id)}
-      reads={reads}
-      otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
-      onReact={(emoji) => toggleReaction(m.id, emoji)}
-      opening={reactingOn === m.id}
-      onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
-      grouped={!!groupWithPrev}
-      overrideBody={overrideBody}
-      onDelete={() => deleteMessage(m.id)}
-      onReply={() => startReply(m)}
-      onEdit={() => startEdit(m)}
-      parentName={parentName}
-      parentBody={parentBody}
-      actionsOpen={openBubbleId === m.id}
-      onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
-    />
-  );
-})}
+                    {messages.map((m, idx) => {
+                      const prev = messages[idx - 1];
+                      const groupWithPrev = prev && prev.sender_id === m.sender_id
+                        && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
+                      const overrideBody = m.is_encrypted
+                        ? (decrypted[m.id] ?? "🔒 Locked message — unlock this chat to read")
+                        : undefined;
+                      const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
+                      const parentBody = parentMsg
+                        ? (parentMsg.is_encrypted ? (decrypted[parentMsg.id] ?? "🔒 Locked") : (parentMsg.body ?? (parentMsg.kind === "image" ? "Photo" : parentMsg.kind === "voice" ? "Voice note" : "")))
+                        : undefined;
+                      const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
+                      return (
+                        <Bubble
+                          key={m.id}
+                          msg={m}
+                          me={me}
+                          sender={profiles[m.sender_id]}
+                          isGroup={!!active.is_group}
+                          reactions={reactions.filter((r) => r.message_id === m.id)}
+                          reads={reads}
+                          otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
+                          onReact={(emoji) => toggleReaction(m.id, emoji)}
+                          opening={reactingOn === m.id}
+                          onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
+                          grouped={!!groupWithPrev}
+                          overrideBody={overrideBody}
+                          onDelete={() => deleteMessage(m.id)}
+                          onReply={() => startReply(m)}
+                          onEdit={() => startEdit(m)}
+                          parentName={parentName}
+                          parentBody={parentBody}
+                          actionsOpen={openBubbleId === m.id}
+                          onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
+                        />
+                      );
+                    })}
 
                     {typingNames.length > 0 && (
                       <div className="flex items-end gap-2 mt-1">
@@ -1176,6 +1169,7 @@ export default function SonaChat() {
           onClose={() => setShowMemberList(false)}
           onOpenSettings={() => { setShowMemberList(false); setShowGroupSettings(true); }}
           onLeave={() => leaveGroup(active.id)}
+          onViewProfile={(m) => { setShowMemberList(false); setViewingProfile(m); }}
         />
       )}
 
@@ -1186,6 +1180,33 @@ export default function SonaChat() {
           onClose={() => setShowGroupSettings(false)}
           onUpdated={loadChats}
           onDelete={() => deleteGroup(active.id)}
+        />
+      )}
+
+      {viewingProfile && me && (
+        <ProfileViewModal
+          profile={viewingProfile}
+          isSelf={viewingProfile.id === me.id}
+          onClose={() => setViewingProfile(null)}
+          onMessage={() => messageProfile(viewingProfile)}
+          onEdit={() => { setViewingProfile(null); setShowSettings(true); }}
+        />
+      )}
+
+      {showStatusComposer && me && (
+        <StatusComposer
+          meId={me.id}
+          onClose={() => setShowStatusComposer(false)}
+          onPosted={() => {}}
+        />
+      )}
+
+      {viewingStatusUserId && me && (
+        <StatusViewer
+          userId={viewingStatusUserId}
+          meId={me.id}
+          profilesById={profilesById}
+          onClose={() => setViewingStatusUserId(null)}
         />
       )}
 
