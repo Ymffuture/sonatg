@@ -22,7 +22,7 @@ const WA = {
   green: "#E07A5F",
   greenDark: "#128C7E",
   darkBg: "transparent",
-  darkSurface: "transparent",
+  darkSurface: "#E07A5F",
   darkElevated: "#1F2C34",
   gray: "#8696A0",
   grayLight: "#AEBAC1",
