@@ -39,8 +39,8 @@ type GroupedStatuses = { user: Profile; statuses: StatusRow[]; unseenCount: numb
 const WA = {
   green: "#E07A5F",
   greenDark: "#128C7E",
-  darkBg: "black",
-  darkSurface: "transparent",
+  darkBg: "transparent",
+  darkSurface: "#E07A5F",
   darkElevated: "#1F2C34",
   gray: "#8696A0",
   grayLight: "#AEBAC1",
@@ -292,7 +292,7 @@ export function StatusComposer({
       onClose();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.description, placement: "top" });
+      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
     } finally {
       setPosting(false);
     }
@@ -521,7 +521,7 @@ export function StatusViewer({
     const { error } = await supabase.from("statuses").delete().eq("id", current.id);
     if (error) {
       const explained = explainSupabaseError(error);
-      notification.error({ message: explained.title, description: explained.description, placement: "top" });
+      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
       return;
     }
     notification.success({ message: "Deleted", description: "Status removed", placement: "top" });
