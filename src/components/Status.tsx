@@ -6,12 +6,10 @@ import { Skeleton, Badge, notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
 import {
   type Profile, type StatusRow,
-  STATUS_MAX_DURATION_MS, STATUS_MAX_BYTES_SUPABASE, STATUS_MAX_BYTES_CLOUDINARY,
+  STATUS_MAX_DURATION_MS, STATUS_MAX_BYTES_SUPABASE,
   STATUS_TEXT_BACKGROUNDS,
 } from "@/lib/db";
-import { useServerFn } from "@tanstack/react-start";
-import { uploadToCloudinary, readVideoDurationMs } from "@/utils/cloudinary";
-import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
+import { readVideoDurationMs } from "@/utils/cloudinary";
 import { explainSupabaseError } from "@/utils/utils";
 import { Avatar } from "./Avatar";
 
@@ -210,11 +208,7 @@ export function StatusComposer({
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  // Whether Cloudinary env vars are actually set server-side is only known
-  // once we try (see post() below) — the secret can't be checked from the
-  // browser. Assume the larger Cloudinary limit and fall back gracefully.
-  const signCloudinaryUpload = useServerFn(getCloudinaryUploadSignature);
-  const maxBytes = STATUS_MAX_BYTES_CLOUDINARY;
+  const maxBytes = STATUS_MAX_BYTES_SUPABASE;
 
   const pickFile = async (f: File | null, kind: "image" | "video") => {
     if (!f) return;
@@ -263,32 +257,12 @@ export function StatusComposer({
       if (file) {
         if (mode === "video") duration_ms = Math.round(await readVideoDurationMs(file));
 
-        try {
-          const result = await uploadToCloudinary(file, mode === "video" ? "video" : "image", signCloudinaryUpload);
-          media_url = result.secure_url;
-          media_public_id = result.public_id;
-          media_provider = "cloudinary";
-          if (result.duration) duration_ms = Math.round(result.duration * 1000);
-        } catch (cloudinaryErr) {
-          // Cloudinary not configured (or the request failed) — fall back
-          // to Supabase Storage rather than failing the whole post, but
-          // surface the real reason instead of only logging it, so
-          // misconfiguration is actually visible in the UI.
-          const reason = cloudinaryErr instanceof Error ? cloudinaryErr.message : String(cloudinaryErr);
-          console.warn("Cloudinary upload failed, falling back to Supabase Storage:", reason);
-          notification.warning({
-            message: "Cloudinary upload failed — using backup storage",
-            description: reason,
-            placement: "top",
-            duration: 8,
-          });
-          const path = `${meId}/${crypto.randomUUID()}-${file.name}`;
-          const { error: upErr } = await supabase.storage.from("statuses").upload(path, file);
-          if (upErr) throw upErr;
-          const { data: signed } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60 * 25);
-          media_url = signed?.signedUrl ?? null;
-          media_path = path;
-        }
+        const path = `${meId}/${crypto.randomUUID()}-${file.name}`;
+        const { error: upErr } = await supabase.storage.from("statuses").upload(path, file);
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60 * 25);
+        media_url = signed?.signedUrl ?? null;
+        media_path = path;
       }
 
       const { error } = await supabase.from("statuses").insert({
