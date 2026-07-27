@@ -20,13 +20,22 @@ async function sha1Hex(input: string): Promise<string> {
     .join("");
 }
 
+function cleanEnvVar(value: string | undefined): string | undefined {
+  if (!value) return value;
+  // Strips accidental wrapping quotes and whitespace — easy to end up with
+  // when copy-pasting a line like CLOUDINARY_API_SECRET="abc123" straight
+  // from a .env file into Vercel's dashboard "Value" field, since Vercel
+  // (unlike dotenv) does NOT strip quote characters for you.
+  return value.trim().replace(/^['"]|['"]$/g, "").trim();
+}
+
 export const getCloudinaryUploadSignature = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { folder?: string }) => input)
   .handler(async ({ data }) => {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const cloudName = cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME);
+    const apiKey = cleanEnvVar(process.env.CLOUDINARY_API_KEY);
+    const apiSecret = cleanEnvVar(process.env.CLOUDINARY_API_SECRET);
 
     if (!cloudName || !apiKey || !apiSecret) {
       const missing = [
