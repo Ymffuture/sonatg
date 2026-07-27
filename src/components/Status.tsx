@@ -40,9 +40,9 @@ type GroupedStatuses = { user: Profile; statuses: StatusRow[]; unseenCount: numb
 /* ─── WhatsApp color tokens ───────────────────────────────────── */
 const WA = {
   green: "#E07A5F",
-  greenDark: "#128C7E",
-  darkBg: "transparent",
-  darkSurface: "#E07A5F",
+  greenDark: "#c45c3f",
+  darkBg: "black",
+  darkSurface: "transparent",
   darkElevated: "#1F2C34",
   gray: "#8696A0",
   grayLight: "#AEBAC1",
