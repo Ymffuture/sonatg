@@ -271,8 +271,17 @@ export function StatusComposer({
           if (result.duration) duration_ms = Math.round(result.duration * 1000);
         } catch (cloudinaryErr) {
           // Cloudinary not configured (or the request failed) — fall back
-          // to Supabase Storage rather than failing the whole post.
-          console.warn("Cloudinary upload failed, falling back to Supabase Storage:", cloudinaryErr);
+          // to Supabase Storage rather than failing the whole post, but
+          // surface the real reason instead of only logging it, so
+          // misconfiguration is actually visible in the UI.
+          const reason = cloudinaryErr instanceof Error ? cloudinaryErr.message : String(cloudinaryErr);
+          console.warn("Cloudinary upload failed, falling back to Supabase Storage:", reason);
+          notification.warning({
+            message: "Cloudinary upload failed — using backup storage",
+            description: reason,
+            placement: "top",
+            duration: 8,
+          });
           const path = `${meId}/${crypto.randomUUID()}-${file.name}`;
           const { error: upErr } = await supabase.storage.from("statuses").upload(path, file);
           if (upErr) throw upErr;
