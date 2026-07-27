@@ -108,86 +108,132 @@ export function StatusBar({
   const myStatuses = statuses.filter((s) => s.user_id === meId);
   const me = profilesById[meId];
 
+  // The card background should show the person's most recent status as a
+  // thumbnail (or the last text status's background color) rather than a
+  // plain avatar circle — matches the tile-grid look of the reference design.
+  const latestOf = (list: StatusRow[]) => list[0]; // already sorted desc by created_at
+
   return (
     <div
-      className="flex gap-4 overflow-x-auto px-4 py-3 scrollbar-thin"
+      className="flex gap-3 overflow-x-auto px-4 py-3 scrollbar-thin"
       style={{ backgroundColor: WA.darkSurface, borderBottom: `1px solid ${WA.darkElevated}` }}
     >
       {/* My status */}
       <button
         onClick={() => (myStatuses.length ? onOpenViewer(meId) : onOpenComposer())}
-        className="flex flex-col items-center gap-1.5 shrink-0 select-none"
+        className="relative shrink-0 select-none overflow-hidden rounded-2xl"
+        style={{ width: 108, height: 176, backgroundColor: WA.darkElevated }}
       >
-        <div className="relative">
-          {loading ? (
-            <Skeleton.Avatar active size={64} shape="circle" />
-          ) : (
-            <>
-              <div
-                className="rounded-full p-[3px]"
-                style={{
-                  background: myStatuses.length
-                    ? `conic-gradient(${WA.green} 0deg, ${WA.greenDark} 360deg)`
-                    : "transparent",
-                }}
-              >
-                <Avatar url={me?.avatar_url} name={me?.display_name ?? "Me"} size={58} />
+        {loading ? (
+          <Skeleton.Image active className="!h-full !w-full" />
+        ) : (
+          <>
+            {myStatuses.length > 0 && <StatusCardBackground status={latestOf(myStatuses)} />}
+            <div className="absolute inset-0 flex flex-col justify-between p-2">
+              <div className="flex justify-start">
+                <div
+                  className="rounded-full p-[2.5px]"
+                  style={{ background: myStatuses.length ? WA.green : "transparent" }}
+                >
+                  <Avatar url={me?.avatar_url} name={me?.display_name ?? "Me"} size={40} />
+                </div>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); onOpenComposer(); }}
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full text-white"
-                style={{ backgroundColor: WA.green, border: `2px solid ${WA.darkSurface}` }}
-                aria-label="Add status"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </>
-          )}
-        </div>
-        <span className="text-[11px] font-medium max-w-[64px] truncate" style={{ color: WA.grayLight }}>
-          My status
-        </span>
+              <div className="flex items-end justify-between gap-1">
+                <span
+                  className="text-[11px] font-medium truncate"
+                  style={{ color: myStatuses.length ? "#fff" : WA.grayLight, textShadow: myStatuses.length ? "0 1px 3px rgba(0,0,0,0.6)" : "none" }}
+                >
+                  {myStatuses.length ? "My status" : "Add status"}
+                </span>
+                <span
+                  onClick={(e) => { e.stopPropagation(); onOpenComposer(); }}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-white cursor-pointer"
+                  style={{ backgroundColor: WA.green, border: `2px solid ${WA.darkSurface}` }}
+                  aria-label="Add status"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </button>
-
-      {/* Divider */}
-      <div className="w-px shrink-0 self-stretch my-2 opacity-20" style={{ backgroundColor: WA.gray }} />
 
       {/* Others */}
       {loading
         ? Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5 shrink-0">
-              <Skeleton.Avatar active size={64} shape="circle" />
-              <Skeleton.Button active size="small" style={{ width: 56, height: 14 }} />
+            <div key={i} className="shrink-0 overflow-hidden rounded-2xl" style={{ width: 108, height: 176 }}>
+              <Skeleton.Image active className="!h-full !w-full" />
             </div>
           ))
-        : grouped.map((g) => (
-            <button
-              key={g.user.id}
-              onClick={() => onOpenViewer(g.user.id)}
-              className="flex flex-col items-center gap-1.5 shrink-0 select-none"
-            >
-              <Badge
-                count={g.unseenCount}
-                overflowCount={9}
-                style={{ backgroundColor: WA.green, color: "#000", fontWeight: 700, fontSize: 10 }}
-                offset={[-4, 4]}
+        : grouped.map((g) => {
+            const latest = latestOf(g.statuses);
+            return (
+              <button
+                key={g.user.id}
+                onClick={() => onOpenViewer(g.user.id)}
+                className="relative shrink-0 select-none overflow-hidden rounded-2xl"
+                style={{ width: 108, height: 176, backgroundColor: WA.darkElevated }}
               >
-                <div
-                  className="rounded-full p-[3px]"
-                  style={{
-                    background: g.allSeen
-                      ? WA.ringSeen
-                      : `linear-gradient(135deg, ${WA.ringUnseenFrom}, ${WA.ringUnseenTo})`,
-                  }}
-                >
-                  <Avatar url={g.user.avatar_url} name={g.user.display_name} size={58} ai={g.user.is_ai} />
+                <StatusCardBackground status={latest} />
+                <div className="absolute inset-0 flex flex-col justify-between p-2">
+                  <div className="flex justify-start">
+                    <Badge count={g.unseenCount} overflowCount={9} size="small" offset={[-2, 2]}
+                      style={{ backgroundColor: WA.green, color: "#000", fontWeight: 700, fontSize: 9 }}>
+                      <div
+                        className="rounded-full p-[2.5px]"
+                        style={{ background: g.allSeen ? WA.ringSeen : `linear-gradient(135deg, ${WA.ringUnseenFrom}, ${WA.ringUnseenTo})` }}
+                      >
+                        <Avatar url={g.user.avatar_url} name={g.user.display_name} size={40} ai={g.user.is_ai} />
+                      </div>
+                    </Badge>
+                  </div>
+                  <span
+                    className="text-[11px] font-medium leading-tight line-clamp-2"
+                    style={{ color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
+                  >
+                    {g.user.display_name}
+                  </span>
                 </div>
-              </Badge>
-              <span className="text-[11px] font-medium max-w-[64px] truncate" style={{ color: WA.grayLight }}>
-                {g.user.display_name}
-              </span>
-            </button>
-          ))}
+              </button>
+            );
+          })}
+    </div>
+  );
+}
+
+// Renders a status's content as a full-bleed card background: the image
+// itself, a video's first frame, or a solid color block for text statuses
+// (with the text preview lightly visible), matching the reference design
+// where each tile shows a real thumbnail rather than a generic icon.
+function StatusCardBackground({ status }: { status: StatusRow }) {
+  if (status.kind === "image") {
+    return (
+      <img
+        src={status.media_url ?? ""}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ filter: "brightness(0.85)" }}
+      />
+    );
+  }
+  if (status.kind === "video") {
+    return (
+      <video
+        src={status.media_url ?? ""}
+        muted
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ filter: "brightness(0.85)" }}
+      />
+    );
+  }
+  return (
+    <div className="absolute inset-0 flex items-center justify-center p-2" style={{ backgroundColor: status.background_color || WA.green }}>
+      <p className="text-center text-[11px] font-semibold text-white line-clamp-4 opacity-90">
+        {status.body}
+      </p>
     </div>
   );
 }
@@ -234,6 +280,7 @@ export function StatusComposer({
     }
     setFile(f);
     setMode(kind);
+    setMediaLoading(true);
   };
 
   const post = async () => {
@@ -310,7 +357,7 @@ export function StatusComposer({
           {(["text", "image", "video"] as const).map((m) => (
             <button
               key={m}
-              onClick={() => (m === "text" ? setMode("text") : fileRef.current?.click())}
+              onClick={() => { setMode(m); if (m !== "text") fileRef.current?.click(); }}
               className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition"
               style={
                 mode === m
@@ -332,7 +379,7 @@ export function StatusComposer({
       <input
         ref={fileRef}
         type="file"
-        accept={mode === "video" ? "video/*" : "image/*,video/*"}
+        accept={mode === "video" ? "video/*" : mode === "image" ? "image/*" : "image/*,video/*"}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -389,6 +436,7 @@ export function StatusComposer({
                 className="w-full max-h-[60vh] rounded-2xl object-contain"
                 style={{ backgroundColor: WA.darkElevated }}
                 onLoad={() => setMediaLoading(false)}
+                onError={() => setMediaLoading(false)}
               />
             ) : (
               <video
@@ -397,6 +445,7 @@ export function StatusComposer({
                 className="w-full max-h-[60vh] rounded-2xl"
                 style={{ backgroundColor: WA.darkElevated }}
                 onLoadedData={() => setMediaLoading(false)}
+                onError={() => setMediaLoading(false)}
               />
             )}
             <input
@@ -623,6 +672,7 @@ export function StatusViewer({
             autoPlay
             className="max-h-[75vh] max-w-full object-contain"
             onLoadedData={() => setImageLoading(false)}
+            onError={() => setImageLoading(false)}
           />
         )}
 
