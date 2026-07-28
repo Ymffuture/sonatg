@@ -41,23 +41,60 @@ const notify = {
 };
 
 
+/* ─── Back-button-closes-modal helper ───────────────────────────
+ * A single history entry represents "some modal is open" — shared across
+ * every modal via a module-level stack, rather than each modal instance
+ * pushing/popping its own entry.
+ *
+ * This matters for modal *swaps* (closing one modal and opening another in
+ * the same update, e.g. Member List -> Group Settings): if each modal
+ * independently called history.back() on close and pushState() on open,
+ * the outgoing modal's history.back() call resolves *asynchronously* —
+ * its popstate can fire after the incoming modal has already mounted and
+ * pushed its own entry, incorrectly closing the modal that was just
+ * opened. By only pushing on the 0->1 transition and only calling
+ * history.back() (deferred to a microtask, so a synchronous re-push from
+ * a swapped-in modal is already visible) on the 1->0 transition, a swap
+ * never touches history at all — the single entry just keeps representing
+ * "a modal is open" throughout.
+ */
+let openModalStack: Array<() => void> = [];
+let modalHistoryEntryPushed = false;
+
+function handleModalPopState() {
+  const top = openModalStack[openModalStack.length - 1];
+  if (top) {
+    modalHistoryEntryPushed = false;
+    top();
+  }
+}
+if (typeof window !== "undefined" && !(window as unknown as { __sonaModalPopstateBound?: boolean }).__sonaModalPopstateBound) {
+  window.addEventListener("popstate", handleModalPopState);
+  (window as unknown as { __sonaModalPopstateBound?: boolean }).__sonaModalPopstateBound = true;
+}
+
 function useBackToClose(onClose: () => void) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   useEffect(() => {
-    window.history.pushState({ sonaModal: true }, "");
-    let pushed = true;
-    const onPopState = () => {
-      pushed = false;
-      onCloseRef.current();
-    };
-    window.addEventListener("popstate", onPopState);
+    const handler = () => onCloseRef.current();
+    openModalStack.push(handler);
+    if (openModalStack.length === 1 && !modalHistoryEntryPushed) {
+      window.history.pushState({ sonaModal: true }, "");
+      modalHistoryEntryPushed = true;
+    }
     return () => {
-      window.removeEventListener("popstate", onPopState);
-      if (pushed) {
-        pushed = false;
-        window.history.back();
-      }
+      const idx = openModalStack.lastIndexOf(handler);
+      if (idx !== -1) openModalStack.splice(idx, 1);
+      // Deferred: gives a synchronously-swapped-in modal a chance to
+      // re-push the stack to non-zero before we decide to consume the
+      // history entry — see comment above.
+      queueMicrotask(() => {
+        if (openModalStack.length === 0 && modalHistoryEntryPushed) {
+          modalHistoryEntryPushed = false;
+          window.history.back();
+        }
+      });
     };
   }, []);
 }
