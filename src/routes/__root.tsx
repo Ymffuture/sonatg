@@ -120,6 +120,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
     // Lazy import to avoid loading in SSR shell paths that don't need it.
     import("@/integrations/supabase/client").then(({ supabase }) => {
       const { data: sub } = supabase.auth.onAuthStateChange((event) => {
