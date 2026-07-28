@@ -759,8 +759,8 @@ export default function SonaChat() {
             <div className="flex items-center justify-between gap-2 px-4 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="leading-tight min-w-0">
-                  <div className="truncate text-[24px] font-bold tracking-[-0.6px] dark:text-white text-gray-600 font-sans">
-                    Sona<span className="font-semibold text-[#E07A5F]">TG</span>
+                  <div className="truncate text-[30px] font-bold tracking-[-0.6px] dark:text-white text-gray-600 font-sans">
+                    Sona<span className="font-semibold italic text-[#E07A5F]">TG</span>
                   </div>
                 </div>
               </div>
@@ -873,7 +873,7 @@ export default function SonaChat() {
                   className="rounded-full"
                   style={hasStatus ? { padding: 2, background: "linear-gradient(135deg, #D97757, #C2652F)" } : undefined}
                 >
-                  <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} />
+                  <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} className="p-2"/>
                 </div>
               );
             })()}
