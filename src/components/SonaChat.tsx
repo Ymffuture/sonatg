@@ -891,8 +891,10 @@ export default function SonaChat() {
             <div className="flex items-center justify-between gap-2 mt-0.5">
               <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
                 {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
-                <span className="truncate inline-flex items-center gap-1">
-                  <MessagePreview msg={last} />
+                <span className="truncate inline-flex items-center gap-2">
+                  <MessagePreview msg={last} /> <span className="grid h-5 min-w-[20px] place-items-center border border-transparent border-[3px] rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
+                {c.unread > 15 ? "15+" : c.unread}
+              </span>
                 </span>
               </div>
               {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
