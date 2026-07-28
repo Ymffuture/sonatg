@@ -19,7 +19,7 @@ import { Spin, Skeleton, Tooltip, notification } from "antd";
 
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
-  "!bg-white/70 dark:!bg-[#2A2A2A]/70 !backdrop-blur-xl !rounded-xl !border !border-white/40 dark:!border-white/10 !shadow-xl " +
+  "!bg-white/70 dark:!bg-[#fff]/70 !backdrop-blur-xl !rounded-xl !border !border-white/40 dark:!border-white/10 !shadow-xl " +
   "[&_.ant-notification-notice-message]:!text-[#2D3436] dark:[&_.ant-notification-notice-message]:!text-[#E8E8E8] " +
   "[&_.ant-notification-notice-description]:!text-[#2D3436]/75 dark:[&_.ant-notification-notice-description]:!text-[#E8E8E8]/75";
 
