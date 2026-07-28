@@ -121,6 +121,40 @@ export default function SonaChat() {
   }, [pendingImageUrls]);
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
+
+  // Let the device/browser "back" gesture close an open chat (return to the
+  // chat list) instead of leaving the app entirely. We push one history
+  // entry the moment a chat is opened; a back press then just pops that
+  // entry, which our popstate handler turns into "show the chat list".
+  const chatViewPushedRef = useRef(false);
+  useEffect(() => {
+    if (!showSidebarMobile && !chatViewPushedRef.current) {
+      window.history.pushState({ sonaChatView: true }, "");
+      chatViewPushedRef.current = true;
+    } else if (showSidebarMobile && chatViewPushedRef.current) {
+      chatViewPushedRef.current = false;
+    }
+  }, [showSidebarMobile]);
+  useEffect(() => {
+    const onPopState = () => {
+      if (chatViewPushedRef.current) {
+        chatViewPushedRef.current = false;
+        setShowSidebarMobile(true);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+  // Close a chat the same way a device back-press would, so the pushed
+  // history entry above always stays in sync (no leftover dummy entries).
+  const closeActiveChat = useCallback(() => {
+    if (chatViewPushedRef.current) {
+      window.history.back();
+    } else {
+      setShowSidebarMobile(true);
+    }
+  }, []);
+
   const [showNewChat, setShowNewChat] = useState(false);
   const [showMemberList, setShowMemberList] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
@@ -759,8 +793,8 @@ export default function SonaChat() {
             <div className="flex items-center justify-between gap-2 px-4 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="leading-tight min-w-0">
-                  <div className="truncate text-[30px] font-bold tracking-[-0.6px] dark:text-white text-gray-600 font-sans">
-                    Sona<span className="font-semibold italic text-[#E07A5F]">TG</span>
+                  <div className="truncate text-[24px] font-bold tracking-[-0.6px] dark:text-white text-gray-600 font-sans">
+                    Sona<span className="font-semibold text-[#E07A5F]">TG</span>
                   </div>
                 </div>
               </div>
@@ -873,7 +907,7 @@ export default function SonaChat() {
                   className="rounded-full"
                   style={hasStatus ? { padding: 2, background: "linear-gradient(135deg, #D97757, #C2652F)" } : undefined}
                 >
-                  <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} className="p-2"/>
+                  <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} />
                 </div>
               );
             })()}
@@ -953,7 +987,7 @@ export default function SonaChat() {
             {active ? (
               <>
                 <header className="relative flex items-center gap-3 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2.5 md:px-4">
-                  <button onClick={() => setShowSidebarMobile(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
+                  <button onClick={closeActiveChat} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
                     <ArrowLeft className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
                   <button
