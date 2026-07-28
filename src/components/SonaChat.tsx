@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { CallManager, type CallManagerHandle } from "./CallManager";
 import {
   SONA_AI_ID, fmtTime, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
@@ -176,6 +177,7 @@ export default function SonaChat() {
   const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
 
   const { canInstall, promptInstall } = useInstallPrompt();
+  const callManagerRef = useRef<CallManagerHandle>(null);
 
   // Chat selection for bulk delete
   const [selectMode, setSelectMode] = useState(false);
@@ -715,7 +717,11 @@ export default function SonaChat() {
 
   const startCall = (kind: "voice" | "video") => {
     if (!requirePro(kind === "voice" ? "Voice calls" : "Video calls")) return;
-    toast.success(`${kind === "voice" ? "Voice" : "Video"} call starting…`);
+    if (!active || !me) return;
+    const otherMemberIds = active.memberIds.filter((id) => id !== me.id);
+    if (otherMemberIds.length === 0) return;
+    toast.success(`Calling ${chatTitle(active, me.id)}…`);
+    callManagerRef.current?.startCall(active.id, otherMemberIds, kind, active.is_group);
   };
 
   const relock = () => {
@@ -788,6 +794,7 @@ export default function SonaChat() {
 
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
+      {me && <CallManager ref={callManagerRef} meId={me.id} meName={me.display_name ?? "Someone"} meAvatar={me.avatar_url ?? null} />}
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
         <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
           {/* Sidebar */}
