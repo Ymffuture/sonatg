@@ -4,7 +4,7 @@ import {
   Plus, X, LogOut, Trash2,
   MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check,
-  Share2, BadgeCheck, FileText, DoorOpen,
+  Share2, BadgeCheck, FileText, DoorOpen, Download,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
 } from "lucide-react";
 
@@ -12,6 +12,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import {
   SONA_AI_ID, fmtTime, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
@@ -173,6 +174,8 @@ export default function SonaChat() {
   const [editing, setEditing] = useState<MessageRow | null>(null);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
+
+  const { canInstall, promptInstall } = useInstallPrompt();
 
   // Chat selection for bulk delete
   const [selectMode, setSelectMode] = useState(false);
@@ -799,6 +802,16 @@ export default function SonaChat() {
                 </div>
               </div>
               <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 border border-slate-800 dark:border-slate-700 rounded-md">
+                {canInstall && (
+                  <button
+                    onClick={() => { promptInstall(); }}
+                    className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white"
+                    aria-label="Install app"
+                    title="Install app"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     const shareUrl = window.location.origin;
