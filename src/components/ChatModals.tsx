@@ -18,30 +18,57 @@ import { Avatar } from "./Avatar";
 import { Spin, Skeleton, Tooltip, notification } from "antd";
 
 /* ─── Themed Notification Helper ─── */
+const MILKY_CLASS =
+  "!bg-white/70 dark:!bg-[#2A2A2A]/70 !backdrop-blur-xl !rounded-xl !border !border-white/40 dark:!border-white/10 !shadow-xl " +
+  "[&_.ant-notification-notice-message]:!text-[#2D3436] dark:[&_.ant-notification-notice-message]:!text-[#E8E8E8] " +
+  "[&_.ant-notification-notice-description]:!text-[#2D3436]/75 dark:[&_.ant-notification-notice-description]:!text-[#E8E8E8]/75";
+
 const notify = {
   success: ({ message, description }: { message: string; description?: string }) =>
     notification.success({
       message,
       description,
-      placement: "bottom",
-      className:
-        "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
-        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#E07A5F] " +
-        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#E07A5F]/80 " +
-        "[&_.ant-notification-notice-icon]:!text-[#ffffff]",
+      placement: "top",
+      className: `${MILKY_CLASS} [&_.ant-notification-notice-icon]:!text-[#E07A5F]`,
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
     notification.error({
       message,
       description,
-      placement: "bottom",
-      className:
-        "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
-        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#E07A5F] " +
-        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#E07A5F]/80 " +
-        "[&_.ant-notification-notice-icon]:!text-red-400 dark:[&_.ant-notification-notice-icon]:!text-red-500",
+      placement: "top",
+      className: `${MILKY_CLASS} [&_.ant-notification-notice-icon]:!text-red-500`,
     }),
 };
+
+/* ─── Back-button-closes-modal helper ───────────────────────────
+ * Pushes one history entry the moment a modal mounts. A device/browser
+ * back press then just pops that entry instead of leaving the app — our
+ * popstate listener turns it into a call to onClose. Closing the modal any
+ * other way (the X button, an outside click, a successful save, etc.)
+ * still needs to consume that same history entry on unmount, otherwise the
+ * next back press outside the modal would do nothing (it'd just pop our
+ * leftover dummy entry) and the user would have to press back twice.
+ */
+function useBackToClose(onClose: () => void) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    window.history.pushState({ sonaModal: true }, "");
+    let pushed = true;
+    const onPopState = () => {
+      pushed = false;
+      onCloseRef.current();
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      if (pushed) {
+        pushed = false;
+        window.history.back();
+      }
+    };
+  }, []);
+}
 
 /* ─── Category Icon Helper (zero emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: ChatCategory; className?: string }) {
@@ -64,6 +91,7 @@ function GlassSheet({
 }: {
   children: React.ReactNode; onClose: () => void; maxHeight?: string; className?: string;
 }) {
+  useBackToClose(onClose);
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -182,7 +210,7 @@ export function GroupSettingsModal({
       }
       const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url }).eq("id", chat.id);
       if (error) throw error;
-      notify.success({ message: "Group updated" });
+      notify.success({ message: "Group updated", description: "Your changes to the group name, photo, or settings have been saved for everyone." });
       onUpdated();
       onClose();
     } catch (e) {
@@ -202,6 +230,7 @@ export function GroupSettingsModal({
       if (error) throw error;
       notify.success({
         message: `Added ${addSelected.size} ${addSelected.size === 1 ? "person" : "people"}`,
+        description: "They can now see the group and its message history from this point forward.",
       });
       setAddOpen(false);
       setAddSelected(new Set());
@@ -315,6 +344,7 @@ export function GroupSettingsModal({
 
 /* ─── New Chat ─── */
 export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () => void; onCreated: (id: string) => void }) {
+  useBackToClose(onClose);
   const [mode, setMode] = useState<"direct" | "group">("direct");
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
@@ -330,7 +360,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.from("profiles").select("*").neq("id", meId).order("display_name", { ascending: true }).limit(200);
-      if (error) notify.error({ message: error.message });
+      if (error) notify.error({ message: error.message, description: "The block list couldn't be updated — check your connection and try again." });
       setUsers((data ?? []) as Profile[]);
       setLoading(false);
     })();
@@ -361,7 +391,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
       if (m1) throw m1;
       const { error: m2 } = await supabase.from("chat_members").insert({ chat_id: chat.id, user_id: prof.id });
       if (m2) throw m2;
-      notify.success({ message: `Chat with ${prof.display_name} created` });
+      notify.success({ message: `Chat with ${prof.display_name} created`, description: "You can start messaging them right away — it's now at the top of your chat list." });
       onCreated(chat.id);
     } catch (e) {
       console.error("startWith failed", e);
@@ -381,8 +411,8 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   };
 
   const createGroup = async () => {
-    if (!groupTitle.trim()) return notify.error({ message: "Give your group a name" });
-    if (selectedIds.size === 0) return notify.error({ message: "Pick at least one person to add" });
+    if (!groupTitle.trim()) return notify.error({ message: "Give your group a name", description: "Every group needs a name so members can recognize it in their chat list." });
+    if (selectedIds.size === 0) return notify.error({ message: "Pick at least one person to add", description: "Select at least one contact to add before creating the group." });
     setCreatingGroup(true);
     try {
       const { data: chat, error: cErr } = await supabase
@@ -401,7 +431,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         if (mErr) throw mErr;
       }
 
-      notify.success({ message: `"${groupTitle.trim()}" group created` });
+      notify.success({ message: `"${groupTitle.trim()}" group created`, description: "All selected members have been added and can start chatting immediately." });
       onCreated(chat.id);
     } catch (e) {
       console.error("createGroup failed", e);
@@ -567,7 +597,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(groupError.raw);
-                  notify.success({ message: "Error copied to clipboard" });
+                  notify.success({ message: "Error copied to clipboard", description: "Paste it wherever you need — e.g. when reporting the issue." });
                 }}
                 className="flex-1 rounded-full border border-[#E07A5F]/30 py-2 text-sm font-medium text-[#E07A5F] hover:bg-[#E07A5F]/10 transition"
               >
@@ -589,6 +619,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
 
 /* ─── Settings ─── */
 export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
+  useBackToClose(onClose);
   const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
   const [busy, setBusy] = useState(false);
@@ -600,7 +631,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const pickAvatar = () => avatarInputRef.current?.click();
 
   const uploadAvatar = async (file: File) => {
-    if (!file.type.startsWith("image/")) return notify.error({ message: "Please choose an image file" });
+    if (!file.type.startsWith("image/")) return notify.error({ message: "Please choose an image file", description: "Only image formats like JPG, PNG, or WEBP are supported for a profile picture." });
     setUploadingAvatar(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
@@ -613,9 +644,9 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       if (error) throw error;
       setAvatarUrl(freshUrl);
       onSaved(data as Profile);
-      notify.success({ message: "Profile picture updated" });
+      notify.success({ message: "Profile picture updated", description: "Your new photo is now visible to everyone you chat with." });
     } catch (e) {
-      notify.error({ message: (e as Error).message || "Couldn't upload picture" });
+      notify.error({ message: (e as Error).message || "Couldn't upload picture", description: "The upload failed — check your connection and file size, then try again." });
     } finally {
       setUploadingAvatar(false);
     }
@@ -627,10 +658,10 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend" }).eq("id", me.id).select().single();
       if (error) throw error;
       onSaved(data as Profile);
-      notify.success({ message: "Saved" });
+      notify.success({ message: "Saved", description: "Your profile details have been updated." });
       onClose();
     } catch (e) { 
-      notify.error({ message: (e as Error).message }); 
+      notify.error({ message: (e as Error).message, description: "Something went wrong while saving. Please try again in a moment." }); 
     }
     finally { setBusy(false); }
   };
@@ -642,10 +673,10 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     setBusy(true);
     try {
       const r = await paystackCheckout() as { url: string };
-      notify.success({ message: "Redirecting to Paystack…" });
+      notify.success({ message: "Redirecting to Paystack…", description: "You'll be taken to a secure checkout page to complete your payment." });
       window.location.href = r.url;
     } catch (e) { 
-      notify.error({ message: (e as Error).message }); 
+      notify.error({ message: (e as Error).message, description: "Something went wrong while saving. Please try again in a moment." }); 
     }
     finally { setBusy(false); }
   };
@@ -776,6 +807,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
 
 /* ─── Unlock ─── */
 export function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; onUnlocked: () => void; onCancel: () => void }) {
+  useBackToClose(onCancel);
   const [pass, setPass] = useState("");
   const submit = () => {
     if (!pass) return;
