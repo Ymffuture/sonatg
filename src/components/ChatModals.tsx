@@ -20,7 +20,7 @@ import { Spin, Skeleton, Tooltip, notification } from "antd";
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
   "!bg-white/70 dark:!bg-[#fff]/70 !backdrop-blur-xl !rounded-xl !border !border-white/40 dark:!border-white/10 !shadow-xl " +
-  "[&_.ant-notification-notice-message]:!text-[#2D3436] dark:[&_.ant-notification-notice-message]:!text-[#E8E8E8] " +
+  "[&_.ant-notification-notice-message]:!text-[#2D3436] dark:[&_.ant-notification-notice-message]:!text-[#ffffff] " +
   "[&_.ant-notification-notice-description]:!text-[#2D3436]/75 dark:[&_.ant-notification-notice-description]:!text-[#E8E8E8]/75";
 
 const notify = {
@@ -40,15 +40,7 @@ const notify = {
     }),
 };
 
-/* ─── Back-button-closes-modal helper ───────────────────────────
- * Pushes one history entry the moment a modal mounts. A device/browser
- * back press then just pops that entry instead of leaving the app — our
- * popstate listener turns it into a call to onClose. Closing the modal any
- * other way (the X button, an outside click, a successful save, etc.)
- * still needs to consume that same history entry on unmount, otherwise the
- * next back press outside the modal would do nothing (it'd just pop our
- * leftover dummy entry) and the user would have to press back twice.
- */
+
 function useBackToClose(onClose: () => void) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
