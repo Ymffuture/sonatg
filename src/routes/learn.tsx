@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle, Sparkles, Lock, Mic, Image as ImageIcon, Users, Bell, Shield, Crown, Phone } from "lucide-react";
+import { ArrowLeft, MessageCircle, Sparkles, Lock, Mic, Image as ImageIcon, Users, Bell, Shield, Crown, Phone, Clock, Download } from "lucide-react";
 
 export const Route = createFileRoute("/learn")({
   head: () => ({
     meta: [
       { title: "Learn Sona — How the app works" },
-      { name: "description", content: "A guided tour of Sona: chats, AI, voice notes, encryption, reactions, calls and Sona Pro." },
+      { name: "description", content: "A guided tour of Sona: chats, AI, status updates, voice notes, encryption, reactions, calls, installing the app, and Sona Pro." },
       { property: "og:title", content: "Learn Sona" },
-      { property: "og:description", content: "A guided tour of Sona's chat, AI and privacy features." },
+      { property: "og:description", content: "A guided tour of Sona's chat, status, AI, and privacy features." },
     ],
   }),
   component: LearnPage,
@@ -72,6 +72,18 @@ const sections: Section[] = [
     ),
   },
   {
+    id: "status",
+    title: "Status",
+    icon: Clock,
+    body: (
+      <>
+        <p>Tap the <strong>Add status</strong> tile at the start of the Status row to post a text, photo, or video update. Text statuses let you pick a background color; photos and videos upload straight from your device.</p>
+        <p>Each status tile shows the actual content as its background — your latest photo, a video's first frame, or the text itself — so you can tell what's inside before tapping. Your own avatar gets a small orange ring whenever someone you're chatting with has an active status.</p>
+        <p>Statuses disappear automatically after <strong>24 hours</strong>. Tap into anyone's status tile to view it full-screen; Sona tracks who's seen it, just like the read receipts on your messages.</p>
+      </>
+    ),
+  },
+  {
     id: "privacy",
     title: "Hidden chats & encryption",
     icon: Lock,
@@ -90,11 +102,23 @@ const sections: Section[] = [
   },
   {
     id: "notifications",
-    title: "Notifications & PWA",
+    title: "Notifications",
     icon: Bell,
     body: (
       <>
-        <p>Enable push notifications from <em>Settings → Advanced</em>. Add Sona to your home screen from your browser menu — it works as an installable PWA.</p>
+        <p>Enable push notifications from <em>Settings → Advanced</em> to get pinged for new messages even when Sona isn't open in a tab.</p>
+      </>
+    ),
+  },
+  {
+    id: "install",
+    title: "Install Sona as an app",
+    icon: Download,
+    body: (
+      <>
+        <p>Sona is a full <strong>installable app (PWA)</strong> — not just a browser bookmark. On desktop and Android, look for the <strong>Download</strong> icon in the sidebar header (next to Share); tapping it opens your browser's native install prompt, the same one you'd see for any app in your device's store.</p>
+        <p>Once installed, Sona opens in its own standalone window with no browser address bar, gets a real home-screen/desktop icon, and keeps working offline for anything already loaded. Your device's back button also behaves like it would in any native app: it closes an open chat or dialog first, rather than backing out of Sona entirely.</p>
+        <p>On iPhone/iPad, Safari doesn't support that install button — instead, tap the <em>Share</em> icon in Safari's toolbar and choose <em>Add to Home Screen</em>.</p>
       </>
     ),
   },
