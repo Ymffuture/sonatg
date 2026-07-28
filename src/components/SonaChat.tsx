@@ -3,7 +3,7 @@ import {
   Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
   MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
-  Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen,
+  Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check,
   Share2, BadgeCheck, FileText, DoorOpen,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
 } from "lucide-react";
@@ -143,6 +143,22 @@ export default function SonaChat() {
   // Chat selection for bulk delete
   const [selectMode, setSelectMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
+
+  // Which user IDs currently have an active (non-expired) status — drives
+  // the status ring shown around chat-list avatars.
+  const [usersWithStatus, setUsersWithStatus] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from("statuses").select("user_id").gt("expires_at", new Date().toISOString());
+      setUsersWithStatus(new Set((data ?? []).map((r: { user_id: string }) => r.user_id)));
+    };
+    load();
+    const channel = supabase
+      .channel("sidebar-status-indicators")
+      .on("postgres_changes", { event: "*", schema: "public", table: "statuses" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -846,21 +862,29 @@ export default function SonaChat() {
               setSelectedChatIds(new Set([c.id]));
             }
           }}
-          className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} ${isSelected ? "bg-[#E07A5F]/20" : ""} border-b border-[#E07A5F]/5`}>
-          {selectMode && (
-            <div className="shrink-0" onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}>
-              {isSelected ?
-                <CheckSquare className="h-5 w-5 text-[#E07A5F]" /> :
-                <Square className="h-5 w-5 text-[#8C8C8C]" />
-              }
-            </div>
-          )}
+          className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} border-b border-[#E07A5F]/5`}
+          style={isSelected ? { backgroundColor: "rgba(217, 119, 87, 0.16)" } : undefined}>
           <div className="relative shrink-0">
-            <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={50} ai={ai} />
-            {!ai && c.unread > 0 && !selectMode && (
-              <span className="absolute -top-1 -right-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
-                {c.unread > 9 ? "9+" : c.unread}
-              </span>
+            {(() => {
+              const otherId = c.memberIds.find((id) => id !== me.id);
+              const hasStatus = !ai && otherId && usersWithStatus.has(otherId);
+              return (
+                <div
+                  className="rounded-full"
+                  style={hasStatus ? { padding: 2, background: "linear-gradient(135deg, #D97757, #C2652F)" } : undefined}
+                >
+                  <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} />
+                </div>
+              );
+            })()}
+            {selectMode && (
+              <div
+                onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}
+                className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
+                style={{ backgroundColor: isSelected ? "#D97757" : "#3A3A38" }}
+              >
+                {isSelected && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
+              </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -884,17 +908,25 @@ export default function SonaChat() {
                   </span>
                 )}
               </span>
-              <span className={`text-[11px] shrink-0 ${c.unread > 0 ? "text-[#E07A5F] font-semibold" : "text-[#8C8C8C]"}`}>
-                {last ? fmtTime(last.created_at) : ""}
-              </span>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "#D97757" } : undefined}>
+                  {last ? fmtTime(last.created_at) : ""}
+                </span>
+                {!ai && c.unread > 0 && !selectMode && (
+                  <span
+                    className="grid h-5 min-w-[20px] place-items-center rounded-full text-white text-[10px] font-bold px-1"
+                    style={{ backgroundColor: "#D97757" }}
+                  >
+                    {c.unread > 99 ? "99+" : c.unread}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between gap-2 mt-0.5">
               <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
                 {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
-                <span className="truncate inline-flex items-center gap-2">
-                  <MessagePreview msg={last} /> <span className="grid h-5 min-w-[20px] place-items-center border border-transparent border-[3px] rounded-full bg-[#E07A5F] text-white text-[10px] font-bold px-1">
-                {c.unread > 15 ? "15+" : c.unread}
-              </span>
+                <span className="truncate">
+                  <MessagePreview msg={last} />
                 </span>
               </div>
               {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
