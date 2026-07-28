@@ -720,8 +720,14 @@ export default function SonaChat() {
     if (!active || !me) return;
     const otherMemberIds = active.memberIds.filter((id) => id !== me.id);
     if (otherMemberIds.length === 0) return;
-    toast.success(`Calling ${chatTitle(active, me.id)}…`);
-    callManagerRef.current?.startCall(active.id, otherMemberIds, kind, active.is_group);
+    callManagerRef.current?.startCall(
+      active.id,
+      otherMemberIds,
+      kind,
+      active.is_group,
+      chatTitle(active, me.id),
+      chatAvatarUrl(active, me.id)
+    );
   };
 
   const relock = () => {
