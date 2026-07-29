@@ -242,6 +242,23 @@ export const CallManager = forwardRef<
   const ringSecondsRef = useRef(0);
   const [ringSeconds, setRingSeconds] = useState(0);
   const [callDuration, setCallDuration] = useState(0);
+  const callStartedAtRef = useRef<number | null>(null);
+  const isCallerRef = useRef(false);
+
+  // Writes a kind='call' message into the chat (like WhatsApp's "Voice
+  // call · 1:02" / "Missed call" log lines). Only the caller's side ever
+  // calls this, so a 1:1 call never ends up with two duplicate log rows.
+  const insertCallLog = useCallback(
+    async (chatId: string, kind: CallKind, outcome: "answered" | "missed" | "declined", durationMs: number) => {
+      await supabase.from("messages").insert({
+        chat_id: chatId,
+        sender_id: meId,
+        kind: "call",
+        file_name: JSON.stringify({ kind, outcome, durationMs }),
+      });
+    },
+    [meId]
+  );
 
   /* ── Supabase broadcast listeners ── */
   useEffect(() => {
@@ -258,6 +275,8 @@ export const CallManager = forwardRef<
       .on("broadcast", { event: "accept" }, ({ payload }) => {
         setOutgoing((cur) => {
           if (cur?.sessionId !== (payload as { sessionId: string }).sessionId) return cur;
+          isCallerRef.current = true;
+          callStartedAtRef.current = Date.now();
           setActive({
             sessionId: cur.sessionId,
             chatId: cur.chatId,
@@ -269,14 +288,17 @@ export const CallManager = forwardRef<
       })
       .on("broadcast", { event: "decline" }, ({ payload }) => {
         const sid = (payload as { sessionId: string }).sessionId;
-        setOutgoing((cur) => (cur?.sessionId === sid ? null : cur));
+        setOutgoing((cur) => {
+          if (cur?.sessionId === sid) insertCallLog(cur.chatId, cur.kind, "declined", 0);
+          return cur?.sessionId === sid ? null : cur;
+        });
         setActive((cur) => (cur?.sessionId === sid ? null : cur));
       })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [meId]);
+  }, [meId, insertCallLog]);
 
   /* ── Ringtone ── */
   useEffect(() => {
@@ -353,6 +375,8 @@ export const CallManager = forwardRef<
       event: "accept",
       payload: { sessionId: incoming.sessionId },
     });
+    isCallerRef.current = false;
+    callStartedAtRef.current = null;
     setActive({
       sessionId: incoming.sessionId,
       chatId: incoming.chatId,
@@ -374,10 +398,18 @@ export const CallManager = forwardRef<
 
   const cancelOutgoing = () => {
     if (!outgoing) return;
+    insertCallLog(outgoing.chatId, outgoing.kind, "missed", 0);
+    supabase.channel(`calls:${outgoing.chatId}`); // reserved for future cancel-signal to callee
     setOutgoing(null);
   };
 
   const endActive = () => {
+    if (active && isCallerRef.current && callStartedAtRef.current) {
+      const durationMs = Date.now() - callStartedAtRef.current;
+      insertCallLog(active.chatId, active.kind, "answered", durationMs);
+    }
+    isCallerRef.current = false;
+    callStartedAtRef.current = null;
     setActive(null);
   };
 

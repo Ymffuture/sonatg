@@ -45,6 +45,31 @@ import { ProfileViewModal } from "./ProfileView";
 import { StatusBar, StatusComposer, StatusViewer } from "./Status";
 
 
+// Call-log messages store their metadata as JSON in the file_name column
+// (body stays null so MessagePreview's switch renders it, rather than the
+// raw JSON, when there's no body text).
+type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
+function parseCallBody(raw: string | null): CallLogMeta {
+  try {
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && (parsed.kind === "voice" || parsed.kind === "video")) {
+      return {
+        kind: parsed.kind,
+        outcome: parsed.outcome === "missed" || parsed.outcome === "declined" ? parsed.outcome : "answered",
+        durationMs: typeof parsed.durationMs === "number" ? parsed.durationMs : 0,
+      };
+    }
+  } catch { /* fall through to default */ }
+  return { kind: "voice", outcome: "answered", durationMs: 0 };
+}
+
+function fmtDuration(ms?: number | null) {
+  const totalSec = Math.max(0, Math.round((ms ?? 0) / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
   if (!msg) return null; // ← add this guard
 
@@ -67,7 +92,7 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
     case "voice":
       return (
         <span className="inline-flex items-center gap-1">
-          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message (0:10)
+          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message ({fmtDuration(msg.duration_ms)})
         </span>
       );
     case "file":
@@ -76,6 +101,17 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
           <FaFileLines className="h-4 w-4 shrink-0" /> {msg.file_name || "File"}
         </span>
       );
+    case "call": {
+      const call = parseCallBody(msg.file_name ?? null);
+      return (
+        <span className="inline-flex items-center gap-1">
+          {call.kind === "video" ? <Video className="h-4 w-4 shrink-0" /> : <Phone className="h-4 w-4 shrink-0" />}
+          {call.outcome === "missed" || call.outcome === "declined"
+            ? `${call.outcome === "missed" ? "Missed" : "Declined"} ${call.kind === "video" ? "video call" : "call"}`
+            : `${call.kind === "video" ? "Video call" : "Voice call"} · ${fmtDuration(call.durationMs)}`}
+        </span>
+      );
+    }
     default:
       return <span>…</span>;
   }
@@ -165,6 +201,8 @@ export default function SonaChat() {
   const [viewingStatusUserId, setViewingStatusUserId] = useState<string | null>(null);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
+  const [recordingOthers, setRecordingOthers] = useState<string[]>([]);
+  const [listActivity, setListActivity] = useState<Record<string, { typing: string[]; recording: string[] }>>({});
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
@@ -377,15 +415,69 @@ export default function SonaChat() {
       setTypingOthers((prev) => (prev.includes(uid) ? prev : [...prev, uid]));
       if (timers[uid]) clearTimeout(timers[uid]);
       timers[uid] = setTimeout(() => setTypingOthers((prev) => prev.filter((x) => x !== uid)), 3500);
-    }).subscribe();
+    });
+    chan.on("broadcast", { event: "recording" }, (payload) => {
+      const { user_id: uid, recording } = (payload.payload as { user_id?: string; recording?: boolean }) ?? {};
+      if (!uid || uid === me.id) return;
+      setRecordingOthers((prev) => {
+        if (recording) return prev.includes(uid) ? prev : [...prev, uid];
+        return prev.filter((x) => x !== uid);
+      });
+    });
+    chan.subscribe();
     typingChanRef.current = chan;
     return () => {
       Object.values(timers).forEach(clearTimeout);
       supabase.removeChannel(chan);
       typingChanRef.current = null;
       setTypingOthers([]);
+      setRecordingOthers([]);
     };
   }, [me, activeId]);
+
+  // Typing/recording indicators for chats OTHER than the currently-open
+  // one, so the chat list ("outside") can show "typing…" / "recording
+  // audio…" the same way WhatsApp does, not just inside an open chat.
+  useEffect(() => {
+    if (!me) return;
+    const otherChatIds = chats.map((c) => c.id).filter((id) => id !== activeId);
+    if (otherChatIds.length === 0) { setListActivity({}); return; }
+    const channels = otherChatIds.map((chatId) => {
+      const chan = supabase.channel(`typing:${chatId}`, { config: { broadcast: { self: false } } });
+      const clear = (kind: "typing" | "recording", uid: string) => {
+        setListActivity((prev) => {
+          const cur = prev[chatId];
+          if (!cur) return prev;
+          const next = { ...cur, [kind]: cur[kind].filter((x) => x !== uid) };
+          return { ...prev, [chatId]: next };
+        });
+      };
+      const mark = (kind: "typing" | "recording", uid: string) => {
+        setListActivity((prev) => {
+          const cur = prev[chatId] ?? { typing: [], recording: [] };
+          if (cur[kind].includes(uid)) return prev;
+          return { ...prev, [chatId]: { ...cur, [kind]: [...cur[kind], uid] } };
+        });
+      };
+      chan.on("broadcast", { event: "typing" }, (payload) => {
+        const uid = (payload.payload as { user_id?: string })?.user_id;
+        if (!uid || uid === me.id) return;
+        mark("typing", uid);
+        setTimeout(() => clear("typing", uid), 3500);
+      });
+      chan.on("broadcast", { event: "recording" }, (payload) => {
+        const { user_id: uid, recording } = (payload.payload as { user_id?: string; recording?: boolean }) ?? {};
+        if (!uid || uid === me.id) return;
+        recording ? mark("recording", uid) : clear("recording", uid);
+      });
+      chan.subscribe();
+      return chan;
+    });
+    return () => {
+      channels.forEach((c) => supabase.removeChannel(c));
+      setListActivity({});
+    };
+  }, [me, activeId, chats.map((c) => c.id).join(",")]);
 
   // Global presence
   useEffect(() => {
@@ -404,6 +496,12 @@ export default function SonaChat() {
     const chan = typingChanRef.current;
     if (!chan || !me) return;
     chan.send({ type: "broadcast", event: "typing", payload: { user_id: me.id } });
+  }, [me]);
+
+  const sendRecording = useCallback((recording: boolean) => {
+    const chan = typingChanRef.current;
+    if (!chan || !me) return;
+    chan.send({ type: "broadcast", event: "recording", payload: { user_id: me.id, recording } });
   }, [me]);
 
   // Auto-mark unread messages as read
@@ -797,6 +895,9 @@ export default function SonaChat() {
   const typingNames = typingOthers
     .map((id) => profiles[id]?.display_name)
     .filter(Boolean) as string[];
+  const recordingNames = recordingOthers
+    .map((id) => profiles[id]?.display_name)
+    .filter(Boolean) as string[];
 
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
@@ -984,10 +1085,27 @@ export default function SonaChat() {
             </div>
             <div className="flex items-center justify-between gap-2 mt-0.5">
               <div className="min-w-0 flex-1 flex items-center gap-1 text-sm text-[#8C8C8C]">
-                {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
-                <span className="truncate">
-                  <MessagePreview msg={last} />
-                </span>
+                {(() => {
+                  const act = listActivity[c.id];
+                  if (act?.recording.length) {
+                    return (
+                      <span className="inline-flex items-center gap-1 truncate text-[#E07A5F]">
+                        <IoMdMic className="h-3.5 w-3.5 shrink-0 animate-pulse" /> recording audio…
+                      </span>
+                    );
+                  }
+                  if (act?.typing.length) {
+                    return <span className="truncate text-[#E07A5F]">typing…</span>;
+                  }
+                  return (
+                    <>
+                      {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
+                      <span className="truncate">
+                        <MessagePreview msg={last} />
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
               {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
             </div>
@@ -1056,7 +1174,11 @@ export default function SonaChat() {
                       onClick={() => active.is_group && setShowMemberList(true)}
                       className="truncate text-xs text-[#8C8C8C] text-left w-full"
                     >
-                      {typingNames.length > 0 ? (
+                      {recordingNames.length > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-[#E07A5F]">
+                          <IoMdMic className="h-3.5 w-3.5 animate-pulse" /> {recordingNames.join(", ")} recording audio…
+                        </span>
+                      ) : typingNames.length > 0 ? (
                         <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
                         "~ Online"
@@ -1279,6 +1401,7 @@ export default function SonaChat() {
                       media_url: signed?.signedUrl ?? null, duration_ms: durationMs,
                     });
                   }}
+                  onRecordingChange={sendRecording}
                 />
               </>
             ) : (

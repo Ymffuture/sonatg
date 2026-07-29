@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Download, Reply, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
-  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock
+  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video,
 } from "lucide-react";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
@@ -12,6 +12,28 @@ import {
   URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
+
+type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
+function parseCallLogMeta(raw: string | null): CallLogMeta {
+  try {
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && (parsed.kind === "voice" || parsed.kind === "video")) {
+      return {
+        kind: parsed.kind,
+        outcome: parsed.outcome === "missed" || parsed.outcome === "declined" ? parsed.outcome : "answered",
+        durationMs: typeof parsed.durationMs === "number" ? parsed.durationMs : 0,
+      };
+    }
+  } catch { /* fall through to default */ }
+  return { kind: "voice", outcome: "answered", durationMs: 0 };
+}
+function fmtCallDuration(ms: number) {
+  const totalSec = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 
 /* ─── Themed Notification Helper ─── */
 const notify = {
@@ -485,6 +507,32 @@ export function Bubble({
     ? grouped ? "rounded-2xl rounded-tr-sm" : "rounded-2xl rounded-tr-sm"
     : grouped ? "rounded-2xl rounded-tl-sm" : "rounded-2xl rounded-tl-sm";
 
+  // Call-ended log entries render as a centered pill, WhatsApp-style,
+  // instead of the normal left/right chat bubble.
+  if (msg.kind === "call") {
+    const call = parseCallLogMeta(msg.file_name ?? null);
+    const missed = call.outcome === "missed" || call.outcome === "declined";
+    const Icon = call.kind === "video" ? Video : Phone;
+    const label = missed
+      ? `${call.outcome === "missed" ? "Missed" : "Declined"} ${call.kind === "video" ? "video call" : "voice call"}`
+      : `${call.kind === "video" ? "Video call" : "Voice call"} · ${fmtCallDuration(call.durationMs)}`;
+    return (
+      <div className="my-2 flex justify-center">
+        <div
+          className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium ${
+            missed
+              ? "border-red-500/25 bg-red-500/10 text-red-500"
+              : "border-[#E07A5F]/20 bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8]"
+          }`}
+        >
+          <Icon className="h-3.5 w-3.5" />
+          <span>{label}</span>
+          <span className="opacity-60">· {fmtTime(msg.created_at)}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className={`group flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}>
@@ -806,7 +854,7 @@ export function VoicePlayer({
 
 /* ─── Composer ─── */
 export function Composer({
-  draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded,
+  draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
@@ -816,6 +864,7 @@ export function Composer({
   docRef: React.RefObject<HTMLInputElement | null>;
   onSend: () => void;
   onVoiceUploaded: (blob: Blob, durationMs: number) => void;
+  onRecordingChange?: (recording: boolean) => void;
 }) {
   const [recording, setRecording] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -830,6 +879,7 @@ export function Composer({
   const lockedRef = useRef(locked);
 
   useEffect(() => { lockedRef.current = locked; }, [locked]);
+  useEffect(() => { onRecordingChange?.(recording); }, [recording, onRecordingChange]);
 
   const cleanupRecording = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
