@@ -1199,7 +1199,7 @@ export default function SonaChat() {
                           <span className="flex items-center gap-1">Online</span>
                         ) : (
                           <span>
-  Last seen {formatDistanceToNow(new Date(other.last_seen), {
+  Last seen {fmtTime(new Date(other.last_seen), {
     addSuffix: true,
   })}
 </span>
