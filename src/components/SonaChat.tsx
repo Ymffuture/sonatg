@@ -1189,7 +1189,7 @@ export default function SonaChat() {
                       ) : typingNames.length > 0 ? (
                         <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
-                        "Sona AI Ask Away"
+                        "Sona AI Ask anything... "
                       ) : active.is_group ? (
                         active.members.map((m) => m.display_name).join(", ")
                       ): (() => {
@@ -1199,9 +1199,9 @@ export default function SonaChat() {
     return online ? (
         <span className="flex items-center gap-1">Online</span>
     ) : other?.last_seen ? (
-        <span>Last seen {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
+        <span>Last seen at {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
     ) : (
-        <span>This person is no longer on Sonatg</span>
+        <span className="dark:text-red-600 text-red-400 " >This person is no longer on Sonatg</span>
     );
 })()}
                     </button>
