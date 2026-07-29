@@ -9,6 +9,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
+import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
 import {
   CHAT_CATEGORIES, type Profile, type ChatCategory,
@@ -174,6 +175,7 @@ export function MemberListModal({
                   )}
                 </div>
                 <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Owner" : "participant"}</span>
+                {m.bio && <p className="mt-0.5 truncate text-xs text-[#8C8C8C]/80 italic">{m.bio}</p>}
               </div>
             </div>
           );
@@ -651,6 +653,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   useBackToClose(onClose);
   const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
+  const [bio, setBio] = useState(me.bio ?? "");
   const [busy, setBusy] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(me.avatar_url ?? "");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -684,7 +687,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const save = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend" }).eq("id", me.id).select().single();
+      const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend", bio: bio.trim() || null }).eq("id", me.id).select().single();
       if (error) throw error;
       onSaved(data as Profile);
       notify.success({ message: "Saved", description: "Your profile details have been updated." });
@@ -698,6 +701,26 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
 
   const paystackCheckout = useServerFn(startPaystackCheckout);
+  const deleteAccount = useServerFn(deleteMyAccount);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      notify.success({ message: "Account deleted", description: "All your data has been permanently removed." });
+      await supabase.auth.signOut();
+      window.location.href = "/auth";
+    } catch (e) {
+      notify.error({
+        message: "Couldn't delete account",
+        description: (e as Error).message || "Something went wrong. Please try again.",
+      });
+      setDeleting(false);
+    }
+  };
   const upgrade = async () => {
     setBusy(true);
     try {
@@ -769,6 +792,19 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
               <input value={name} onChange={(e) => setName(e.target.value)}
                 className="mt-1 w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
             </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-[#8C8C8C]">About</label>
+                <span className="text-[10px] text-[#8C8C8C]">{bio.length}/140</span>
+              </div>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value.slice(0, 140))}
+                placeholder="Add a short bio…"
+                rows={2}
+                className="mt-1 w-full resize-none rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm"
+              />
+            </div>
             <p className="text-xs text-[#8C8C8C]">Signed in as {me.email}</p>
           </div>
         )}
@@ -793,6 +829,49 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
               <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Lock className="h-4 w-4 text-[#E07A5F]" /> Hidden chats</div>
               <p className="mt-1 text-xs text-[#8C8C8C]">Toggle "Hide & encrypt" from the chat menu to store messages encrypted at rest.</p>
+            </div>
+
+            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3">
+              <div className="flex items-center gap-2 font-semibold text-red-500"><Trash2 className="h-4 w-4" /> Delete account</div>
+              <p className="mt-1 text-xs text-[#8C8C8C]">
+                Permanently deletes your profile, messages, statuses, and every other trace of your data. This cannot be undone.
+              </p>
+              {!confirmingDelete ? (
+                <button
+                  onClick={() => setConfirmingDelete(true)}
+                  className="mt-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/20 transition"
+                >
+                  Delete my account…
+                </button>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-[#2D3436] dark:text-[#E8E8E8]">
+                    Type <span className="font-mono font-semibold">DELETE</span> to confirm.
+                  </p>
+                  <input
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                    className="w-full rounded-lg border border-red-500/30 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-500/30 text-[#2D3436] dark:text-[#E8E8E8]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== "DELETE" || deleting}
+                      className="flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      {deleting && <Spin size="small" />} {deleting ? "Deleting…" : "Permanently delete"}
+                    </button>
+                    <button
+                      onClick={() => { setConfirmingDelete(false); setDeleteConfirmText(""); }}
+                      disabled={deleting}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#8C8C8C] hover:bg-white/40 dark:hover:bg-white/5 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
