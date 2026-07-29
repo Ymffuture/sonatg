@@ -46,7 +46,7 @@ export function chatTitle(c: ChatWithMeta, meId: string) {
   if (c.title && c.is_group) return c.title;
   const other = c.members.find((m) => m.id !== meId);
   if (other?.is_ai) return "Sona AI";
-  return other?.display_name || c.title || "Chat";
+  return other?.display_name || c.title || "Account Deleted";
 }
 
 export function chatAvatarUrl(c: ChatWithMeta, meId: string) {
@@ -60,7 +60,7 @@ export function isAIChat(c: ChatWithMeta) {
 }
 
 // ─── Upload limits & file helpers ────────────────────────────────
-export const MAX_IMAGES = 10;
+export const MAX_IMAGES = 3;
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
 export const MAX_DOCS = 2;
 export const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5MB
