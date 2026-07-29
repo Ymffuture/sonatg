@@ -837,6 +837,14 @@ export default function SonaChat() {
   };
 
   const signOut = async () => {
+    if (me) {
+    await supabase
+      .from("profiles")
+      .update({
+        last_seen: new Date().toISOString(),
+      })
+      .eq("id", me.id);
+    }
     await supabase.auth.signOut();
     navigate({ to: "/auth" });
   };
@@ -1190,7 +1198,11 @@ export default function SonaChat() {
                         return online ? (
                           <span className="flex items-center gap-1">Online</span>
                         ) : (
-                          <span className ="" >last seen  {fmtTime(created_at)} </span>
+                          <span>
+  Last seen {formatDistanceToNow(new Date(other.last_seen), {
+    addSuffix: true,
+  })}
+</span>
                         );
                       })()}
                     </button>
