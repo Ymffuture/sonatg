@@ -1192,19 +1192,18 @@ export default function SonaChat() {
                         "Sona AI Ask Away"
                       ) : active.is_group ? (
                         active.members.map((m) => m.display_name).join(", ")
-                      ) : (() => {
-                        const otherId = active.memberIds.find((id) => id !== me.id);
-                        const online = otherId ? onlineIds.has(otherId) : false;
-                        return online ? (
-                          <span className="flex items-center gap-1">Online</span>
-                        ) : (
-                          <span>
-  Last seen {fmtTime(new Date(other.last_seen), {
-    addSuffix: true,
-  })}
-</span>
-                        );
-                      })()}
+                      ): (() => {
+    const otherId = active.memberIds.find((id) => id !== me.id);
+    const other = otherId ? profilesById[otherId] : undefined;
+    const online = otherId ? onlineIds.has(otherId) : false;
+    return online ? (
+        <span className="flex items-center gap-1">Online</span>
+    ) : other?.last_seen ? (
+        <span>Last seen {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
+    ) : (
+        <span>Offline</span>
+    );
+})()}
                     </button>
                   </div>
 
