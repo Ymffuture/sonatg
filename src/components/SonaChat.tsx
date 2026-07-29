@@ -1201,7 +1201,7 @@ export default function SonaChat() {
     ) : other?.last_seen ? (
         <span>Last seen {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
     ) : (
-        <span>Offline</span>
+        <span>This person is no longer on Sonatg</span>
     );
 })()}
                     </button>
