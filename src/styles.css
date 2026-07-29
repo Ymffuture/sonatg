@@ -3,6 +3,19 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+/* Disable selection for a specific class */
+.unselectable {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE 10 and Edge */
+  user-select: none;         /* Standard syntax */
+}
+
+/* Disable selection across the entire website */
+body {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
