@@ -1181,16 +1181,16 @@ export default function SonaChat() {
                       ) : typingNames.length > 0 ? (
                         <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
-                        "~ Online"
+                        "Sona AI Ask Away"
                       ) : active.is_group ? (
                         active.members.map((m) => m.display_name).join(", ")
                       ) : (() => {
                         const otherId = active.memberIds.find((id) => id !== me.id);
                         const online = otherId ? onlineIds.has(otherId) : false;
                         return online ? (
-                          <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> online</span>
+                          <span className="flex items-center gap-1">Online</span>
                         ) : (
-                          <span>offline · last seen recently</span>
+                          <span className ="" >last seen  {fmtTime(last.created_at)} </span>
                         );
                       })()}
                     </button>
