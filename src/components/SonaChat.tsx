@@ -1190,7 +1190,7 @@ export default function SonaChat() {
                         return online ? (
                           <span className="flex items-center gap-1">Online</span>
                         ) : (
-                          <span className ="" >last seen  {fmtTime(last.created_at)} </span>
+                          <span className ="" >last seen  {fmtTime(created_at)} </span>
                         );
                       })()}
                     </button>
