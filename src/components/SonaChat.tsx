@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
-  MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
+  MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check,
   Share2, BadgeCheck, FileText, DoorOpen, Download,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
@@ -105,7 +105,7 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
       const call = parseCallBody(msg.file_name ?? null);
       return (
         <span className="inline-flex items-center gap-1">
-          {call.kind === "video" ? <Video className="h-4 w-4 shrink-0" /> : <Phone className="h-4 w-4 shrink-0" />}
+          {call.kind === "video" ? <Video className="h-4 w-4 shrink-0" /> : <PhoneMissed className="h-4 text-red-600 w-4 shrink-0" />}
           {call.outcome === "missed" || call.outcome === "declined"
             ? `${call.outcome === "missed" ? "Missed" : "Declined"} ${call.kind === "video" ? "video call" : "call"}`
             : `${call.kind === "video" ? "Video call" : "Voice call"} · ${fmtDuration(call.durationMs)}`}
@@ -1040,7 +1040,7 @@ export default function SonaChat() {
               return (
                 <div
                   className="rounded-full"
-                  style={hasStatus ? { padding: 2, background: "linear-gradient(135deg, #D97757, #C2652F)" } : undefined}
+                  style={hasStatus ? { padding: 3, background: "linear-gradient(135deg, green , #FFFFFF )" } : undefined}
                 >
                   <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} />
                 </div>
@@ -1103,7 +1103,7 @@ export default function SonaChat() {
                     );
                   }
                   if (act?.typing.length) {
-                    return <span className="truncate text-[#E07A5F]">typing…</span>;
+                    return <span className="truncate animate-pulse text-[#E07A5F]">typing…</span>;
                   }
                   return (
                     <>
@@ -1299,7 +1299,7 @@ export default function SonaChat() {
 })}
 
                     {typingNames.length > 0 && (
-                      <div className="flex items-end gap-2 mt-1">
+                      <div className="flex items-end gap-2 mt-3">
                         <div className="rounded-2xl rounded-bl-md bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm px-3 py-2.5 flex items-center gap-1 border border-[#E07A5F]/10">
                           <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '0ms' }} />
                           <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '150ms' }} />
