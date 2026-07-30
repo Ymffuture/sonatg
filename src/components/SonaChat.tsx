@@ -1312,6 +1312,9 @@ function SonaChatInner() {
       parentBody={parentBody}
       actionsOpen={openBubbleId === m.id}
       onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
+      onTranscribed={(messageId, transcript) =>
+        setMessages((prev) => prev.map((row) => (row.id === messageId ? { ...row, transcript } : row)))
+      }
     />
   );
 })}

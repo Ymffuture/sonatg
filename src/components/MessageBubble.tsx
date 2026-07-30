@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Download, Reply, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
-  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video,
+  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2,
 } from "lucide-react";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
+import { useServerFn } from "@tanstack/react-start";
+import { transcribeVoiceMessage } from "@/lib/transcribe.functions";
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
@@ -461,7 +463,7 @@ function MenuItem({ icon, label, danger, onClick }: { icon: React.ReactNode; lab
 /* ─── Enhanced Bubble ─── */
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
-  overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions,
+  overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions, onTranscribed,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -470,6 +472,7 @@ export function Bubble({
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: string;
   actionsOpen: boolean; onToggleActions: () => void;
+  onTranscribed?: (messageId: string, transcript: string) => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -688,6 +691,9 @@ export function Bubble({
                 mine={mine}
                 avatarUrl={sender?.avatar_url}
                 avatarName={sender?.display_name ?? "?"}
+                messageId={msg.id}
+                transcript={msg.transcript}
+                onTranscribed={onTranscribed}
               />
             )}
 
@@ -755,13 +761,17 @@ export function Bubble({
 
 /* ─── Voice Player ─── */
 export function VoicePlayer({
-  url, durationMs, mine, avatarUrl, avatarName,
+  url, durationMs, mine, avatarUrl, avatarName, messageId, transcript, onTranscribed,
 }: {
   url: string; durationMs: number; mine: boolean; avatarUrl?: string | null; avatarName?: string;
+  messageId?: string; transcript?: string | null; onTranscribed?: (messageId: string, transcript: string) => void;
 }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [hasPlayed, setHasPlayed] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const transcribeFn = useServerFn(transcribeVoiceMessage);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bars = useMemo(() => {
     const raw = waveformBars(url);
@@ -785,6 +795,22 @@ export function VoicePlayer({
     const a = audioRef.current; if (!a) return;
     if (playing) { a.pause(); setPlaying(false); }
     else { a.play(); setPlaying(true); setHasPlayed(true); }
+  };
+
+  const handleTranscribeClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (transcript) { setShowTranscript((v) => !v); return; }
+    if (!messageId || transcribing) return;
+    setTranscribing(true);
+    try {
+      const result = (await transcribeFn({ data: { messageId } })) as { transcript: string };
+      onTranscribed?.(messageId, result.transcript);
+      setShowTranscript(true);
+    } catch (err) {
+      notify.error({ message: "Couldn't transcribe", description: (err as Error).message });
+    } finally {
+      setTranscribing(false);
+    }
   };
 
   const secs = Math.round(durationMs / 1000);
@@ -839,15 +865,22 @@ export function VoicePlayer({
 
       <div className="mt-1 flex items-center justify-between pl-12 pr-1">
         <button
-          onClick={(e) => { e.stopPropagation(); notify.info({ message: "Transcription is coming soon" }); }}
-          className={`text-[11px] font-medium ${mine ? "text-white/80" : "text-[#E07A5F]"} hover:underline`}
+          onClick={handleTranscribeClick}
+          disabled={transcribing}
+          className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-white/80" : "text-[#E07A5F]"} hover:underline disabled:no-underline disabled:opacity-70`}
         >
-          Transcribe
+          {transcribing && <Loader2 className="h-3 w-3 animate-spin" />}
+          {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
         </button>
         <span className={`text-[10px] tabular-nums ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
           {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
         </span>
       </div>
+      {showTranscript && transcript && (
+        <p className={`mt-1.5 pl-12 pr-1 text-[12.5px] leading-snug italic ${mine ? "text-white/90" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+          "{transcript}"
+        </p>
+      )}
     </div>
   );
 }
