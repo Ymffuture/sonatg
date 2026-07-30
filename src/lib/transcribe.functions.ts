@@ -15,7 +15,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // less consistent than Whisper — swap the model below if you hit issues.
 
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";
+const MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 
 type TranscribeInput = { messageId: string };
 
