@@ -888,6 +888,7 @@ export function VoicePlayer({
 /* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
+  hasAttachments, sending,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
@@ -898,6 +899,8 @@ export function Composer({
   onSend: () => void;
   onVoiceUploaded: (blob: Blob, durationMs: number) => void;
   onRecordingChange?: (recording: boolean) => void;
+  hasAttachments?: boolean;
+  sending?: boolean;
 }) {
   const [recording, setRecording] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -1123,7 +1126,7 @@ export function Composer({
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); } }}
               rows={1}
               placeholder="Type a message · @sona for AI"
               className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent text-[15px] outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2"
@@ -1162,12 +1165,13 @@ export function Composer({
             />
           </div>
 
-          {draft.trim() ? (
+          {draft.trim() || hasAttachments ? (
             <button
               onClick={onSend}
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
+              disabled={sending}
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95 disabled:opacity-60 disabled:active:scale-100"
             >
-              <Send className="h-5 w-5" />
+              {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </button>
           ) : (
             <button

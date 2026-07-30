@@ -168,6 +168,7 @@ function SonaChatInner() {
     return () => { pendingImageUrls.forEach((u) => URL.revokeObjectURL(u)); };
   }, [pendingImageUrls]);
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
+  const [sending, setSending] = useState(false);
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
 
   // Let the device/browser "back" gesture close an open chat (return to the
@@ -668,6 +669,7 @@ function SonaChatInner() {
     }
 
     if (!draft.trim() && pendingImages.length === 0 && pendingDocs.length === 0) return;
+    if (sending) return;
 
     const plaintext = draft.trim();
     let is_encrypted = false;
@@ -677,55 +679,60 @@ function SonaChatInner() {
       if (enc) { firstBody = enc; is_encrypted = true; }
     }
 
-    type Outgoing = { kind: "text" | "image" | "file"; media_url?: string | null; file_name?: string; file_size?: number };
-    const outgoing: Outgoing[] = [];
+    setSending(true);
+    try {
+      type Outgoing = { kind: "text" | "image" | "file"; media_url?: string | null; file_name?: string; file_size?: number };
+      const outgoing: Outgoing[] = [];
 
-    for (const img of pendingImages) {
-      const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${img.name}`;
-      const { error: upErr } = await supabase.storage.from("chat-media").upload(path, img);
-      if (upErr) { toast.error(`Couldn't upload ${img.name}: ${explainSupabaseError(upErr).title}`); continue; }
-      const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
-      outgoing.push({ kind: "image", media_url: signed?.signedUrl ?? null });
-    }
-    for (const doc of pendingDocs) {
-      const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${doc.name}`;
-      const { error: upErr } = await supabase.storage.from("chat-media").upload(path, doc, { contentType: doc.type || "application/octet-stream" });
-      if (upErr) { toast.error(`Couldn't upload ${doc.name}: ${explainSupabaseError(upErr).title}`); continue; }
-      const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
-      outgoing.push({ kind: "file", media_url: signed?.signedUrl ?? null, file_name: doc.name, file_size: doc.size });
-    }
-    if (outgoing.length === 0 && plaintext) outgoing.push({ kind: "text" });
-
-    let firstAttachedImageUrl: string | null = null;
-    for (let i = 0; i < outgoing.length; i++) {
-      const item = outgoing[i];
-      if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
-      const { error } = await supabase.from("messages").insert({
-        chat_id: activeId, sender_id: me.id, kind: item.kind,
-        body: i === 0 ? firstBody : null,
-        media_url: item.media_url ?? null,
-        file_name: item.file_name ?? null,
-        file_size: item.file_size ?? null,
-        is_encrypted: i === 0 ? is_encrypted : false,
-        reply_to_id: i === 0 ? (replyTo?.id ?? null) : null,
-      });
-      if (error) { toast.error(error.message); continue; }
-    }
-    playSendSound();
-
-    const prompt = plaintext;
-    const attachedImageUrl = firstAttachedImageUrl;
-    setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
-
-    if (active && !active.is_hidden) {
-      const isAI = isAIChat(active);
-      const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
-      if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
-        toast.loading("Sona is thinking…", { id: "sona-ai" });
-        askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
-          .then(() => toast.dismiss("sona-ai"))
-          .catch((e) => toast.error(e.message, { id: "sona-ai" }));
+      for (const img of pendingImages) {
+        const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${img.name}`;
+        const { error: upErr } = await supabase.storage.from("chat-media").upload(path, img);
+        if (upErr) { toast.error(`Couldn't upload ${img.name}: ${explainSupabaseError(upErr).title}`); continue; }
+        const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+        outgoing.push({ kind: "image", media_url: signed?.signedUrl ?? null });
       }
+      for (const doc of pendingDocs) {
+        const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${doc.name}`;
+        const { error: upErr } = await supabase.storage.from("chat-media").upload(path, doc, { contentType: doc.type || "application/octet-stream" });
+        if (upErr) { toast.error(`Couldn't upload ${doc.name}: ${explainSupabaseError(upErr).title}`); continue; }
+        const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+        outgoing.push({ kind: "file", media_url: signed?.signedUrl ?? null, file_name: doc.name, file_size: doc.size });
+      }
+      if (outgoing.length === 0 && plaintext) outgoing.push({ kind: "text" });
+
+      let firstAttachedImageUrl: string | null = null;
+      for (let i = 0; i < outgoing.length; i++) {
+        const item = outgoing[i];
+        if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
+        const { error } = await supabase.from("messages").insert({
+          chat_id: activeId, sender_id: me.id, kind: item.kind,
+          body: i === 0 ? firstBody : null,
+          media_url: item.media_url ?? null,
+          file_name: item.file_name ?? null,
+          file_size: item.file_size ?? null,
+          is_encrypted: i === 0 ? is_encrypted : false,
+          reply_to_id: i === 0 ? (replyTo?.id ?? null) : null,
+        });
+        if (error) { toast.error(error.message); continue; }
+      }
+      playSendSound();
+
+      const prompt = plaintext;
+      const attachedImageUrl = firstAttachedImageUrl;
+      setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
+
+      if (active && !active.is_hidden) {
+        const isAI = isAIChat(active);
+        const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
+        if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
+          toast.loading("Sona is thinking…", { id: "sona-ai" });
+          askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
+            .then(() => toast.dismiss("sona-ai"))
+            .catch((e) => toast.error(e.message, { id: "sona-ai" }));
+        }
+      }
+    } finally {
+      setSending(false);
     }
   };
 
@@ -1376,12 +1383,18 @@ function SonaChatInner() {
                               <img
                                 src={pendingImageUrls[i]}
                                 alt=""
-                                className="h-20 w-20 rounded-lg object-cover border border-[#E07A5F]/20 bg-black/5"
+                                className={`h-20 w-20 rounded-lg object-cover border border-[#E07A5F]/20 bg-black/5 transition-opacity ${sending ? "opacity-50" : ""}`}
                               />
+                              {sending && (
+                                <div className="absolute inset-0 grid place-items-center rounded-lg bg-black/20">
+                                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                                </div>
+                              )}
                               <button
                                 onClick={() => setPendingImages((prev) => prev.filter((_, idx) => idx !== i))}
                                 aria-label="Remove image"
-                                className="absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#2D3436] shadow-md hover:bg-black"
+                                disabled={sending}
+                                className="absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#2D3436] shadow-md hover:bg-black disabled:opacity-40"
                               >
                                 <X className="h-3 w-3 text-white" />
                               </button>
@@ -1395,16 +1408,21 @@ function SonaChatInner() {
                       {pendingDocs.length > 0 && (
                         <div className="space-y-1.5">
                           {pendingDocs.map((f, i) => (
-                            <div key={i} className="flex items-center gap-2 rounded-lg border border-[#E07A5F]/20 bg-white dark:bg-[#2A2A2A] px-3 py-2">
-                              <FileText className="h-5 w-5 text-[#E07A5F] shrink-0" />
+                            <div key={i} className={`flex items-center gap-2 rounded-lg border border-[#E07A5F]/20 bg-white dark:bg-[#2A2A2A] px-3 py-2 transition-opacity ${sending ? "opacity-60" : ""}`}>
+                              {sending ? (
+                                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[#E07A5F]" />
+                              ) : (
+                                <FileText className="h-5 w-5 text-[#E07A5F] shrink-0" />
+                              )}
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">{f.name}</p>
-                                <p className="text-xs text-[#8C8C8C]">{formatBytes(f.size)}</p>
+                                <p className="text-xs text-[#8C8C8C]">{sending ? "Uploading…" : formatBytes(f.size)}</p>
                               </div>
                               <button
                                 onClick={() => setPendingDocs((prev) => prev.filter((_, idx) => idx !== i))}
                                 aria-label="Remove file"
-                                className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20"
+                                disabled={sending}
+                                className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20 disabled:opacity-40"
                               >
                                 <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
                               </button>
@@ -1422,6 +1440,8 @@ function SonaChatInner() {
                   showEmoji={showEmoji} setShowEmoji={setShowEmoji}
                   onPickImages={onPickImages} fileRef={fileRef} onPickDocs={onPickDocs} docRef={docRef}
                   onSend={send}
+                  hasAttachments={pendingImages.length > 0 || pendingDocs.length > 0}
+                  sending={sending}
                   onVoiceUploaded={async (blob, durationMs) => {
                     if (!me || !activeId) return;
                     const path = `${activeId}/${me.id}/${crypto.randomUUID()}.webm`;
