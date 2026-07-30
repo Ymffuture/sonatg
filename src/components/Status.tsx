@@ -12,6 +12,7 @@ import {
 import { readVideoDurationMs } from "@/utils/cloudinary";
 import { explainSupabaseError } from "@/utils/utils";
 import { Avatar } from "./Avatar";
+import { useConfirm } from "@/hooks/useConfirmDialog";
 
 const TEXT_STATUS_MS = 5000;
 
@@ -491,6 +492,7 @@ export function StatusViewer({
 }: {
   userId: string; meId: string; profilesById: Record<string, Profile>; onClose: () => void;
 }) {
+  const confirm = useConfirm();
   const [statuses, setStatuses] = useState<StatusRow[]>([]);
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -557,7 +559,7 @@ export function StatusViewer({
   }, [current?.id, index, statuses.length]);
 
   const deleteCurrent = async () => {
-    if (!current || !confirm("Delete this status?")) return;
+    if (!current || !(await confirm({ title: "Delete this status?", confirmText: "Delete", danger: true }))) return;
     const { error } = await supabase.from("statuses").delete().eq("id", current.id);
     if (error) {
       const explained = explainSupabaseError(error);

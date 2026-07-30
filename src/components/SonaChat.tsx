@@ -14,6 +14,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
+import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import {
   SONA_AI_ID, fmtTime, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
@@ -133,6 +134,15 @@ function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: stri
 }
 
 export default function SonaChat() {
+  return (
+    <ConfirmProvider>
+      <SonaChatInner />
+    </ConfirmProvider>
+  );
+}
+
+function SonaChatInner() {
+  const confirm = useConfirm();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const askAI = useServerFn(askSonaAI);
@@ -575,7 +585,7 @@ export default function SonaChat() {
 
   const leaveGroup = async (chatId: string) => {
     if (!me) return;
-    if (!confirm("Leave this group? You'll need to be re-added to rejoin.")) return;
+    if (!(await confirm({ title: "Leave this group?", description: "You'll need to be re-added to rejoin.", confirmText: "Leave", danger: true }))) return;
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", me.id);
     if (error) { toast.error(explainSupabaseError(error).title); return; }
     toast.success("You left the group");
@@ -585,7 +595,7 @@ export default function SonaChat() {
   };
 
   const deleteGroup = async (chatId: string) => {
-    if (!confirm("Delete this group for everyone? This can't be undone.")) return;
+    if (!(await confirm({ title: "Delete this group for everyone?", description: "This can't be undone.", confirmText: "Delete", danger: true }))) return;
     const { error } = await supabase.from("chats").delete().eq("id", chatId);
     if (error) { toast.error(explainSupabaseError(error).title); return; }
     toast.success("Group deleted");
@@ -598,7 +608,15 @@ export default function SonaChat() {
   const deleteSelectedChats = async () => {
     if (!me || selectedChatIds.size === 0) return;
     const count = selectedChatIds.size;
-    if (!confirm(`Delete ${count} chat${count === 1 ? "" : "s"}? This will remove you from ${count === 1 ? "this chat" : "these chats"}.`)) return;
+    if (
+      !(await confirm({
+        title: `Delete ${count} chat${count === 1 ? "" : "s"}?`,
+        description: `This will remove you from ${count === 1 ? "this chat" : "these chats"}.`,
+        confirmText: "Delete",
+        danger: true,
+      }))
+    )
+      return;
 
     let failed = 0;
     for (const cid of selectedChatIds) {
@@ -764,7 +782,7 @@ export default function SonaChat() {
 
   const deleteMessage = async (messageId: string) => {
     if (!me) return;
-    if (!confirm("Delete this message for everyone?")) return;
+    if (!(await confirm({ title: "Delete this message for everyone?", confirmText: "Delete", danger: true }))) return;
     const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me.id);
     if (error) { toast.error(error.message); return; }
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
@@ -1189,7 +1207,7 @@ export default function SonaChat() {
                       ) : typingNames.length > 0 ? (
                         <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
                       ) : isAIChat(active) ? (
-                        "Sona AI Ask anything... "
+                        "Sona AI Ask Away"
                       ) : active.is_group ? (
                         active.members.map((m) => m.display_name).join(", ")
                       ): (() => {
@@ -1199,9 +1217,9 @@ export default function SonaChat() {
     return online ? (
         <span className="flex items-center gap-1">Online</span>
     ) : other?.last_seen ? (
-        <span>Last seen at {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
+        <span>Last seen {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
     ) : (
-        <span className="dark:text-red-600 text-red-400 " >This person is no longer on Sonatg</span>
+        <span>This person is no longer on Sonatg</span>
     );
 })()}
                     </button>
