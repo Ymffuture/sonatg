@@ -4,37 +4,76 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
 
-type AskInput = { chatId: string; prompt: string; imageUrl?: string | null };
+type AskInput = {
+  chatId: string;
+  prompt: string;
+  imageUrl?: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+};
 type SummarizeInput = { chatId: string };
 
 async function callGateway(messages: unknown[], key: string): Promise<string> {
   const model = process.env.AI_MODEL || "inclusionai/ling-3.0-flash:free";
-  
+
   const res = await fetch(GATEWAY, {
     method: "POST",
-    headers: { 
-      "Content-Type": "application/json", 
+    headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
       "HTTP-Referer": process.env.APP_URL || "https://your-app.vercel.app",
       "X-Title": "Sona AI",
     },
-    body: JSON.stringify({ 
-      model, 
+    body: JSON.stringify({
+      model,
       messages,
       // Optional: route to specific provider or enable fallbacks
       // provider: { order: ["OpenAI", "Anthropic"] },
     }),
   });
-  
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     if (res.status === 429) throw new Error("Sona AI is busy right now, try again in a moment.");
     if (res.status === 402) throw new Error("OpenRouter credits exhausted. Please check your account balance.");
     throw new Error(`AI request failed [${res.status}]: ${body}`);
   }
-  
+
   const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   return json.choices?.[0]?.message?.content?.trim() || "…";
+}
+
+// Describes a message row for the AI's chat-history context. Every kind the
+// `messages` table actually supports gets a real label here — previously
+// anything that wasn't "text" or "image" (i.e. "voice", "file", and "call"
+// log entries) all silently fell through to being mislabeled "[voice note]".
+function describeForHistory(m: { kind: string; body?: string | null; file_name?: string | null }): string {
+  switch (m.kind) {
+    case "text":
+      return m.body ?? "";
+    case "image":
+      return "[shared an image]";
+    case "voice":
+      return "[voice note]";
+    case "file":
+      return m.file_name ? `[shared a file: ${m.file_name}]` : "[shared a file]";
+    case "call":
+      return "[voice/video call]";
+    default:
+      return "[attachment]";
+  }
+}
+
+// Fetches a URL and returns it as a base64 data: URI, for embedding
+// images/files directly in the request rather than relying on the model
+// provider being able to fetch our (often expiring, signed) Supabase URLs
+// itself.
+async function urlToDataUri(url: string): Promise<{ dataUri: string; contentType: string }> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Couldn't download attachment [${res.status}]`);
+  const contentType = res.headers.get("content-type") ?? "application/octet-stream";
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { dataUri: `data:${contentType};base64,${buffer.toString("base64")}`, contentType };
 }
 
 export const askSonaAI = createServerFn({ method: "POST" })
@@ -45,6 +84,8 @@ export const askSonaAI = createServerFn({ method: "POST" })
       chatId: String(data.chatId),
       prompt: String(data.prompt).slice(0, 4000),
       imageUrl: data.imageUrl ? String(data.imageUrl).slice(0, 2000) : null,
+      fileUrl: data.fileUrl ? String(data.fileUrl).slice(0, 2000) : null,
+      fileName: data.fileName ? String(data.fileName).slice(0, 200) : null,
     };
   })
   .handler(async ({ data, context }) => {
@@ -63,23 +104,34 @@ export const askSonaAI = createServerFn({ method: "POST" })
 
     const { data: recent } = await context.supabase
       .from("messages")
-      .select("sender_id, kind, body, media_url")
+      .select("sender_id, kind, body, media_url, file_name")
       .eq("chat_id", data.chatId)
       .order("created_at", { ascending: false })
       .limit(12);
 
     const history = (recent ?? []).reverse().map((m) => ({
       role: m.sender_id === SONA_AI_ID ? "assistant" : "user",
-      content: m.kind === "text" ? (m.body ?? "") : m.kind === "image" ? "[shared an image]" : "[voice note]",
+      content: describeForHistory(m as { kind: string; body?: string | null; file_name?: string | null }),
     }));
 
-    // Build the current turn — multimodal if an image is attached
-    const userContent: unknown = data.imageUrl
-      ? [
-          { type: "text", text: data.prompt || "What's in this image?" },
-          { type: "image_url", image_url: { url: data.imageUrl } },
-        ]
-      : data.prompt;
+    // Build the current turn — multimodal if an image and/or file is
+    // attached. Both fetch the attachment and inline it as a base64 data
+    // URI rather than passing the raw (often signed/expiring) Supabase URL
+    // straight through, since not every model/provider behind OpenRouter
+    // can be relied on to fetch external URLs itself.
+    const contentParts: unknown[] = [{ type: "text", text: data.prompt || "What's in this?" }];
+    if (data.imageUrl) {
+      const { dataUri } = await urlToDataUri(data.imageUrl);
+      contentParts.push({ type: "image_url", image_url: { url: dataUri } });
+    }
+    if (data.fileUrl) {
+      const { dataUri } = await urlToDataUri(data.fileUrl);
+      contentParts.push({
+        type: "file",
+        file: { filename: data.fileName || "attachment", file_data: dataUri },
+      });
+    }
+    const userContent: unknown = data.imageUrl || data.fileUrl ? contentParts : data.prompt;
 
     const messages = [
       {
@@ -88,7 +140,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
           `You are Sona AI, a warm, witty chat companion inside the Sona messaging app. ` +
           `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
           `Keep replies short, friendly, and conversational — like a good friend texting back. ` +
-          `You can look at images the user shares and describe or discuss them. Use emoji sparingly.
+          `You can look at images and read files (PDFs, documents) the user shares, and discuss them. Use emoji sparingly.
           About Sonatg Developed and maintained by Swiftmeta, the founder of this app is Kgomotso Nkosi (known as Future Ymf) `,
       },
       ...history,
@@ -122,7 +174,7 @@ export const summarizeChat = createServerFn({ method: "POST" })
 
     const { data: recent } = await context.supabase
       .from("messages")
-      .select("sender_id, kind, body, created_at")
+      .select("sender_id, kind, body, file_name, created_at")
       .eq("chat_id", data.chatId)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -138,7 +190,7 @@ export const summarizeChat = createServerFn({ method: "POST" })
 
     const transcript = rows.map((r) => {
       const who = r.sender_id === SONA_AI_ID ? "Sona AI" : (nameById[r.sender_id as string] ?? "Someone");
-      const body = r.kind === "text" ? (r.body ?? "") : r.kind === "image" ? "[image]" : "[voice note]";
+      const body = describeForHistory(r as { kind: string; body?: string | null; file_name?: string | null });
       return `${who}: ${body}`;
     }).join("\n");
 
