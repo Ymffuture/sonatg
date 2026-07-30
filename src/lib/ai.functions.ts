@@ -8,7 +8,7 @@ type AskInput = { chatId: string; prompt: string; imageUrl?: string | null };
 type SummarizeInput = { chatId: string };
 
 async function callGateway(messages: unknown[], key: string): Promise<string> {
-  const model = process.env.AI_MODEL || "openai/gpt-4o-mini";
+  const model = process.env.AI_MODEL || "inclusionai/ling-3.0-flash:free";
   
   const res = await fetch(GATEWAY, {
     method: "POST",
