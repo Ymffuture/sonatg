@@ -9,8 +9,15 @@
 // live — this app is realtime/chat-based, so we deliberately do NOT cache
 // API/Supabase responses.
 
-const CACHE_NAME = "sonatg-shell-v1";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+// v2: bumped to force-purge the old cache. v1 used a cache-first strategy,
+// which could serve a stale index.html referencing JS chunk filenames from
+// a previous deploy (this app's build hashes change every deploy) while
+// the currently-running code expects the NEW chunks — loading old and new
+// module versions together can throw exactly this kind of confusing
+// "X is not defined" runtime error, because it's not really a code bug,
+// it's two incompatible builds' code executing side by side.
+const CACHE_NAME = "sonatg-shell-v2";
+const APP_SHELL = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -36,18 +43,19 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Network-first: always prefer the live, currently-deployed code when
+  // online. Cache is purely an offline fallback (and a fast-first-paint
+  // source for the handful of static app-shell assets), never allowed to
+  // shadow a fresh deploy the way cache-first did.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached ?? network;
-    })
+    fetch(event.request)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
