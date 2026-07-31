@@ -946,6 +946,34 @@ function SonaChatInner() {
     navigate({ to: "/auth" });
   };
 
+    const typingNames = typingOthers
+    .map((id) => profiles[id]?.display_name)
+    .filter(Boolean) as string[];
+  const recordingNames = recordingOthers
+    .map((id) => profiles[id]?.display_name)
+    .filter(Boolean) as string[];
+
+  const msgSearchMatches = useMemo(() => {
+    const q = msgSearchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return messages.filter((m) => {
+      if (m.is_encrypted) {
+        const pt = decrypted[m.id];
+        return pt ? pt.toLowerCase().includes(q) : false;
+      }
+      return (m.body ?? "").toLowerCase().includes(q);
+    });
+  }, [messages, msgSearchQuery, decrypted]);
+
+  useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
+  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); }, [activeId]);
+  useEffect(() => {
+    if (!showMsgSearch || msgSearchMatches.length === 0) return;
+    const target = msgSearchMatches[Math.min(msgSearchIndex, msgSearchMatches.length - 1)];
+    const el = target && msgRefs.current.get(target.id);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [msgSearchIndex, msgSearchMatches, showMsgSearch]);
+
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
     return (
@@ -997,35 +1025,7 @@ function SonaChatInner() {
     );
   }
 
-  const typingNames = typingOthers
-    .map((id) => profiles[id]?.display_name)
-    .filter(Boolean) as string[];
-  const recordingNames = recordingOthers
-    .map((id) => profiles[id]?.display_name)
-    .filter(Boolean) as string[];
-
-  const msgSearchMatches = useMemo(() => {
-    const q = msgSearchQuery.trim().toLowerCase();
-    if (!q) return [];
-    return messages.filter((m) => {
-      if (m.is_encrypted) {
-        const pt = decrypted[m.id];
-        return pt ? pt.toLowerCase().includes(q) : false;
-      }
-      return (m.body ?? "").toLowerCase().includes(q);
-    });
-  }, [messages, msgSearchQuery, decrypted]);
-
-  useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
-  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); }, [activeId]);
-
-  useEffect(() => {
-    if (!showMsgSearch || msgSearchMatches.length === 0) return;
-    const target = msgSearchMatches[Math.min(msgSearchIndex, msgSearchMatches.length - 1)];
-    const el = target && msgRefs.current.get(target.id);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [msgSearchIndex, msgSearchMatches, showMsgSearch]);
-
+  
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
       {me && <CallManager ref={callManagerRef} meId={me.id} meName={me.display_name ?? "Someone"} meAvatar={me.avatar_url ?? null} />}
