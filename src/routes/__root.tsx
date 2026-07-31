@@ -120,9 +120,24 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+    // The moment a NEW service worker takes control of this tab (i.e. a
+    // fresh deploy's SW has installed and activated), reload once. Without
+    // this, an already-open tab keeps running under whichever SW/cache it
+    // started with — meaning it can end up loading a mismatched mix of
+    // pre- and post-deploy JS chunks, which manifests as confusing runtime
+    // errors (ReferenceErrors, hook-count mismatches, etc.) that have
+    // nothing to do with an actual code bug.
+    let reloaded = false;
+    const onControllerChange = () => {
+      if (reloaded) return;
+      reloaded = true;
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+    return () => navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
   }, []);
 
   useEffect(() => {
