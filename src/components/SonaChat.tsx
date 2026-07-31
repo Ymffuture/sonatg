@@ -3,7 +3,7 @@ import {
   Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
   MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
-  Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check,
+  Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock,
   Share2, BadgeCheck, FileText, DoorOpen, Download,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
 } from "lucide-react";
@@ -62,6 +62,16 @@ function parseCallBody(raw: string | null): CallLogMeta {
     }
   } catch { /* fall through to default */ }
   return { kind: "voice", outcome: "answered", durationMs: 0 };
+}
+
+const DISAPPEARING_OPTIONS: { label: string; seconds: number | null }[] = [
+  { label: "Off", seconds: null },
+  { label: "24 hours", seconds: 24 * 60 * 60 },
+  { label: "7 days", seconds: 7 * 24 * 60 * 60 },
+  { label: "90 days", seconds: 90 * 24 * 60 * 60 },
+];
+function disappearingLabel(seconds?: number | null) {
+  return DISAPPEARING_OPTIONS.find((o) => o.seconds === (seconds ?? null))?.label ?? "Off";
 }
 
 function fmtDuration(ms?: number | null) {
@@ -169,6 +179,11 @@ function SonaChatInner() {
   }, [pendingImageUrls]);
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  const [showMsgSearch, setShowMsgSearch] = useState(false);
+  const [showDisappearingMenu, setShowDisappearingMenu] = useState(false);
+  const [msgSearchQuery, setMsgSearchQuery] = useState("");
+  const [msgSearchIndex, setMsgSearchIndex] = useState(0);
+  const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
 
   // Let the device/browser "back" gesture close an open chat (return to the
@@ -286,7 +301,7 @@ function SonaChatInner() {
     setProfiles((prev) => ({ ...prev, ...profMap }));
 
     const { data: latest } = await supabase
-      .from("messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }).limit(500);
+      .from("visible_messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }).limit(500);
     const rows = (latest ?? []) as MessageRow[];
     const lastByChat: Record<string, MessageRow> = {};
     rows.forEach((m) => { if (!lastByChat[m.chat_id]) lastByChat[m.chat_id] = m; });
@@ -366,8 +381,12 @@ function SonaChatInner() {
   // Load messages + reactions + read receipts for active chat
   useEffect(() => {
     if (!activeId) return;
+    const activeChat = chats.find((c) => c.id === activeId);
+    if (activeChat?.disappearing_seconds) {
+      supabase.rpc("cleanup_expired_messages").then(() => {});
+    }
     (async () => {
-      const { data: msgs } = await supabase.from("messages").select("*").eq("chat_id", activeId).order("created_at");
+      const { data: msgs } = await supabase.from("visible_messages").select("*").eq("chat_id", activeId).order("created_at");
       const rows = (msgs ?? []) as MessageRow[];
       setMessages(rows);
       const ids = rows.map((m) => m.id);
@@ -381,6 +400,44 @@ function SonaChatInner() {
       } else { setReactions([]); setReads([]); }
     })();
   }, [activeId]);
+
+  const notifyReaction = useCallback(async (r: ReactionRow) => {
+    // Only notify when it's a reaction to MY message, not just any
+    // reaction I happen to be subscribed to.
+    const { data: msg } = await supabase
+      .from("messages")
+      .select("sender_id, kind, body")
+      .eq("id", r.message_id)
+      .maybeSingle();
+    if (!msg || msg.sender_id !== me!.id) return;
+
+    let reactor = profiles[r.user_id];
+    if (!reactor) {
+      const { data: prof } = await supabase.from("profiles").select("*").eq("id", r.user_id).maybeSingle();
+      if (prof) reactor = prof as Profile;
+    }
+    if (!reactor) return;
+
+    const snippet =
+      msg.kind === "image" ? "your photo" :
+      msg.kind === "voice" ? "your voice message" :
+      msg.kind === "file" ? "your file" :
+      msg.kind === "call" ? "your call" :
+      msg.body ? `"${msg.body.length > 40 ? msg.body.slice(0, 40) + "…" : msg.body}"` : "your message";
+
+    toast.custom(() => (
+      <div className="flex items-center gap-3 rounded-2xl border border-[#E07A5F]/20 bg-white/90 dark:bg-[#242424]/90 backdrop-blur-xl px-3.5 py-3 shadow-xl w-[320px]">
+        <Avatar url={reactor!.avatar_url} name={reactor!.display_name} size={38} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">
+            <span className="font-semibold">{reactor!.display_name}</span> reacted{" "}
+            <span className="text-base">{r.emoji}</span>
+          </p>
+          <p className="truncate text-xs text-[#8C8C8C]">to {snippet}</p>
+        </div>
+      </div>
+    ), { duration: 4000 });
+  }, [me, profiles]);
 
   // Realtime: messages, reactions, reads, member changes
   useEffect(() => {
@@ -400,6 +457,7 @@ function SonaChatInner() {
         if (p.eventType === "INSERT") {
           const r = p.new as ReactionRow;
           setReactions((prev) => prev.some((x) => x.id === r.id) ? prev : [...prev, r]);
+          if (r.user_id !== me.id) notifyReaction(r);
         } else if (p.eventType === "DELETE") {
           const r = p.old as ReactionRow;
           setReactions((prev) => prev.filter((x) => x.id !== r.id));
@@ -701,6 +759,9 @@ function SonaChatInner() {
       if (outgoing.length === 0 && plaintext) outgoing.push({ kind: "text" });
 
       let firstAttachedImageUrl: string | null = null;
+      const expiresAt = active?.disappearing_seconds
+        ? new Date(Date.now() + active.disappearing_seconds * 1000).toISOString()
+        : null;
       for (let i = 0; i < outgoing.length; i++) {
         const item = outgoing[i];
         if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
@@ -712,6 +773,7 @@ function SonaChatInner() {
           file_size: item.file_size ?? null,
           is_encrypted: i === 0 ? is_encrypted : false,
           reply_to_id: i === 0 ? (replyTo?.id ?? null) : null,
+          expires_at: expiresAt,
         });
         if (error) { toast.error(error.message); continue; }
       }
@@ -813,6 +875,16 @@ function SonaChatInner() {
     setShowHeaderMenu(false);
     setShowSettings(true);
     return false;
+  };
+
+  const setDisappearing = async (seconds: number | null) => {
+    if (!active) return;
+    const { error } = await supabase.from("chats").update({ disappearing_seconds: seconds }).eq("id", active.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(seconds ? `Disappearing messages: ${disappearingLabel(seconds)}` : "Disappearing messages turned off");
+    setShowDisappearingMenu(false);
+    setShowHeaderMenu(false);
+    loadChats();
   };
 
   const toggleHideChat = async () => {
@@ -931,6 +1003,28 @@ function SonaChatInner() {
   const recordingNames = recordingOthers
     .map((id) => profiles[id]?.display_name)
     .filter(Boolean) as string[];
+
+  const msgSearchMatches = useMemo(() => {
+    const q = msgSearchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return messages.filter((m) => {
+      if (m.is_encrypted) {
+        const pt = decrypted[m.id];
+        return pt ? pt.toLowerCase().includes(q) : false;
+      }
+      return (m.body ?? "").toLowerCase().includes(q);
+    });
+  }, [messages, msgSearchQuery, decrypted]);
+
+  useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
+  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); }, [activeId]);
+
+  useEffect(() => {
+    if (!showMsgSearch || msgSearchMatches.length === 0) return;
+    const target = msgSearchMatches[Math.min(msgSearchIndex, msgSearchMatches.length - 1)];
+    const el = target && msgRefs.current.get(target.id);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [msgSearchIndex, msgSearchMatches, showMsgSearch]);
 
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
@@ -1244,6 +1338,14 @@ function SonaChatInner() {
                     </div>
                   )}
 
+                  <button
+                    onClick={() => setShowMsgSearch((s) => !s)}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]"
+                    aria-label="Search messages"
+                  >
+                    <Search className="h-5 w-5" />
+                  </button>
+
                   <div className="relative">
                     <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
                       <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
@@ -1257,6 +1359,35 @@ function SonaChatInner() {
                             <Sparkles className="h-4 w-4 text-[#E07A5F]" /> Summarize chat
                             {!me.is_pro && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
                           </button>
+                          {!isAIChat(active) && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowDisappearingMenu((s) => !s)}
+                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]"
+                              >
+                                <Clock className="h-4 w-4 text-[#8C8C8C]" /> Disappearing messages
+                                <span className="ml-auto text-xs text-[#8C8C8C]">
+                                  {disappearingLabel(active.disappearing_seconds)}
+                                </span>
+                              </button>
+                              {showDisappearingMenu && (
+                                <div className="mt-1 space-y-0.5 rounded-lg bg-black/[0.03] dark:bg-white/5 p-1">
+                                  {DISAPPEARING_OPTIONS.map((opt) => (
+                                    <button
+                                      key={opt.label}
+                                      onClick={() => setDisappearing(opt.seconds)}
+                                      className={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-xs hover:bg-[#F4A261]/10 ${
+                                        (active.disappearing_seconds ?? null) === opt.seconds ? "text-[#E07A5F] font-semibold" : "text-[#2D3436] dark:text-[#E8E8E8]"
+                                      }`}
+                                    >
+                                      {opt.label}
+                                      {(active.disappearing_seconds ?? null) === opt.seconds && <Check className="h-3.5 w-3.5" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
                             {active.is_hidden ? <><Unlock className="h-4 w-4 text-[#8C8C8C]" /> Unhide chat</> : <><Shield className="h-4 w-4 text-[#8C8C8C]" /> Hide & encrypt</>}
                             {!me.is_pro && !active.is_hidden && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
@@ -1276,6 +1407,53 @@ function SonaChatInner() {
                     )}
                   </div>
                 </header>
+
+                {showMsgSearch && (
+                  <div className="flex items-center gap-2 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] px-4 py-2">
+                    <Search className="h-4 w-4 shrink-0 text-[#8C8C8C]" />
+                    <input
+                      autoFocus
+                      value={msgSearchQuery}
+                      onChange={(e) => setMsgSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && msgSearchMatches.length) {
+                          setMsgSearchIndex((i) => (e.shiftKey ? (i - 1 + msgSearchMatches.length) : (i + 1)) % msgSearchMatches.length);
+                        }
+                        if (e.key === "Escape") setShowMsgSearch(false);
+                      }}
+                      placeholder="Search in this chat…"
+                      className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]"
+                    />
+                    {msgSearchQuery && (
+                      <span className="shrink-0 text-xs text-[#8C8C8C]">
+                        {msgSearchMatches.length ? `${msgSearchIndex + 1}/${msgSearchMatches.length}` : "No results"}
+                      </span>
+                    )}
+                    <button
+                      disabled={!msgSearchMatches.length}
+                      onClick={() => setMsgSearchIndex((i) => (i - 1 + msgSearchMatches.length) % msgSearchMatches.length)}
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20 disabled:opacity-30"
+                      aria-label="Previous match"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      disabled={!msgSearchMatches.length}
+                      onClick={() => setMsgSearchIndex((i) => (i + 1) % msgSearchMatches.length)}
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20 disabled:opacity-30"
+                      aria-label="Next match"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => { setShowMsgSearch(false); setMsgSearchQuery(""); }}
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20"
+                      aria-label="Close search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
 
                 <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
                   <div className="mx-auto flex max-w-3xl flex-col gap-0.5">
@@ -1297,9 +1475,15 @@ function SonaChatInner() {
     ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…"))
     : undefined;
 
+  const isCurrentMatch = showMsgSearch && msgSearchMatches[msgSearchIndex]?.id === m.id;
+
   return (
-    <Bubble
+    <div
       key={m.id}
+      ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
+      className={isCurrentMatch ? "rounded-2xl ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-transparent transition-all" : ""}
+    >
+    <Bubble
       msg={m}
       me={me}
       sender={profiles[m.sender_id]}
@@ -1323,6 +1507,7 @@ function SonaChatInner() {
         setMessages((prev) => prev.map((row) => (row.id === messageId ? { ...row, transcript } : row)))
       }
     />
+    </div>
   );
 })}
 
