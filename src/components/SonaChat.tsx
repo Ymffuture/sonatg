@@ -8,6 +8,8 @@ import {
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
 } from "lucide-react";
 
+import { Dropdown } from "antd";
+import { IoMdTimer } from "react-icons/io";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -1165,6 +1167,14 @@ function SonaChatInner() {
                 </div>
               );
             })()}
+            {!!c.disappearing_seconds && !selectMode && (
+              <div
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-[#D97757] ring-2 ring-white dark:ring-[#1E1E1E]"
+                title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
+              >
+                <IoMdTimer className="h-3 w-3 text-white" />
+              </div>
+            )}
             {selectMode && (
               <div
                 onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}
@@ -1268,9 +1278,17 @@ function SonaChatInner() {
                       const other = otherId ? profilesById[otherId] : undefined;
                       if (other) setViewingProfile(other);
                     }}
-                    className="shrink-0"
+                    className="relative shrink-0"
                   >
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
+                    {!!active.disappearing_seconds && (
+                      <div
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[#D97757] ring-2 ring-[#FFFDF9] dark:ring-[#242424]"
+                        title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
+                      >
+                        <IoMdTimer className="h-2.5 w-2.5 text-white" />
+                      </div>
+                    )}
                   </button>
                   <div className="min-w-0 flex-1">
                     <button
@@ -1338,74 +1356,75 @@ function SonaChatInner() {
                     </div>
                   )}
 
-                  <button
-                    onClick={() => setShowMsgSearch((s) => !s)}
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-[#F4A261]/20 text-[#2D3436] dark:text-[#E8E8E8]"
-                    aria-label="Search messages"
+                  <Dropdown
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    menu={{
+                      items: [
+                        {
+                          key: "search",
+                          label: "Search in chat",
+                          icon: <Search className="h-4 w-4" />,
+                        },
+                        {
+                          key: "summarize",
+                          label: (
+                            <span className="flex w-full items-center">
+                              Summarize chat
+                              {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                            </span>
+                          ),
+                          icon: <Sparkles className="h-4 w-4 text-[#E07A5F]" />,
+                        },
+                        ...(!isAIChat(active)
+                          ? [
+                              {
+                                key: "disappearing",
+                                label: "Disappearing messages",
+                                icon: <IoMdTimer className="h-4 w-4" />,
+                                children: DISAPPEARING_OPTIONS.map((opt) => ({
+                                  key: `disappearing-${opt.label}`,
+                                  label: (
+                                    <span className="flex w-full items-center justify-between">
+                                      {opt.label}
+                                      {(active.disappearing_seconds ?? null) === opt.seconds && (
+                                        <Check className="h-3.5 w-3.5 text-[#E07A5F]" />
+                                      )}
+                                    </span>
+                                  ),
+                                  onClick: () => setDisappearing(opt.seconds),
+                                })),
+                              },
+                            ]
+                          : []),
+                        {
+                          key: "hide",
+                          label: (
+                            <span className="flex w-full items-center">
+                              {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
+                              {!me.is_pro && !active.is_hidden && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                            </span>
+                          ),
+                          icon: active.is_hidden ? <Unlock className="h-4 w-4" /> : <Shield className="h-4 w-4" />,
+                          onClick: toggleHideChat,
+                        },
+                        ...(active.is_hidden && isUnlocked(active.id)
+                          ? [{ key: "lock", label: "Lock now", icon: <Lock className="h-4 w-4" />, onClick: relock }]
+                          : []),
+                        ...(!isAIChat(active) && !active.is_group
+                          ? [{ key: "block", label: "Block user", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther }]
+                          : []),
+                      ],
+                      onClick: ({ key }) => {
+                        if (key === "search") setShowMsgSearch((s) => !s);
+                        if (key === "summarize") runSummary();
+                      },
+                    }}
                   >
-                    <Search className="h-5 w-5" />
-                  </button>
-
-                  <div className="relative">
-                    <button onClick={() => setShowHeaderMenu((s) => !s)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
+                    <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
                       <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
                     </button>
-                    {showHeaderMenu && (
-                      <>
-                        <div className="fixed inset-0 z-30" onClick={() => setShowHeaderMenu(false)} />
-                        {/* Expands to the left of the trigger */}
-                        <div className="absolute right-full mr-2 top-0 z-40 w-56 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-1 shadow-xl">
-                          <button onClick={runSummary} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
-                            <Sparkles className="h-4 w-4 text-[#E07A5F]" /> Summarize chat
-                            {!me.is_pro && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
-                          </button>
-                          {!isAIChat(active) && (
-                            <div className="relative">
-                              <button
-                                onClick={() => setShowDisappearingMenu((s) => !s)}
-                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]"
-                              >
-                                <Clock className="h-4 w-4 text-[#8C8C8C]" /> Disappearing messages
-                                <span className="ml-auto text-xs text-[#8C8C8C]">
-                                  {disappearingLabel(active.disappearing_seconds)}
-                                </span>
-                              </button>
-                              {showDisappearingMenu && (
-                                <div className="mt-1 space-y-0.5 rounded-lg bg-black/[0.03] dark:bg-white/5 p-1">
-                                  {DISAPPEARING_OPTIONS.map((opt) => (
-                                    <button
-                                      key={opt.label}
-                                      onClick={() => setDisappearing(opt.seconds)}
-                                      className={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-xs hover:bg-[#F4A261]/10 ${
-                                        (active.disappearing_seconds ?? null) === opt.seconds ? "text-[#E07A5F] font-semibold" : "text-[#2D3436] dark:text-[#E8E8E8]"
-                                      }`}
-                                    >
-                                      {opt.label}
-                                      {(active.disappearing_seconds ?? null) === opt.seconds && <Check className="h-3.5 w-3.5" />}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          <button onClick={toggleHideChat} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
-                            {active.is_hidden ? <><Unlock className="h-4 w-4 text-[#8C8C8C]" /> Unhide chat</> : <><Shield className="h-4 w-4 text-[#8C8C8C]" /> Hide & encrypt</>}
-                            {!me.is_pro && !active.is_hidden && <Crown className="h-3 w-3 ml-auto text-[#E07A5F]" />}
-                          </button>
-                          {active.is_hidden && isUnlocked(active.id) && (
-                            <button onClick={relock} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[#F4A261]/10 text-[#2D3436] dark:text-[#E8E8E8]">
-                              <Lock className="h-4 w-4 text-[#8C8C8C]" /> Lock now
-                            </button>
-                          )}
-                          {!isAIChat(active) && !active.is_group && (
-                            <button onClick={blockOther} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
-                              <Ban className="h-4 w-4" /> Block user
-                            </button>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  </Dropdown>
                 </header>
 
                 {showMsgSearch && (
@@ -1734,7 +1753,23 @@ function SonaChatInner() {
               <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Chat summary</h3>
             </div>
             <p className="whitespace-pre-wrap text-sm text-[#8C8C8C]">{summary}</p>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${(active ? chatTitle(active, me.id) : "chat").replace(/[^\w\- ]/g, "")} summary.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center gap-1.5 rounded-xl bg-[#E07A5F] px-3 py-2 text-sm font-medium text-white hover:opacity-90 transition"
+              >
+                <Download className="h-4 w-4" /> Download
+              </button>
               <button onClick={() => setSummary(null)} className="rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/20 transition">Close</button>
             </div>
           </div>
