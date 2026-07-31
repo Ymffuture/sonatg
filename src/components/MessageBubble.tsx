@@ -8,6 +8,7 @@ import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
 import { useServerFn } from "@tanstack/react-start";
 import { transcribeVoiceMessage } from "@/lib/transcribe.functions";
+import { fetchLinkPreview, type LinkPreview } from "@/lib/linkpreview.functions";
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
@@ -461,6 +462,78 @@ function MenuItem({ icon, label, danger, onClick }: { icon: React.ReactNode; lab
 }
 
 /* ─── Enhanced Bubble ─── */
+const linkPreviewCache = new Map<string, LinkPreview | null>();
+
+function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
+  const url = useMemo(() => {
+    const re = new RegExp(URL_REGEX.source, URL_REGEX.flags);
+    const match = re.exec(text);
+    return match?.[0] ?? null;
+  }, [text]);
+
+  const [preview, setPreview] = useState<LinkPreview | null>(url ? linkPreviewCache.get(url) ?? null : null);
+  const [loading, setLoading] = useState(false);
+  const fetchPreview = useServerFn(fetchLinkPreview);
+
+  useEffect(() => {
+    if (!url) return;
+    if (linkPreviewCache.has(url)) { setPreview(linkPreviewCache.get(url) ?? null); return; }
+    let cancelled = false;
+    setLoading(true);
+    fetchPreview({ data: { url: url.startsWith("http") ? url : `https://${url}` } })
+      .then((result) => {
+        if (cancelled) return;
+        const lp = result as LinkPreview;
+        linkPreviewCache.set(url, lp);
+        setPreview(lp);
+      })
+      .catch(() => {
+        if (!cancelled) linkPreviewCache.set(url, null);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [url, fetchPreview]);
+
+  if (!url) return null;
+  if (loading) {
+    return <Skeleton.Input active size="small" className="!w-full !max-w-[280px] !mb-1" />;
+  }
+  // Nothing worth showing (blocked host, non-HTML resource with no title, fetch failed, etc).
+  if (!preview || (!preview.title && !preview.description && !preview.image)) return null;
+
+  return (
+    <a
+      href={preview.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`mb-1.5 block max-w-[280px] overflow-hidden rounded-xl border transition hover:opacity-90 ${
+        mine ? "border-white/20 bg-white/10" : "border-[#E07A5F]/15 bg-black/[0.02] dark:bg-white/5"
+      }`}
+    >
+      {preview.image && (
+        <img src={preview.image} alt="" className="h-32 w-full object-cover" loading="lazy" />
+      )}
+      <div className="px-3 py-2">
+        {preview.siteName && (
+          <p className={`text-[10px] uppercase tracking-wide ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
+            {preview.siteName}
+          </p>
+        )}
+        {preview.title && (
+          <p className={`text-[13px] font-semibold leading-snug line-clamp-2 ${mine ? "text-white" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+            {preview.title}
+          </p>
+        )}
+        {preview.description && (
+          <p className={`mt-0.5 text-xs leading-snug line-clamp-2 ${mine ? "text-white/75" : "text-[#8C8C8C]"}`}>
+            {preview.description}
+          </p>
+        )}
+      </div>
+    </a>
+  );
+}
+
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions, onTranscribed,
@@ -701,6 +774,10 @@ export function Bubble({
               <div className="text-[14.5px] leading-snug pr-14 pb-1">
                 {renderMarkdown(overrideBody ?? msg.body ?? "", mine)}
               </div>
+            )}
+
+            {!msg.is_encrypted && (overrideBody ?? msg.body) && (
+              <LinkPreviewCard text={overrideBody ?? msg.body ?? ""} mine={mine} />
             )}
 
             <div
