@@ -49,6 +49,7 @@ export type ChatRow = {
   is_hidden?: boolean;
   category?: ChatCategory | null;
   avatar_url?: string | null;
+  disappearing_seconds?: number | null;
 };
 
 export type ChatMemberRole = "admin" | "member";
