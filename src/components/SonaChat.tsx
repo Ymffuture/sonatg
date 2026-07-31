@@ -382,6 +382,44 @@ function SonaChatInner() {
     })();
   }, [activeId]);
 
+  const notifyReaction = useCallback(async (r: ReactionRow) => {
+    // Only notify when it's a reaction to MY message, not just any
+    // reaction I happen to be subscribed to.
+    const { data: msg } = await supabase
+      .from("messages")
+      .select("sender_id, kind, body")
+      .eq("id", r.message_id)
+      .maybeSingle();
+    if (!msg || msg.sender_id !== me!.id) return;
+
+    let reactor = profiles[r.user_id];
+    if (!reactor) {
+      const { data: prof } = await supabase.from("profiles").select("*").eq("id", r.user_id).maybeSingle();
+      if (prof) reactor = prof as Profile;
+    }
+    if (!reactor) return;
+
+    const snippet =
+      msg.kind === "image" ? "your photo" :
+      msg.kind === "voice" ? "your voice message" :
+      msg.kind === "file" ? "your file" :
+      msg.kind === "call" ? "your call" :
+      msg.body ? `"${msg.body.length > 40 ? msg.body.slice(0, 40) + "…" : msg.body}"` : "your message";
+
+    toast.custom(() => (
+      <div className="flex items-center gap-3 rounded-2xl border border-[#E07A5F]/20 bg-white/90 dark:bg-[#242424]/90 backdrop-blur-xl px-3.5 py-3 shadow-xl w-[320px]">
+        <Avatar url={reactor!.avatar_url} name={reactor!.display_name} size={38} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">
+            <span className="font-semibold">{reactor!.display_name}</span> reacted{" "}
+            <span className="text-base">{r.emoji}</span>
+          </p>
+          <p className="truncate text-xs text-[#8C8C8C]">to {snippet}</p>
+        </div>
+      </div>
+    ), { duration: 4000 });
+  }, [me, profiles]);
+
   // Realtime: messages, reactions, reads, member changes
   useEffect(() => {
     if (!me) return;
@@ -400,6 +438,7 @@ function SonaChatInner() {
         if (p.eventType === "INSERT") {
           const r = p.new as ReactionRow;
           setReactions((prev) => prev.some((x) => x.id === r.id) ? prev : [...prev, r]);
+          if (r.user_id !== me.id) notifyReaction(r);
         } else if (p.eventType === "DELETE") {
           const r = p.old as ReactionRow;
           setReactions((prev) => prev.filter((x) => x.id !== r.id));
