@@ -1341,7 +1341,7 @@ useEffect(() => {
           onContextMenu={(e) => {
             e.preventDefault();
             if (!selectMode) {
-              setSelectMode(false);
+              setSelectMode(true);
               setSelectedChatIds(new Set([c.id]));
             }
           }}
