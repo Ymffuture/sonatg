@@ -138,10 +138,11 @@ function GlassSheet({
 
 /* ─── Member List ─── */
 export function MemberListModal({
-  chat, meId, isAdmin, onClose, onOpenSettings, onLeave,
+  chat, meId, isAdmin, onClose, onOpenSettings, onLeave, onViewProfile,
 }: {
   chat: ChatWithMeta; meId: string; isAdmin: boolean;
   onClose: () => void; onOpenSettings: () => void; onLeave: () => void;
+  onViewProfile?: (member: Profile) => void;
 }) {
   return (
     <GlassSheet onClose={onClose}>
@@ -161,7 +162,14 @@ export function MemberListModal({
         {chat.members.map((m) => {
           const role = chat.memberRoles[m.id] ?? "participant";
           return (
-            <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/40 dark:hover:bg-white/5 transition">
+            <div
+              key={m.id}
+              role={onViewProfile ? "button" : undefined}
+              tabIndex={onViewProfile ? 0 : undefined}
+              onClick={onViewProfile ? () => onViewProfile(m) : undefined}
+              onKeyDown={onViewProfile ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onViewProfile(m); } } : undefined}
+              className={`flex items-center gap-3 p-3 rounded-xl transition hover:bg-white/40 dark:hover:bg-white/5${onViewProfile ? " cursor-pointer" : ""}`}
+            >
               <Avatar url={m.avatar_url} name={m.display_name} size={40} ai={m.is_ai} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">

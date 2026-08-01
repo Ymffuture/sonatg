@@ -197,7 +197,7 @@ function parseBlocks(text: string): Block[] {
       const parts = paraText.split("\n");
       const tokens: InlineToken[] = [];
       parts.forEach((part, idx) => {
-        if (idx > 0) tokens.push({ type: "br", content: "" });
+        if (idx > 0) tokens.push({ type: "br" });
         tokens.push(...parseInline(part));
       });
       blocks.push({ type: "paragraph", tokens });
@@ -543,7 +543,7 @@ export function Bubble({
   onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean; isGroup: boolean;
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
-  parentName?: string; parentBody?: string;
+  parentName?: string; parentBody?: React.ReactNode;
   actionsOpen: boolean; onToggleActions: () => void;
   onTranscribed?: (messageId: string, transcript: string) => void;
 }) {

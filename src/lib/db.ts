@@ -1,6 +1,8 @@
 export const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 
-export type ChatCategory = "general" | "education" | "business" | "support" | "social" | "other";
+export type ChatCategory =
+  | "general" | "education" | "business" | "support" | "social"
+  | "gaming" | "lifestyle" | "entertainment" | "travel" | "news" | "other";
 
 export const CHAT_CATEGORIES: { value: ChatCategory; label: string; emoji: string }[] = [
   { value: "general", label: "General", emoji: "💬" },
@@ -8,6 +10,11 @@ export const CHAT_CATEGORIES: { value: ChatCategory; label: string; emoji: strin
   { value: "business", label: "Business", emoji: "💼" },
   { value: "support", label: "Support", emoji: "🛟" },
   { value: "social", label: "Social", emoji: "🎉" },
+  { value: "gaming", label: "Gaming", emoji: "🎮" },
+  { value: "lifestyle", label: "Lifestyle", emoji: "🌿" },
+  { value: "entertainment", label: "Entertainment", emoji: "🎵" },
+  { value: "travel", label: "Travel", emoji: "✈️" },
+  { value: "news", label: "News", emoji: "📰" },
   { value: "other", label: "Other", emoji: "📌" },
 ];
 
@@ -19,6 +26,7 @@ export type Profile = {
   is_ai: boolean;
   is_pro?: boolean;
   bio?: string | null;
+  last_seen?: string | null;
   created_at?: string;
 };
 
@@ -37,6 +45,8 @@ export type MessageRow = {
   edited_at?: string | null;
   file_name?: string | null;
   file_size?: number | null;
+  expires_at?: string | null;
+  scheduled_at?: string | null;
 };
 
 

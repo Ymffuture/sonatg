@@ -41,7 +41,7 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     // this user's own messages also removes reactions *on* those messages;
     // it does NOT remove reactions or read receipts this user left on
     // other people's messages, so those need their own explicit deletes.
-    const steps: Array<() => Promise<{ error: { message: string } | null }>> = [
+    const steps: Array<() => PromiseLike<{ error: { message: string } | null }>> = [
       () => admin.from("reactions").delete().eq("user_id", userId),
       () => admin.from("message_reads").delete().eq("user_id", userId),
       () => admin.from("messages").delete().eq("sender_id", userId),
