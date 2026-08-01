@@ -1073,7 +1073,20 @@ function SonaChatInner() {
     const el = target && msgRefs.current.get(target.id);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [msgSearchIndex, msgSearchMatches, showMsgSearch]);
+  
+useEffect(() => {
+  if (!showHeaderMenu) return;
+  const onClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('[aria-label="More options"]')) {
+      setShowHeaderMenu(false);
+    }
+  };
+  document.addEventListener("mousedown", onClick);
+  return () => document.removeEventListener("mousedown", onClick);
+}, [showHeaderMenu]);
 
+    
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
     return (
@@ -1142,49 +1155,103 @@ function SonaChatInner() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 border border-slate-800 dark:border-slate-700 rounded-md">
-                {canInstall && (
-                  <button
-                    onClick={() => { promptInstall(); }}
-                    className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white"
-                    aria-label="Install app"
-                    title="Install app"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    const shareUrl = window.location.origin;
-                    if (navigator.share) {
-                      navigator.share({ title: "Sona", text: "Chat with me on Sona!", url: shareUrl }).catch(() => {});
-                    } else {
-                      navigator.clipboard.writeText(shareUrl);
-                      toast.success("App link copied to clipboard!");
-                    }
-                  }}
-                  className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white"
-                  aria-label="Share app"
-                >
-                  <Share2 className="h-4 w-4" />
-                </button>
-                <button onClick={toggle} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Toggle theme">
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </button>
-                <Link to="/learn" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Learn">
-                  <BookOpen className="h-4 w-4" />
-                </Link>
-                <button onClick={() => setShowTour(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Replay tour" title="Replay tour">
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-                <button data-tour="settings-btn" onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Settings">
-                  <Settings className="h-4 w-4" />
-                </button>
-                <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-[#2D3436]" aria-label="Sign out">
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+              {/* Header toolbar: Share + More dropdown */}
+<div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 border border-slate-800 dark:border-slate-700 rounded-md px-1 py-1">
+  {/* Share — always visible */}
+  <button
+    onClick={() => {
+      const shareUrl = window.location.origin;
+      if (navigator.share) {
+        navigator.share({ title: "Sona", text: "Chat with me on Sona!", url: shareUrl }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        toast.success("App link copied to clipboard!");
+      }
+    }}
+    className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white transition-colors"
+    aria-label="Share app"
+    title="Share app"
+  >
+    <Share2 className="h-4 w-4" />
+  </button>
+
+  {/* Divider */}
+  <div className="w-px h-5 bg-slate-300 dark:bg-slate-600" />
+
+  {/* More options dropdown */}
+  <div className="relative">
+    <button
+      onClick={() => setShowHeaderMenu((v) => !v)}
+      className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${
+        showHeaderMenu ? "bg-white/20" : "hover:bg-white/20"
+      } text-gray-600 dark:text-white`}
+      aria-label="More options"
+      aria-expanded={showHeaderMenu}
+    >
+      <MoreVertical className="h-4 w-4" />
+    </button>
+
+    {showHeaderMenu && (
+      <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-xl z-50 overflow-hidden">
+        <div className="py-1">
+          {canInstall && (
+            <button
+              onClick={() => { promptInstall(); setShowHeaderMenu(false); }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+            >
+              <Download className="h-4 w-4 shrink-0" />
+              Install app
+            </button>
+          )}
+
+          <button
+            onClick={() => { toggle(); setShowHeaderMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+
+          <Link
+            to="/learn"
+            onClick={() => setShowHeaderMenu(false)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+          >
+            <BookOpen className="h-4 w-4 shrink-0" />
+            Learn
+          </Link>
+
+          <button
+            onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+          >
+            <HelpCircle className="h-4 w-4 shrink-0" />
+            Replay tour
+          </button>
+
+          <button
+            data-tour="settings-btn"
+            onClick={() => { setShowSettings(true); setShowHeaderMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            Settings
+          </button>
+
+          <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
+
+          <button
+            onClick={() => { signOut(); setShowHeaderMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            Sign out
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
 
             {/* Selection mode bar */}
             {selectMode && (
