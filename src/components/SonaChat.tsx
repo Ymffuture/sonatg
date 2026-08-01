@@ -35,7 +35,7 @@ import { FaFileLines } from "react-icons/fa6";
 import { FaLock } from "react-icons/fa6"; 
 import { MdSearch } from "react-icons/md";
 import { BiSolidMessageSquareAdd } from "react-icons/bi";
-
+import { RiArrowLeftWideFill } from "react-icons/ri";
 
 import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
@@ -1265,7 +1265,7 @@ function SonaChatInner() {
             if (selectMode) {
               toggleChatSelection(c.id);
             } else {
-              setActiveId(false);
+              setActiveId(c.id);
               setShowSidebarMobile(false);
             }
           }}
@@ -1276,8 +1276,8 @@ function SonaChatInner() {
               setSelectedChatIds(new Set([c.id]));
             }
           }}
-          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} border-b border-[#E07A5F]/5`}
-          style={isSelected ? { backgroundColor: "rgba(217, 119, 87, 0.16)" } : undefined}>
+          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F0EBE3]/20" : ""} border-b border-[#E07A5F]/5`}
+          style={isSelected ? { backgroundColor: "rgba(217, 119, 87, 0.10)" } : undefined}>
           <div className="relative shrink-0">
             {(() => {
               const otherId = c.memberIds.find((id) => id !== me.id);
@@ -1293,10 +1293,10 @@ function SonaChatInner() {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-white ring-2 ring-white dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F0EBE3] ring-2 ring-[#F0EBE3] dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
-                <IoMdTimer className="h-5 w-5 dark:text-white text-[#1E1E1E] animate-pulse" />
+                <IoMdTimer className="h-5 w-5 dark:text-white text-[#1E1E1E] opacity-[50%]" />
               </div>
             )}
             {selectMode && (
@@ -1397,7 +1397,7 @@ function SonaChatInner() {
               aria-label="New chat"
               className="absolute bottom-8 right-5 grid h-18 w-18 place-items-center rounded-xl bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
             >
-              <BiSolidMessageSquareAdd className="h-10 w-10 text-black dark:text-white rotate-[90deg]" />
+              <BiSolidMessageSquareAdd className="h-12 w-12 text-black dark:text-white rotate-[90deg]" />
             </button>
           </aside>
 
@@ -1407,7 +1407,7 @@ function SonaChatInner() {
               <>
                 <header className="relative flex items-center gap-3 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2.5 md:px-4">
                   <button onClick={closeActiveChat} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
-                    <ArrowLeft className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+                    <RiArrowLeftWideFill className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
                   <button
                     onClick={() => {
@@ -1808,8 +1808,8 @@ function SonaChatInner() {
             ) : (
               <div className="grid flex-1 place-items-center p-6 text-center text-[#8C8C8C] chat-pattern">
                 <div>
-                  <img src={sonaLogo} alt="" className="mx-auto h-24 w-24 opacity-60" />
-                  <p className="mt-4 text-[#8C8C8C]">Pick a chat or tap + to start a new one.</p>
+                  <img src={sonaLogo} alt="" className="mx-auto h-24 w-24 opacity-60 invert-1" />
+                  <p className="mt-5 text-[#8C8C8C] flex gap-2 ">Pick a chat or tap <BiSolidMessageSquareAdd className ="text-white" /> to start a new one.</p>
                 </div>
               </div>
             )}
