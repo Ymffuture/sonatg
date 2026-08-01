@@ -199,13 +199,13 @@ function AuthPage() {
           {/* Right panel — Form */}
           <div className="lg:col-span-3 flex flex-col justify-center p-6 sm:p-10 lg:p-12">
             <div className="lg:hidden flex items-center gap-3 mb-8">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#E07A5F] to-[#C45D43] text-white shadow-md">
-                <span className="text-lg font-black">S</span>
-              </div>
-              <div>
-                <h1 className="text-lg font-bold leading-none text-[#2D3436] dark:text-[#E8E8E8]">Sona</h1>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#8C8C8C]">talk gold</p>
-              </div>
+              <div className="flex items-center gap-2 min-w-0">
+  <div className="leading-none min-w-0 rounded-xl bg-gradient-to-br from-[#E07A5F]/10 to-[#F4A261]/5 px-3.5 py-2 dark:from-[#E07A5F]/20 dark:to-transparent border border-[#E07A5F]/10">
+    <span className="text-[20px] font-bold tracking-tight text-[#2D3436] dark:text-white">
+      Sona<span className="font-black text-[#E07A5F]">TG</span>
+    </span>
+  </div>
+</div>
             </div>
 
             <div className="mb-8">
