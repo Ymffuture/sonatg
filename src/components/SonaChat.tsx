@@ -1265,7 +1265,7 @@ function SonaChatInner() {
             if (selectMode) {
               toggleChatSelection(c.id);
             } else {
-              setActiveId(c.id);
+              setActiveId(false);
               setShowSidebarMobile(false);
             }
           }}
@@ -1293,10 +1293,10 @@ function SonaChatInner() {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-[#1E1E1E] ring-2 ring-white dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-white ring-2 ring-white dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
-                <IoMdTimer className="h-3.8 w-3.8 text-white" />
+                <IoMdTimer className="h-5 w-5 dark:text-white text-[#1E1E1E] animate-pulse" />
               </div>
             )}
             {selectMode && (
