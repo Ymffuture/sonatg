@@ -31,8 +31,8 @@ export function ProfileViewModal({
           <Avatar url={profile.avatar_url} name={profile.display_name} size={112} ai={profile.is_ai} />
           <div className="mt-4 flex items-center gap-1.5">
             <h2 className="text-lg font-bold text-[#2D3436] dark:text-[#E8E8E8]">{profile.display_name}</h2>
-            {profile.is_ai && <Sparkles className="h-4 w-4 text-[#E07A5F]" titleAccess="AI" />}
-            {profile.is_pro && <Crown className="h-4 w-4 text-[#E07A5F]" titleAccess="Pro" />}
+            {profile.is_ai && <Sparkles className="h-4 w-4 text-[#E07A5F]" aria-label="AI" />}
+            {profile.is_pro && <Crown className="h-4 w-4 text-[#E07A5F]" aria-label="Pro" />}
           </div>
 
           {profile.bio && (

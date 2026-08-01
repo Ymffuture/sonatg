@@ -197,7 +197,7 @@ function parseBlocks(text: string): Block[] {
       const parts = paraText.split("\n");
       const tokens: InlineToken[] = [];
       parts.forEach((part, idx) => {
-        if (idx > 0) tokens.push({ type: "br", content: "" });
+        if (idx > 0) tokens.push({ type: "br" });
         tokens.push(...parseInline(part));
       });
       blocks.push({ type: "paragraph", tokens });
