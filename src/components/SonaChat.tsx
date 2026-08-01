@@ -1272,7 +1272,7 @@ function SonaChatInner() {
           onContextMenu={(e) => {
             e.preventDefault();
             if (!selectMode) {
-              setSelectMode(true);
+              setSelectMode(false);
               setSelectedChatIds(new Set([c.id]));
             }
           }}
@@ -1303,7 +1303,7 @@ function SonaChatInner() {
               <div
                 onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}
                 className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
-                style={{ backgroundColor: isSelected ? "#D97757" : "transparent" }}
+                style={{ backgroundColor: isSelected ? "#D97757" : "#*fff" }}
               >
                 {isSelected && <Check className="h-3.8 w-3.8 text-white" strokeWidth={3} />}
               </div>
