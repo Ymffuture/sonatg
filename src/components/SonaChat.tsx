@@ -312,7 +312,7 @@ function SonaChatInner() {
   const fileRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
+  const headerMenuRef = useRef<HTMLDivElement>(null);
     
 
   // Bootstrap: current user + profile
@@ -1077,15 +1077,13 @@ function SonaChatInner() {
 useEffect(() => {
   if (!showHeaderMenu) return;
   const onClick = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest('[aria-label="More options"]')) {
+    if (!headerMenuRef.current?.contains(e.target as Node)) {
       setShowHeaderMenu(false);
     }
   };
-  document.addEventListener("mousedown", onClick);
-  return () => document.removeEventListener("mousedown", onClick);
+  document.addEventListener("click", onClick);
+  return () => document.removeEventListener("click", onClick);
 }, [showHeaderMenu]);
-
     
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
@@ -1182,7 +1180,7 @@ useEffect(() => {
   <div className="w-px h-5 bg-slate-300 dark:bg-slate-600" />
 
   {/* More options dropdown */}
-  <div className="relative">
+<div className="relative" ref={headerMenuRef}>
     <button
       onClick={() => setShowHeaderMenu((v) => !v)}
       className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${
