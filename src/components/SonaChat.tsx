@@ -1544,7 +1544,7 @@ useEffect(() => {
     return online ? (
         <span className="flex items-center gap-1">Online</span>
     ) : other?.last_seen ? (
-        <span>Last seen {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
+        <span>Last seen {fmtLastSeen(other.last_seen)}</span>
     ) : (
         <span>This person is no longer on Sonatg</span>
     );
@@ -2031,4 +2031,3 @@ useEffect(() => {
   );
 }
 
-type ReadStatus = "sent" | "delivered" | "read";
