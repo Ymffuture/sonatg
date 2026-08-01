@@ -72,7 +72,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     targetSelector: '[data-tour="new-chat-fab"]',
     title: "Start a conversation",
     description: "Tap here to message someone new or create a group.",
-    placement: "left",
+    placement: "top",
   },
   {
     targetSelector: '[data-tour="search-chats"]',
