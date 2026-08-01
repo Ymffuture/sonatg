@@ -1188,7 +1188,7 @@ function SonaChatInner() {
 
             {/* Selection mode bar */}
             {selectMode && (
-              <div className="flex items-center justify-between gap-2 px-4 py-2 bg-[#F4A261]/20 border-b border-[#E07A5F]/10">
+              <div className="flex items-center justify-between gap-2 px-4 py-2 bg-[transparent] border-b border-[#E07A5F]/10">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[#E07A5F]">
                   <CheckSquare className="h-4 w-4" />
                   {selectedChatIds.size} selected
@@ -1197,7 +1197,7 @@ function SonaChatInner() {
                   {  loadingChats ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 py-2">
                   <Loader2 className="h-3 w-3 animate-spin text-[#E07A5F]" />
-                  <span className="text-sm text-[#8C8C8C]">upcoming chats…</span>
+                  
                 </div>) :(
                   <button onClick={deleteSelectedChats} disabled={selectedChatIds.size === 0}
                     className="flex items-center gap-1 rounded bg-red-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-red-600 transition">
@@ -1285,7 +1285,7 @@ function SonaChatInner() {
               return (
                 <div
                   className="rounded-full"
-                  style={hasStatus ? { padding: 3, background: "linear-gradient(135deg, green , #FFFFFF )" } : undefined}
+                  style={hasStatus ? { padding: 3, background: "linear-gradient(117deg, green , #FFFFFF )" } : undefined}
                 >
                   <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} />
                 </div>
@@ -1296,16 +1296,16 @@ function SonaChatInner() {
                 className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-[#1E1E1E] ring-2 ring-white dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
-                <IoMdTimer className="h-3.6 w-3.6 text-white" />
+                <IoMdTimer className="h-3.8 w-3.8 text-white" />
               </div>
             )}
             {selectMode && (
               <div
                 onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}
                 className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
-                style={{ backgroundColor: isSelected ? "#D97757" : "#3A3A38" }}
+                style={{ backgroundColor: isSelected ? "#D97757" : "transparent" }}
               >
-                {isSelected && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
+                {isSelected && <Check className="h-3.8 w-3.8 text-white" strokeWidth={3} />}
               </div>
             )}
           </div>
@@ -1424,7 +1424,7 @@ function SonaChatInner() {
                         className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[#242424] ring-2 ring-[#FFFDF9] dark:ring-[#242424]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
-                        <IoMdTimer className="h-2.7 w-2.7 text-white" />
+                        <IoMdTimer className="h-2.8 w-2.8 text-white" />
                       </div>
                     )}
                   </button>
