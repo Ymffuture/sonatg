@@ -209,3 +209,18 @@ export function waveformBars(seed: string, count = 32): number[] {
   }
   return bars;
 }
+
+
+/** Human-friendly "last seen" label: "just now", "12 minutes ago", "3 days ago". */
+export function fmtLastSeen(iso: string | null | undefined): string {
+  if (!iso) return "a while ago";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+  return new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" });
+}

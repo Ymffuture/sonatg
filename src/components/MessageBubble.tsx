@@ -543,7 +543,7 @@ export function Bubble({
   onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean; isGroup: boolean;
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
-  parentName?: string; parentBody?: string;
+  parentName?: string; parentBody?: React.ReactNode;
   actionsOpen: boolean; onToggleActions: () => void;
   onTranscribed?: (messageId: string, transcript: string) => void;
 }) {
