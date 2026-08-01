@@ -1213,7 +1213,7 @@ function SonaChatInner() {
 
             <div className="px-3 pb-2 pt-2">
               <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
-                <Search className="h-9 w-9 text-[#8C8C8C]" />
+                <Search className="h-8 w-8 text-[#8C8C8C]" />
                 <input data-tour="search-chats" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
@@ -1421,10 +1421,10 @@ function SonaChatInner() {
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                     {!!active.disappearing_seconds && (
                       <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[#D97757] ring-2 ring-[#FFFDF9] dark:ring-[#242424]"
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[transparent] ring-2 ring-[#FFFDF9] dark:ring-[#242424]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
-                        <IoMdTimer className="h-2.5 w-2.5 text-white" />
+                        <IoMdTimer className="h-2.6 w-2.6 text-white" />
                       </div>
                     )}
                   </button>
