@@ -30,6 +30,8 @@ export type MessageRow = {
   body: string | null;
   media_url: string | null;
   duration_ms: number | null;
+  transcript?: string | null;
+  scheduled_at?: string | null;
   created_at: string;
   is_encrypted?: boolean;
   reply_to_id?: string | null;
@@ -48,6 +50,7 @@ export type ChatRow = {
   is_hidden?: boolean;
   category?: ChatCategory | null;
   avatar_url?: string | null;
+  disappearing_seconds?: number | null;
 };
 
 export type ChatMemberRole = "admin" | "member";
