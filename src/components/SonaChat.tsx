@@ -1252,6 +1252,7 @@ useEffect(() => {
     )}
   </div>
 </div>
+            </div>
 
             {/* Selection mode bar */}
             {selectMode && (
