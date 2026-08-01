@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Download, Reply, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
-  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2,
+  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,
 } from "lucide-react";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
@@ -965,7 +965,7 @@ export function VoicePlayer({
 /* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
-  hasAttachments, sending,
+  hasAttachments, sending, onSchedule,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
@@ -978,7 +978,10 @@ export function Composer({
   onRecordingChange?: (recording: boolean) => void;
   hasAttachments?: boolean;
   sending?: boolean;
+  onSchedule?: (date: Date) => void;
 }) {
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [scheduleValue, setScheduleValue] = useState("");
   const [recording, setRecording] = useState(false);
   const [locked, setLocked] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -1241,6 +1244,49 @@ export function Composer({
               onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
             />
           </div>
+
+          {(draft.trim() || hasAttachments) && onSchedule && (
+            <div className="relative">
+              <button
+                onClick={() => setShowScheduler((s) => !s)}
+                disabled={sending}
+                aria-label="Schedule message"
+                title="Schedule for later"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20 disabled:opacity-40"
+              >
+                <Clock className="h-4 w-4" />
+              </button>
+              {showScheduler && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setShowScheduler(false)} />
+                  <div className="absolute bottom-full right-0 z-40 mb-2 w-64 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] p-3 shadow-xl">
+                    <p className="mb-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Send later</p>
+                    <input
+                      type="datetime-local"
+                      value={scheduleValue}
+                      min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                      onChange={(e) => setScheduleValue(e.target.value)}
+                      className="w-full rounded-lg border border-[#E07A5F]/20 bg-transparent px-2 py-1.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] outline-none"
+                    />
+                    <button
+                      onClick={() => {
+                        if (!scheduleValue) return;
+                        const date = new Date(scheduleValue);
+                        if (date.getTime() <= Date.now()) return;
+                        onSchedule(date);
+                        setShowScheduler(false);
+                        setScheduleValue("");
+                      }}
+                      disabled={!scheduleValue}
+                      className="mt-2 w-full rounded-lg bg-[#E07A5F] py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 transition"
+                    >
+                      Schedule
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {draft.trim() || hasAttachments ? (
             <button

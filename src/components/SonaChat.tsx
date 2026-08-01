@@ -3,7 +3,7 @@ import {
   Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
   MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
-  Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock,
+  Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin,
   Share2, BadgeCheck, FileText, DoorOpen, Download,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
 } from "lucide-react";
@@ -17,6 +17,7 @@ import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
+import { OnboardingTour, hasSeenOnboarding, type TourStep } from "./OnboardingTour";
 import {
   SONA_AI_ID, fmtTime, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
@@ -65,6 +66,39 @@ function parseCallBody(raw: string | null): CallLogMeta {
   } catch { /* fall through to default */ }
   return { kind: "voice", outcome: "answered", durationMs: 0 };
 }
+
+const ONBOARDING_STEPS: TourStep[] = [
+  {
+    targetSelector: '[data-tour="new-chat-fab"]',
+    title: "Start a conversation",
+    description: "Tap here to message someone new or create a group.",
+    placement: "left",
+  },
+  {
+    targetSelector: '[data-tour="search-chats"]',
+    title: "Find anything fast",
+    description: "Search your chats here, or search inside any open chat from its menu.",
+    placement: "bottom",
+  },
+  {
+    targetSelector: '[data-tour="folder-tabs"]',
+    title: "Stay organized",
+    description: "Filter your chat list by Unread, Groups, or Pinned to cut through the noise.",
+    placement: "bottom",
+  },
+  {
+    targetSelector: '[data-tour="status-bar"]',
+    title: "Share a status",
+    description: "Post a photo, video, or text update that disappears after 24 hours — just like a story.",
+    placement: "bottom",
+  },
+  {
+    targetSelector: '[data-tour="settings-btn"]',
+    title: "Make it yours",
+    description: "Set your profile photo and bio, manage subscriptions, and tweak notifications here.",
+    placement: "left",
+  },
+];
 
 const DISAPPEARING_OPTIONS: { label: string; seconds: number | null }[] = [
   { label: "Off", seconds: null },
@@ -183,6 +217,15 @@ function SonaChatInner() {
   const [sending, setSending] = useState(false);
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [showDisappearingMenu, setShowDisappearingMenu] = useState(false);
+  const [scheduledMessages, setScheduledMessages] = useState<MessageRow[]>([]);
+  const [showScheduledList, setShowScheduledList] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  useEffect(() => {
+    if (me && !loadingChats && !hasSeenOnboarding()) {
+      const t = setTimeout(() => setShowTour(true), 500);
+      return () => clearTimeout(t);
+    }
+  }, [me, loadingChats]);
   const [msgSearchQuery, setMsgSearchQuery] = useState("");
   const [msgSearchIndex, setMsgSearchIndex] = useState(0);
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -294,7 +337,7 @@ function SonaChatInner() {
     const { data: chatRows } = await supabase
       .from("chats").select("*").in("id", chatIds).order("last_message_at", { ascending: false });
     const { data: allMembers } = await supabase
-      .from("chat_members").select("chat_id, user_id, role").in("chat_id", chatIds);
+      .from("chat_members").select("chat_id, user_id, role, is_pinned, pinned_at").in("chat_id", chatIds);
     const memberIds = Array.from(new Set((allMembers ?? []).map((m: { user_id: string }) => m.user_id)));
     const { data: profs } = await supabase.from("profiles").select("*").in("id", memberIds);
 
@@ -324,9 +367,11 @@ function SonaChatInner() {
 
     const memsByChat: Record<string, string[]> = {};
     const rolesByChat: Record<string, Record<string, ChatMemberRole>> = {};
-    (allMembers ?? []).forEach((m: { chat_id: string; user_id: string; role?: ChatMemberRole }) => {
+    const pinnedByChat: Record<string, { isPinned: boolean; pinnedAt: string | null }> = {};
+    (allMembers ?? []).forEach((m: { chat_id: string; user_id: string; role?: ChatMemberRole; is_pinned?: boolean; pinned_at?: string | null }) => {
       (memsByChat[m.chat_id] ||= []).push(m.user_id);
       (rolesByChat[m.chat_id] ||= {})[m.user_id] = m.role ?? "member";
+      if (m.user_id === me.id) pinnedByChat[m.chat_id] = { isPinned: !!m.is_pinned, pinnedAt: m.pinned_at ?? null };
     });
 
     const result: ChatWithMeta[] = (chatRows ?? []).map((c) => {
@@ -337,10 +382,12 @@ function SonaChatInner() {
         memberIds: ids,
         members: ids.map((id) => profMap[id]).filter(Boolean),
         memberRoles: rolesByChat[chat.id] ?? {},
+        isPinned: pinnedByChat[chat.id]?.isPinned ?? false,
         lastMessage: lastByChat[chat.id],
         unread: unreadByChat[chat.id] ?? 0,
       };
     });
+    result.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
     setChats(result);
     setLoadingChats(false);
     if (!activeId && result.length > 0) setActiveId(result[0].id);
@@ -448,11 +495,12 @@ function SonaChatInner() {
       .channel("sona-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
         const m = p.new as MessageRow;
-        if (m.chat_id === activeId) {
+        const notYetDue = m.scheduled_at && new Date(m.scheduled_at).getTime() > Date.now();
+        if (m.chat_id === activeId && !notYetDue) {
           setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
           if (m.sender_id !== me.id) playReceiveSound();
         }
-        loadChats();
+        if (!notYetDue) loadChats();
       })
 
       .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, (p) => {
@@ -604,16 +652,60 @@ function SonaChatInner() {
     for (const c of chats) for (const m of c.members) map[m.id] = m;
     return map;
   }, [chats, me]);
+  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned">("all");
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
     if (!c.is_group) {
       const other = c.memberIds.find((id) => id !== me.id);
       if (other && blockedIds.has(other)) return false;
     }
+    if (activeFolder === "unread" && c.unread === 0) return false;
+    if (activeFolder === "groups" && !c.is_group) return false;
+    if (activeFolder === "pinned" && !c.isPinned) return false;
     return chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase());
-  }), [chats, query, me, blockedIds]);
+  }), [chats, query, me, blockedIds, activeFolder]);
+
+  const unreadFolderCount = chats.filter((c) => c.unread > 0).length;
 
   // Selection handlers
+  const openScheduledList = async () => {
+    if (!me || !activeId) return;
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("chat_id", activeId)
+      .eq("sender_id", me.id)
+      .not("scheduled_at", "is", null)
+      .gt("scheduled_at", new Date().toISOString())
+      .order("scheduled_at");
+    setScheduledMessages((data ?? []) as MessageRow[]);
+    setShowScheduledList(true);
+  };
+
+  const cancelScheduled = async (messageId: string) => {
+    const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me?.id ?? "");
+    if (error) { toast.error(error.message); return; }
+    setScheduledMessages((prev) => prev.filter((m) => m.id !== messageId));
+    toast.success("Scheduled message canceled");
+  };
+
+  const togglePin = async (e: React.MouseEvent, chat: ChatWithMeta) => {
+    e.stopPropagation();
+    if (!me) return;
+    const next = !chat.isPinned;
+    setChats((prev) => {
+      const updated = prev.map((c) => (c.id === chat.id ? { ...c, isPinned: next } : c));
+      updated.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+      return updated;
+    });
+    const { error } = await supabase
+      .from("chat_members")
+      .update({ is_pinned: next, pinned_at: next ? new Date().toISOString() : null })
+      .eq("chat_id", chat.id)
+      .eq("user_id", me.id);
+    if (error) { toast.error(error.message); loadChats(); return; }
+  };
+
   const toggleChatSelection = (chatId: string) => {
     setSelectedChatIds((prev) => {
       const next = new Set(prev);
@@ -707,7 +799,7 @@ function SonaChatInner() {
   };
 
   // Send
-  const send = async () => {
+  const send = async (scheduledFor?: Date) => {
     if (!me || !activeId) return;
 
     if (editing) {
@@ -764,6 +856,7 @@ function SonaChatInner() {
       const expiresAt = active?.disappearing_seconds
         ? new Date(Date.now() + active.disappearing_seconds * 1000).toISOString()
         : null;
+      const scheduledAt = scheduledFor ? scheduledFor.toISOString() : null;
       for (let i = 0; i < outgoing.length; i++) {
         const item = outgoing[i];
         if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
@@ -776,16 +869,21 @@ function SonaChatInner() {
           is_encrypted: i === 0 ? is_encrypted : false,
           reply_to_id: i === 0 ? (replyTo?.id ?? null) : null,
           expires_at: expiresAt,
+          scheduled_at: scheduledAt,
         });
         if (error) { toast.error(error.message); continue; }
       }
-      playSendSound();
+      if (scheduledFor) {
+        toast.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);
+      } else {
+        playSendSound();
+      }
 
       const prompt = plaintext;
       const attachedImageUrl = firstAttachedImageUrl;
       setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
 
-      if (active && !active.is_hidden) {
+      if (!scheduledFor && active && !active.is_hidden) {
         const isAI = isAIChat(active);
         const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
         if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
@@ -1076,7 +1174,10 @@ function SonaChatInner() {
                 <Link to="/learn" className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Learn">
                   <BookOpen className="h-4 w-4" />
                 </Link>
-                <button onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Settings">
+                <button onClick={() => setShowTour(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Replay tour" title="Replay tour">
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+                <button data-tour="settings-btn" onClick={() => setShowSettings(true)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-gray-600" aria-label="Settings">
                   <Settings className="h-4 w-4" />
                 </button>
                 <button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 dark:text-white text-[#2D3436]" aria-label="Sign out">
@@ -1113,18 +1214,41 @@ function SonaChatInner() {
             <div className="px-3 pb-2 pt-2">
               <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
                 <Search className="h-9 w-9 text-[#8C8C8C]" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
+                <input data-tour="search-chats" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
             </div>
 
+            <div data-tour="folder-tabs" className="flex items-center gap-1.5 overflow-x-auto px-3 pb-2 scrollbar-thin">
+              {([
+                { key: "all", label: "All" },
+                { key: "unread", label: `Unread${unreadFolderCount ? ` (${unreadFolderCount})` : ""}` },
+                { key: "groups", label: "Groups" },
+                { key: "pinned", label: "Pinned" },
+              ] as const).map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveFolder(f.key)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    activeFolder === f.key
+                      ? "bg-[#E07A5F] text-white"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             {me && (
-              <StatusBar
-                meId={me.id}
-                profilesById={profilesById}
-                onOpenComposer={() => setShowStatusComposer(true)}
-                onOpenViewer={(userId) => setViewingStatusUserId(userId)}
-              />
+              <div data-tour="status-bar">
+                <StatusBar
+                  meId={me.id}
+                  profilesById={profilesById}
+                  onOpenComposer={() => setShowStatusComposer(true)}
+                  onOpenViewer={(userId) => setViewingStatusUserId(userId)}
+                />
+              </div>
             )}
 
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
@@ -1152,7 +1276,7 @@ function SonaChatInner() {
               setSelectedChatIds(new Set([c.id]));
             }
           }}
-          className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} border-b border-[#E07A5F]/5`}
+          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F4A261]/15" : ""} border-b border-[#E07A5F]/5`}
           style={isSelected ? { backgroundColor: "rgba(217, 119, 87, 0.16)" } : undefined}>
           <div className="relative shrink-0">
             {(() => {
@@ -1205,8 +1329,21 @@ function SonaChatInner() {
                     <CategoryIcon category={c.category} />
                   </span>
                 )}
+                {c.isPinned && (
+                  <Pin className="h-3 w-3 shrink-0 fill-[#8C8C8C] text-[#8C8C8C]" />
+                )}
               </span>
               <div className="flex shrink-0 flex-col items-end gap-1">
+                {!selectMode && (
+                  <button
+                    onClick={(e) => togglePin(e, c)}
+                    className={`hidden md:grid h-5 w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${c.isPinned ? "" : "opacity-0 group-hover:opacity-100"}`}
+                    aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
+                    title={c.isPinned ? "Unpin chat" : "Pin chat"}
+                  >
+                    <Pin className={`h-3 w-3 ${c.isPinned ? "fill-[#E07A5F] text-[#E07A5F]" : "text-[#8C8C8C]"}`} />
+                  </button>
+                )}
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "#D97757" } : undefined}>
                   {last ? fmtTime(last.created_at) : ""}
                 </span>
@@ -1255,6 +1392,7 @@ function SonaChatInner() {
 </div>
             {/* Floating New-Chat FAB */}
             <button
+              data-tour="new-chat-fab"
               onClick={() => setShowNewChat(true)}
               aria-label="New chat"
               className="absolute bottom-8 right-5 grid h-18 w-18 place-items-center rounded-xl bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
@@ -1398,6 +1536,11 @@ function SonaChatInner() {
                             ]
                           : []),
                         {
+                          key: "scheduled",
+                          label: "Scheduled messages",
+                          icon: <Clock className="h-4 w-4" />,
+                        },
+                        {
                           key: "hide",
                           label: (
                             <span className="flex w-full items-center">
@@ -1418,6 +1561,7 @@ function SonaChatInner() {
                       onClick: ({ key }) => {
                         if (key === "search") setShowMsgSearch((s) => !s);
                         if (key === "summarize") runSummary();
+                        if (key === "scheduled") openScheduledList();
                       },
                     }}
                   >
@@ -1658,6 +1802,7 @@ function SonaChatInner() {
                     });
                   }}
                   onRecordingChange={sendRecording}
+                  onSchedule={(date) => send(date)}
                 />
               </>
             ) : (
@@ -1775,6 +1920,43 @@ function SonaChatInner() {
           </div>
         </div>
       )}
+
+      {showScheduledList && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setShowScheduledList(false)}>
+          <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="h-4 w-4 text-[#E07A5F]" />
+              <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Scheduled messages</h3>
+            </div>
+            {scheduledMessages.length === 0 ? (
+              <p className="text-sm text-[#8C8C8C]">No messages scheduled in this chat.</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {scheduledMessages.map((m) => (
+                  <div key={m.id} className="flex items-start gap-2 rounded-xl border border-[#E07A5F]/10 bg-white/60 dark:bg-white/5 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">{m.body || "(attachment)"}</p>
+                      <p className="text-xs text-[#8C8C8C]">{m.scheduled_at && new Date(m.scheduled_at).toLocaleString()}</p>
+                    </div>
+                    <button
+                      onClick={() => cancelScheduled(m.id)}
+                      className="shrink-0 rounded-full p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+                      aria-label="Cancel scheduled message"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 flex justify-end">
+              <button onClick={() => setShowScheduledList(false)} className="rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/20 transition">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTour && <OnboardingTour steps={ONBOARDING_STEPS} onFinish={() => setShowTour(false)} />}
     </div>
   );
 }
