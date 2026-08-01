@@ -158,13 +158,13 @@ function AuthPage() {
 
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-8">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-lg">
-                  <span className="text-2xl font-black">S</span>
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold leading-none tracking-tight">Sona</h1>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/80 font-medium">talk gold</p>
-                </div>
+                <div className="flex items-center gap-2 min-w-0">
+  <div className="leading-none min-w-0 rounded-xl bg-gradient-to-br from-[#E07A5F]/10 to-[#F4A261]/5 px-3.5 py-2 dark:from-[#E07A5F]/20 dark:to-transparent border border-[#E07A5F]/10">
+    <span className="text-[20px] font-bold tracking-tight text-[#2D3436] dark:text-white">
+      Sona<span className="font-black text-[#E07A5F]">TG</span>
+    </span>
+  </div>
+</div>
               </div>
 
               <h2 className="text-4xl font-bold leading-[1.1] mb-4">
