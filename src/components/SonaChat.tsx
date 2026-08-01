@@ -95,7 +95,7 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     targetSelector: '[data-tour="settings-btn"]',
     title: "Make it yours",
-    description: "Set your profile photo and bio, manage subscriptions, and tweak notifications here.",
+    description: "Open this menu to set your profile photo and bio, manage subscriptions, switch themes, and more.",
     placement: "left",
   },
 ];
@@ -390,7 +390,6 @@ function SonaChatInner() {
     result.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
     setChats(result);
     setLoadingChats(false);
-    if (!activeId && result.length > 0) setActiveId(result[0].id);
   }, [me, activeId]);
 
   useEffect(() => { loadChats(); }, [loadChats]);
@@ -1182,6 +1181,7 @@ useEffect(() => {
   {/* More options dropdown */}
 <div className="relative" ref={headerMenuRef}>
     <button
+      data-tour="settings-btn"
       onClick={() => setShowHeaderMenu((v) => !v)}
       className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${
         showHeaderMenu ? "bg-white/20" : "hover:bg-white/20"
@@ -1231,7 +1231,6 @@ useEffect(() => {
           </button>
 
           <button
-            data-tour="settings-btn"
             onClick={() => { setShowSettings(true); setShowHeaderMenu(false); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
@@ -1372,7 +1371,7 @@ useEffect(() => {
               <div
                 onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}
                 className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
-                style={{ backgroundColor: isSelected ? "#D97757" : "#*fff" }}
+                style={{ backgroundColor: isSelected ? "#D97757" : "#8C8C8C" }}
               >
                 {isSelected && <Check className="h-3.8 w-3.8 text-white" strokeWidth={3} />}
               </div>
@@ -1406,7 +1405,9 @@ useEffect(() => {
                 {!selectMode && (
                   <button
                     onClick={(e) => togglePin(e, c)}
-                    className={`hidden md:grid h-5 w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${c.isPinned ? "" : "opacity-0 group-hover:opacity-100"}`}
+                    className={`grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${
+                      c.isPinned ? "" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
+                    }`}
                     aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
                     title={c.isPinned ? "Unpin chat" : "Pin chat"}
                   >
