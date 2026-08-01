@@ -1293,10 +1293,10 @@ function SonaChatInner() {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-[#D97757] ring-2 ring-white dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-[#1E1E1E] ring-2 ring-white dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
-                <IoMdTimer className="h-3 w-3 text-white" />
+                <IoMdTimer className="h-3.6 w-3.6 text-white" />
               </div>
             )}
             {selectMode && (
@@ -1421,10 +1421,10 @@ function SonaChatInner() {
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                     {!!active.disappearing_seconds && (
                       <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[transparent] ring-2 ring-[#FFFDF9] dark:ring-[#242424]"
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[#242424] ring-2 ring-[#FFFDF9] dark:ring-[#242424]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
-                        <IoMdTimer className="h-2.6 w-2.6 text-white" />
+                        <IoMdTimer className="h-2.7 w-2.7 text-white" />
                       </div>
                     )}
                   </button>
