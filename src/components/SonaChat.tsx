@@ -1097,8 +1097,8 @@ useEffect(() => {
               <div className="flex items-center justify-between gap-2 px-4 py-3">
                 <div className="h-8 w-28 rounded-lg bg-[#E07A5F]/10 animate-pulse" />
                 <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="h-9 w-9 rounded-full bg-[#E07A5F]/10 animate-pulse" />
+                  {[1, 2].map((i) => (
+                    <div key={i} className="h-9 w-9 rounded-full bg-[#1E1E1E]/10 animate-pulse" />
                   ))}
                 </div>
               </div>
@@ -1108,9 +1108,9 @@ useEffect(() => {
               <div className="flex-1 space-y-1 px-2 pt-1">
                 {[1, 2, 3, 4, 5, 6, 7,8,9,10,11,12,13].map((i) => (
                   <div key={i} className="flex items-center gap-3 p-3">
-                    <div className="h-12 w-12 shrink-0 rounded-full bg-[#E07A5F]/10 animate-pulse" />
+                    <div className="h-12 w-12 shrink-0 rounded-full bg-[#1E1E1E]/20 animate-pulse" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-3 w-2/5 rounded bg-[#E07A5F]/10 animate-pulse" />
+                      <div className="h-3 w-2/5 rounded bg-[#E07A5F]/20 animate-pulse" />
                       <div className="h-2.5 w-4/5 rounded bg-[#E07A5F]/10 animate-pulse" />
                     </div>
                   </div>
