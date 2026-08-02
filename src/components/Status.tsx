@@ -52,6 +52,31 @@ const WA = {
   ringUnseenTo: "#E07A5F",
 };
 
+/* ─── Media URLs ───────────────────────────────────────────────
+   Stored signed URLs expire after ~25h, so images/videos posted earlier in
+   the day stopped loading. Re-sign from `media_path` on demand instead. */
+const signedCache = new Map<string, string>();
+
+export function useStatusMediaUrl(status: StatusRow | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(status?.media_url ?? null);
+  useEffect(() => {
+    let alive = true;
+    if (!status || status.kind === "text") { setUrl(null); return; }
+    const path = status.media_path;
+    if (!path) { setUrl(status.media_url ?? null); return; }
+    const cached = signedCache.get(path);
+    if (cached) { setUrl(cached); return; }
+    (async () => {
+      const { data } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60);
+      if (!alive) return;
+      if (data?.signedUrl) { signedCache.set(path, data.signedUrl); setUrl(data.signedUrl); }
+      else setUrl(status.media_url ?? null);
+    })();
+    return () => { alive = false; };
+  }, [status]);
+  return url;
+}
+
 /* ─── Status bar (horizontal row of avatars, WhatsApp-style) ─── */
 export function StatusBar({
   meId, profilesById, onOpenComposer, onOpenViewer,
