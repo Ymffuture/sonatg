@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   GraduationCap, Users, Briefcase, LifeBuoy, PartyPopper, Tag,
+  Gamepad2, Heart, Music, Plane, Newspaper,
 } from "lucide-react";
 import {
   SONA_AI_ID,
@@ -134,6 +135,11 @@ export const categoryMeta: Record<ChatCategory, { emoji: string; label: string; 
   business: { emoji: "💼", label: "Business", icon: Briefcase },
   support: { emoji: "🛟", label: "Support", icon: LifeBuoy },
   social: { emoji: "🎉", label: "Social", icon: PartyPopper },
+  gaming: { emoji: "🎮", label: "Gaming", icon: Gamepad2 },
+  lifestyle: { emoji: "🌿", label: "Lifestyle", icon: Heart },
+  entertainment: { emoji: "🎵", label: "Entertainment", icon: Music },
+  travel: { emoji: "✈️", label: "Travel", icon: Plane },
+  news: { emoji: "📰", label: "News", icon: Newspaper },
   other: { emoji: "📌", label: "Other", icon: Tag },
 };
 
