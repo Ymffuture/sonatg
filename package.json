@@ -49,6 +49,7 @@
     "@zegocloud/zego-uikit-prebuilt": "^2.18.0",
     "antd": "^6.1.0",
     "antd-style": "^3.7.1",
+    "framer-motion": "^12.23.12", 
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
