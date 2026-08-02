@@ -1469,7 +1469,12 @@ useEffect(() => {
               return (
                 <div
                   className="rounded-full"
-                  style={hasStatus ? { padding: 3, background: "linear-gradient(117deg, green , #FFFFFF )" } : undefined}
+                  style={hasStatus ? { padding: 3, background: "linear-gradient(117deg, green , #FFFFFF )", cursor: "pointer" } : undefined}
+                  onClick={hasStatus ? (e) => {
+                    e.stopPropagation();
+                    navigate({ to: "/status", search: { user: otherId! } });
+                  } : undefined}
+                  title={hasStatus ? "View status" : undefined}
                 >
                   <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} />
                 </div>
