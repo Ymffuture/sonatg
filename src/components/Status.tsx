@@ -233,10 +233,11 @@ export function StatusBar({
 // (with the text preview lightly visible), matching the reference design
 // where each tile shows a real thumbnail rather than a generic icon.
 function StatusCardBackground({ status }: { status: StatusRow }) {
+  const mediaUrl = useStatusMediaUrl(status);
   if (status.kind === "image") {
     return (
       <img
-        src={status.media_url ?? ""}
+        src={mediaUrl ?? ""}
         alt=""
         className="absolute inset-0 h-full w-full object-cover"
         style={{ filter: "brightness(0.85)" }}
@@ -246,7 +247,7 @@ function StatusCardBackground({ status }: { status: StatusRow }) {
   if (status.kind === "video") {
     return (
       <video
-        src={status.media_url ?? ""}
+        src={mediaUrl ?? ""}
         muted
         playsInline
         preload="metadata"
