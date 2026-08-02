@@ -46,7 +46,6 @@ import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
 import { ProfileViewModal } from "./ProfileView";
-import { StatusBar, StatusComposer, StatusViewer } from "./Status";
 
 
 // Call-log messages store their metadata as JSON in the file_name column
