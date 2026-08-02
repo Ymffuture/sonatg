@@ -1305,7 +1305,7 @@ export function Composer({
 
           {draft.trim() || hasAttachments ? (
             <button
-              onClick={onSend}
+              onClick={() => onSend()}
               disabled={sending}
               className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95 disabled:opacity-60 disabled:active:scale-100"
             >
