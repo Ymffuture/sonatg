@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,7 +45,7 @@ function XIcon({ className = "h-4 w-4" }: { className?: string }) {
 function FacebookIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H1[...]" />
     </svg>
   );
 }
@@ -57,6 +57,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -70,6 +71,12 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        if (!acceptTerms) {
+          toast.error("You must accept the Terms of Service and Privacy Policy to create an account.");
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -117,25 +124,25 @@ function AuthPage() {
 
       {/* Floating glass bubbles — desktop only */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none hidden lg:block">
-        <div className="absolute top-[18%] left-[8%] px-4 py-2.5 rounded-2xl rounded-bl-sm bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl animate-float">
+        <div className="absolute top-[18%] left-[8%] px-4 py-2.5 rounded-2xl rounded-bl-sm bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl anima[...]">
           <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
             <MessageCircle className="h-4 w-4 text-[#E07A5F]" />
             <span>Hey! Welcome to Sona</span>
           </div>
         </div>
-        <div className="absolute top-[30%] right-[10%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-[#E07A5F]/20 backdrop-blur-xl border border-[#E07A5F]/20 shadow-xl animate-float" style={{ animationDelay: '1.2s' }}>
+        <div className="absolute top-[30%] right-[10%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-[#E07A5F]/20 backdrop-blur-xl border border-[#E07A5F]/20 shadow-xl animate-float" style={{ animationDelay: '1.5s' }}>
           <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
             <Sparkles className="h-4 w-4 text-[#E07A5F]" />
             <span>AI-powered chats</span>
           </div>
         </div>
-        <div className="absolute bottom-[22%] left-[12%] px-4 py-2.5 rounded-2xl rounded-bl-sm bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl animate-float" style={{ animationDelay: '2.4s' }}>
+        <div className="absolute bottom-[22%] left-[12%] px-4 py-2.5 rounded-2xl rounded-bl-sm bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl animate-float" style={{ animationDelay: '3s' }}>
           <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
             <Shield className="h-4 w-4 text-[#E07A5F]" />
             <span>End-to-end encrypted</span>
           </div>
         </div>
-        <div className="absolute bottom-[35%] right-[8%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-[#E07A5F]/20 backdrop-blur-xl border border-[#E07A5F]/20 shadow-xl animate-float" style={{ animationDelay: '3.6s' }}>
+        <div className="absolute bottom-[35%] right-[8%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-[#E07A5F]/20 backdrop-blur-xl border border-[#E07A5F]/20 shadow-xl animate-float" style={{ animationDelay: '2.5s' }}>
           <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
             <Zap className="h-4 w-4 text-[#E07A5F]" />
             <span>Talk gold</span>
@@ -227,7 +234,7 @@ function AuthPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Display name"
-                    className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-transparent transition shadow-sm"
+                    className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placeh[...]"
                   />
                 </div>
               )}
@@ -239,7 +246,7 @@ function AuthPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email address"
-                  className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-transparent transition shadow-sm"
+                  className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placehol[...]"
                 />
               </div>
               <div className="relative group">
@@ -251,13 +258,28 @@ function AuthPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-transparent transition shadow-sm"
+                  className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placehol[...]"
                 />
               </div>
 
+              {mode === "signup" && (
+                <div className="flex items-start gap-3 mt-2">
+                  <input
+                    id="acceptTerms"
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-1 h-4 w-4"
+                  />
+                  <label htmlFor="acceptTerms" className="text-sm text-[#6B6B6B]">
+                    I agree to the <Link to="/terms" className="text-[#E07A5F] underline">Terms of Service</Link> and <Link to="/privacy" className="text-[#E07A5F] underline">Privacy Policy</Link>.
+                  </label>
+                </div>
+              )}
+
               <button
                 disabled={loading}
-                className="group w-full rounded-xl bg-gradient-to-r from-[#E07A5F] to-[#D4694F] py-3 text-sm font-semibold text-white shadow-lg shadow-[#E07A5F]/25 transition-all hover:shadow-xl hover:shadow-[#E07A5F]/30 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:hover:scale-100 flex items-center justify-center gap-2 mt-1"
+                className="group w-full rounded-xl bg-gradient-to-r from-[#E07A5F] to-[#D4694F] py-3 text-sm font-semibold text-white shadow-lg shadow-[#E07A5F]/25 transition-all hover:shadow-xl [...]"
               >
                 {loading ? (
                   <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -270,6 +292,17 @@ function AuthPage() {
               </button>
             </form>
 
+            {mode === "signin" && (
+              <div className="mt-3 text-sm text-center">
+                <button
+                  onClick={() => navigate({ to: "/forgot-password" })}
+                  className="text-[#E07A5F] underline underline-offset-2"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-widest text-[#8C8C8C] font-medium">
               <div className="h-px flex-1 bg-[#E07A5F]/10" />
               or continue with
@@ -281,7 +314,7 @@ function AuthPage() {
               <button
                 onClick={() => oauth("google")}
                 disabled={loading}
-                className="w-full rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition hover:bg-[#F5F0E8] dark:hover:bg-[#3A3A3A] disabled:opacity-60 flex items-center justify-center gap-2.5 shadow-sm"
+                className="w-full rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition hover:bg-[#F5F0E8] dark[...]"
               >
                 <GoogleIcon />
                 <span>Continue with Google</span>
@@ -290,7 +323,7 @@ function AuthPage() {
               <button
                 onClick={() => oauth("twitter")}
                 disabled={loading}
-                className="w-full rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition hover:bg-[#F5F0E8] dark:hover:bg-[#3A3A3A] disabled:opacity-60 flex items-center justify-center gap-2.5 shadow-sm group"
+                className="w-full rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition hover:bg-[#F5F0E8] dark[...]"
               >
                 <XIcon className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8] transition group-hover:text-black dark:group-hover:text-white" />
                 <span>Continue with X</span>
@@ -299,7 +332,7 @@ function AuthPage() {
               <button
                 onClick={() => oauth("facebook")}
                 disabled={loading}
-                className="w-full rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition hover:bg-[#F5F0E8] dark:hover:bg-[#3A3A3A] disabled:opacity-60 flex items-center justify-center gap-2.5 shadow-sm group"
+                className="w-full rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition hover:bg-[#F5F0E8] dark[...]"
               >
                 <FacebookIcon className="h-4 w-4 text-[#1877F2] transition group-hover:scale-110" />
                 <span>Continue with Facebook</span>
@@ -307,7 +340,7 @@ function AuthPage() {
             </div>
 
             <p className="mt-8 text-center text-sm text-[#8C8C8C]">
-              {mode === "signin" ? "New to Sona?" : "Already have an account?"}{" "}
+              {mode === "signin" ? "New to Sona?" : "Already have an account?"} {" "}
               <button
                 className="font-semibold text-[#E07A5F] hover:text-[#C45D43] transition underline underline-offset-2"
                 onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
