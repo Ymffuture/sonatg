@@ -1453,6 +1453,7 @@ useEffect(() => {
 
 
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
+             <AnimatePresence initial={false}>
              {(filtered.map((c) => {
       const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
       const last = c.lastMessage;
@@ -1461,7 +1462,13 @@ useEffect(() => {
       const ai = isAIChat(c);
       const isSelected = selectedChatIds.has(c.id);
       return (
-        <div key={c.id}
+        <motion.div key={c.id}
+          layout
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, height: 0 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
           onClick={() => {
             if (selectMode) {
               toggleChatSelection(c.id);
@@ -1592,11 +1599,12 @@ useEffect(() => {
               {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
             </div>
           </div>
-        </div>
+        </motion.div>
       );
     })
   )}
   {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
+</AnimatePresence>
 </div>
             {/* Floating New-Chat FAB */}
             <button
