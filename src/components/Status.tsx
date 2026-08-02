@@ -692,7 +692,7 @@ export function StatusViewer({
               </div>
             )}
             <img
-              src={current.media_url ?? ""}
+              src={currentMediaUrl ?? ""}
               alt=""
               className="max-h-[75vh] max-w-full object-contain z-[1]"
               onLoad={() => setImageLoading(false)}
@@ -701,8 +701,10 @@ export function StatusViewer({
           </>
         ) : (
           <video
-            src={current.media_url ?? ""}
+            src={currentMediaUrl ?? ""}
             autoPlay
+            playsInline
+            controls
             className="max-h-[75vh] max-w-full object-contain"
             onLoadedData={() => setImageLoading(false)}
             onError={() => setImageLoading(false)}
