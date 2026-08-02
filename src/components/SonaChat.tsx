@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Dropdown } from "antd";
+import { motion, AnimatePresence } from "framer-motion";
 import { IoMdTimer } from "react-icons/io";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -208,8 +209,19 @@ function ThreadPanel({
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex justify-end bg-black/20" onClick={onClose}>
-      <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      className="absolute inset-0 z-40 flex justify-end bg-black/20"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", stiffness: 380, damping: 38 }}
         className="flex h-full w-full max-w-sm flex-col border-l border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -278,8 +290,8 @@ function ThreadPanel({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -1304,8 +1316,15 @@ useEffect(() => {
       <MoreVertical className="h-4 w-4" />
     </button>
 
+    <AnimatePresence>
     {showHeaderMenu && (
-      <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-xl z-50 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: -6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -6 }}
+        transition={{ duration: 0.14, ease: "easeOut" }}
+        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-xl z-50 overflow-hidden origin-top-right"
+      >
         <div className="py-1">
           {canInstall && (
             <button
@@ -1360,8 +1379,9 @@ useEffect(() => {
             Sign out
           </button>
         </div>
-      </div>
+      </motion.div>
     )}
+    </AnimatePresence>
   </div>
 </div>
             </div>
@@ -1811,6 +1831,7 @@ useEffect(() => {
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
                       {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
                     </div>
+                    <AnimatePresence initial={false}>
                      {messages.map((m, idx) => {
   const prev = messages[idx - 1];
   const groupWithPrev = prev && prev.sender_id === m.sender_id
@@ -1839,7 +1860,12 @@ useEffect(() => {
         </span>
       </div>
     )}
-    <div
+    <motion.div
+      layout="position"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
       ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
       className={isCurrentMatch ? "rounded-2xl ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-transparent transition-all" : ""}
     >
@@ -1869,10 +1895,11 @@ useEffect(() => {
       replyCount={repliesByParent[m.id]?.length ?? 0}
       onOpenThread={() => setThreadRootId(m.id)}
     />
-    </div>
+    </motion.div>
     </div>
   );
 })}
+                    </AnimatePresence>
 
                     {typingNames.length > 0 && (
                       <div className="flex items-end gap-2 mt-3">
@@ -2013,8 +2040,10 @@ useEffect(() => {
                 </div>
               </div>
             )}
+            <AnimatePresence>
             {threadRootId && me && active && (
               <ThreadPanel
+                key="thread-panel"
                 root={messages.find((m) => m.id === threadRootId) ?? null}
                 replies={(repliesByParent[threadRootId] ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at))}
                 me={me}
@@ -2029,6 +2058,7 @@ useEffect(() => {
                 }}
               />
             )}
+            </AnimatePresence>
           </section>
         </div>
       </div>
@@ -2090,9 +2120,17 @@ useEffect(() => {
         />
       )}
 
+      <AnimatePresence>
       {summary !== null && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setSummary(null)}>
-          <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setSummary(null)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-[#E07A5F]" />
               <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Chat summary</h3>
@@ -2117,13 +2155,22 @@ useEffect(() => {
               </button>
               <button onClick={() => setSummary(null)} className="rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/20 transition">Close</button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {showScheduledList && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setShowScheduledList(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setShowScheduledList(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-2 mb-3">
               <Clock className="h-4 w-4 text-[#E07A5F]" />
               <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Scheduled messages</h3>
@@ -2152,9 +2199,10 @@ useEffect(() => {
             <div className="mt-4 flex justify-end">
               <button onClick={() => setShowScheduledList(false)} className="rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/20 transition">Close</button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {showTour && <OnboardingTour steps={ONBOARDING_STEPS} onFinish={() => setShowTour(false)} />}
     </div>
