@@ -1391,7 +1391,7 @@ useEffect(() => {
               </div>
             )}
 
-            <div className="px-3 pb-2 pt-2">
+            <div className="px-3 pb-3 pt-3">
               <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
                 <Search className="h-8 w-8 text-[#8C8C8C]" />
                 <input data-tour="search-chats" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
@@ -1399,10 +1399,10 @@ useEffect(() => {
               </div>
             </div>
 
-            <div data-tour="folder-tabs" className="flex items-center gap-1.5 overflow-x-auto px-3 pb-2 scrollbar-thin">
+            <div data-tour="folder-tabs" className="flex items-center gap-2 overflow-x-auto px-3 pb-4 scrollbar-thin">
               {([
                 { key: "all", label: "All" },
-                { key: "unread", label: `Unread${unreadFolderCount ? ` (${unreadFolderCount})` : ""}` },
+                { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
                 { key: "groups", label: "Groups" },
                 { key: "pinned", label: "Pinned" },
               ] as const).map((f) => (
@@ -1421,10 +1421,10 @@ useEffect(() => {
             </div>
 
             {me && (
-              <div data-tour="status-bar" className="px-3 pb-2">
+              <div data-tour="status-bar" className="px-3 pb-3">
                 <button
                   onClick={() => navigate({ to: "/status", search: {} })}
-                  className="flex w-full items-center gap-2 rounded-full bg-[#E07A5F]/10 px-4 py-2 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
+                  className="flex w-full items-center gap-2 rounded-full bg-[#E07A5F]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
                 >
                   <Plus className="h-4 w-4" /> Status &amp; news
                 </button>
