@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   GraduationCap, Users, Briefcase, LifeBuoy, PartyPopper, Tag,
+  Gamepad2, Heart, Music, Plane, Newspaper,
 } from "lucide-react";
 import {
   SONA_AI_ID,
