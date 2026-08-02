@@ -305,8 +305,13 @@ export function StatusComposer({
       if (file) {
         if (mode === "video") duration_ms = Math.round(await readVideoDurationMs(file));
 
-        const path = `${meId}/${crypto.randomUUID()}-${file.name}`;
-        const { error: upErr } = await supabase.storage.from("statuses").upload(path, file);
+        // Sanitise the filename: Supabase Storage rejects keys with spaces or
+        // non-ASCII characters, which was silently breaking most uploads.
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
+        const path = `${meId}/${crypto.randomUUID()}-${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("statuses")
+          .upload(path, file, { contentType: file.type || undefined, cacheControl: "3600", upsert: false });
         if (upErr) throw upErr;
         const { data: signed } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60 * 25);
         media_url = signed?.signedUrl ?? null;

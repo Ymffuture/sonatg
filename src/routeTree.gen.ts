@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AuthenticatedStatusRouteImport } from './routes/_authenticated/status'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -51,6 +52,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthenticatedStatusRoute = AuthenticatedStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/learn': typeof LearnRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/status': typeof AuthenticatedStatusRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -65,6 +72,7 @@ export interface FileRoutesByTo {
   '/learn': typeof LearnRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/status': typeof AuthenticatedStatusRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AuthenticatedIndexRoute
 }
@@ -75,14 +83,29 @@ export interface FileRoutesById {
   '/learn': typeof LearnRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/_authenticated/status': typeof AuthenticatedStatusRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/learn' | '/privacy' | '/terms' | '/auth/callback'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/learn'
+    | '/privacy'
+    | '/terms'
+    | '/status'
+    | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/learn' | '/privacy' | '/terms' | '/auth/callback' | '/'
+  to:
+    | '/auth'
+    | '/learn'
+    | '/privacy'
+    | '/terms'
+    | '/status'
+    | '/auth/callback'
+    | '/'
   id:
     | '__root__'
     | '/_authenticated'
@@ -90,6 +113,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/privacy'
     | '/terms'
+    | '/_authenticated/status'
     | '/auth/callback'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
@@ -153,14 +177,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_authenticated/status': {
+      id: '/_authenticated/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof AuthenticatedStatusRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedStatusRoute: typeof AuthenticatedStatusRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedStatusRoute: AuthenticatedStatusRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
@@ -187,13 +220,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
