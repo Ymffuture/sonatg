@@ -1424,15 +1424,16 @@ useEffect(() => {
             </div>
 
             {me && (
-              <div data-tour="status-bar">
-                <StatusBar
-                  meId={me.id}
-                  profilesById={profilesById}
-                  onOpenComposer={() => setShowStatusComposer(true)}
-                  onOpenViewer={(userId) => setViewingStatusUserId(userId)}
-                />
+              <div data-tour="status-bar" className="px-3 pb-2">
+                <button
+                  onClick={() => navigate({ to: "/status", search: {} })}
+                  className="flex w-full items-center gap-2 rounded-full bg-[#E07A5F]/10 px-4 py-2 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
+                >
+                  <Plus className="h-4 w-4" /> Status &amp; news
+                </button>
               </div>
             )}
+
 
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
              {(filtered.map((c) => {
