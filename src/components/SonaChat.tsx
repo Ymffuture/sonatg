@@ -2020,7 +2020,7 @@ useEffect(() => {
                 onClose={() => setThreadRootId(null)}
                 onSendReply={async (text) => {
                   const { error } = await supabase.from("messages").insert({
-                    chat_id: activeId, sender_id: me.id, kind: "text", body: text, reply_to_id: threadRootId!,
+                    chat_id: activeId!, sender_id: me.id, kind: "text", body: text, reply_to_id: threadRootId!,
                   });
                   if (error) toast.error(error.message);
                 }}
