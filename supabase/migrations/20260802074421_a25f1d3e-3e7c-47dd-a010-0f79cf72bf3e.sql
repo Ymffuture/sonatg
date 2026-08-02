@@ -1,0 +1,3 @@
+ALTER TABLE public.chats DROP CONSTRAINT IF EXISTS chats_category_check;
+UPDATE public.chats SET category = 'general' WHERE category IS NULL OR category NOT IN ('general','education','business','support','social','gaming','lifestyle','entertainment','travel','news','other');
+ALTER TABLE public.chats ADD CONSTRAINT chats_category_check CHECK (category IN ('general','education','business','support','social','gaming','lifestyle','entertainment','travel','news','other'));
