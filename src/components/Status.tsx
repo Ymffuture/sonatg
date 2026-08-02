@@ -544,6 +544,7 @@ export function StatusViewer({
   }, [userId]);
 
   const current = statuses[index];
+  const currentMediaUrl = useStatusMediaUrl(current);
 
   useEffect(() => {
     if (!current) return;
