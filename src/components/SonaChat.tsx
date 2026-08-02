@@ -19,7 +19,7 @@ import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import { OnboardingTour, hasSeenOnboarding, type TourStep } from "./OnboardingTour";
 import {
-  SONA_AI_ID, fmtTime, CHAT_CATEGORIES,
+  SONA_AI_ID, fmtTime, fmtLastSeen, fmtDateLabel, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
   type BlockRow, type ChatCategory, type ChatMemberRole,
 } from "@/lib/db";
@@ -1659,7 +1659,7 @@ useEffect(() => {
     return online ? (
         <span className="flex items-center gap-1">Online</span>
     ) : other?.last_seen ? (
-        <span>Last seen {fmtTime(new Date(other.last_seen), { addSuffix: true })}</span>
+        <span>{fmtLastSeen(other.last_seen)}</span>
     ) : (
         <span>This person is no longer on Sonatg</span>
     );
@@ -1813,6 +1813,8 @@ useEffect(() => {
   const groupWithPrev = prev && prev.sender_id === m.sender_id
     && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
 
+  const showDateSeparator = !prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
+
   const overrideBody = m.is_encrypted
     ? (decrypted[m.id] ?? "Locked message — unlock this chat to read")
     : undefined;
@@ -1826,8 +1828,15 @@ useEffect(() => {
   const isCurrentMatch = showMsgSearch && msgSearchMatches[msgSearchIndex]?.id === m.id;
 
   return (
+    <div key={m.id} className="contents">
+    {showDateSeparator && (
+      <div className="my-3 flex justify-center">
+        <span className="rounded-full bg-[#F4A261]/20 px-3 py-1 text-[11px] font-medium text-[#8C8C8C] backdrop-blur border border-[#E07A5F]/10">
+          {fmtDateLabel(m.created_at)}
+        </span>
+      </div>
+    )}
     <div
-      key={m.id}
       ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
       className={isCurrentMatch ? "rounded-2xl ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-transparent transition-all" : ""}
     >
@@ -1857,6 +1866,7 @@ useEffect(() => {
       replyCount={repliesByParent[m.id]?.length ?? 0}
       onOpenThread={() => setThreadRootId(m.id)}
     />
+    </div>
     </div>
   );
 })}
