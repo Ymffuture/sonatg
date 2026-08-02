@@ -92,6 +92,40 @@ export type SubscriptionRow = {
 export const fmtTime = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+// "today", "yesterday", or "on Jan 5" (a plain fragment, not a full sentence
+// — callers prefix it, e.g. `Last seen ${fmtRelativeDay(iso)} at ${fmtTime(iso)}`).
+export function fmtRelativeDay(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  if (isSameDay(d, now)) return "today";
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameDay(d, yesterday)) return "yesterday";
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return `on ${d.toLocaleDateString([], sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" })}`;
+}
+
+// "Last seen today at 17:34" / "Last seen yesterday at 17:34" / "Last seen on Jan 5 at 17:34"
+export function fmtLastSeen(iso: string): string {
+  return `Last seen ${fmtRelativeDay(iso)} at ${fmtTime(iso)}`;
+}
+
+// Floating date-pill label for grouping messages by day: "Today" / "Yesterday" / "January 5, 2026"
+export function fmtDateLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  if (isSameDay(d, now)) return "Today";
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameDay(d, yesterday)) return "Yesterday";
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString([], sameYear ? { month: "long", day: "numeric" } : { month: "long", day: "numeric", year: "numeric" });
+}
+
 // ─── Status updates (WhatsApp-style) ────────────────────────────
 export type StatusRow = {
   id: string;
