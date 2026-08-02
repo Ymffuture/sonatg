@@ -134,6 +134,11 @@ export const categoryMeta: Record<ChatCategory, { emoji: string; label: string; 
   business: { emoji: "💼", label: "Business", icon: Briefcase },
   support: { emoji: "🛟", label: "Support", icon: LifeBuoy },
   social: { emoji: "🎉", label: "Social", icon: PartyPopper },
+  gaming: { emoji: "🎮", label: "Gaming", icon: Gamepad2 },
+  lifestyle: { emoji: "🌿", label: "Lifestyle", icon: Heart },
+  entertainment: { emoji: "🎵", label: "Entertainment", icon: Music },
+  travel: { emoji: "✈️", label: "Travel", icon: Plane },
+  news: { emoji: "📰", label: "News", icon: Newspaper },
   other: { emoji: "📌", label: "Other", icon: Tag },
 };
 
