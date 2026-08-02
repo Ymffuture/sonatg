@@ -373,8 +373,6 @@ function SonaChatInner() {
   const [showMemberList, setShowMemberList] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
-  const [showStatusComposer, setShowStatusComposer] = useState(false);
-  const [viewingStatusUserId, setViewingStatusUserId] = useState<string | null>(null);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
   const [recordingOthers, setRecordingOthers] = useState<string[]>([]);
