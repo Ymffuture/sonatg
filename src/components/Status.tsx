@@ -52,6 +52,31 @@ const WA = {
   ringUnseenTo: "#E07A5F",
 };
 
+/* ─── Media URLs ───────────────────────────────────────────────
+   Stored signed URLs expire after ~25h, so images/videos posted earlier in
+   the day stopped loading. Re-sign from `media_path` on demand instead. */
+const signedCache = new Map<string, string>();
+
+export function useStatusMediaUrl(status: StatusRow | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(status?.media_url ?? null);
+  useEffect(() => {
+    let alive = true;
+    if (!status || status.kind === "text") { setUrl(null); return; }
+    const path = status.media_path;
+    if (!path) { setUrl(status.media_url ?? null); return; }
+    const cached = signedCache.get(path);
+    if (cached) { setUrl(cached); return; }
+    (async () => {
+      const { data } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60);
+      if (!alive) return;
+      if (data?.signedUrl) { signedCache.set(path, data.signedUrl); setUrl(data.signedUrl); }
+      else setUrl(status.media_url ?? null);
+    })();
+    return () => { alive = false; };
+  }, [status]);
+  return url;
+}
+
 /* ─── Status bar (horizontal row of avatars, WhatsApp-style) ─── */
 export function StatusBar({
   meId, profilesById, onOpenComposer, onOpenViewer,
@@ -208,10 +233,11 @@ export function StatusBar({
 // (with the text preview lightly visible), matching the reference design
 // where each tile shows a real thumbnail rather than a generic icon.
 function StatusCardBackground({ status }: { status: StatusRow }) {
+  const mediaUrl = useStatusMediaUrl(status);
   if (status.kind === "image") {
     return (
       <img
-        src={status.media_url ?? ""}
+        src={mediaUrl ?? ""}
         alt=""
         className="absolute inset-0 h-full w-full object-cover"
         style={{ filter: "brightness(0.85)" }}
@@ -221,7 +247,7 @@ function StatusCardBackground({ status }: { status: StatusRow }) {
   if (status.kind === "video") {
     return (
       <video
-        src={status.media_url ?? ""}
+        src={mediaUrl ?? ""}
         muted
         playsInline
         preload="metadata"
@@ -305,8 +331,13 @@ export function StatusComposer({
       if (file) {
         if (mode === "video") duration_ms = Math.round(await readVideoDurationMs(file));
 
-        const path = `${meId}/${crypto.randomUUID()}-${file.name}`;
-        const { error: upErr } = await supabase.storage.from("statuses").upload(path, file);
+        // Sanitise the filename: Supabase Storage rejects keys with spaces or
+        // non-ASCII characters, which was silently breaking most uploads.
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
+        const path = `${meId}/${crypto.randomUUID()}-${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("statuses")
+          .upload(path, file, { contentType: file.type || undefined, cacheControl: "3600", upsert: false });
         if (upErr) throw upErr;
         const { data: signed } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60 * 25);
         media_url = signed?.signedUrl ?? null;
@@ -513,6 +544,7 @@ export function StatusViewer({
   }, [userId]);
 
   const current = statuses[index];
+  const currentMediaUrl = useStatusMediaUrl(current);
 
   useEffect(() => {
     if (!current) return;
@@ -661,7 +693,7 @@ export function StatusViewer({
               </div>
             )}
             <img
-              src={current.media_url ?? ""}
+              src={currentMediaUrl ?? ""}
               alt=""
               className="max-h-[75vh] max-w-full object-contain z-[1]"
               onLoad={() => setImageLoading(false)}
@@ -670,8 +702,10 @@ export function StatusViewer({
           </>
         ) : (
           <video
-            src={current.media_url ?? ""}
+            src={currentMediaUrl ?? ""}
             autoPlay
+            playsInline
+            controls
             className="max-h-[75vh] max-w-full object-contain"
             onLoadedData={() => setImageLoading(false)}
             onError={() => setImageLoading(false)}

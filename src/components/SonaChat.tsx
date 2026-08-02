@@ -46,7 +46,6 @@ import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
 import { ProfileViewModal } from "./ProfileView";
-import { StatusBar, StatusComposer, StatusViewer } from "./Status";
 
 
 // Call-log messages store their metadata as JSON in the file_name column
@@ -374,8 +373,6 @@ function SonaChatInner() {
   const [showMemberList, setShowMemberList] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
-  const [showStatusComposer, setShowStatusComposer] = useState(false);
-  const [viewingStatusUserId, setViewingStatusUserId] = useState<string | null>(null);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
   const [recordingOthers, setRecordingOthers] = useState<string[]>([]);
@@ -1424,15 +1421,16 @@ useEffect(() => {
             </div>
 
             {me && (
-              <div data-tour="status-bar">
-                <StatusBar
-                  meId={me.id}
-                  profilesById={profilesById}
-                  onOpenComposer={() => setShowStatusComposer(true)}
-                  onOpenViewer={(userId) => setViewingStatusUserId(userId)}
-                />
+              <div data-tour="status-bar" className="px-3 pb-2">
+                <button
+                  onClick={() => navigate({ to: "/status", search: {} })}
+                  className="flex w-full items-center gap-2 rounded-full bg-[#E07A5F]/10 px-4 py-2 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
+                >
+                  <Plus className="h-4 w-4" /> Status &amp; news
+                </button>
               </div>
             )}
+
 
             <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
              {(filtered.map((c) => {
@@ -1468,7 +1466,12 @@ useEffect(() => {
               return (
                 <div
                   className="rounded-full"
-                  style={hasStatus ? { padding: 3, background: "linear-gradient(117deg, green , #FFFFFF )" } : undefined}
+                  style={hasStatus ? { padding: 3, background: "linear-gradient(117deg, green , #FFFFFF )", cursor: "pointer" } : undefined}
+                  onClick={hasStatus ? (e) => {
+                    e.stopPropagation();
+                    navigate({ to: "/status", search: { user: otherId! } });
+                  } : undefined}
+                  title={hasStatus ? "View status" : undefined}
                 >
                   <Avatar url={chatAvatarUrl(c, me.id)} name={title} size={hasStatus ? 46 : 50} ai={ai} />
                 </div>
@@ -2070,22 +2073,6 @@ useEffect(() => {
         />
       )}
 
-      {showStatusComposer && me && (
-        <StatusComposer
-          meId={me.id}
-          onClose={() => setShowStatusComposer(false)}
-          onPosted={() => {}}
-        />
-      )}
-
-      {viewingStatusUserId && me && (
-        <StatusViewer
-          userId={viewingStatusUserId}
-          meId={me.id}
-          profilesById={profilesById}
-          onClose={() => setViewingStatusUserId(null)}
-        />
-      )}
 
       {showSettings && me && (
         <SettingsModal
