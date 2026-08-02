@@ -2070,22 +2070,6 @@ useEffect(() => {
         />
       )}
 
-      {showStatusComposer && me && (
-        <StatusComposer
-          meId={me.id}
-          onClose={() => setShowStatusComposer(false)}
-          onPosted={() => {}}
-        />
-      )}
-
-      {viewingStatusUserId && me && (
-        <StatusViewer
-          userId={viewingStatusUserId}
-          meId={me.id}
-          profilesById={profilesById}
-          onClose={() => setViewingStatusUserId(null)}
-        />
-      )}
 
       {showSettings && me && (
         <SettingsModal
