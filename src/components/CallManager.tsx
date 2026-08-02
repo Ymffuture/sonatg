@@ -294,6 +294,15 @@ export const CallManager = forwardRef<
         });
         setActive((cur) => (cur?.sessionId === sid ? null : cur));
       })
+      // Fired by this same user's OWN devices when one of them
+      // answers/declines an incoming call — without this, if the same
+      // account is logged in on two devices, both ring on an incoming
+      // call, but answering on one leaves the other ringing forever since
+      // only the caller was ever notified.
+      .on("broadcast", { event: "resolved-elsewhere" }, ({ payload }) => {
+        const sid = (payload as { sessionId: string }).sessionId;
+        setIncoming((cur) => (cur?.sessionId === sid ? null : cur));
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -375,6 +384,11 @@ export const CallManager = forwardRef<
       event: "accept",
       payload: { sessionId: incoming.sessionId },
     });
+    supabase.channel(`calls:${meId}`).send({
+      type: "broadcast",
+      event: "resolved-elsewhere",
+      payload: { sessionId: incoming.sessionId },
+    });
     isCallerRef.current = false;
     callStartedAtRef.current = null;
     setActive({
@@ -391,6 +405,11 @@ export const CallManager = forwardRef<
     supabase.channel(`calls:${incoming.fromId}`).send({
       type: "broadcast",
       event: "decline",
+      payload: { sessionId: incoming.sessionId },
+    });
+    supabase.channel(`calls:${meId}`).send({
+      type: "broadcast",
+      event: "resolved-elsewhere",
       payload: { sessionId: incoming.sessionId },
     });
     setIncoming(null);

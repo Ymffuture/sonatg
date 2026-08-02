@@ -197,7 +197,7 @@ function parseBlocks(text: string): Block[] {
       const parts = paraText.split("\n");
       const tokens: InlineToken[] = [];
       parts.forEach((part, idx) => {
-        if (idx > 0) tokens.push({ type: "br" });
+        if (idx > 0) tokens.push({ type: "br", content: "" });
         tokens.push(...parseInline(part));
       });
       blocks.push({ type: "paragraph", tokens });
@@ -537,15 +537,18 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions, onTranscribed,
+  replyCount, onOpenThread,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
   onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean; isGroup: boolean;
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
-  parentName?: string; parentBody?: React.ReactNode;
+  parentName?: string; parentBody?: string;
   actionsOpen: boolean; onToggleActions: () => void;
   onTranscribed?: (messageId: string, transcript: string) => void;
+  replyCount?: number;
+  onOpenThread?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -778,6 +781,18 @@ export function Bubble({
 
             {!msg.is_encrypted && (overrideBody ?? msg.body) && (
               <LinkPreviewCard text={overrideBody ?? msg.body ?? ""} mine={mine} />
+            )}
+
+            {(replyCount ?? 0) > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onOpenThread?.(); }}
+                className={`mb-1 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition hover:opacity-80 ${
+                  mine ? "text-white/90" : "text-[#E07A5F]"
+                }`}
+              >
+                <CornerUpLeft className="h-3.5 w-3.5" />
+                {replyCount} {replyCount === 1 ? "reply" : "replies"}
+              </button>
             )}
 
             <div
