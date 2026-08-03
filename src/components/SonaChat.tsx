@@ -1638,13 +1638,33 @@ useEffect(() => {
 </div>
             {/* Floating New-Chat FAB */}
             <button
-              data-tour="new-chat-fab"
-              onClick={() => setShowNewChat(true)}
-              aria-label="New chat"
-              className="absolute bottom-8 right-5 grid h-18 w-18 place-items-center rounded-xl bg-[#E07A5F] text-white shadow-2xl transition hover:scale-105 active:scale-95"
-            >
-              <BiSolidMessageSquareAdd className="h-12 w-12 text-black dark:text-white rotate-[90deg]" />
-            </button>
+  data-tour="new-chat-fab"
+  onClick={() => setShowNewChat(true)}
+  aria-label="New chat"
+  className="group absolute bottom-8 right-5 z-30 grid h-[72px] w-[72px] place-items-center rounded-2xl
+    /* Glass base */
+    bg-white/20 dark:bg-white/10
+    backdrop-blur-xl
+    border border-white/30 dark:border-white/15
+    /* 3D depth shadow stack */
+    shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_8px_rgba(224,122,95,0.15),0_12px_24px_rgba(224,122,95,0.25),inset_0_1px_0_rgba(255,255,255,0.4)]
+    dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(224,122,95,0.2),0_16px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]
+    /* Inner glow */
+    before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-[#E07A5F]/30 before:to-[#F4A261]/10 before:opacity-100
+    dark:before:from-[#E07A5F]/20 dark:before:to-transparent
+    /* Top highlight rim */
+    after:absolute after:inset-0 after:rounded-2xl after:border after:border-t-white/50 after:border-b-transparent after:border-x-transparent
+    dark:after:border-t-white/20
+    /* 3D push interaction */
+    transition-all duration-200 ease-out
+    hover:-translate-y-1 hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_16px_rgba(224,122,95,0.2),0_20px_40px_rgba(224,122,95,0.3),inset_0_1px_0_rgba(255,255,255,0.5)]
+    dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.4),0_8px_20px_rgba(224,122,95,0.25),0_24px_48px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]
+    active:translate-y-0.5 active:scale-[0.96] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_6px_rgba(224,122,95,0.15),inset_0_2px_4px_rgba(0,0,0,0.1)]
+    dark:active:shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(0,0,0,0.3)]"
+>
+  {/* Icon with subtle 3D lift */}
+  <BiSolidMessageSquareAdd className="relative z-10 h-10 w-10 text-[#2D3436] dark:text-white rotate-90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-200 group-hover:scale-110 group-active:scale-95" />
+</button>
           </aside>
 
           {/* Chat panel */}
