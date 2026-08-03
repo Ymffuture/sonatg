@@ -1734,16 +1734,7 @@ useEffect(() => {
         <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />
       )}
 
-      {active.memberRoles[me.id] === "admin" && active.is_group && (
-        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] shrink-0" />
-      )}
-
-      {active.is_group && active.category && active.category !== "general" && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] shrink-0">
-          <CategoryIcon category={active.category} className="h-3 w-3" />
-          {categoryMeta[active.category].label}
-        </span>
-      )}
+      
     </div>
   );
 })()}
