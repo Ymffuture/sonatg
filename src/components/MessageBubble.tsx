@@ -1326,7 +1326,7 @@ export function Composer({
           </div>
 
           {(draft.trim() || hasAttachments) && onSchedule && (
-            <div className="relative">
+            <div className="absolute ">
               <button
                 onClick={() => setShowScheduler((s) => !s)}
                 disabled={sending}
