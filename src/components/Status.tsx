@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   type Profile, type StatusRow,
   STATUS_MAX_DURATION_MS, STATUS_MAX_BYTES_SUPABASE,
-  STATUS_TEXT_BACKGROUNDS,
+  STATUS_TEXT_BACKGROUNDS, STATUS_PRIVACY_OPTIONS, type StatusPrivacy,
 } from "@/lib/db";
 import { readVideoDurationMs } from "@/utils/cloudinary";
 import { explainSupabaseError } from "@/utils/utils";
@@ -276,10 +276,15 @@ export function StatusComposer({
   const [bgColor, setBgColor] = useState(STATUS_TEXT_BACKGROUNDS[0]);
   const [file, setFile] = useState<File | null>(null);
   const [posting, setPosting] = useState(false);
+  const [privacy, setPrivacy] = useState<StatusPrivacy>("contacts");
   const [mediaLoading, setMediaLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  useEffect(() => {
+    const saved = localStorage.getItem("sona-status-privacy");
+    if (saved === "public" || saved === "contacts" || saved === "only_me") setPrivacy(saved);
+  }, []);
 
   const maxBytes = STATUS_MAX_BYTES_SUPABASE;
 
@@ -350,9 +355,11 @@ export function StatusComposer({
         body: mode === "text" ? text.trim() : (text.trim() || null),
         media_url, media_path, media_provider, media_public_id, duration_ms,
         background_color: mode === "text" ? bgColor : null,
+        privacy,
       });
       if (error) throw error;
 
+      localStorage.setItem("sona-status-privacy", privacy);
       notification.success({
         message: "Status posted",
         description: "Visible for 24 hours",
@@ -503,6 +510,28 @@ export function StatusComposer({
 
       {/* Footer */}
       <div className="p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: WA.gray }}>
+            Who can see this
+          </p>
+          <div className="flex gap-2">
+            {STATUS_PRIVACY_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                onClick={() => setPrivacy(o.value)}
+                title={o.hint}
+                className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition"
+                style={
+                  privacy === o.value
+                    ? { backgroundColor: WA.green, color: "#000" }
+                    : { backgroundColor: WA.darkElevated, color: WA.grayLight }
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <button
           onClick={post}
           disabled={posting}
