@@ -1779,11 +1779,8 @@ useEffect(() => {
   ) : active.is_group ? (
     <div className="relative flex overflow-hidden w-full">
       <div className="whitespace-nowrap animate-marquee flex items-center gap-1">
-        <span className="inline-flex items-center gap-1.5 mr-4">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#4ade80]" />
-          {active.members.length} members
-        </span>
-        <span className="opacity-50">•</span>
+        
+        
         <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
         <span className="opacity-50">•</span>
         <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
