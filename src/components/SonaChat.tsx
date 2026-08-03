@@ -254,7 +254,7 @@ function ThreadPanel({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[#E07A5F]/10 px-4 py-3">
-          <h3 className="text-sm flex gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><FaSquareThreads className ="text-[purple] /> Threads</h3>
+          <h3 className="text-sm flex gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><FaSquareThreads className="text-[purple]" /> Threads</h3>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close thread">
             <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
           </button>
@@ -280,7 +280,7 @@ function ThreadPanel({
 
           <div className="space-y-3">
             {replies.map((r) => (
-              <div key={r.id} className="flex items-start gap-2">
+              <div key={r.id} className="flex items-start gap-3 m-2">
                 <Avatar url={profiles[r.sender_id]?.avatar_url} name={nameOf(r.sender_id)} size={28} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
