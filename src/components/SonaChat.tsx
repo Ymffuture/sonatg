@@ -1651,7 +1651,7 @@ useEffect(() => {
           <section className={`${showSidebarMobile ? "hidden" : "flex"} relative h-full min-w-0 flex-1 flex-col md:flex bg-[#F0EBE3] dark:bg-[#1A1A1A]`}>
             {active ? (
               <>
-                <header className="relative flex items-center gap-3 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2.5 md:px-4">
+                <header className="relative flex items-center gap-1 border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-1.5 py-2.5 md:px-4">
                   <button onClick={closeActiveChat} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
                     <RiArrowLeftWideFill className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
@@ -1722,7 +1722,7 @@ useEffect(() => {
     ) : other?.last_seen ? (
         <span>{fmtLastSeen(other.last_seen)}</span>
     ) : (
-        <span>This person is no longer on Sonatg</span>
+        <span>Offline</span>
     );
 })()}
                     </button>
