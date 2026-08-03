@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportError } from "../lib/error-reporting";
+import { ConfirmProvider } from "@/hooks/useConfirmDialog";
 
 function NotFoundComponent() {
   return (
@@ -171,7 +172,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <ConfirmProvider>
+        <Outlet />
+      </ConfirmProvider>
     </QueryClientProvider>
   );
 }

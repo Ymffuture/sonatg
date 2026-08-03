@@ -127,6 +127,14 @@ export function fmtDateLabel(iso: string): string {
 }
 
 // ─── Status updates (WhatsApp-style) ────────────────────────────
+export type StatusPrivacy = "public" | "contacts" | "only_me";
+
+export const STATUS_PRIVACY_OPTIONS: { value: StatusPrivacy; label: string; hint: string }[] = [
+  { value: "public", label: "Public", hint: "Anyone on Sona can view" },
+  { value: "contacts", label: "Contacts", hint: "Only people you chat with" },
+  { value: "only_me", label: "Only me", hint: "Private to you" },
+];
+
 export type StatusRow = {
   id: string;
   user_id: string;
@@ -138,6 +146,7 @@ export type StatusRow = {
   media_public_id: string | null;
   duration_ms: number | null;
   background_color: string | null;
+  privacy?: StatusPrivacy;
   created_at: string;
   expires_at: string;
 };

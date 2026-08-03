@@ -18,6 +18,34 @@ import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
+
+/* Shows an "Admin console" entry only for accounts with the admin role. */
+function AdminLink({ onNavigate }: { onNavigate: () => void }) {
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      const { data } = await supabase
+        .from("user_roles").select("role")
+        .eq("user_id", auth.user.id).eq("role", "admin").maybeSingle();
+      if (alive) setIsAdmin(!!data);
+    })();
+    return () => { alive = false; };
+  }, []);
+  if (!isAdmin) return null;
+  return (
+    <Link
+      to="/admin"
+      onClick={onNavigate}
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+    >
+      <Shield className="h-4 w-4 shrink-0" />
+      Admin console
+    </Link>
+  );
+}
 import { OnboardingTour, hasSeenOnboarding, type TourStep } from "./OnboardingTour";
 import {
   SONA_AI_ID, fmtTime, fmtLastSeen, fmtDateLabel, CHAT_CATEGORIES,
@@ -1352,6 +1380,8 @@ useEffect(() => {
             <BookOpen className="h-4 w-4 shrink-0" />
             Learn
           </Link>
+
+          <AdminLink onNavigate={() => setShowHeaderMenu(false)} />
 
           <button
             onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}
