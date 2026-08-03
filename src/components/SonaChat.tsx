@@ -1296,7 +1296,7 @@ useEffect(() => {
           {/* Sidebar */}
           <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
             {/* Header */}
-            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-transparent dark:text-white text-gray-600">
+            <div className="flex items-center justify-between gap-2 px-2 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0 select-none cursor-default">
   <div className="leading-none min-w-0 flex items-baseline gap-[2px]">
     <span className="text-[26px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#2D3436] to-[#5a5a5a] dark:from-white dark:to-[#b0b0b0]">
@@ -1454,7 +1454,8 @@ useEffect(() => {
                 { key: "all", label: "All" },
                 { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
                 { key: "groups", label: "Groups" },
-                { key: "pinned", label: "Pinned" },
+                { key: "pinned", label: "Favorites" },
+                { key: "pinned", label: "+" },
               ] as const).map((f) => (
                 <button
                   key={f.key}
@@ -1556,7 +1557,7 @@ useEffect(() => {
             <div className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 min-w-0">
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                  <span className="truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">
                     {title}
                   </span>
                   {ai && (
