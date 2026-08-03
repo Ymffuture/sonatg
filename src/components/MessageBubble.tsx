@@ -12,7 +12,7 @@ import { fetchLinkPreview, type LinkPreview } from "@/lib/linkpreview.functions"
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
-  URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS,
+  URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS, docExtOf,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
 
@@ -464,6 +464,54 @@ function MenuItem({ icon, label, danger, onClick }: { icon: React.ReactNode; lab
 /* ─── Enhanced Bubble ─── */
 const linkPreviewCache = new Map<string, LinkPreview | null>();
 
+// Full-screen in-app viewer for images and PDFs shared in chat — click to
+// view, rather than every tap immediately triggering a download.
+function MediaViewer({
+  kind, url, name, onClose,
+}: {
+  kind: "image" | "pdf";
+  url: string;
+  name?: string | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[150] flex flex-col bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="flex items-center justify-between px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <span className="truncate text-sm text-white/80">{name || (kind === "pdf" ? "Document" : "Photo")}</span>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => downloadFile(url, name || (kind === "pdf" ? "document.pdf" : "photo.jpg"))}
+            className="grid h-9 w-9 place-items-center rounded-full text-white hover:bg-white/10"
+            aria-label="Download"
+          >
+            <Download className="h-5 w-5" />
+          </button>
+          <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-white hover:bg-white/10" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+        {kind === "image" ? (
+          <img src={url} alt="" className="mx-auto h-full max-h-full w-auto max-w-full object-contain" />
+        ) : (
+          <iframe src={url} title={name || "Document"} className="h-full w-full rounded-lg bg-white" />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   const url = useMemo(() => {
     const re = new RegExp(URL_REGEX.source, URL_REGEX.flags);
@@ -558,6 +606,7 @@ export function Bubble({
 
   const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
@@ -714,7 +763,8 @@ export function Bubble({
                   alt=""
                   loading="lazy"
                   onLoad={() => setImgLoaded(true)}
-                  className={`max-h-72 w-full rounded-lg object-cover transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  onClick={(e) => { e.stopPropagation(); setViewer({ kind: "image", url: msg.media_url!, name: `sona-photo-${msg.id}.jpg` }); }}
+                  className={`max-h-72 w-full cursor-pointer rounded-lg object-cover transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
                 />
                 <button
                   onClick={(e) => {
@@ -734,7 +784,14 @@ export function Bubble({
 
             {msg.kind === "file" && msg.media_url && (
               <button
-                onClick={(e) => { e.stopPropagation(); downloadFile(msg.media_url!, msg.file_name || "file"); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (docExtOf(msg.file_name || "") === ".pdf") {
+                    setViewer({ kind: "pdf", url: msg.media_url!, name: msg.file_name });
+                  } else {
+                    downloadFile(msg.media_url!, msg.file_name || "file");
+                  }
+                }}
                 className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
                   mine
                     ? "border-white/20 bg-white/10 hover:bg-white/15"
@@ -847,6 +904,9 @@ export function Bubble({
         onCopy={handleCopy}
         onClose={() => setContextMenu({ ...contextMenu, open: false })}
       />
+      {viewer && (
+        <MediaViewer kind={viewer.kind} url={viewer.url} name={viewer.name} onClose={() => setViewer(null)} />
+      )}
     </>
   );
 }
@@ -1004,6 +1064,7 @@ export function Composer({
   const [slideY, setSlideY] = useState(0);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const cancelledRef = useRef(false);
   const startedRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -1025,10 +1086,11 @@ export function Composer({
   }, []);
 
   const cancelRecording = useCallback(() => {
-    chunksRef.current = [];
+    cancelledRef.current = true;
     const rec = mediaRef.current;
     if (rec) rec.stop();
-    // cleanup happens in onstop
+    // cleanup + discarding chunks happens in onstop, once we know for sure
+    // no more ondataavailable events are coming
   }, []);
 
   const lockRecording = useCallback(() => {
@@ -1056,16 +1118,18 @@ export function Composer({
         const dur = Date.now() - startedRef.current;
         const blob = new Blob(chunksRef.current, { type: mime });
         stream.getTracks().forEach((t) => t.stop());
-        if (blob.size > 1000 && chunksRef.current.length > 0) {
+        if (!cancelledRef.current && blob.size > 1000 && chunksRef.current.length > 0) {
           onVoiceUploaded(blob, dur);
         }
         chunksRef.current = [];
+        cancelledRef.current = false;
         cleanupRecording();
       };
       startedRef.current = Date.now();
       rec.start();
       mediaRef.current = rec;
       startPosRef.current = { x: clientX, y: clientY };
+      cancelledRef.current = false;
       setRecording(true);
       setLocked(false);
       setSlideX(0);
