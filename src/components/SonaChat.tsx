@@ -1700,16 +1700,53 @@ useEffect(() => {
                       onClick={() => active.is_group && setShowMemberList(true)}
                       className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8] text-left"
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span>{chatTitle(active, me.id)}</span>
-                        {isAIChat(active) && (
-                          <VscVerifiedFilled
-                            className="h-4 w-4 text-blue-500"
-                            aria-label="Verified Sona AI"
-                            title="Verified"
-                          />
-                        )}
-                      </div>
+                      {(() => {
+  const title = chatTitle(active, me.id);
+  const isLong = title.length > 16;
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <span
+        className={`
+          truncate font-black tracking-tight
+          ${isLong 
+            ? "text-[7px]" 
+            : "text-[15px]"
+          }
+          ${isAIChat(active)
+            ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-400"
+            : "text-[#2D3436] dark:text-[#F5F0E8]"
+          }
+        `}
+        title={title}
+      >
+        {title}
+      </span>
+
+      {isAIChat(active) && (
+        <VscVerifiedFilled
+          className="h-4 w-4 text-blue-500 shrink-0 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]"
+          aria-label="Verified Sona AI"
+          title="Verified"
+        />
+      )}
+
+      {active.is_hidden && (
+        <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />
+      )}
+
+      {active.memberRoles[me.id] === "admin" && active.is_group && (
+        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] shrink-0" />
+      )}
+
+      {active.is_group && active.category && active.category !== "general" && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] shrink-0">
+          <CategoryIcon category={active.category} className="h-3 w-3" />
+          {categoryMeta[active.category].label}
+        </span>
+      )}
+    </div>
+  );
+})()}
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
                       {active.memberRoles[me.id] === "admin" && active.is_group && (
                         <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0]" />
@@ -1721,32 +1758,72 @@ useEffect(() => {
                       )}
                     </button>
                     <button
-                      onClick={() => active.is_group && setShowMemberList(true)}
-                      className="truncate text-xs text-[#8C8C8C] text-left w-full"
-                    >
-                      {recordingNames.length > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-[#E07A5F]">
-                          <IoMdMic className="h-3.5 w-3.5 animate-pulse" /> {recordingNames.join(", ")} recording audio…
-                        </span>
-                      ) : typingNames.length > 0 ? (
-                        <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
-                      ) : isAIChat(active) ? (
-                        "Sona AI Ask Away"
-                      ) : active.is_group ? (
-                        active.members.map((m) => m.display_name).join(", ")
-                      ): (() => {
-    const otherId = active.memberIds.find((id) => id !== me.id);
-    const other = otherId ? profilesById[otherId] : undefined;
-    const online = otherId ? onlineIds.has(otherId) : false;
-    return online ? (
-        <span className="flex items-center gap-1">Online</span>
-    ) : other?.last_seen ? (
-        <span>{fmtLastSeen(other.last_seen)}</span>
-    ) : (
-        <span>Offline</span>
-    );
-})()}
-                    </button>
+  onClick={() => active.is_group && setShowMemberList(true)}
+  className="truncate text-xs text-[#8C8C8C] text-left w-full overflow-hidden"
+>
+  {recordingNames.length > 0 ? (
+    <span className="inline-flex items-center gap-1 text-[#E07A5F]">
+      <IoMdMic className="h-3.5 w-3.5 animate-pulse" />
+      {recordingNames.join(", ")} recording audio…
+    </span>
+  ) : typingNames.length > 0 ? (
+    <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
+  ) : isAIChat(active) ? (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+      </span>
+      Sona AI is ready
+    </span>
+  ) : active.is_group ? (
+    <div className="relative flex overflow-hidden w-full">
+      <div className="whitespace-nowrap animate-marquee flex items-center gap-1">
+        <span className="inline-flex items-center gap-1.5 mr-4">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#4ade80]" />
+          {active.members.length} members
+        </span>
+        <span className="opacity-50">•</span>
+        <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
+        <span className="opacity-50">•</span>
+        <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
+      </div>
+    </div>
+  ) : (() => {
+      const otherId = active.memberIds.find((id) => id !== me.id);
+      const other = otherId ? profilesById[otherId] : undefined;
+      const online = otherId ? onlineIds.has(otherId) : false;
+
+      if (online) {
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#4ade80] shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
+            <span className="text-[#4ade80] font-medium">Online</span>
+          </span>
+        );
+      }
+
+      if (other?.last_seen) {
+        const lastSeenDate = new Date(other.last_seen);
+        const minsAgo = Math.floor((Date.now() - lastSeenDate.getTime()) / 60000);
+        const isRecent = minsAgo < 5;
+
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${isRecent ? "bg-[#F4A261]" : "bg-[#8C8C8C]"}`} />
+            <span>{isRecent ? "Active recently" : `Last seen ${fmtTime(lastSeenDate, { addSuffix: true })}`}</span>
+          </span>
+        );
+      }
+
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-[#8C8C8C]/50" />
+          <span>Offline</span>
+        </span>
+      );
+    })()}
+</button>
                   </div>
 
                   {/* Call / Video buttons */}
