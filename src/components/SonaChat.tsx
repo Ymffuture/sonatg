@@ -18,7 +18,7 @@ import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
-
+import { FaSquareThreads } from "react-icons/fa6";
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -242,7 +242,7 @@ function ThreadPanel({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
-      className="absolute inset-0 z-40 flex justify-end bg-black/20"
+      className="absolute inset-0 z-40 flex justify-end bg-black/20 w-full"
       onClick={onClose}
     >
       <motion.div
@@ -254,7 +254,7 @@ function ThreadPanel({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[#E07A5F]/10 px-4 py-3">
-          <h3 className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Thread</h3>
+          <h3 className="text-sm flex gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><FaSquareThreads className ="text-[purple] /> Threads</h3>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close thread">
             <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
           </button>
