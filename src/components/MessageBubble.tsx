@@ -4,6 +4,7 @@ import {
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,
 } from "lucide-react";
+import { RiEmojiStickerLine } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
 import { useServerFn } from "@tanstack/react-start";
@@ -1177,7 +1178,7 @@ export function Composer({
   }, [recording, cancelRecording, lockRecording, finalizeRecording]);
 
   return (
-    <div className="relative chat-pattern px-2 py-2 md:px-4 md:py-3 select-none">
+    <div className="relative chat-pattern px-3 py-3 md:px-4 md:py-3 select-none">
       {showEmoji && (
         <div className="absolute bottom-full left-2 mb-2 grid max-h-56 max-w-xs grid-cols-8 gap-1 overflow-y-auto rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
           {EMOJIS.map((e) => (
@@ -1279,7 +1280,7 @@ export function Composer({
               onClick={() => setShowEmoji((s) => !s)}
               className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition mb-0.5"
             >
-              <Smile className="h-5 w-5" />
+              <RiEmojiStickerLine className="h-5 w-5" />
             </button>
 
             <textarea
@@ -1287,8 +1288,8 @@ export function Composer({
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); } }}
               rows={1}
-              placeholder="Type a message · @sona for AI"
-              className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent text-[15px] outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2"
+              placeholder="Message"
+              className="max-h-36 min-h-[40px] flex-1 resize bg-transparent text-[15px] outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2"
             />
 
             <button
