@@ -1177,7 +1177,7 @@ export function Composer({
   }, [recording, cancelRecording, lockRecording, finalizeRecording]);
 
   return (
-    <div className="relative border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-2 py-2 md:px-4 md:py-3 select-none">
+    <div className="relative border-t border-[#E07A5F]/10 bg-[#000] dark:bg-[#242424] px-2 py-2 md:px-4 md:py-3 select-none">
       {showEmoji && (
         <div className="absolute bottom-full left-2 mb-2 grid max-h-56 max-w-xs grid-cols-8 gap-1 overflow-y-auto rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
           {EMOJIS.map((e) => (
