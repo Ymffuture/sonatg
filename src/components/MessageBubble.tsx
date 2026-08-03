@@ -606,7 +606,7 @@ export function Bubble({
         >
           <Icon className="h-3.5 w-3.5" />
           <span>{label}</span>
-          <span className="opacity-60">· {fmtTime(msg.created_at)}</span>
+          <span className="opacity-60 select-none">· {fmtTime(msg.created_at)}</span>
         </div>
       </div>
     );
@@ -614,7 +614,7 @@ export function Bubble({
 
   return (
     <>
-      <div className={`group flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}>
+      <div className={`group select-none flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}>
         {!mine && isGroup && !grouped && (
           <div className="mb-1">
             <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />
@@ -724,10 +724,10 @@ export function Bubble({
                   aria-label="Download image"
                   className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover/image:opacity-100 hover:bg-black/70 active:scale-95 transition-all"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="h-4 text-purple w-4" />
                 </button>
                 <div className="absolute bottom-1 right-1 rounded bg-black/40 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-                  {fmtTime(msg.created_at)}
+                  <Download className="h-4 text-purple w-4" />
                 </div>
               </div>
             )}
