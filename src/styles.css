@@ -200,3 +200,33 @@ body {
 .typing-dot { animation: typing-bounce 1.2s infinite; }
 .typing-dot:nth-child(2) { animation-delay: 0.15s; }
 .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+
+
+@utility chat-pattern {
+  background-color: var(--color-chat-bg);
+  background-image: url("data:image/svg+xml;utf8,...");
+  background-repeat: repeat;
+  background-size: 300px 300px; /* default / mobile */
+}
+
+/* Tablet */
+@media (min-width: 640px) {
+  .chat-pattern {
+    background-size: 360px 360px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .chat-pattern {
+    background-size: 420px 420px;
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1440px) {
+  .chat-pattern {
+    background-size: 480px 480px;
+  }
+}
