@@ -1259,21 +1259,25 @@ export function Bubble({
         onCopy={handleCopy}
         onClose={() => setContextMenu({ ...contextMenu, open: false })}
       />
+      
       {viewer && (
-  <MediaViewer
-    items={[
-      {
-        kind: viewer.kind,
-        url: viewer.url,
-        name: viewer.name,
-        size: msg.file_size ?? undefined,
-        date: msg.created_at,
-      },
-    ]}
-    initialIndex={0}
-    onClose={() => setViewer(null)}
-  />
-)}
+        <MediaViewer
+          items={[
+            {
+              kind: viewer.kind,
+              url: viewer.url,
+              name: viewer.name,
+              size: msg.file_size ?? undefined,
+              date: msg.created_at,
+            },
+          ]}
+          initialIndex={0}
+          onClose={() => setViewer(null)}
+        />
+      )}
+    </>
+  );
+}
 
 /* ─── Voice Player ─── */
 export function VoicePlayer({
