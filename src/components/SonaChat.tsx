@@ -19,6 +19,7 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import { FaSquareThreads } from "react-icons/fa6";
+import { IoFootstepsOutline } from "react-icons/io5" ;
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1377,8 +1378,8 @@ useEffect(() => {
             onClick={() => setShowHeaderMenu(false)}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <BookOpen className="h-4 w-4 shrink-0" />
-            Learn
+            <IoFootstepsOutline className="h-4 w-4 shrink-0" />
+            How to use SonaTG
           </Link>
 
           <AdminLink onNavigate={() => setShowHeaderMenu(false)} />
@@ -1672,7 +1673,7 @@ useEffect(() => {
           <section className={`${showSidebarMobile ? "hidden" : "flex"} relative h-full min-w-0 flex-1 flex-col md:flex bg-[#F0EBE3] dark:bg-[#1A1A1A]`}>
             {active ? (
               <>
-                <header className="relative flex items-center gap-1 border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-1.5 py-2.5 md:px-4">
+                <header className="relative flex items-center gap-1.5 border-transparent bg-[#FFFDF9] dark:bg-[#242424] px-1.5 py-2.5 md:px-4">
                   <button onClick={closeActiveChat} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
                     <RiArrowLeftWideFill className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
                   </button>
@@ -1688,10 +1689,10 @@ useEffect(() => {
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                     {!!active.disappearing_seconds && (
                       <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[#242424] ring-2 ring-[#FFFDF9] dark:ring-[#242424]"
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[#FFFDF9] ring-2 ring-[#FFFDF9] dark:ring-[#1A1A1A]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
-                        <IoMdTimer className="h-2.8 w-2.8 text-white" />
+                        <IoMdTimer className="h-4 w-4 text-white" />
                       </div>
                     )}
                   </button>
@@ -1740,11 +1741,11 @@ useEffect(() => {
 })()}
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
                       {active.memberRoles[me.id] === "admin" && active.is_group && (
-                        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0]" />
+                        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" title="Admin" />
                       )}
                       {active.is_group && active.category && active.category !== "general" && (
                         <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium text-[#E07A5F] text-transparent bg-clip-text bg-gradient-to-r from-[#E07A5F]/10 to-[#E07A5F]" >
-                          <CategoryIcon category={active.category} className="h-3 w-3" /> {categoryMeta[active.category].label}
+                           {categoryMeta[active.category].label}
                         </span>
                       )}
                     </button>
@@ -1754,14 +1755,14 @@ useEffect(() => {
 >
   {recordingNames.length > 0 ? (
     <span className="inline-flex items-center gap-1 text-[#E07A5F]">
-      <IoMdMic className="h-3.5 w-3.5 animate-pulse" />
+      <IoMdMic className="h-3.5 w-3.5 animate-pulse text-green-600" />
       {recordingNames.join(", ")} recording audio…
     </span>
   ) : typingNames.length > 0 ? (
     <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
   ) : isAIChat(active) ? (
     <span className="inline-flex items-center gap-1.5">   
-      Sona AI is ready
+      Sona AI Ask Anything
     </span>
   ) : active.is_group ? (
     <div className="relative flex overflow-hidden w-full">
