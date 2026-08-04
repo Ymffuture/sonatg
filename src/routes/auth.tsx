@@ -1,11 +1,23 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
   Sparkles, Shield, Zap, CheckCircle2,
 } from "lucide-react";
+
+type AuthMethod = "email" | "google" | "twitter" | "facebook";
+const LAST_USED_KEY = "sona-last-auth-method";
+
+function LastUsed() {
+  return (
+    <span className="ml-2 rounded-full bg-[#E07A5F]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#E07A5F]">
+      Last used
+    </span>
+  );
+}
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -58,6 +70,16 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [lastUsed, setLastUsed] = useState<AuthMethod | null>(null);
+
+  // Remembering the last sign-in method avoids the "which button did I use?"
+  // guessing game that creates duplicate accounts.
+  useEffect(() => {
+    const saved = localStorage.getItem(LAST_USED_KEY);
+    if (saved === "email" || saved === "google" || saved === "twitter" || saved === "facebook") {
+      setLastUsed(saved);
+    }
+  }, []);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -86,10 +108,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        localStorage.setItem(LAST_USED_KEY, "email");
         toast.success("Welcome to Sona");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        localStorage.setItem(LAST_USED_KEY, "email");
       }
     } catch (err) {
       toast.error((err as Error).message);
@@ -101,6 +125,7 @@ function AuthPage() {
   const oauth = async (provider: "google" | "twitter" | "facebook") => {
     setLoading(true);
     try {
+      localStorage.setItem(LAST_USED_KEY, provider);
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -151,7 +176,11 @@ function AuthPage() {
       </div>
 
       {/* Main glass card */}
-      <div className="relative w-full max-w-5xl rounded-[2rem] bg-white/60 dark:bg-[#242424]/60 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-2xl overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-5xl rounded-[2rem] bg-white/60 dark:bg-[#242424]/60 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-2xl overflow-hidden">
         <div className="grid lg:grid-cols-5 min-h-[640px]">
           
           {/* Left panel — Branding */}
@@ -215,16 +244,30 @@ function AuthPage() {
 </div>
             </div>
 
-            <div className="mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#2D3436] dark:text-[#E8E8E8]">
-                {mode === "signin" ? "Welcome back" : "Create account"}
-              </h2>
-              <p className="mt-2 text-sm text-[#8C8C8C]">
-                {mode === "signin" 
-                  ? "Sign in to continue your conversations." 
-                  : "Join the community and start talking gold."}
-              </p>
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mode}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="mb-8"
+              >
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#2D3436] dark:text-[#E8E8E8]">
+                  {mode === "signin" ? "Welcome back" : "Create account"}
+                </h2>
+                <p className="mt-2 text-sm text-[#8C8C8C]">
+                  {mode === "signin"
+                    ? "Sign in to continue your conversations."
+                    : "Join the community and start talking gold."}
+                </p>
+                {lastUsed === "email" && mode === "signin" && (
+                  <p className="mt-3 inline-flex items-center rounded-full bg-[#E07A5F]/10 px-3 py-1 text-xs text-[#E07A5F]">
+                    You last signed in with your email
+                  </p>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
             <form onSubmit={submit} className="space-y-3">
               {mode === "signup" && (
@@ -318,6 +361,7 @@ function AuthPage() {
               >
                 <GoogleIcon />
                 <span>Continue with Google</span>
+                {lastUsed === "google" && <LastUsed />}
               </button>
 
               <button
@@ -327,6 +371,7 @@ function AuthPage() {
               >
                 <XIcon className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8] transition group-hover:text-black dark:group-hover:text-white" />
                 <span>Continue with X</span>
+                {lastUsed === "twitter" && <LastUsed />}
               </button>
 
               <button
@@ -336,6 +381,7 @@ function AuthPage() {
               >
                 <FacebookIcon className="h-4 w-4 text-[#1877F2] transition group-hover:scale-110" />
                 <span>Continue with Facebook</span>
+                {lastUsed === "facebook" && <LastUsed />}
               </button>
             </div>
 
@@ -360,7 +406,7 @@ function AuthPage() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <style>{`
         @keyframes float {
