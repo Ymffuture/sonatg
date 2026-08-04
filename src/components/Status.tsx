@@ -278,6 +278,8 @@ export function StatusComposer({
   const [posting, setPosting] = useState(false);
   const [privacy, setPrivacy] = useState<StatusPrivacy>("contacts");
   const [mediaLoading, setMediaLoading] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
@@ -287,6 +289,7 @@ export function StatusComposer({
   }, []);
 
   const maxBytes = STATUS_MAX_BYTES_SUPABASE;
+
 
   const pickFile = async (f: File | null, kind: "image" | "video") => {
     if (!f) return;
