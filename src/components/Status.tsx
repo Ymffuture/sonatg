@@ -265,7 +265,37 @@ function StatusCardBackground({ status }: { status: StatusRow }) {
   );
 }
 
+/* ─── Upload with progress ────────────────────────────────────
+   supabase-js gives no upload progress, so we mint a signed upload URL and
+   PUT the file with XHR, which does report progress events. */
+async function uploadWithProgress(
+  path: string,
+  file: File,
+  onProgress: (pct: number) => void
+): Promise<void> {
+  const { data, error } = await supabase.storage.from("statuses").createSignedUploadUrl(path);
+  if (error || !data?.signedUrl) throw error ?? new Error("Couldn't start the upload");
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", data.signedUrl, true);
+    if (file.type) xhr.setRequestHeader("content-type", file.type);
+    xhr.setRequestHeader("x-upsert", "true");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Upload failed (${xhr.status}). Check your connection and try again.`));
+    xhr.onerror = () => reject(new Error("Network error while uploading — check your connection."));
+    xhr.onabort = () => reject(new Error("Upload cancelled"));
+    xhr.send(file);
+  });
+}
+
 /* ─── Composer ────────────────────────────────────────────────── */
+
 export function StatusComposer({
   meId, onClose, onPosted,
 }: {
