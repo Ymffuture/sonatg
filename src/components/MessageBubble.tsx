@@ -1259,7 +1259,16 @@ export function Bubble({
         onClose={() => setContextMenu({ ...contextMenu, open: false })}
       />
       {viewer && (
-        <MediaViewer kind={viewer.kind} url={viewer.url} name={viewer.name} onClose={() => setViewer(null)} />
+        <MediaViewer
+  items={messages.filter(m => m.kind === "image").map(m => ({
+    kind: "image",
+    url: m.media_url!,
+    name: m.file_name,
+    size: m.file_size,
+  }))}
+  initialIndex={2}
+  onClose={() => setGalleryOpen(false)}
+/>
       )}
     </>
   );
