@@ -935,7 +935,7 @@ return (
     </div>
   </a>
 );
-
+} 
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions, onTranscribed,
