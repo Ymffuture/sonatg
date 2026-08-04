@@ -939,7 +939,7 @@ return (
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions, onTranscribed,
-  replyCount, onOpenThread,
+  replyCount, onOpenThread,allImages, 
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -951,6 +951,7 @@ export function Bubble({
   onTranscribed?: (messageId: string, transcript: string) => void;
   replyCount?: number;
   onOpenThread?: () => void;
+  allImages?: MediaItem[];
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1259,20 +1260,20 @@ export function Bubble({
         onClose={() => setContextMenu({ ...contextMenu, open: false })}
       />
       {viewer && (
-        <MediaViewer
-  items={messages.filter(m => m.kind === "image").map(m => ({
-    kind: "image",
-    url: m.media_url!,
-    name: m.file_name,
-    size: m.file_size,
-  }))}
-  initialIndex={2}
-  onClose={() => setGalleryOpen(false)}
-/>
-      )}
-    </>
-  );
-}
+  <MediaViewer
+    items={[
+      {
+        kind: viewer.kind,
+        url: viewer.url,
+        name: viewer.name,
+        size: msg.file_size ?? undefined,
+        date: msg.created_at,
+      },
+    ]}
+    initialIndex={0}
+    onClose={() => setViewer(null)}
+  />
+)}
 
 /* ─── Voice Player ─── */
 export function VoicePlayer({
