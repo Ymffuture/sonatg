@@ -1069,8 +1069,8 @@ export function Bubble({
             onClick={onToggleActions}
             className={`relative cursor-pointer select-text px-3 py-1.5 shadow-sm ${bubbleRadius} ${
               mine
-                ? "bg-[#E07A5F]/20 dark:bg-gray-500 text-white"
-                : "bg-white/20 dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+                ? "bg-[#1E1E1E] dark:bg-gray-600 text-white"
+                : "bg-white/5 dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             }`}
           >
             {!mine && !grouped && (isAI || isGroup) && (
@@ -1099,7 +1099,7 @@ export function Bubble({
                   mine ? "bg-black/10" : "bg-[#F5F0E8] dark:bg-white/5"
                 }`}
               >
-                <div className="font-semibold text-[#E07A5F] text-[11px]">{parentName}</div>
+                <div className="font-semibold italic text-[#E07A5F] text-[11px]">{parentName}</div>
                 <div className="truncate opacity-80 max-w-[240px] leading-tight">{parentBody}</div>
               </div>
             )}
@@ -1109,7 +1109,7 @@ export function Bubble({
                 {!imgLoaded && (
                   <div className="absolute inset-0 z-10 rounded-lg overflow-hidden bg-[#F5F0E8] dark:bg-[#2A2A2A] flex items-center justify-center">
                     <Skeleton.Node active className="!w-full !h-full !rounded-lg">
-                      <ImageIcon className="h-8 w-8 text-[#8C8C8C]" />
+                      <ImageIcon className="h-10 w-10 text-[#8C8C8C]" />
                     </Skeleton.Node>
                   </div>
                 )}
@@ -1124,7 +1124,7 @@ export function Bubble({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    downloadFile(msg.media_url!, `sona-photo-${msg.id}.jpg`);
+                    downloadFile(msg.media_url!, `SonaTG-photo-${msg.id}.jpg`);
                   }}
                   aria-label="Download image"
                   className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover/image:opacity-100 hover:bg-black/70 active:scale-95 transition-all"
