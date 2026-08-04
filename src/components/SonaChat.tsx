@@ -1707,13 +1707,13 @@ useEffect(() => {
     <div className="flex items-center gap-1.5 min-w-0">
       <span
         className={`
-          truncate font-black tracking-tight
+          truncate text-sm tracking-tight
           ${isLong 
-            ? "text-[7px]" 
+            ? "text-[10px]" 
             : "text-[15px]"
           }
           ${isAIChat(active)
-            ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-400"
+            ? ""
             : "text-[#2D3436] dark:text-[#F5F0E8]"
           }
         `}
@@ -1743,7 +1743,7 @@ useEffect(() => {
                         <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0]" />
                       )}
                       {active.is_group && active.category && active.category !== "general" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-medium text-[#E07A5F]">
+                        <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium text-[#E07A5F] text-transparent bg-clip-text bg-gradient-to-r from-[#E07A5F]/10 to-[#E07A5F]" >
                           <CategoryIcon category={active.category} className="h-3 w-3" /> {categoryMeta[active.category].label}
                         </span>
                       )}
@@ -1760,11 +1760,7 @@ useEffect(() => {
   ) : typingNames.length > 0 ? (
     <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
   ) : isAIChat(active) ? (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
-      </span>
+    <span className="inline-flex items-center gap-1.5">   
       Sona AI is ready
     </span>
   ) : active.is_group ? (
@@ -1785,7 +1781,7 @@ useEffect(() => {
       if (online) {
         return (
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#4ade80] shadow-[0_0_6px_rgba(74,222,128,0.6)]" />
+          
             <span className="text-[#4ade80] font-medium">Online</span>
           </span>
         );
@@ -1798,16 +1794,13 @@ useEffect(() => {
 
         return (
           <span className="inline-flex items-center gap-1.5">
-            
-            
-                    <span>{fmtLastSeen(other.last_seen)}</span>
+          <span>{fmtLastSeen(other.last_seen)}</span>
           </span>
         );
       }
 
       return (
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#8C8C8C]/50" />
           <span>Offline</span>
         </span>
       );
