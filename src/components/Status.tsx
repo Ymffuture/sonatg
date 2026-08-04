@@ -328,12 +328,13 @@ export function StatusComposer({
       return;
     }
     setPosting(true);
+    setFailed(null);
 
     try {
       let media_url: string | null = null;
       let media_path: string | null = null;
-      let media_provider: "supabase" | "cloudinary" = "supabase";
-      let media_public_id: string | null = null;
+      const media_provider: "supabase" | "cloudinary" = "supabase";
+      const media_public_id: string | null = null;
       let duration_ms: number | null = null;
 
       if (file) {
@@ -343,10 +344,11 @@ export function StatusComposer({
         // non-ASCII characters, which was silently breaking most uploads.
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
         const path = `${meId}/${crypto.randomUUID()}-${safeName}`;
-        const { error: upErr } = await supabase.storage
-          .from("statuses")
-          .upload(path, file, { contentType: file.type || undefined, cacheControl: "3600", upsert: false });
-        if (upErr) throw upErr;
+
+        setProgress(0);
+        await uploadWithProgress(path, file, setProgress);
+        setProgress(100);
+
         const { data: signed } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60 * 25);
         media_url = signed?.signedUrl ?? null;
         media_path = path;
@@ -372,11 +374,19 @@ export function StatusComposer({
       onClose();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
+      setFailed(explained.explanation || explained.title);
+      notification.error({
+        message: explained.title,
+        description: `${explained.explanation} — tap Retry to try again.`,
+        placement: "top",
+        duration: 6,
+      });
     } finally {
+      setProgress(null);
       setPosting(false);
     }
   };
+
 
   return (
     <div
