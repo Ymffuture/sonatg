@@ -1702,7 +1702,7 @@ useEffect(() => {
                     >
                       {(() => {
   const title = chatTitle(active, me.id);
-  const isLong = title.length > 16;
+  const isLong = title.length > 24;
   return (
     <div className="flex items-center gap-1.5 min-w-0">
       <span
