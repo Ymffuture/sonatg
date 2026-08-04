@@ -575,6 +575,38 @@ export function StatusComposer({
             ))}
           </div>
         </div>
+        {progress !== null && (
+          <div className="mb-3">
+            <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold" style={{ color: WA.grayLight }}>
+              <span>{progress < 100 ? "Uploading…" : "Finishing up…"}</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: WA.darkElevated }}>
+              <div
+                className="h-full rounded-full transition-all duration-200"
+                style={{ width: `${progress}%`, backgroundColor: WA.green }}
+              />
+            </div>
+          </div>
+        )}
+
+        {failed && !posting && (
+          <div
+            className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5"
+            style={{ backgroundColor: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+            <p className="flex-1 text-[11px] leading-snug text-red-300">{failed}</p>
+            <button
+              onClick={post}
+              className="flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold"
+              style={{ backgroundColor: WA.green, color: "#000" }}
+            >
+              <RotateCw className="h-3 w-3" /> Retry
+            </button>
+          </div>
+        )}
+
         <button
           onClick={post}
           disabled={posting}
@@ -582,8 +614,9 @@ export function StatusComposer({
           style={{ backgroundColor: WA.green, color: "#000" }}
         >
           {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {posting ? "Posting…" : "Post status"}
+          {posting ? (progress !== null ? `Uploading ${progress}%` : "Posting…") : failed ? "Try again" : "Post status"}
         </button>
+
       </div>
     </div>
   );
