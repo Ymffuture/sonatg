@@ -18,6 +18,7 @@ import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
+import { pushBackLayer } from "@/hooks/useBackStack";
 import { FaSquareThreads } from "react-icons/fa6";
 import { IoFootstepsOutline } from "react-icons/io5" ;
 /* Shows an "Admin console" entry only for accounts with the admin role. */
@@ -378,36 +379,22 @@ function SonaChatInner() {
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
 
   // Let the device/browser "back" gesture close an open chat (return to the
-  // chat list) instead of leaving the app entirely. We push one history
-  // entry the moment a chat is opened; a back press then just pops that
-  // entry, which our popstate handler turns into "show the chat list".
-  const chatViewPushedRef = useRef(false);
+  // chat list) instead of leaving the app entirely. Uses the shared
+  // back-navigation stack (src/hooks/useBackStack.ts) — critically, the
+  // SAME stack modals use, so closing a modal opened on top of a chat only
+  // ever pops the modal's own layer, never this one underneath it.
+  const popChatLayerRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (!showSidebarMobile && !chatViewPushedRef.current) {
-      window.history.pushState({ sonaChatView: true }, "");
-      chatViewPushedRef.current = true;
-    } else if (showSidebarMobile && chatViewPushedRef.current) {
-      chatViewPushedRef.current = false;
+    if (!showSidebarMobile) {
+      popChatLayerRef.current = pushBackLayer(() => setShowSidebarMobile(true));
+      return () => { popChatLayerRef.current?.(); popChatLayerRef.current = null; };
     }
   }, [showSidebarMobile]);
-  useEffect(() => {
-    const onPopState = () => {
-      if (chatViewPushedRef.current) {
-        chatViewPushedRef.current = false;
-        setShowSidebarMobile(true);
-      }
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-  // Close a chat the same way a device back-press would, so the pushed
-  // history entry above always stays in sync (no leftover dummy entries).
+  // Close a chat the same way a device back-press would — just flips the
+  // state; the effect's cleanup above consumes the shared history layer
+  // automatically, whether closed this way or via a real back press.
   const closeActiveChat = useCallback(() => {
-    if (chatViewPushedRef.current) {
-      window.history.back();
-    } else {
-      setShowSidebarMobile(true);
-    }
+    setShowSidebarMobile(true);
   }, []);
 
   const [showNewChat, setShowNewChat] = useState(false);
@@ -795,7 +782,7 @@ function SonaChatInner() {
     for (const c of chats) for (const m of c.members) map[m.id] = m;
     return map;
   }, [chats, me]);
-  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned" | "customize">("all");
+  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned">("all");
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
     if (!c.is_group) {
@@ -1741,7 +1728,7 @@ useEffect(() => {
 })()}
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
                       {active.memberRoles[me.id] === "admin" && active.is_group && (
-                        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" aria-label="Admin" />
+                        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" title="Admin" />
                       )}
                       {active.is_group && active.category && active.category !== "general" && (
                         <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium text-[#E07A5F] text-transparent bg-clip-text bg-gradient-to-r from-[#E07A5F]/10 to-[#E07A5F]" >
