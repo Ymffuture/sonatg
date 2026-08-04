@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-  X, Plus, Type, Image as ImageIcon, Video, Send, Eye, Trash2, Loader2,
+  X, Plus, Type, Image as ImageIcon, Video, Send, Eye, Trash2, Loader2, AlertCircle, RotateCw,
 } from "lucide-react";
 import { Skeleton, Badge, notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
@@ -422,7 +422,6 @@ export function StatusComposer({
     <div
       className="fixed inset-0 z-[70] flex flex-col"
       style={{ backgroundColor: WA.darkBg }}
-      onClick={onClose}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4" onClick={(e) => e.stopPropagation()}>
