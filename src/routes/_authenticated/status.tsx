@@ -233,7 +233,7 @@ function StatusPage() {
               <a
                 key={n.url}
                 href={n.url}
-                target="_blank"
+                target="sona-news"
                 rel="noopener noreferrer"
                 className="group flex gap-3.5 overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E1E] p-3 transition-all duration-200 hover:shadow-md border border-transparent hover:border-[#E07A5F]/10"
               >
