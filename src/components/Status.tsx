@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-  X, Plus, Type, Image as ImageIcon, Video, Send, Eye, Trash2, Loader2,
+  X, Plus, Type, Image as ImageIcon, Video, Send, Eye, Trash2, Loader2, AlertCircle, RotateCw,
 } from "lucide-react";
 import { Skeleton, Badge, notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
@@ -265,7 +265,37 @@ function StatusCardBackground({ status }: { status: StatusRow }) {
   );
 }
 
+/* ─── Upload with progress ────────────────────────────────────
+   supabase-js gives no upload progress, so we mint a signed upload URL and
+   PUT the file with XHR, which does report progress events. */
+async function uploadWithProgress(
+  path: string,
+  file: File,
+  onProgress: (pct: number) => void
+): Promise<void> {
+  const { data, error } = await supabase.storage.from("statuses").createSignedUploadUrl(path);
+  if (error || !data?.signedUrl) throw error ?? new Error("Couldn't start the upload");
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", data.signedUrl, true);
+    if (file.type) xhr.setRequestHeader("content-type", file.type);
+    xhr.setRequestHeader("x-upsert", "true");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Upload failed (${xhr.status}). Check your connection and try again.`));
+    xhr.onerror = () => reject(new Error("Network error while uploading — check your connection."));
+    xhr.onabort = () => reject(new Error("Upload cancelled"));
+    xhr.send(file);
+  });
+}
+
 /* ─── Composer ────────────────────────────────────────────────── */
+
 export function StatusComposer({
   meId, onClose, onPosted,
 }: {
@@ -278,6 +308,8 @@ export function StatusComposer({
   const [posting, setPosting] = useState(false);
   const [privacy, setPrivacy] = useState<StatusPrivacy>("contacts");
   const [mediaLoading, setMediaLoading] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
@@ -287,6 +319,7 @@ export function StatusComposer({
   }, []);
 
   const maxBytes = STATUS_MAX_BYTES_SUPABASE;
+
 
   const pickFile = async (f: File | null, kind: "image" | "video") => {
     if (!f) return;
@@ -325,12 +358,13 @@ export function StatusComposer({
       return;
     }
     setPosting(true);
+    setFailed(null);
 
     try {
       let media_url: string | null = null;
       let media_path: string | null = null;
-      let media_provider: "supabase" | "cloudinary" = "supabase";
-      let media_public_id: string | null = null;
+      const media_provider: "supabase" | "cloudinary" = "supabase";
+      const media_public_id: string | null = null;
       let duration_ms: number | null = null;
 
       if (file) {
@@ -340,10 +374,11 @@ export function StatusComposer({
         // non-ASCII characters, which was silently breaking most uploads.
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
         const path = `${meId}/${crypto.randomUUID()}-${safeName}`;
-        const { error: upErr } = await supabase.storage
-          .from("statuses")
-          .upload(path, file, { contentType: file.type || undefined, cacheControl: "3600", upsert: false });
-        if (upErr) throw upErr;
+
+        setProgress(0);
+        await uploadWithProgress(path, file, setProgress);
+        setProgress(100);
+
         const { data: signed } = await supabase.storage.from("statuses").createSignedUrl(path, 60 * 60 * 25);
         media_url = signed?.signedUrl ?? null;
         media_path = path;
@@ -369,17 +404,24 @@ export function StatusComposer({
       onClose();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
+      setFailed(explained.explanation || explained.title);
+      notification.error({
+        message: explained.title,
+        description: `${explained.explanation} — tap Retry to try again.`,
+        placement: "top",
+        duration: 6,
+      });
     } finally {
+      setProgress(null);
       setPosting(false);
     }
   };
+
 
   return (
     <div
       className="fixed inset-0 z-[70] flex flex-col"
       style={{ backgroundColor: WA.darkBg }}
-      onClick={onClose}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4" onClick={(e) => e.stopPropagation()}>
@@ -532,6 +574,38 @@ export function StatusComposer({
             ))}
           </div>
         </div>
+        {progress !== null && (
+          <div className="mb-3">
+            <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold" style={{ color: WA.grayLight }}>
+              <span>{progress < 100 ? "Uploading…" : "Finishing up…"}</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: WA.darkElevated }}>
+              <div
+                className="h-full rounded-full transition-all duration-200"
+                style={{ width: `${progress}%`, backgroundColor: WA.green }}
+              />
+            </div>
+          </div>
+        )}
+
+        {failed && !posting && (
+          <div
+            className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5"
+            style={{ backgroundColor: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+            <p className="flex-1 text-[11px] leading-snug text-red-300">{failed}</p>
+            <button
+              onClick={post}
+              className="flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold"
+              style={{ backgroundColor: WA.green, color: "#000" }}
+            >
+              <RotateCw className="h-3 w-3" /> Retry
+            </button>
+          </div>
+        )}
+
         <button
           onClick={post}
           disabled={posting}
@@ -539,8 +613,9 @@ export function StatusComposer({
           style={{ backgroundColor: WA.green, color: "#000" }}
         >
           {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {posting ? "Posting…" : "Post status"}
+          {posting ? (progress !== null ? `Uploading ${progress}%` : "Posting…") : failed ? "Try again" : "Post status"}
         </button>
+
       </div>
     </div>
   );
