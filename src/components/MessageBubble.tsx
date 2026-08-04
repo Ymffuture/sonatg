@@ -1069,8 +1069,8 @@ export function Bubble({
             onClick={onToggleActions}
             className={`relative cursor-pointer select-text px-3 py-1.5 shadow-sm ${bubbleRadius} ${
               mine
-                ? "bg-[#E07A5F] text-white"
-                : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+                ? "bg-[#E07A5F] dark:bg-blue-500 text-white"
+                : "bg-white/10 dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             }`}
           >
             {!mine && !grouped && (isAI || isGroup) && (
