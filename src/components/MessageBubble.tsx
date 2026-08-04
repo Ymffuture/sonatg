@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-  Download, Reply, Pencil, SmilePlus, Trash2, Copy, Check,
+  Download, Reply,Globe, ExternalLink, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
-  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,
+  File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
+  Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2,
+  FileText, 
 } from "lucide-react";
+import { toast } from "sonner";
+
 import { RiEmojiStickerLine } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
@@ -16,7 +20,7 @@ import {
   URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS, docExtOf,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
-
+import { LuCalendarClock } from "react-icons/lu";
 type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
 function parseCallLogMeta(raw: string | null): CallLogMeta {
   try {
@@ -467,51 +471,349 @@ const linkPreviewCache = new Map<string, LinkPreview | null>();
 
 // Full-screen in-app viewer for images and PDFs shared in chat — click to
 // view, rather than every tap immediately triggering a download.
-function MediaViewer({
-  kind, url, name, onClose,
-}: {
+
+type MediaItem = {
   kind: "image" | "pdf";
   url: string;
   name?: string | null;
+  size?: number;
+  date?: string;
+};
+
+export function MediaViewer({
+  items,
+  initialIndex = 0,
+  onClose,
+}: {
+  items: MediaItem[];
+  initialIndex?: number;
   onClose: () => void;
 }) {
+  const [index, setIndex] = useState(initialIndex);
+  const [loading, setLoading] = useState(true);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [showInfo, setShowInfo] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [entering, setEntering] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const current = items[index];
+  const isFirst = index === 0;
+  const isLast = index === items.length - 1;
+  const isZoomed = scale > 1;
+
+  // Entry animation
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const t = setTimeout(() => setEntering(false), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+      if (e.key === "ArrowLeft" && !isZoomed) prev();
+      if (e.key === "ArrowRight" && !isZoomed) next();
+      if (e.key === "+" || e.key === "=") zoomIn();
+      if (e.key === "-") zoomOut();
+      if (e.key === "0") resetZoom();
+      if (e.key === "i") setShowInfo((v) => !v);
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+  }, [isZoomed, index, items.length]);
+
+  const handleClose = useCallback(() => {
+    setEntering(true);
+    setTimeout(onClose, 200);
   }, [onClose]);
+
+  const prev = () => !isFirst && setIndex((i) => i - 1);
+  const next = () => !isLast && setIndex((i) => i + 1);
+
+  const zoomIn = () => setScale((s) => Math.min(s * 1.25, 5));
+  const zoomOut = () => setScale((s) => Math.max(s / 1.25, 0.5));
+  const resetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // Wheel zoom
+  const onWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    if (e.deltaY < 0) zoomIn();
+    else zoomOut();
+  }, []);
+
+  // Drag to pan
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (!isZoomed) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !isZoomed) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y,
+    });
+  };
+  const onMouseUp = () => setIsDragging(false);
+
+  // Touch swipe + pinch
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && touchStartRef.current && !isZoomed) {
+      const dx = e.touches[0].clientX - touchStartRef.current.x;
+      if (Math.abs(dx) > 60) {
+        touchStartRef.current = null;
+        dx > 0 ? prev() : next();
+      }
+    }
+  };
+  const onTouchEnd = () => {
+    touchStartRef.current = null;
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(current.url);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy");
+    }
+  };
+
+  const nativeShare = async () => {
+    try {
+      await navigator.share({
+        title: current.name || "Shared from Sona",
+        url: current.url,
+      });
+    } catch {
+      copyLink();
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   return (
     <div
-      className="fixed inset-0 z-[150] flex flex-col bg-black/90 backdrop-blur-sm"
-      onClick={onClose}
+      ref={containerRef}
+      className={`fixed inset-0 z-[150] flex flex-col transition-all duration-300 ${
+        entering ? "opacity-0 scale-[1.02]" : "opacity-100 scale-100"
+      }`}
+      style={{ background: "rgba(10,10,14,0.92)", backdropFilter: "blur(24px) saturate(1.2)" }}
+      onClick={handleClose}
     >
-      <div className="flex items-center justify-between px-4 py-3" onClick={(e) => e.stopPropagation()}>
-        <span className="truncate text-sm text-white/80">{name || (kind === "pdf" ? "Document" : "Photo")}</span>
-        <div className="flex items-center gap-1 shrink-0">
+      {/* ─── Glass Header ─── */}
+      <div
+        className="relative z-10 mx-3 mt-3 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {/* File icon */}
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10">
+            {current.kind === "image" ? (
+              <ImageIcon className="h-4 w-4 text-[#E07A5F]" />
+            ) : (
+              <FileText className="h-4 w-4 text-[#4FA6E0]" />
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white/90">
+              {current.name || (current.kind === "pdf" ? "Document" : "Photo")}
+            </p>
+            <p className="text-[11px] text-white/40">
+              {index + 1} of {items.length}
+              {current.size && ` · ${formatBytes(current.size)}`}
+              {current.date && ` · ${fmtTime(current.date)}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          {current.kind === "image" && (
+            <>
+              <button onClick={zoomOut} disabled={scale <= 0.5} className="tool-btn" aria-label="Zoom out">
+                <ZoomOut className="h-4 w-4" />
+              </button>
+              <span className="min-w-[3ch] text-center text-[11px] font-mono text-white/50">
+                {Math.round(scale * 100)}%
+              </span>
+              <button onClick={zoomIn} disabled={scale >= 5} className="tool-btn" aria-label="Zoom in">
+                <ZoomIn className="h-4 w-4" />
+              </button>
+              <button onClick={resetZoom} disabled={scale === 1} className="tool-btn" aria-label="Reset">
+                <RotateCcw className="h-4 w-4" />
+              </button>
+              <div className="mx-1 h-4 w-px bg-white/10" />
+            </>
+          )}
+
+          <button onClick={nativeShare} className="tool-btn" aria-label="Share">
+            <Share2 className="h-4 w-4" />
+          </button>
+          <button onClick={copyLink} className="tool-btn" aria-label="Copy link">
+            <Link2 className="h-4 w-4" />
+          </button>
           <button
-            onClick={() => downloadFile(url, name || (kind === "pdf" ? "document.pdf" : "photo.jpg"))}
-            className="grid h-9 w-9 place-items-center rounded-full text-white hover:bg-white/10"
+            onClick={() => downloadFile(current.url, current.name || (current.kind === "pdf" ? "document.pdf" : "photo.jpg"))}
+            className="tool-btn"
             aria-label="Download"
           >
-            <Download className="h-5 w-5" />
+            <Download className="h-4 w-4" />
           </button>
-          <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-white hover:bg-white/10" aria-label="Close">
-            <X className="h-5 w-5" />
+          <button onClick={toggleFullscreen} className="tool-btn" aria-label="Fullscreen">
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+          <div className="mx-1 h-4 w-px bg-white/10" />
+          <button onClick={handleClose} className="tool-btn hover:bg-red-500/20 hover:text-red-400" aria-label="Close">
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-4 pb-4" onClick={(e) => e.stopPropagation()}>
-        {kind === "image" ? (
-          <img src={url} alt="" className="mx-auto h-full max-h-full w-auto max-w-full object-contain" />
+      {/* ─── Main Content ─── */}
+      <div
+        className="relative flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isZoomed) handleClose();
+        }}
+        onWheel={onWheel}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Loading */}
+        {loading && (
+          <div className="absolute inset-0 grid place-items-center">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+              <span className="text-xs text-white/30">Loading…</span>
+            </div>
+          </div>
+        )}
+
+        {/* Image */}
+        {current.kind === "image" ? (
+          <img
+            ref={imageRef}
+            src={current.url}
+            alt=""
+            draggable={false}
+            className={`absolute inset-0 m-auto max-h-full max-w-full object-contain transition-transform duration-100 ease-out select-none ${
+              isDragging ? "" : "transition-transform"
+            } ${loading ? "opacity-0" : "opacity-100"}`}
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            }}
+            onLoad={() => setLoading(false)}
+          />
         ) : (
-          <iframe src={url} title={name || "Document"} className="h-full w-full rounded-lg bg-white" />
+          /* PDF */
+          <div className="absolute inset-4 rounded-xl overflow-hidden border border-white/10 bg-white shadow-2xl">
+            <iframe
+              src={current.url}
+              title={current.name || "Document"}
+              className="h-full w-full"
+              onLoad={() => setLoading(false)}
+            />
+          </div>
+        )}
+
+        {/* Navigation arrows */}
+        {!isZoomed && items.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); prev(); }}
+              disabled={isFirst}
+              className={`absolute left-4 top-1/2 -translate-y-1/2 grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-white/5 backdrop-blur-xl text-white transition-all hover:bg-white/10 hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${entering ? "" : "animate-in fade-in slide-in-from-left-4"}`}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); next(); }}
+              disabled={isLast}
+              className={`absolute right-4 top-1/2 -translate-y-1/2 grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-white/5 backdrop-blur-xl text-white transition-all hover:bg-white/10 hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${entering ? "" : "animate-in fade-in slide-in-from-right-4"}`}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        )}
+
+        {/* Info panel */}
+        {showInfo && (
+          <div className="absolute right-4 top-20 w-64 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-3">Details</h4>
+            <div className="space-y-2 text-sm text-white/70">
+              <div className="flex justify-between"><span className="text-white/40">Name</span><span className="truncate max-w-[120px]">{current.name || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-white/40">Type</span><span className="capitalize">{current.kind}</span></div>
+              {current.size && <div className="flex justify-between"><span className="text-white/40">Size</span><span>{formatBytes(current.size)}</span></div>}
+              {current.date && <div className="flex justify-between"><span className="text-white/40">Date</span><span>{fmtTime(current.date)}</span></div>}
+              <div className="flex justify-between"><span className="text-white/40">URL</span><button onClick={copyLink} className="text-[#E07A5F] hover:underline">Copy</button></div>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* ─── Bottom Thumbnail Strip ─── */}
+      {items.length > 1 && (
+        <div
+          className="relative z-10 mx-auto mb-4 flex max-w-[90%] gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-white/5 p-2 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] scrollbar-hide"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {items.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => { setIndex(i); resetZoom(); setLoading(true); }}
+              className={`relative shrink-0 overflow-hidden rounded-xl transition-all ${
+                i === index
+                  ? "ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-black/50 scale-105"
+                  : "opacity-50 hover:opacity-80"
+              }`}
+            >
+              {item.kind === "image" ? (
+                <img src={item.url} alt="" className="h-14 w-14 object-cover" />
+              ) : (
+                <div className="grid h-14 w-14 place-items-center bg-white/10">
+                  <FileText className="h-5 w-5 text-white/50" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+
+// Or inline the class if you prefer:
+const toolBtnClass = "grid h-8 w-8 place-items-center rounded-lg text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none";
 
 function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   const url = useMemo(() => {
@@ -550,38 +852,89 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   // Nothing worth showing (blocked host, non-HTML resource with no title, fetch failed, etc).
   if (!preview || (!preview.title && !preview.description && !preview.image)) return null;
 
-  return (
-    <a
-      href={preview.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`mb-1.5 block max-w-[280px] overflow-hidden rounded-xl border transition hover:opacity-90 ${
-        mine ? "border-white/20 bg-white/10" : "border-[#E07A5F]/15 bg-black/[0.02] dark:bg-white/5"
-      }`}
-    >
-      {preview.image && (
-        <img src={preview.image} alt="" className="h-32 w-full object-cover" loading="lazy" />
-      )}
-      <div className="px-3 py-2">
-        {preview.siteName && (
-          <p className={`text-[10px] uppercase tracking-wide ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
+  
+return (
+  <a
+    href={preview.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    className={`
+      group mb-2 block max-w-[320px] overflow-hidden rounded-2xl border
+      transition-all duration-200 ease-out
+      hover:-translate-y-0.5 hover:shadow-lg
+      active:scale-[0.99] active:shadow-md
+      ${
+        mine
+          ? "border-white/15 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:bg-white/[0.12]"
+          : "border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-[#E07A5F]/20 dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+      }
+    `}
+  >
+    {/* Image with gradient overlay */}
+    {preview.image && (
+      <div className="relative h-36 w-full overflow-hidden">
+        <img
+          src={preview.image}
+          alt=""
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          loading="lazy"
+        />
+        <div
+          className={`absolute inset-0 bg-gradient-to-t ${
+            mine ? "from-black/30" : "from-black/10 dark:from-black/20"
+          } to-transparent`}
+        />
+        {/* External link badge */}
+        <div className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/30 backdrop-blur-md opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <ExternalLink className="h-3.5 w-3.5 text-white" />
+        </div>
+      </div>
+    )}
+
+    {/* Content */}
+    <div className="px-3.5 py-2.5">
+      {/* Site name with favicon placeholder */}
+      {preview.siteName && (
+        <div className={`mb-1 flex items-center gap-1.5 ${mine ? "text-white/50" : "text-[#8C8C8C]"}`}>
+          <Globe className="h-3 w-3 shrink-0 opacity-60" />
+          <p className="truncate text-[11px] font-medium uppercase tracking-wider">
             {preview.siteName}
           </p>
-        )}
-        {preview.title && (
-          <p className={`text-[13px] font-semibold leading-snug line-clamp-2 ${mine ? "text-white" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
-            {preview.title}
-          </p>
-        )}
-        {preview.description && (
-          <p className={`mt-0.5 text-xs leading-snug line-clamp-2 ${mine ? "text-white/75" : "text-[#8C8C8C]"}`}>
-            {preview.description}
-          </p>
-        )}
+        </div>
+      )}
+
+      {/* Title */}
+      {preview.title && (
+        <p
+          className={`
+            text-[13px] font-semibold leading-snug line-clamp-2
+            transition-colors duration-200
+            ${mine ? "text-white" : "text-[#1a1a1a] dark:text-[#F0EBE3] group-hover:text-[#E07A5F]"}
+          `}
+        >
+          {preview.title}
+        </p>
+      )}
+
+      {/* Description */}
+      {preview.description && (
+        <p className={`mt-1 text-[12px] leading-relaxed line-clamp-2 ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
+          {preview.description}
+        </p>
+      )}
+
+      {/* URL pill */}
+      <div className={`mt-2 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+        mine
+          ? "bg-white/10 text-white/40"
+          : "bg-[#F5F0E8] text-[#8C8C8C] dark:bg-white/5"
+      }`}>
+        <span className="truncate">{new URL(preview.url).hostname.replace(/^www\./, "")}</span>
+        <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-50" />
       </div>
-    </a>
-  );
-}
+    </div>
+  </a>
+);
 
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
@@ -1326,7 +1679,7 @@ export function Composer({
           </div>
 
           {(draft.trim() || hasAttachments) && onSchedule && (
-            <div className="absolute ">
+            <div className="absolute top-4 right-[6px] ">
               <button
                 onClick={() => setShowScheduler((s) => !s)}
                 disabled={sending}
@@ -1334,7 +1687,7 @@ export function Composer({
                 title="Schedule for later"
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20 disabled:opacity-40"
               >
-                <Clock className="h-4 w-4" />
+                <LuCalendarClock className="h-4 w-4" />
               </button>
               {showScheduler && (
                 <>
