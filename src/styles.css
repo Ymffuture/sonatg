@@ -16,6 +16,19 @@ body {
   -ms-user-select: none;
   user-select: none;
 }
+/* Target the element you want to hide the scrollbar for */
+.hide-scrollbar {
+    /* Firefox */
+    scrollbar-width: none; 
+    
+    /* Internet Explorer and Edge */
+    -ms-overflow-style: none; 
+}
+
+/* Chrome, Safari, and Opera */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none; 
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
