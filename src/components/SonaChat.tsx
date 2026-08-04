@@ -1455,7 +1455,7 @@ useEffect(() => {
                 { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
                 { key: "groups", label: "Groups" },
                 { key: "pinned", label: "Favorites" },
-                { key: "pinned", label: "+" },
+                { key: "customize", label: "+" },
               ] as const).map((f) => (
                 <button
                   key={f.key}
@@ -1798,8 +1798,9 @@ useEffect(() => {
 
         return (
           <span className="inline-flex items-center gap-1.5">
-            <span className={`h-2 w-2 rounded-full ${isRecent ? "bg-[#F4A261]" : "bg-[#8C8C8C]"}`} />
-            <span>{isRecent ? "Active recently" : `Last seen ${fmtTime(lastSeenDate, { addSuffix: true })}`}</span>
+            
+            
+                    <span>{fmtLastSeen(other.last_seen)}</span>
           </span>
         );
       }
