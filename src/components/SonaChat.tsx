@@ -378,36 +378,22 @@ function SonaChatInner() {
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
 
   // Let the device/browser "back" gesture close an open chat (return to the
-  // chat list) instead of leaving the app entirely. We push one history
-  // entry the moment a chat is opened; a back press then just pops that
-  // entry, which our popstate handler turns into "show the chat list".
-  const chatViewPushedRef = useRef(false);
+  // chat list) instead of leaving the app entirely. Uses the shared
+  // back-navigation stack (src/hooks/useBackStack.ts) — critically, the
+  // SAME stack modals use, so closing a modal opened on top of a chat only
+  // ever pops the modal's own layer, never this one underneath it.
+  const popChatLayerRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (!showSidebarMobile && !chatViewPushedRef.current) {
-      window.history.pushState({ sonaChatView: true }, "");
-      chatViewPushedRef.current = true;
-    } else if (showSidebarMobile && chatViewPushedRef.current) {
-      chatViewPushedRef.current = false;
+    if (!showSidebarMobile) {
+      popChatLayerRef.current = pushBackLayer(() => setShowSidebarMobile(true));
+      return () => { popChatLayerRef.current?.(); popChatLayerRef.current = null; };
     }
   }, [showSidebarMobile]);
-  useEffect(() => {
-    const onPopState = () => {
-      if (chatViewPushedRef.current) {
-        chatViewPushedRef.current = false;
-        setShowSidebarMobile(true);
-      }
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-  // Close a chat the same way a device back-press would, so the pushed
-  // history entry above always stays in sync (no leftover dummy entries).
+  // Close a chat the same way a device back-press would — just flips the
+  // state; the effect's cleanup above consumes the shared history layer
+  // automatically, whether closed this way or via a real back press.
   const closeActiveChat = useCallback(() => {
-    if (chatViewPushedRef.current) {
-      window.history.back();
-    } else {
-      setShowSidebarMobile(true);
-    }
+    setShowSidebarMobile(true);
   }, []);
 
   const [showNewChat, setShowNewChat] = useState(false);
