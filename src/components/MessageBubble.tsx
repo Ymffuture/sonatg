@@ -1070,7 +1070,7 @@ export function Bubble({
             className={`relative cursor-pointer select-text px-3 py-1.5 shadow-sm ${bubbleRadius} ${
               mine
                 ? "bg-[#1E1E1E] dark:bg-gray-600 text-white"
-                : "bg-white/5 dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+                : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             }`}
           >
             {!mine && !grouped && (isAI || isGroup) && (
