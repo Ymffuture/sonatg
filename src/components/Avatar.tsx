@@ -60,7 +60,7 @@ export function TickIcon({ status, className }: { status: ReadStatus; className?
   if (status === "read") {
     return (
       <CheckCheck
-        className={`${className ?? ""} text-[#E07A5F] drop-shadow-[0_1px_2px_rgba(224,122,95,0.3)]`}
+        className={`${className ?? ""} text-blue-500 drop-shadow-[0_1px_2px_rgba(224,122,95,0.3)]`}
       />
     );
   }
