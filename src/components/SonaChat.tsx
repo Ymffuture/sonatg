@@ -1510,7 +1510,7 @@ useEffect(() => {
               setSelectedChatIds(new Set([c.id]));
             }
           }}
-          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "border-slate-800" : ""} border-b border-[#1E1E1E]/10`}
+          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "" : ""} border-l border-[#1E1E1E]/10`}
           style={isSelected ? { backgroundColor: "rgba(217, 119, 87, 0.10)" } : undefined}>
           <div className="relative shrink-0">
             {(() => {
