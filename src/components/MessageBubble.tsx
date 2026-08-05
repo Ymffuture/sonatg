@@ -1556,9 +1556,9 @@ export function Composer({
     <div className="relative chat-pattern px-3 py-3 md:px-4 md:py-3 select-none">
       {showEmoji && (
         <>
-          <div className="fixed inset-0 z-40 md:hidden" onClick={() => setShowEmoji(false)} />
+          <div className="fixed inset-0 z-30" onClick={() => setShowEmoji(false)} />
           <div
-            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-[#FFFDF9] dark:bg-[#1E1E1E] shadow-2xl md:absolute md:inset-x-auto md:bottom-full md:left-6 md:mb-2 md:rounded-2xl md:border md:border-[#E07A5F]/10 overflow-hidden"
+            className="relative z-40 mx-auto mb-2 max-w-3xl overflow-hidden rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] shadow-2xl"
             style={{
               // Re-theme emoji-picker-react's own CSS variables to match
               // the app's warm accent color instead of its default blue.
@@ -1567,8 +1567,15 @@ export function Composer({
               ["--epr-picker-border-color" as string]: "transparent",
             } as React.CSSProperties}
           >
-            <div className="flex justify-center pt-2 pb-1 md:hidden">
-              <span className="h-1 w-9 rounded-full bg-[#8C8C8C]/40" />
+            <div className="flex items-center justify-between border-b border-[#E07A5F]/10 px-3 py-1.5">
+              <span className="text-xs font-semibold text-[#8C8C8C]">Emoji</span>
+              <button
+                onClick={() => setShowEmoji(false)}
+                aria-label="Close emoji picker"
+                className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <EmojiPicker
               onEmojiClick={(data: EmojiClickData) => setDraft(draft + data.emoji)}
@@ -1577,12 +1584,13 @@ export function Composer({
               lazyLoadEmojis
               previewConfig={{ showPreview: false }}
               width="100%"
-              height={380}
+              height={320}
               searchPlaceHolder="Search emoji"
             />
           </div>
         </>
       )}
+
 
       {recording && !locked && (
         <div className="mx-auto flex max-w-3xl items-center gap-3">
