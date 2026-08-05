@@ -49,20 +49,20 @@ const notify = {
     notification.success({
       message,
       description,
-      placement: "bottom",
+      placement: "top",
       className:
-        "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "!bg-[#fff] dark:!bg-white !rounded !border-white/10 !shadow-xl " +
         "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
         "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
-        "[&_.ant-notification-notice-icon]:!text-[#Effffff]",
+        "[&_.ant-notification-notice-icon]:!text-[#1E1E1E]",
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
     notification.error({
       message,
       description,
-      placement: "bottom",
+      placement: "top",
       className:
-        "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "!bg-[#fff] dark:!bg-white !rounded !border-white/10 !shadow-xl " +
         "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
         "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
         "[&_.ant-notification-notice-icon]:!text-red-400 dark:[&_.ant-notification-notice-icon]:!text-red-500",
@@ -71,9 +71,9 @@ const notify = {
     notification.info({
       message,
       description,
-      placement: "bottom",
+      placement: "top",
       className:
-        "!bg-[#E07A5F] dark:!bg-white !rounded-xl !border-white/10 !shadow-xl " +
+        "!bg-[#fff] dark:!bg-white !rounded !border-white/10 !shadow-xl " +
         "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
         "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
         "[&_.ant-notification-notice-icon]:!text-[#4FA6E0]",
@@ -265,7 +265,7 @@ function TableRenderer({
 }) {
   return (
     <div className="my-2 overflow-x-auto rounded-lg border border-[#E07A5F]/20 dark:border-[#E07A5F]/15">
-      <table className="w-full text-left text-[13px] border-collapse">
+      <table className="w-[110%] text-left text-[13px] border-collapse">
         <thead>
           <tr className={`${mine ? "bg-black/15" : "bg-[#E07A5F]/8 dark:bg-[#E07A5F]/15"}`}>
             {headers.map((h, i) => (
@@ -428,7 +428,7 @@ function MessageContextMenu({
       style={style}
       className="w-52 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
-      <div className="flex items-center justify-around border-b border-[#E07A5F]/10 px-2 py-2">
+      <div className="flex items-center justify-around border-b border-[#1E1E1E]/10 px-2 py-2">
         {["❤️", "👍", "😂", "😮", "😢", "🙏"].map((emoji) => (
           <button
             key={emoji}
@@ -1374,8 +1374,8 @@ export function VoicePlayer({
         <div className="relative shrink-0">
           <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
           <span
-            className={`absolute -bottom-0.5 -right-0.5 grid h-3 w-3 place-items-center rounded-full ring-2 ${
-              mine ? "bg-[#1E1E1E] text-blue-400 ring-[#1E1E1E]" : "bg-white text-[#1E1E1E] ring-white dark:ring-[#2A2A2A]"
+            className={`absolute -bottom-0.5 -right-0.3 grid h-4 w-4 place-items-center rounded-full ring-2 ${
+              mine ? "bg-[#1E1E1E] text-blue-600 ring-[#1E1E1E]" : "bg-white text-[#1E1E1E] ring-white dark:ring-[#2A2A2A]"
             }`}
           >
             <Mic className="h-2.5 w-2.5" />
