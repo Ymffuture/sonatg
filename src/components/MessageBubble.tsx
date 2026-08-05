@@ -1693,7 +1693,7 @@ export function Composer({
           </div>
 
           {(draft.trim() || hasAttachments) && onSchedule && (
-            <div className="absolute top-4 right-[6px] ">
+            <div className="absolute top-4">
               <button
                 onClick={() => setShowScheduler((s) => !s)}
                 disabled={sending}
