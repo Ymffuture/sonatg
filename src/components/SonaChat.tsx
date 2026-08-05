@@ -147,17 +147,9 @@ function fmtDuration(ms?: number | null) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
 function fmtChatTimestamp(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
-  if (isSameDay(d, now)) return fmtTime(iso);
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (isSameDay(d, yesterday)) return "Yesterday";
   const sameYear = d.getFullYear() === now.getFullYear();
   return d.toLocaleDateString([], sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
 }
