@@ -291,7 +291,7 @@ function StatusPage() {
           userId={viewingUserId}
           meId={me.id}
           profilesById={profilesById}
-          onClose={() => { setViewingUserId(null); navigate({ to: "/status", search: {} }); }}
+          onClose={() => { setViewingUserId(null); navigate({ to: "/status" }); }}
         />
       )}
     </div>
