@@ -1594,7 +1594,7 @@ useEffect(() => {
                   </button>
                 )}
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "#D97757" } : undefined}>
-                  {last ? fmtTime(last.created_at) : ""}
+                  {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
                 {!ai && c.unread > 0 && !selectMode && (
                   <span
