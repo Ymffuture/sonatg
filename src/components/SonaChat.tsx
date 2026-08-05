@@ -782,7 +782,7 @@ function SonaChatInner() {
     for (const c of chats) for (const m of c.members) map[m.id] = m;
     return map;
   }, [chats, me]);
-  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned">("all");
+  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned" | "customized">("all");
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
     if (!c.is_group) {
@@ -1462,7 +1462,7 @@ useEffect(() => {
             {me && (
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
-                  onClick={() => navigate({ to: "/status", search: {} })}
+                  onClick={() => navigate({ to: "/status" })}
                   className="flex w-full items-center gap-2 rounded-full bg-[#1E1E1E]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
                 >
                   <Plus className="h-4 w-4" /> Status &amp; news
@@ -1728,7 +1728,7 @@ useEffect(() => {
 })()}
                       {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
                       {active.memberRoles[me.id] === "admin" && active.is_group && (
-                        <BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" title="Admin" />
+                        <span title="Admin" className="inline-flex"><BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" /></span>
                       )}
                       {active.is_group && active.category && active.category !== "general" && (
                         <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium text-[#E07A5F] text-transparent bg-clip-text bg-gradient-to-r from-[#E07A5F]/10 to-[#E07A5F]" >
