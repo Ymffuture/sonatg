@@ -782,7 +782,7 @@ function SonaChatInner() {
     for (const c of chats) for (const m of c.members) map[m.id] = m;
     return map;
   }, [chats, me]);
-  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned">("all");
+  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned" | "customized">("all");
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
     if (!c.is_group) {
