@@ -1131,8 +1131,8 @@ export function Bubble({
                 >
                   <Download className="h-4 text-purple w-4" />
                 </button>
-                <div className="absolute bottom-1 right-1 rounded bg-black/40 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-                  <Download className="h-4 text-purple w-4" />
+                <div className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                  Photo
                 </div>
               </div>
             )}
@@ -1374,7 +1374,7 @@ export function VoicePlayer({
         <div className="relative shrink-0">
           <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
           <span
-            className={`absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full ring-2 ${
+            className={`absolute -bottom-0.5 -right-0.5 grid h-3 w-3 place-items-center rounded-full ring-2 ${
               mine ? "bg-[#1E1E1E] text-blue-400 ring-[#1E1E1E]" : "bg-white text-[#1E1E1E] ring-white dark:ring-[#2A2A2A]"
             }`}
           >
@@ -1387,7 +1387,7 @@ export function VoicePlayer({
         <button
           onClick={handleTranscribeClick}
           disabled={transcribing}
-          className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-white/80" : "text-[#E07A5F]"} hover:underline disabled:no-underline disabled:opacity-70`}
+          className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-white/80" : "text-[#1E1E1E]"} hover:underline disabled:no-underline disabled:opacity-70`}
         >
           {transcribing && <Loader2 className="h-3 w-3 animate-spin" />}
           {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
