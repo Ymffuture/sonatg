@@ -1722,50 +1722,53 @@ export function Composer({
               className="hidden"
               onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
             />
+
+            {(draft.trim() || hasAttachments) && onSchedule && (
+              <div className="relative shrink-0 mb-0.5">
+                <button
+                  onClick={() => setShowScheduler((s) => !s)}
+                  disabled={sending}
+                  aria-label="Schedule message"
+                  title="Schedule for later"
+                  className={`grid h-10 w-10 place-items-center rounded-full transition disabled:opacity-40 ${
+                    showScheduler ? "bg-[#E07A5F]/15 text-[#E07A5F]" : "text-[#8C8C8C] hover:bg-[#E07A5F]/10"
+                  }`}
+                >
+                  <LuCalendarClock className="h-5 w-5" />
+                </button>
+                {showScheduler && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setShowScheduler(false)} />
+                    <div className="absolute bottom-full right-0 z-40 mb-3 w-64 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] p-3 shadow-xl">
+                      <p className="mb-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Send later</p>
+                      <input
+                        type="datetime-local"
+                        value={scheduleValue}
+                        min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                        onChange={(e) => setScheduleValue(e.target.value)}
+                        className="w-full rounded-lg border border-[#E07A5F]/20 bg-transparent px-2 py-1.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] outline-none"
+                      />
+                      <button
+                        onClick={() => {
+                          if (!scheduleValue) return;
+                          const date = new Date(scheduleValue);
+                          if (date.getTime() <= Date.now()) return;
+                          onSchedule(date);
+                          setShowScheduler(false);
+                          setScheduleValue("");
+                        }}
+                        disabled={!scheduleValue}
+                        className="mt-2 w-full rounded-lg bg-[#E07A5F] py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 transition"
+                      >
+                        Schedule
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
-          {(draft.trim() || hasAttachments) && onSchedule && (
-            <div className="absolute top-4">
-              <button
-                onClick={() => setShowScheduler((s) => !s)}
-                disabled={sending}
-                aria-label="Schedule message"
-                title="Schedule for later"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#F4A261]/20 disabled:opacity-40"
-              >
-                <LuCalendarClock className="h-4 w-4" />
-              </button>
-              {showScheduler && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setShowScheduler(false)} />
-                  <div className="absolute bottom-full right-0 z-40 mb-2 w-64 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] p-3 shadow-xl">
-                    <p className="mb-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Send later</p>
-                    <input
-                      type="datetime-local"
-                      value={scheduleValue}
-                      min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
-                      onChange={(e) => setScheduleValue(e.target.value)}
-                      className="w-full rounded-lg border border-[#E07A5F]/20 bg-transparent px-2 py-1.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] outline-none"
-                    />
-                    <button
-                      onClick={() => {
-                        if (!scheduleValue) return;
-                        const date = new Date(scheduleValue);
-                        if (date.getTime() <= Date.now()) return;
-                        onSchedule(date);
-                        setShowScheduler(false);
-                        setScheduleValue("");
-                      }}
-                      disabled={!scheduleValue}
-                      className="mt-2 w-full rounded-lg bg-[#E07A5F] py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 transition"
-                    >
-                      Schedule
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
 
           {draft.trim() || hasAttachments ? (
             <button
