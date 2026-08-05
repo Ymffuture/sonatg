@@ -441,7 +441,7 @@ export const CallManager = forwardRef<
           INCOMING CALL SCREEN
          ═══════════════════════════════════════ */}
       {incoming && (
-        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-between bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a] text-white">
+        <div className="fixed call-Pattern inset-0 z-[110] flex flex-col items-center justify-between bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a] text-white">
           <IconBackground />
 
           {/* Header */}
