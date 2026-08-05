@@ -1430,7 +1430,7 @@ useEffect(() => {
             )}
 
             <div className="px-3 pb-3 pt-3">
-              <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
+              <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-4 py-3 border border-[#E07A5F]/10">
                 <Search className="h-8 w-8 text-[#8C8C8C]" />
                 <input data-tour="search-chats" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
@@ -1443,7 +1443,7 @@ useEffect(() => {
                 { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
                 { key: "groups", label: "Groups" },
                 { key: "pinned", label: "Favorites" },
-                { key: "customize", label: "+" },
+                { key: "customized", label: "+" },
               ] as const).map((f) => (
                 <button
                   key={f.key}
@@ -1463,7 +1463,7 @@ useEffect(() => {
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
                   onClick={() => navigate({ to: "/status", search: {} })}
-                  className="flex w-full items-center gap-2 rounded-full bg-[#E07A5F]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
+                  className="flex w-full items-center gap-2 rounded-full bg-[#1E1E1E]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
                 >
                   <Plus className="h-4 w-4" /> Status &amp; news
                 </button>
@@ -1503,7 +1503,7 @@ useEffect(() => {
               setSelectedChatIds(new Set([c.id]));
             }
           }}
-          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "bg-[#F0EBE3]/20" : ""} border-b border-[#E07A5F]/5`}
+          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "border-slate-800" : ""} border-b border-[#1E1E1E]/10`}
           style={isSelected ? { backgroundColor: "rgba(217, 119, 87, 0.10)" } : undefined}>
           <div className="relative shrink-0">
             {(() => {
@@ -1512,7 +1512,7 @@ useEffect(() => {
               return (
                 <div
                   className="rounded-full"
-                  style={hasStatus ? { padding: 3, background: "linear-gradient(117deg, green , #FFFFFF )", cursor: "pointer" } : undefined}
+                  style={hasStatus ? { padding: 4, background: "linear-gradient(117deg, #128C7E, #075E54 )", cursor: "pointer" } : undefined}
                   onClick={hasStatus ? (e) => {
                     e.stopPropagation();
                     navigate({ to: "/status", search: { user: otherId! } });
@@ -1525,10 +1525,10 @@ useEffect(() => {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F0EBE3] ring-2 ring-[#F0EBE3] dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#fff] ring-2 ring-[#fff] dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
-                <IoMdTimer className="h-5 w-5 dark:text-white text-[#1E1E1E] opacity-[50%]" />
+                <IoMdTimer className="h-5 w-5 dark:text-white text-[#1E1E1E]" />
               </div>
             )}
             {selectMode && (
