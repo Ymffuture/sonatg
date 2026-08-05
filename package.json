@@ -48,6 +48,7 @@
     "@tanstack/router-plugin": "^1.168.18",
     "@zegocloud/zego-uikit-prebuilt": "^2.18.0",
     "antd": "^6.1.0",
+    "emoji-picker-react": "^4.19.1", 
     "antd-style": "^3.7.1",
     "framer-motion": "^12.23.12", 
     "class-variance-authority": "^0.7.1",
