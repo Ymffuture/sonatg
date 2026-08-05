@@ -7,6 +7,7 @@ import {
   FileText, 
 } from "lucide-react";
 import { toast } from "sonner";
+import EmojiPicker, { Theme as EmojiTheme, EmojiStyle, type EmojiClickData } from "emoji-picker-react";
 
 import { RiEmojiStickerLine } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
@@ -17,7 +18,7 @@ import { fetchLinkPreview, type LinkPreview } from "@/lib/linkpreview.functions"
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
-  URL_REGEX, URL_REGEX_TEST, EMOJIS, REACT_EMOJIS, DOC_EXTENSIONS, docExtOf,
+  URL_REGEX, URL_REGEX_TEST, DOC_EXTENSIONS, docExtOf,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
 import { LuCalendarClock } from "react-icons/lu";
@@ -1425,6 +1426,13 @@ export function Composer({
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");
+  const [isDark, setIsDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
+  useEffect(() => {
+    const el = document.documentElement;
+    const obs = new MutationObserver(() => setIsDark(el.classList.contains("dark")));
+    obs.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
   const [recording, setRecording] = useState(false);
   const [locked, setLocked] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -1547,17 +1555,33 @@ export function Composer({
   return (
     <div className="relative chat-pattern px-3 py-3 md:px-4 md:py-3 select-none">
       {showEmoji && (
-        <div className="absolute bottom-full left-2 mb-2 grid max-h-56 max-w-xs grid-cols-8 gap-1 overflow-y-auto rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-2 shadow-xl md:left-6">
-          {EMOJIS.map((e) => (
-            <button
-              key={e}
-              onClick={() => setDraft(draft + e)}
-              className="grid h-9 w-9 place-items-center rounded-lg text-lg hover:bg-[#E07A5F]/10 transition"
-            >
-              {e}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="fixed inset-0 z-40 md:hidden" onClick={() => setShowEmoji(false)} />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-[#FFFDF9] dark:bg-[#1E1E1E] shadow-2xl md:absolute md:inset-x-auto md:bottom-full md:left-6 md:mb-2 md:rounded-2xl md:border md:border-[#E07A5F]/10 overflow-hidden"
+            style={{
+              // Re-theme emoji-picker-react's own CSS variables to match
+              // the app's warm accent color instead of its default blue.
+              ["--epr-highlight-color" as string]: "#E07A5F",
+              ["--epr-category-icon-active-color" as string]: "#E07A5F",
+              ["--epr-picker-border-color" as string]: "transparent",
+            } as React.CSSProperties}
+          >
+            <div className="flex justify-center pt-2 pb-1 md:hidden">
+              <span className="h-1 w-9 rounded-full bg-[#8C8C8C]/40" />
+            </div>
+            <EmojiPicker
+              onEmojiClick={(data: EmojiClickData) => setDraft(draft + data.emoji)}
+              theme={isDark ? EmojiTheme.DARK : EmojiTheme.LIGHT}
+              emojiStyle={EmojiStyle.NATIVE}
+              lazyLoadEmojis
+              previewConfig={{ showPreview: false }}
+              width="100%"
+              height={380}
+              searchPlaceHolder="Search emoji"
+            />
+          </div>
+        </>
       )}
 
       {recording && !locked && (
