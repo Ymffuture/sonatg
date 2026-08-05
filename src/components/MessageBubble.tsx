@@ -1375,7 +1375,7 @@ export function VoicePlayer({
           <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
           <span
             className={`absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full ring-2 ${
-              mine ? "bg-white text-[#E07A5F] ring-[#E07A5F]" : "bg-[#E07A5F] text-white ring-white dark:ring-[#2A2A2A]"
+              mine ? "bg-[#1E1E1E] text-blue-400 ring-[#1E1E1E]" : "bg-white text-[#1E1E1E] ring-white dark:ring-[#2A2A2A]"
             }`}
           >
             <Mic className="h-2.5 w-2.5" />
@@ -1581,7 +1581,7 @@ export function Composer({
               {Array.from({ length: 40 }).map((_, i) => (
                 <span
                   key={i}
-                  className="w-[2px] rounded-full bg-red-400/60 animate-pulse"
+                  className="w-[2px] rounded-full bg-[#1E1E1E] animate-pulse"
                   style={{
                     height: `${Math.random() * 20 + 4}px`,
                     animationDelay: `${i * 0.03}s`,
