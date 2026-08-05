@@ -147,6 +147,21 @@ function fmtDuration(ms?: number | null) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function fmtChatTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  if (isSameDay(d, now)) return fmtTime(iso);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameDay(d, yesterday)) return "Yesterday";
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString([], sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
+}
+
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
   if (!msg) return null; // ← add this guard
 
@@ -1579,7 +1594,7 @@ useEffect(() => {
                   </button>
                 )}
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "#D97757" } : undefined}>
-                  {last ? fmtTime(last.created_at) : ""}
+                  {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
                 {!ai && c.unread > 0 && !selectMode && (
                   <span
