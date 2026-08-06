@@ -1698,7 +1698,10 @@ useEffect(() => {
             {/* Floating New-Chat FAB */}
             <button
   data-tour="new-chat-fab"
-  onClick={() => setShowNewChat(true)}
+  onClick={() => {
+    if (accountRestricted) { toast.error(composerNotice ?? "Your account is restricted."); return; }
+    setShowNewChat(true);
+  }}
   aria-label="New chat"
   className="group absolute bottom-8 right-5 z-30 grid h-[72px] w-[72px] place-items-center rounded-2xl
     /* Glass base */
