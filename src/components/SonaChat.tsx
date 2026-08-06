@@ -423,6 +423,11 @@ function SonaChatInner() {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [blockedByIds, setBlockedByIds] = useState<Set<string>>(new Set());
+  const [myModeration, setMyModeration] = useState<{ action: string; reason: string | null; expires_at: string | null } | null>(null);
+  const [reportTarget, setReportTarget] = useState<Profile | null>(null);
+  const [reportReason, setReportReason] = useState("Harassment or bullying");
+  const [reportDetails, setReportDetails] = useState("");
   const [summary, setSummary] = useState<string | null>(null);
   const [needsUnlock, setNeedsUnlock] = useState(false);
   const [decrypted, setDecrypted] = useState<Record<string, string>>({});
