@@ -1122,8 +1122,33 @@ function SonaChatInner() {
     setBlockedIds((prev) => new Set(prev).add(other));
     toast.success("User blocked");
     setShowHeaderMenu(false);
-    setActiveId(null);
   };
+
+  const unblockOther = async () => {
+    if (!me || !active) return;
+    const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
+    if (!other) return;
+    const { error } = await supabase.from("blocks").delete().eq("blocker_id", me.id).eq("blocked_id", other);
+    if (error) { toast.error(error.message); return; }
+    setBlockedIds((prev) => { const n = new Set(prev); n.delete(other); return n; });
+    toast.success("User unblocked");
+  };
+
+  const submitReport = async () => {
+    if (!me || !reportTarget) return;
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: me.id,
+      reported_id: reportTarget.id,
+      chat_id: activeId,
+      reason: reportReason,
+      details: reportDetails.trim() || null,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Report sent to the Sona team");
+    setReportTarget(null);
+    setReportDetails("");
+  };
+
 
   const requirePro = (feature: string): boolean => {
     if (me?.is_pro) return true;
