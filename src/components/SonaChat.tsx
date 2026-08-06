@@ -1477,7 +1477,7 @@ useEffect(() => {
             {me && (
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
-                  onClick={() => navigate({ to: "/status" })}
+                  onClick={() => navigate({ to: "/status", search: { user: undefined } })}
                   className="flex w-full items-center gap-2 rounded-full bg-[#1E1E1E]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
                 >
                   <Plus className="h-4 w-4" /> Status &amp; news
