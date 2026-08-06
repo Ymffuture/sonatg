@@ -1307,7 +1307,7 @@ useEffect(() => {
                 <div className="h-8 w-28 rounded-lg bg-[#E07A5F]/10 animate-pulse" />
                 <div className="flex items-center gap-1">
                   {[1, 2].map((i) => (
-                    <div key={i} className="h-9 w-9 rounded-full bg-[#1E1E1E]/10 animate-pulse" />
+                    <div key={i} className="h-9 w-9 rounded-full bg-[silver]/10 animate-pulse" />
                   ))}
                 </div>
               </div>
@@ -1967,8 +1967,8 @@ useEffect(() => {
                                 },
                               },
                               iBlockedThem
-                                ? { key: "unblock", label: "Unblock user", icon: <Ban className="h-4 w-4" />, onClick: unblockOther }
-                                : { key: "block", label: "Block user", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther },
+                                ? { key: "unblock", label: "Unblock", icon: <Ban className="h-4 w-4" />, onClick: unblockOther }
+                                : { key: "block", label: "Block", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther },
                             ]
                           : []),
                       ],
