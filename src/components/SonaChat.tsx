@@ -974,6 +974,8 @@ function SonaChatInner() {
   // Send
   const send = async (scheduledFor?: Date) => {
     if (!me || !activeId) return;
+    if (composerNotice) { toast.error(composerNotice); return; }
+
 
     if (editing) {
       const newText = draft.trim();
