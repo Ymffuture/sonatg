@@ -545,14 +545,23 @@ function SonaChatInner() {
 
   useEffect(() => { loadChats(); }, [loadChats]);
 
-  // Load my blocks
+  // Load my blocks (both directions) and my moderation state
   useEffect(() => {
     if (!me) return;
     (async () => {
-      const { data } = await supabase.from("blocks").select("*").eq("blocker_id", me.id);
-      setBlockedIds(new Set(((data ?? []) as BlockRow[]).map((b) => b.blocked_id)));
+      const [mine, theirs, mod] = await Promise.all([
+        supabase.from("blocks").select("*").eq("blocker_id", me.id),
+        supabase.from("blocks").select("*").eq("blocked_id", me.id),
+        supabase.from("user_moderation").select("action, reason, expires_at, is_active")
+          .eq("user_id", me.id).eq("is_active", true).order("created_at", { ascending: false }).limit(1),
+      ]);
+      setBlockedIds(new Set(((mine.data ?? []) as BlockRow[]).map((b) => b.blocked_id)));
+      setBlockedByIds(new Set(((theirs.data ?? []) as BlockRow[]).map((b) => b.blocker_id)));
+      const m = (mod.data ?? [])[0] as { action: string; reason: string | null; expires_at: string | null } | undefined;
+      setMyModeration(m && m.action !== "clear" ? m : null);
     })();
   }, [me]);
+
 
   // Prompt to unlock when opening a hidden chat
   useEffect(() => {
