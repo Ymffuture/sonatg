@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
-  AlertTriangle, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
+  AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,10 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 type OrgDomain = { id: string; domain: string; label: string | null; is_active: boolean };
 type Invite = { id: string; email: string; domain: string | null; status: string; created_at: string };
+type Report = {
+  id: string; reporter_id: string; reported_id: string; chat_id: string | null;
+  reason: string; details: string | null; status: string; created_at: string;
+};
 type Moderation = {
   id: string; user_id: string; action: "warn" | "suspend" | "ban" | "clear";
   reason: string | null; expires_at: string | null; is_active: boolean; created_at: string;
@@ -47,12 +51,13 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"members" | "orgs" | "invites">("members");
+  const [tab, setTab] = useState<"members" | "reports" | "orgs" | "invites">("members");
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
   const [domains, setDomains] = useState<OrgDomain[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -74,17 +79,19 @@ function AdminPage() {
   const loadAll = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, m, d, i] = await Promise.all([
+      const [p, m, d, i, r] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_moderation").select("*").order("created_at", { ascending: false }),
         supabase.from("org_domains").select("*").order("domain"),
         supabase.from("org_invites").select("*").order("created_at", { ascending: false }),
+        supabase.from("reports").select("*").order("created_at", { ascending: false }),
       ]);
       if (p.error) throw p.error;
       setProfiles((p.data ?? []) as Profile[]);
       setMods((m.data ?? []) as Moderation[]);
       setDomains((d.data ?? []) as OrgDomain[]);
       setInvites((i.data ?? []) as Invite[]);
+      setReports((r.data ?? []) as Report[]);
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -106,6 +113,20 @@ function AdminPage() {
     return profiles.filter((p) =>
       p.display_name.toLowerCase().includes(q) || (p.email ?? "").toLowerCase().includes(q));
   }, [profiles, query]);
+
+  const profileById = useMemo(() => {
+    const map: Record<string, Profile> = {};
+    for (const p of profiles) map[p.id] = p;
+    return map;
+  }, [profiles]);
+
+  const setReportStatus = async (rep: Report, status: string) => {
+    try {
+      const { error } = await supabase.from("reports").update({ status }).eq("id", rep.id);
+      if (error) throw error;
+      loadAll();
+    } catch (e) { err(e, "Couldn't update report"); }
+  };
 
   const activeDomains = useMemo(() => domains.filter((d) => d.is_active).map((d) => d.domain.toLowerCase()), [domains]);
 
@@ -253,7 +274,7 @@ function AdminPage() {
       </header>
 
       <nav className="flex gap-2 px-4 py-3">
-        {([["members", "Members", Users], ["orgs", "Organizations", Building2], ["invites", "Invites", Mail]] as const).map(([k, label, Icon]) => (
+        {([["members", "Members", Users], ["reports", "Reports", Flag], ["orgs", "Organizations", Building2], ["invites", "Invites", Mail]] as const).map(([k, label, Icon]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
               tab === k ? "bg-[#E07A5F] text-white" : "bg-white text-[#8C8C8C] dark:bg-[#1E1E1E]"}`}>
@@ -311,6 +332,60 @@ function AdminPage() {
                   </li>
                 );
               })}
+            </ul>
+          </section>
+        )}
+
+        {tab === "reports" && (
+          <section>
+            <ul className="space-y-2">
+              {reports.map((r) => {
+                const reporter = profileById[r.reporter_id];
+                const reported = profileById[r.reported_id];
+                return (
+                  <li key={r.id} className="rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+                    <div className="flex items-start gap-3">
+                      <Flag className="mt-0.5 h-4 w-4 shrink-0 text-[#E07A5F]" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                          {reported?.display_name ?? "Unknown user"}
+                          <span className="font-normal text-[#8C8C8C]"> reported by {reporter?.display_name ?? "someone"}</span>
+                        </p>
+                        <p className="mt-0.5 text-xs font-medium text-[#E07A5F]">{r.reason}</p>
+                        {r.details && <p className="mt-1 text-xs text-[#8C8C8C]">{r.details}</p>}
+                        <p className="mt-1 text-[11px] text-[#8C8C8C]">{new Date(r.created_at).toLocaleString()}</p>
+                      </div>
+                      <span className="rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-bold text-[#E07A5F]">{r.status}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {reported && (
+                        <>
+                          <button onClick={() => moderate(reported, "warn")} className="flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600">
+                            <AlertTriangle className="h-3 w-3" /> Warn
+                          </button>
+                          <button onClick={() => moderate(reported, "suspend")} className="flex items-center gap-1 rounded-full bg-orange-500/10 px-3 py-1.5 text-xs font-semibold text-orange-600">
+                            <PauseCircle className="h-3 w-3" /> Suspend
+                          </button>
+                          <button onClick={() => moderate(reported, "ban")} className="flex items-center gap-1 rounded-full bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600">
+                            <Ban className="h-3 w-3" /> Ban
+                          </button>
+                        </>
+                      )}
+                      {r.status !== "resolved" && (
+                        <button onClick={() => setReportStatus(r, "resolved")} className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600">
+                          <CheckCircle2 className="h-3 w-3" /> Resolve
+                        </button>
+                      )}
+                      {r.status !== "dismissed" && (
+                        <button onClick={() => setReportStatus(r, "dismissed")} className="rounded-full bg-[#8C8C8C]/10 px-3 py-1.5 text-xs font-semibold text-[#8C8C8C]">
+                          Dismiss
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+              {!reports.length && <p className="px-1 text-sm text-[#8C8C8C]">No reports yet.</p>}
             </ul>
           </section>
         )}
