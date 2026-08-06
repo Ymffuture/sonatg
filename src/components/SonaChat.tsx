@@ -6,6 +6,7 @@ import {
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Dropdown } from "antd";
@@ -150,8 +151,16 @@ function fmtDuration(ms?: number | null) {
 function fmtChatTimestamp(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
-  const sameYear = d.getFullYear() === now.getFullYear();
-  return d.toLocaleDateString([], sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const t = d.getTime();
+  if (t >= startOfToday) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+  if (t >= startOfToday - 86_400_000) return "Yesterday";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}/${mm}/${dd}`;
 }
 
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
@@ -415,6 +424,11 @@ function SonaChatInner() {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [blockedByIds, setBlockedByIds] = useState<Set<string>>(new Set());
+  const [myModeration, setMyModeration] = useState<{ action: string; reason: string | null; expires_at: string | null } | null>(null);
+  const [reportTarget, setReportTarget] = useState<Profile | null>(null);
+  const [reportReason, setReportReason] = useState("Harassment or bullying");
+  const [reportDetails, setReportDetails] = useState("");
   const [summary, setSummary] = useState<string | null>(null);
   const [needsUnlock, setNeedsUnlock] = useState(false);
   const [decrypted, setDecrypted] = useState<Record<string, string>>({});
@@ -532,14 +546,23 @@ function SonaChatInner() {
 
   useEffect(() => { loadChats(); }, [loadChats]);
 
-  // Load my blocks
+  // Load my blocks (both directions) and my moderation state
   useEffect(() => {
     if (!me) return;
     (async () => {
-      const { data } = await supabase.from("blocks").select("*").eq("blocker_id", me.id);
-      setBlockedIds(new Set(((data ?? []) as BlockRow[]).map((b) => b.blocked_id)));
+      const [mine, theirs, mod] = await Promise.all([
+        supabase.from("blocks").select("*").eq("blocker_id", me.id),
+        supabase.from("blocks").select("*").eq("blocked_id", me.id),
+        supabase.from("user_moderation").select("action, reason, expires_at, is_active")
+          .eq("user_id", me.id).eq("is_active", true).order("created_at", { ascending: false }).limit(1),
+      ]);
+      setBlockedIds(new Set(((mine.data ?? []) as BlockRow[]).map((b) => b.blocked_id)));
+      setBlockedByIds(new Set(((theirs.data ?? []) as BlockRow[]).map((b) => b.blocker_id)));
+      const m = (mod.data ?? [])[0] as { action: string; reason: string | null; expires_at: string | null } | undefined;
+      setMyModeration(m && m.action !== "clear" ? m : null);
     })();
   }, [me]);
+
 
   // Prompt to unlock when opening a hidden chat
   useEffect(() => {
@@ -783,6 +806,22 @@ function SonaChatInner() {
 
   const active = chats.find((c) => c.id === activeId);
 
+  const activeOtherId = active && !active.is_group && me
+    ? active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID) ?? null
+    : null;
+  const iBlockedThem = !!activeOtherId && blockedIds.has(activeOtherId);
+  const theyBlockedMe = !!activeOtherId && blockedByIds.has(activeOtherId);
+  const accountRestricted = myModeration?.action === "ban" || myModeration?.action === "suspend";
+  const composerNotice = accountRestricted
+    ? (myModeration?.action === "ban"
+        ? "Your account is banned — you can't send messages."
+        : `Your account is suspended${myModeration?.expires_at ? ` until ${new Date(myModeration.expires_at).toLocaleDateString()}` : ""} — you can't send messages.`)
+    : iBlockedThem
+      ? "You blocked this person. You can't send messages to this person."
+      : theyBlockedMe
+        ? "You can't send messages to this person."
+        : null;
+
   const profilesById = useMemo(() => {
     const map: Record<string, Profile> = {};
     if (me) map[me.id] = me;
@@ -792,10 +831,7 @@ function SonaChatInner() {
   const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned" | "customized">("all");
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
-    if (!c.is_group) {
-      const other = c.memberIds.find((id) => id !== me.id);
-      if (other && blockedIds.has(other)) return false;
-    }
+
     if (activeFolder === "unread" && c.unread === 0) return false;
     if (activeFolder === "groups" && !c.is_group) return false;
     if (activeFolder === "pinned" && !c.isPinned) return false;
@@ -938,6 +974,8 @@ function SonaChatInner() {
   // Send
   const send = async (scheduledFor?: Date) => {
     if (!me || !activeId) return;
+    if (composerNotice) { toast.error(composerNotice); return; }
+
 
     if (editing) {
       const newText = draft.trim();
@@ -1103,8 +1141,33 @@ function SonaChatInner() {
     setBlockedIds((prev) => new Set(prev).add(other));
     toast.success("User blocked");
     setShowHeaderMenu(false);
-    setActiveId(null);
   };
+
+  const unblockOther = async () => {
+    if (!me || !active) return;
+    const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
+    if (!other) return;
+    const { error } = await supabase.from("blocks").delete().eq("blocker_id", me.id).eq("blocked_id", other);
+    if (error) { toast.error(error.message); return; }
+    setBlockedIds((prev) => { const n = new Set(prev); n.delete(other); return n; });
+    toast.success("User unblocked");
+  };
+
+  const submitReport = async () => {
+    if (!me || !reportTarget) return;
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: me.id,
+      reported_id: reportTarget.id,
+      chat_id: activeId,
+      reason: reportReason,
+      details: reportDetails.trim() || null,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Report sent to the Sona team");
+    setReportTarget(null);
+    setReportDetails("");
+  };
+
 
   const requirePro = (feature: string): boolean => {
     if (me?.is_pro) return true;
@@ -1286,6 +1349,20 @@ useEffect(() => {
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
       {me && <CallManager ref={callManagerRef} meId={me.id} meName={me.display_name ?? "Someone"} meAvatar={me.avatar_url ?? null} />}
+      {myModeration && (
+        <div
+          className="flex items-center justify-center gap-2 px-4 py-2 text-center text-xs font-semibold"
+          style={{
+            backgroundColor: myModeration.action === "ban" ? "#EF444422" : myModeration.action === "suspend" ? "#E07A5F22" : "#F59E0B22",
+            color: myModeration.action === "ban" ? "#EF4444" : myModeration.action === "suspend" ? "#E07A5F" : "#B45309",
+          }}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {myModeration.action === "warn"
+            ? `Warning from the Sona team${myModeration.reason ? `: ${myModeration.reason}` : ""}`
+            : composerNotice}
+        </div>
+      )}
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
         <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
           {/* Sidebar */}
@@ -1469,7 +1546,7 @@ useEffect(() => {
             {me && (
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
-                  onClick={() => navigate({ to: "/status" })}
+                  onClick={() => navigate({ to: "/status", search: { user: undefined } })}
                   className="flex w-full items-center gap-2 rounded-full bg-[#1E1E1E]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
                 >
                   <Plus className="h-4 w-4" /> Status &amp; news
@@ -1635,7 +1712,10 @@ useEffect(() => {
             {/* Floating New-Chat FAB */}
             <button
   data-tour="new-chat-fab"
-  onClick={() => setShowNewChat(true)}
+  onClick={() => {
+    if (accountRestricted) { toast.error(composerNotice ?? "Your account is restricted."); return; }
+    setShowNewChat(true);
+  }}
   aria-label="New chat"
   className="group absolute bottom-8 right-5 z-30 grid h-[72px] w-[72px] place-items-center rounded-2xl
     /* Glass base */
@@ -1876,7 +1956,20 @@ useEffect(() => {
                           ? [{ key: "lock", label: "Lock now", icon: <Lock className="h-4 w-4" />, onClick: relock }]
                           : []),
                         ...(!isAIChat(active) && !active.is_group
-                          ? [{ key: "block", label: "Block user", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther }]
+                          ? [
+                              {
+                                key: "report",
+                                label: "Report user",
+                                icon: <AlertTriangle className="h-4 w-4" />,
+                                onClick: () => {
+                                  const p = activeOtherId ? profilesById[activeOtherId] : undefined;
+                                  if (p) setReportTarget(p);
+                                },
+                              },
+                              iBlockedThem
+                                ? { key: "unblock", label: "Unblock user", icon: <Ban className="h-4 w-4" />, onClick: unblockOther }
+                                : { key: "block", label: "Block user", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther },
+                            ]
                           : []),
                       ],
                       onClick: ({ key }) => {
@@ -2122,6 +2215,19 @@ useEffect(() => {
                   </div>
                 )}
 
+                {composerNotice ? (
+                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] px-4 py-5 text-center dark:bg-[#242424]">
+                    <p className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl bg-[#F5F0E8] px-4 py-3 text-sm font-medium text-[#8C8C8C] dark:bg-[#2A2A2A]">
+                      <Ban className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+                      {composerNotice}
+                    </p>
+                    {iBlockedThem && !accountRestricted && (
+                      <button onClick={unblockOther} className="mt-3 rounded-full bg-[#E07A5F] px-5 py-2 text-xs font-semibold text-white">
+                        Unblock
+                      </button>
+                    )}
+                  </div>
+                ) : (
                 <Composer
                   draft={draft}
                   setDraft={(v) => { setDraft(v); if (v) sendTyping(); }}
@@ -2144,6 +2250,7 @@ useEffect(() => {
                   onRecordingChange={sendRecording}
                   onSchedule={(date) => send(date)}
                 />
+                )}
               </>
             ) : (
               <div className="grid flex-1 place-items-center p-6 text-center text-[#8C8C8C] chat-pattern">
@@ -2206,6 +2313,37 @@ useEffect(() => {
         />
       )}
 
+      {reportTarget && me && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setReportTarget(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-[#FFFDF9] p-5 shadow-xl dark:bg-[#242424]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="flex items-center gap-2 text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+              <AlertTriangle className="h-4 w-4 text-[#E07A5F]" /> Report {reportTarget.display_name}
+            </h3>
+            <p className="mt-1 text-xs text-[#8C8C8C]">Reports are reviewed by Sona administrators.</p>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="mt-4 w-full rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm text-[#2D3436] outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+            >
+              {["Harassment or bullying", "Spam or scam", "Hate speech", "Inappropriate content", "Impersonation", "Other"].map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <textarea
+              value={reportDetails}
+              onChange={(e) => setReportDetails(e.target.value)}
+              rows={3}
+              placeholder="Add details (optional)"
+              className="mt-2 w-full resize-none rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm text-[#2D3436] outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setReportTarget(null)} className="rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">Cancel</button>
+              <button onClick={submitReport} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">Send report</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewingProfile && me && (
         <ProfileViewModal
           profile={viewingProfile}
@@ -2213,6 +2351,8 @@ useEffect(() => {
           onClose={() => setViewingProfile(null)}
           onMessage={() => messageProfile(viewingProfile)}
           onEdit={() => { setViewingProfile(null); setShowSettings(true); }}
+          moderation={viewingProfile.id === me.id ? myModeration : null}
+          onReport={viewingProfile.id !== me.id && !viewingProfile.is_ai ? () => { setViewingProfile(null); setReportTarget(viewingProfile); } : undefined}
         />
       )}
 
