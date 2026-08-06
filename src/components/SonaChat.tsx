@@ -2332,6 +2332,8 @@ useEffect(() => {
           onClose={() => setViewingProfile(null)}
           onMessage={() => messageProfile(viewingProfile)}
           onEdit={() => { setViewingProfile(null); setShowSettings(true); }}
+          moderation={viewingProfile.id === me.id ? myModeration : null}
+          onReport={viewingProfile.id !== me.id && !viewingProfile.is_ai ? () => { setViewingProfile(null); setReportTarget(viewingProfile); } : undefined}
         />
       )}
 
