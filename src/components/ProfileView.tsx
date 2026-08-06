@@ -48,6 +48,21 @@ export function ProfileViewModal({
             <p className="mt-2 text-sm text-[#5C5C5C] dark:text-[#B8B8B8] leading-relaxed">{profile.bio}</p>
           )}
 
+          {mod && (
+            <div
+              className="mt-4 w-full rounded-2xl px-4 py-3 text-left"
+              style={{ backgroundColor: `${mod.color}1A`, border: `1px solid ${mod.color}44` }}
+            >
+              <p className="flex items-center gap-1.5 text-xs font-bold" style={{ color: mod.color }}>
+                <AlertTriangle className="h-3.5 w-3.5" /> {mod.label}
+              </p>
+              <p className="mt-1 text-xs text-[#5C5C5C] dark:text-[#B8B8B8]">{mod.reason || mod.note}</p>
+              {mod.expires_at && (
+                <p className="mt-1 text-[11px] text-[#8C8C8C]">Until {new Date(mod.expires_at).toLocaleDateString()}</p>
+              )}
+            </div>
+          )}
+
           {joined && (
             <div className="mt-3 flex items-center gap-1.5 text-xs text-[#8C8C8C]">
               <Calendar className="h-3.5 w-3.5" />
@@ -55,7 +70,7 @@ export function ProfileViewModal({
             </div>
           )}
 
-          <div className="mt-6 flex w-full gap-2">
+          <div className="mt-6 flex w-full flex-col gap-2">
             {isSelf ? (
               <button
                 onClick={onEdit}
@@ -64,14 +79,24 @@ export function ProfileViewModal({
                 <Pencil className="h-4 w-4" /> Edit profile
               </button>
             ) : (
-              !profile.is_ai && onMessage && (
-                <button
-                  onClick={onMessage}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E07A5F] py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-lg"
-                >
-                  <MessageCircle className="h-4 w-4" /> Message
-                </button>
-              )
+              <>
+                {!profile.is_ai && onMessage && (
+                  <button
+                    onClick={onMessage}
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#E07A5F] py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-lg"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Message
+                  </button>
+                )}
+                {onReport && (
+                  <button
+                    onClick={onReport}
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-red-500/10 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-500/20 transition"
+                  >
+                    <Flag className="h-4 w-4" /> Report user
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
