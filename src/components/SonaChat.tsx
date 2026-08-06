@@ -1349,6 +1349,20 @@ useEffect(() => {
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
       {me && <CallManager ref={callManagerRef} meId={me.id} meName={me.display_name ?? "Someone"} meAvatar={me.avatar_url ?? null} />}
+      {myModeration && (
+        <div
+          className="flex items-center justify-center gap-2 px-4 py-2 text-center text-xs font-semibold"
+          style={{
+            backgroundColor: myModeration.action === "ban" ? "#EF444422" : myModeration.action === "suspend" ? "#E07A5F22" : "#F59E0B22",
+            color: myModeration.action === "ban" ? "#EF4444" : myModeration.action === "suspend" ? "#E07A5F" : "#B45309",
+          }}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {myModeration.action === "warn"
+            ? `Warning from the Sona team${myModeration.reason ? `: ${myModeration.reason}` : ""}`
+            : composerNotice}
+        </div>
+      )}
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
         <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
           {/* Sidebar */}
