@@ -1902,18 +1902,18 @@ useEffect(() => {
                       items: [
                         {
                           key: "search",
-                          label: "Search in chat",
+                          label: "Search" ,
                           icon: <Search className="h-4 w-4" />,
                         },
                         {
                           key: "summarize",
                           label: (
                             <span className="flex w-full items-center">
-                              Summarize chat
+                              Summarize
                               {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
                             </span>
                           ),
-                          icon: <Sparkles className="h-4 w-4 text-[#E07A5F]" />,
+                          icon: <Sparkles className="h-4 w-4 text-[#1E1E1E]" />,
                         },
                         ...(!isAIChat(active)
                           ? [
