@@ -150,8 +150,16 @@ function fmtDuration(ms?: number | null) {
 function fmtChatTimestamp(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
-  const sameYear = d.getFullYear() === now.getFullYear();
-  return d.toLocaleDateString([], sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" });
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const t = d.getTime();
+  if (t >= startOfToday) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+  if (t >= startOfToday - 86_400_000) return "Yesterday";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}/${mm}/${dd}`;
 }
 
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
