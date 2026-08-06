@@ -1,19 +1,28 @@
-import { X, BadgeCheck, Crown, Sparkles, MessageCircle, Pencil, Calendar } from "lucide-react";
+import { X, BadgeCheck, Crown, Sparkles, MessageCircle, Pencil, Calendar, AlertTriangle, Flag } from "lucide-react";
 import { Avatar } from "./Avatar";
 import type { Profile } from "@/lib/db";
 
+const MOD_META: Record<string, { label: string; color: string; note: string }> = {
+  warn: { label: "Warning issued", color: "#F59E0B", note: "An administrator has warned this account." },
+  suspend: { label: "Suspended", color: "#E07A5F", note: "Messaging and other features are disabled." },
+  ban: { label: "Banned", color: "#EF4444", note: "This account is banned from Sona." },
+};
+
 export function ProfileViewModal({
-  profile, isSelf, onClose, onMessage, onEdit,
+  profile, isSelf, onClose, onMessage, onEdit, moderation, onReport,
 }: {
   profile: Profile;
   isSelf: boolean;
   onClose: () => void;
   onMessage?: () => void; // omitted/undefined when viewing your own profile
   onEdit?: () => void;    // only relevant when isSelf
+  moderation?: { action: string; reason: string | null; expires_at: string | null } | null;
+  onReport?: () => void;
 }) {
   const joined = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })
     : null;
+  const mod = moderation && MOD_META[moderation.action] ? { ...MOD_META[moderation.action]!, ...moderation } : null;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
