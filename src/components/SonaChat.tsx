@@ -2061,7 +2061,7 @@ useEffect(() => {
     <div key={m.id} className="contents">
     {showDateSeparator && (
       <div className="my-3 flex justify-center">
-        <span className="rounded bg-[#F4A261]/20 px-3 py-1 text-[11px] font-medium text-[#1E1E1E] backdrop-blur border border-[#E07A5F]/20">
+        <span className="rounded bg-[#F4A261]/20 px-3 py-1 text-[11px] font-medium text-[#8C8C8C] backdrop-blur border border-[#E07A5F]/20">
           {fmtDateLabel(m.created_at)}
         </span>
       </div>
