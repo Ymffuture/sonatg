@@ -1959,7 +1959,7 @@ useEffect(() => {
                           ? [
                               {
                                 key: "report",
-                                label: "Report user",
+                                label: "Report",
                                 icon: <AlertTriangle className="h-4 w-4" />,
                                 onClick: () => {
                                   const p = activeOtherId ? profilesById[activeOtherId] : undefined;
