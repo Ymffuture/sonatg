@@ -1936,7 +1936,20 @@ useEffect(() => {
                           ? [{ key: "lock", label: "Lock now", icon: <Lock className="h-4 w-4" />, onClick: relock }]
                           : []),
                         ...(!isAIChat(active) && !active.is_group
-                          ? [{ key: "block", label: "Block user", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther }]
+                          ? [
+                              {
+                                key: "report",
+                                label: "Report user",
+                                icon: <AlertTriangle className="h-4 w-4" />,
+                                onClick: () => {
+                                  const p = activeOtherId ? profilesById[activeOtherId] : undefined;
+                                  if (p) setReportTarget(p);
+                                },
+                              },
+                              iBlockedThem
+                                ? { key: "unblock", label: "Unblock user", icon: <Ban className="h-4 w-4" />, onClick: unblockOther }
+                                : { key: "block", label: "Block user", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther },
+                            ]
                           : []),
                       ],
                       onClick: ({ key }) => {
