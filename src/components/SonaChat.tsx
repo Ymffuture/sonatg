@@ -2294,6 +2294,37 @@ useEffect(() => {
         />
       )}
 
+      {reportTarget && me && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setReportTarget(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-[#FFFDF9] p-5 shadow-xl dark:bg-[#242424]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="flex items-center gap-2 text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+              <AlertTriangle className="h-4 w-4 text-[#E07A5F]" /> Report {reportTarget.display_name}
+            </h3>
+            <p className="mt-1 text-xs text-[#8C8C8C]">Reports are reviewed by Sona administrators.</p>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="mt-4 w-full rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm text-[#2D3436] outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+            >
+              {["Harassment or bullying", "Spam or scam", "Hate speech", "Inappropriate content", "Impersonation", "Other"].map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <textarea
+              value={reportDetails}
+              onChange={(e) => setReportDetails(e.target.value)}
+              rows={3}
+              placeholder="Add details (optional)"
+              className="mt-2 w-full resize-none rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm text-[#2D3436] outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setReportTarget(null)} className="rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">Cancel</button>
+              <button onClick={submitReport} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">Send report</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewingProfile && me && (
         <ProfileViewModal
           profile={viewingProfile}
