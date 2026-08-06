@@ -814,10 +814,7 @@ function SonaChatInner() {
   const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned" | "customized">("all");
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
-    if (!c.is_group) {
-      const other = c.memberIds.find((id) => id !== me.id);
-      if (other && blockedIds.has(other)) return false;
-    }
+
     if (activeFolder === "unread" && c.unread === 0) return false;
     if (activeFolder === "groups" && !c.is_group) return false;
     if (activeFolder === "pinned" && !c.isPinned) return false;
