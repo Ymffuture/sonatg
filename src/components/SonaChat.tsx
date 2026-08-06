@@ -2182,6 +2182,19 @@ useEffect(() => {
                   </div>
                 )}
 
+                {composerNotice ? (
+                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] px-4 py-5 text-center dark:bg-[#242424]">
+                    <p className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl bg-[#F5F0E8] px-4 py-3 text-sm font-medium text-[#8C8C8C] dark:bg-[#2A2A2A]">
+                      <Ban className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+                      {composerNotice}
+                    </p>
+                    {iBlockedThem && !accountRestricted && (
+                      <button onClick={unblockOther} className="mt-3 rounded-full bg-[#E07A5F] px-5 py-2 text-xs font-semibold text-white">
+                        Unblock
+                      </button>
+                    )}
+                  </div>
+                ) : (
                 <Composer
                   draft={draft}
                   setDraft={(v) => { setDraft(v); if (v) sendTyping(); }}
