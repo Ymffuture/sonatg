@@ -805,6 +805,22 @@ function SonaChatInner() {
 
   const active = chats.find((c) => c.id === activeId);
 
+  const activeOtherId = active && !active.is_group && me
+    ? active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID) ?? null
+    : null;
+  const iBlockedThem = !!activeOtherId && blockedIds.has(activeOtherId);
+  const theyBlockedMe = !!activeOtherId && blockedByIds.has(activeOtherId);
+  const accountRestricted = myModeration?.action === "ban" || myModeration?.action === "suspend";
+  const composerNotice = accountRestricted
+    ? (myModeration?.action === "ban"
+        ? "Your account is banned — you can't send messages."
+        : `Your account is suspended${myModeration?.expires_at ? ` until ${new Date(myModeration.expires_at).toLocaleDateString()}` : ""} — you can't send messages.`)
+    : iBlockedThem
+      ? "You blocked this person. You can't send messages to this person."
+      : theyBlockedMe
+        ? "You can't send messages to this person."
+        : null;
+
   const profilesById = useMemo(() => {
     const map: Record<string, Profile> = {};
     if (me) map[me.id] = me;
