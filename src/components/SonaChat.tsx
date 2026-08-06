@@ -2217,6 +2217,7 @@ useEffect(() => {
                   onRecordingChange={sendRecording}
                   onSchedule={(date) => send(date)}
                 />
+                )}
               </>
             ) : (
               <div className="grid flex-1 place-items-center p-6 text-center text-[#8C8C8C] chat-pattern">
