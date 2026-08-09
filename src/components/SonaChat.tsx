@@ -1547,7 +1547,7 @@ useEffect(() => {
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-                  className="flex w-full items-center gap-2 rounded-full bg-[#1E1E1E]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
+                  className="flex w-full items-center gap-2 rounded-full bg-[#E07A5F]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
                 >
                   <Plus className="h-4 w-4" /> Status &amp; news
                 </button>
@@ -1763,10 +1763,10 @@ useEffect(() => {
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                     {!!active.disappearing_seconds && (
                       <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-[#FFFDF9] ring-2 ring-[#FFFDF9] dark:ring-[#1A1A1A]"
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FFFDF9] ring-2 ring-[#FFFDF9] dark:ring-[#1A1A1A]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
-                        <IoMdTimer className="h-4 w-4 text-white" />
+                        <IoMdTimer className="h-4 w-4 text-[#8C8C8C] " />
                       </div>
                     )}
                   </button>
