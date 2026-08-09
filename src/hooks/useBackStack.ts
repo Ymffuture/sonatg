@@ -9,6 +9,8 @@
 // listener — incorrectly closing the chat underneath it too. Unifying
 // them onto one stack means a layer only ever pops itself.
 
+import { useEffect, useRef } from "react";
+
 type Layer = { id: symbol; onPop: () => void };
 
 let stack: Layer[] = [];
@@ -56,4 +58,16 @@ export function pushBackLayer(onPop: () => void): () => void {
       }
     });
   };
+}
+
+// Convenience hook for modals: `useBackToClose(onClose)` — closes via the
+// device/browser back button, using the shared stack above so it never
+// accidentally pops a layer (like an open chat) that isn't its own.
+export function useBackToClose(onClose: () => void) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const popLayer = pushBackLayer(() => onCloseRef.current());
+    return popLayer;
+  }, []);
 }
