@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { Alert } from "antd";
+import { LoadingOutlined } from "@ant-design/icons";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
   Sparkles, Shield, Zap, CheckCircle2,
@@ -96,6 +97,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [lastUsed, setLastUsed] = useState<AuthMethod | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(LAST_USED_KEY);
@@ -114,10 +116,11 @@ function AuthPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
     try {
       if (mode === "signup") {
         if (!acceptTerms) {
-          toast.error("You must accept the Terms of Service and Privacy Policy to create an account.");
+          setErrorMsg("You must accept the Terms of Service and Privacy Policy to create an account.");
           setLoading(false);
           return;
         }
@@ -132,14 +135,13 @@ function AuthPage() {
         });
         if (error) throw error;
         localStorage.setItem(LAST_USED_KEY, "email");
-        toast.success("Welcome to Sona");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         localStorage.setItem(LAST_USED_KEY, "email");
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      setErrorMsg((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -147,6 +149,7 @@ function AuthPage() {
 
   const oauth = async (provider: "google" | "twitter" | "facebook") => {
     setLoading(true);
+    setErrorMsg(null);
     try {
       localStorage.setItem(LAST_USED_KEY, provider);
       const { error } = await supabase.auth.signInWithOAuth({
@@ -155,7 +158,7 @@ function AuthPage() {
       });
       if (error) throw error;
     } catch (err) {
-      toast.error((err as Error).message);
+      setErrorMsg((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -280,6 +283,28 @@ function AuthPage() {
               </motion.div>
             </AnimatePresence>
 
+            {errorMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mb-4"
+              >
+                <Alert
+                  message={errorMsg}
+                  type="error"
+                  showIcon
+                  closable
+                  onClose={() => setErrorMsg(null)}
+                  className="rounded-xl"
+                  style={{
+                    backgroundColor: 'rgba(224, 122, 95, 0.08)',
+                    borderColor: 'rgba(224, 122, 95, 0.25)',
+                  }}
+                />
+              </motion.div>
+            )}
+
             <form onSubmit={submit} className="space-y-3">
               {mode === "signup" && (
                 <div className="relative group">
@@ -336,7 +361,7 @@ function AuthPage() {
                 className="group w-full rounded-xl bg-gradient-to-r from-[#E07A5F] to-[#D4694F] py-3 text-sm font-semibold text-white shadow-lg shadow-[#E07A5F]/25 transition-all hover:shadow-xl hover:shadow-[#E07A5F]/30 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <LoadingOutlined style={{ fontSize: 16, color: '#fff' }} />
                 ) : (
                   <>
                     {mode === "signin" ? "Sign in" : "Get started"}
