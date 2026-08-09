@@ -3,7 +3,7 @@ import {
   Download, Reply,Globe, ExternalLink, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
-  Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2,
+  Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
   FileText, 
 } from "lucide-react";
 import { toast } from "sonner";
@@ -397,11 +397,11 @@ function useLongPress(callback: () => void, ms = 500) {
 
 /* ─── WhatsApp-style Context Menu ─── */
 function MessageContextMenu({
-  open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onClose,
+  open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onForward, onClose,
 }: {
   open: boolean; x: number; y: number; mine: boolean; isText: boolean;
   onReply: () => void; onReact: (emoji: string) => void;
-  onEdit: () => void; onDelete: () => void; onCopy: () => void; onClose: () => void;
+  onEdit: () => void; onDelete: () => void; onCopy: () => void; onForward: () => void; onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -443,6 +443,7 @@ function MessageContextMenu({
 
       <div className="py-1">
         <MenuItem icon={<CornerUpLeft className="h-4 w-4" />} label="Reply" onClick={() => { onReply(); onClose(); }} />
+        <MenuItem icon={<Forward className="h-4 w-4" />} label="Forward" onClick={() => { onForward(); onClose(); }} />
         {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
         <MenuItem icon={<SmilePlus className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
         {mine && isText && <MenuItem icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => { onEdit(); onClose(); }} />}
@@ -940,7 +941,7 @@ return (
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions, onTranscribed,
-  replyCount, onOpenThread,allImages, 
+  replyCount, onOpenThread,allImages, onForward,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -953,6 +954,7 @@ export function Bubble({
   replyCount?: number;
   onOpenThread?: () => void;
   allImages?: MediaItem[];
+  onForward?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1091,6 +1093,12 @@ export function Bubble({
                     {sender?.display_name ?? "Unknown"}
                   </span>
                 )}
+              </div>
+            )}
+
+            {msg.is_forwarded && (
+              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+                <Forward className="h-3 w-3" /> Forwarded
               </div>
             )}
 
@@ -1258,6 +1266,7 @@ export function Bubble({
         onEdit={() => onEdit()}
         onDelete={() => onDelete()}
         onCopy={handleCopy}
+        onForward={() => onForward?.()}
         onClose={() => setContextMenu({ ...contextMenu, open: false })}
       />
       

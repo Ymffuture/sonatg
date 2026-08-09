@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
-import { pushBackLayer } from "@/hooks/useBackStack";
+import { useBackToClose } from "@/hooks/useBackStack";
 import {
   CHAT_CATEGORIES, type Profile, type ChatCategory,
 } from "@/lib/db";
@@ -42,21 +42,6 @@ const notify = {
     }),
 };
 
-
-/* ─── Back-button-closes-modal helper ───────────────────────────
- * Delegates to the shared back-navigation stack (src/hooks/useBackStack.ts)
- * so a modal only ever pops itself — never accidentally closing whatever
- * else is open underneath it (like the chat view). See that file for the
- * full explanation of why a shared stack is necessary here.
- */
-function useBackToClose(onClose: () => void) {
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  useEffect(() => {
-    const popLayer = pushBackLayer(() => onCloseRef.current());
-    return popLayer;
-  }, []);
-}
 
 /* ─── Category Icon Helper (zero emojis) ─── */
 function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: ChatCategory; className?: string }) {
