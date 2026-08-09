@@ -26,12 +26,13 @@ export type MessageRow = {
   id: string;
   chat_id: string;
   sender_id: string;
-  kind: "text" | "image" | "voice" | "file" | "call";
+  kind: "text" | "image" | "video" | "voice" | "file" | "call";
   body: string | null;
   media_url: string | null;
   duration_ms: number | null;
   transcript?: string | null;
   scheduled_at?: string | null;
+  is_forwarded?: boolean;
   created_at: string;
   is_encrypted?: boolean;
   reply_to_id?: string | null;
