@@ -47,6 +47,32 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Intercept sitemap requests and serve a dynamic sitemap.xml
+      const url = new URL(request.url);
+      if (url.pathname === "/sitemap.xml") {
+        const base = "https://sonatg.vercel.app";
+        const routes = [
+          "/",
+          "/auth",
+          "/auth/callback",
+          "/forgot-password",
+          "/learn",
+          "/privacy",
+          "/terms",
+          "/admin",
+          "/status",
+        ];
+        const today = new Date().toISOString().slice(0, 10);
+        const entries = routes
+          .map((r, i) => {
+            const priority = r === "/" ? "0.8" : "0.6";
+            return `  <url>\n    <loc>${base}${r}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+          })
+          .join("\n");
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`;
+        return new Response(xml, { status: 200, headers: { "content-type": "application/xml" } });
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
