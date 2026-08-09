@@ -85,6 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Private messaging, voice & video calls, and AI-powered conversations — all in one beautiful place." },
       { name: "keywords", content: "messaging, chat, private, encrypted, voice calls, video calls, AI chat" },
       { name: "author", content: "Sona" },
+      { name:"google-site-verification", content:"xXWElQQdEb1YSMqAy524N-B58KqSZqsf5zc0O8fWg3A"}, 
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Sona" },
