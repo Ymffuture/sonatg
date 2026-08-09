@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-  X, Plus, Type, Image as ImageIcon, Video, Send, Eye, Trash2, Loader2, AlertCircle, RotateCw,
-} from "lucide-react";
-import { Skeleton, Badge, notification } from "antd";
+  FontSizeOutlined, PictureOutlined, VideoCameraOutlined,
+  SendOutlined, EyeOutlined, DeleteOutlined, CloseOutlined,
+  PlusOutlined, LoadingOutlined, RedoOutlined,
+} from "@ant-design/icons";
+import { Skeleton, Badge, notification, Progress, Alert, Button, Input } from "antd";
 import { supabase } from "@/integrations/supabase/client";
 import {
   type Profile, type StatusRow,
@@ -134,10 +136,7 @@ export function StatusBar({
   const myStatuses = statuses.filter((s) => s.user_id === meId);
   const me = profilesById[meId];
 
-  // The card background should show the person's most recent status as a
-  // thumbnail (or the last text status's background color) rather than a
-  // plain avatar circle — matches the tile-grid look of the reference design.
-  const latestOf = (list: StatusRow[]) => list[0]; // already sorted desc by created_at
+  const latestOf = (list: StatusRow[]) => list[0];
 
   return (
     <div
@@ -177,7 +176,7 @@ export function StatusBar({
                   style={{ backgroundColor: WA.green, border: `2px solid ${WA.darkSurface}` }}
                   aria-label="Add status"
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <PlusOutlined style={{ fontSize: 14 }} />
                 </span>
               </div>
             </div>
@@ -228,10 +227,7 @@ export function StatusBar({
   );
 }
 
-// Renders a status's content as a full-bleed card background: the image
-// itself, a video's first frame, or a solid color block for text statuses
-// (with the text preview lightly visible), matching the reference design
-// where each tile shows a real thumbnail rather than a generic icon.
+// Renders a status's content as a full-bleed card background
 function StatusCardBackground({ status }: { status: StatusRow }) {
   const mediaUrl = useStatusMediaUrl(status);
   if (status.kind === "image") {
@@ -265,9 +261,7 @@ function StatusCardBackground({ status }: { status: StatusRow }) {
   );
 }
 
-/* ─── Upload with progress ────────────────────────────────────
-   supabase-js gives no upload progress, so we mint a signed upload URL and
-   PUT the file with XHR, which does report progress events. */
+/* ─── Upload with progress ──────────────────────────────────── */
 async function uploadWithProgress(
   path: string,
   file: File,
@@ -320,7 +314,6 @@ export function StatusComposer({
 
   const maxBytes = STATUS_MAX_BYTES_SUPABASE;
 
-
   const pickFile = async (f: File | null, kind: "image" | "video") => {
     if (!f) return;
     if (f.size > maxBytes) {
@@ -370,8 +363,6 @@ export function StatusComposer({
       if (file) {
         if (mode === "video") duration_ms = Math.round(await readVideoDurationMs(file));
 
-        // Sanitise the filename: Supabase Storage rejects keys with spaces or
-        // non-ASCII characters, which was silently breaking most uploads.
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
         const path = `${meId}/${crypto.randomUUID()}-${safeName}`;
 
@@ -417,7 +408,6 @@ export function StatusComposer({
     }
   };
 
-
   return (
     <div
       className="fixed inset-0 z-[70] flex flex-col"
@@ -431,7 +421,7 @@ export function StatusComposer({
           style={{ backgroundColor: WA.darkElevated, color: WA.text }}
           aria-label="Close"
         >
-          <X className="h-5 w-5" />
+          <CloseOutlined style={{ fontSize: 20 }} />
         </button>
 
         <div className="flex gap-2">
@@ -446,9 +436,9 @@ export function StatusComposer({
                   : { backgroundColor: WA.darkElevated, color: WA.grayLight }
               }
             >
-              {m === "text" && <Type className="h-3.5 w-3.5" />}
-              {m === "image" && <ImageIcon className="h-3.5 w-3.5" />}
-              {m === "video" && <Video className="h-3.5 w-3.5" />}
+              {m === "text" && <FontSizeOutlined style={{ fontSize: 14 }} />}
+              {m === "image" && <PictureOutlined style={{ fontSize: 14 }} />}
+              {m === "video" && <VideoCameraOutlined style={{ fontSize: 14 }} />}
               {m[0].toUpperCase() + m.slice(1)}
             </button>
           ))}
@@ -478,13 +468,16 @@ export function StatusComposer({
               className="w-full aspect-[9/16] max-h-[60vh] rounded-2xl flex items-center justify-center p-6 transition-colors shadow-2xl"
               style={{ backgroundColor: bgColor }}
             >
-              <textarea
+              <Input.TextArea
                 autoFocus
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Type a status…"
                 maxLength={280}
-                className="w-full h-full bg-transparent text-white text-center text-2xl font-semibold outline-none resize-none placeholder:text-white/50"
+                bordered={false}
+                autoSize={false}
+                className="w-full h-full bg-transparent text-white text-center text-2xl font-semibold resize-none placeholder:text-white/50"
+                style={{ color: "#fff" }}
               />
             </div>
             <div className="mt-5 flex justify-center gap-3">
@@ -529,12 +522,13 @@ export function StatusComposer({
                 onError={() => setMediaLoading(false)}
               />
             )}
-            <input
+            <Input
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Add a caption…"
               maxLength={200}
-              className="mt-3 w-full rounded-xl px-4 py-3 text-sm outline-none placeholder:text-white/40"
+              bordered={false}
+              className="mt-3 w-full rounded-xl px-4 py-3 text-sm placeholder:text-white/40"
               style={{ backgroundColor: WA.darkElevated, color: WA.text }}
             />
           </div>
@@ -544,7 +538,7 @@ export function StatusComposer({
             className="flex flex-col items-center gap-3"
             style={{ color: WA.gray }}
           >
-            {mode === "image" ? <ImageIcon className="h-12 w-12" /> : <Video className="h-12 w-12" />}
+            {mode === "image" ? <PictureOutlined style={{ fontSize: 48 }} /> : <VideoCameraOutlined style={{ fontSize: 48 }} />}
             <span className="text-sm font-medium">Tap to choose a {mode}</span>
           </button>
         )}
@@ -574,48 +568,59 @@ export function StatusComposer({
             ))}
           </div>
         </div>
+
         {progress !== null && (
           <div className="mb-3">
             <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold" style={{ color: WA.grayLight }}>
               <span>{progress < 100 ? "Uploading…" : "Finishing up…"}</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ backgroundColor: WA.darkElevated }}>
-              <div
-                className="h-full rounded-full transition-all duration-200"
-                style={{ width: `${progress}%`, backgroundColor: WA.green }}
-              />
-            </div>
+            <Progress
+              percent={progress}
+              showInfo={false}
+              strokeColor={WA.green}
+              trailColor={WA.darkElevated}
+              size="small"
+              className="!m-0"
+            />
           </div>
         )}
 
         {failed && !posting && (
-          <div
-            className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5"
-            style={{ backgroundColor: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}
-          >
-            <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
-            <p className="flex-1 text-[11px] leading-snug text-red-300">{failed}</p>
-            <button
-              onClick={post}
-              className="flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold"
-              style={{ backgroundColor: WA.green, color: "#000" }}
-            >
-              <RotateCw className="h-3 w-3" /> Retry
-            </button>
-          </div>
+          <Alert
+            message={failed}
+            type="error"
+            showIcon
+            closable
+            onClose={() => setFailed(null)}
+            className="mb-3 rounded-xl"
+            style={{ backgroundColor: "rgba(239,68,68,0.12)", borderColor: "rgba(239,68,68,0.35)" }}
+            action={
+              <Button
+                size="small"
+                onClick={post}
+                icon={<RedoOutlined />}
+                style={{ backgroundColor: WA.green, borderColor: WA.green, color: "#000" }}
+              >
+                Retry
+              </Button>
+            }
+          />
         )}
 
-        <button
+        <Button
           onClick={post}
+          loading={posting}
           disabled={posting}
-          className="w-full flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold transition disabled:opacity-60"
-          style={{ backgroundColor: WA.green, color: "#000" }}
+          type="primary"
+          block
+          size="large"
+          icon={!posting ? <SendOutlined style={{ color: "#000", fontSize: 16 }} /> : undefined}
+          className="rounded-full font-bold"
+          style={{ backgroundColor: WA.green, borderColor: WA.green, color: "#000", height: "auto", padding: "14px 0" }}
         >
-          {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {posting ? (progress !== null ? `Uploading ${progress}%` : "Posting…") : failed ? "Try again" : "Post status"}
-        </button>
-
+        </Button>
       </div>
     </div>
   );
@@ -715,154 +720,4 @@ export function StatusViewer({
     <div className="fixed inset-0 z-[70] flex flex-col select-none" style={{ backgroundColor: WA.darkBg }}>
       {/* Progress segments */}
       <div className="flex gap-1.5 p-3 pt-4">
-        {statuses.map((s, i) => (
-          <div key={s.id} className="h-1 flex-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.25)" }}>
-            <div
-              className="h-full transition-none"
-              style={{
-                width: `${i < index ? 100 : i === index ? progress * 100 : 0}%`,
-                backgroundColor: "#fff",
-              }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center gap-3 px-3 pb-2">
-        {user.avatar_url ? (
-          <img src={user.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
-        ) : (
-          <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: WA.darkElevated, color: WA.text }}>
-            {user.display_name?.charAt(0).toUpperCase() ?? "?"}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate" style={{ color: WA.text }}>{user.display_name}</p>
-          <p className="text-xs" style={{ color: WA.gray }}>
-            {agoLabel}
-          </p>
-        </div>
-        {isSelf && (
-          <button
-            onClick={deleteCurrent}
-            className="grid h-9 w-9 place-items-center rounded-full transition"
-            style={{ color: WA.grayLight }}
-            aria-label="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          onClick={onClose}
-          className="grid h-9 w-9 place-items-center rounded-full transition"
-          style={{ color: WA.text }}
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div
-        className="relative flex-1 flex items-center justify-center overflow-hidden"
-        onPointerDown={() => { pausedRef.current = true; }}
-        onPointerUp={() => { pausedRef.current = false; }}
-      >
-        {/* Tap zones */}
-        <button
-          className="absolute left-0 top-0 h-full w-1/3 z-10"
-          aria-label="Previous"
-          onClick={() => (index > 0 ? setIndex((i) => i - 1) : onClose())}
-        />
-        <button
-          className="absolute right-0 top-0 h-full w-1/3 z-10"
-          aria-label="Next"
-          onClick={() => (index < statuses.length - 1 ? setIndex((i) => i + 1) : onClose())}
-        />
-
-        {/* Media */}
-        {current.kind === "text" ? (
-          <div
-            className="w-full max-w-sm aspect-[9/16] max-h-[70vh] mx-4 rounded-2xl flex items-center justify-center p-8 shadow-2xl"
-            style={{ backgroundColor: current.background_color || WA.green }}
-          >
-            <p className="text-white text-center text-2xl font-semibold leading-relaxed">{current.body}</p>
-          </div>
-        ) : current.kind === "image" ? (
-          <>
-            {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center z-0">
-                <Skeleton.Image active className="!w-64 !h-96 rounded-2xl" />
-              </div>
-            )}
-            <img
-              src={currentMediaUrl ?? ""}
-              alt=""
-              className="max-h-[75vh] max-w-full object-contain z-[1]"
-              onLoad={() => setImageLoading(false)}
-              onError={() => setImageLoading(false)}
-            />
-          </>
-        ) : (
-          <video
-            src={currentMediaUrl ?? ""}
-            autoPlay
-            playsInline
-            controls
-            className="max-h-[75vh] max-w-full object-contain"
-            onLoadedData={() => setImageLoading(false)}
-            onError={() => setImageLoading(false)}
-          />
-        )}
-
-        {/* Caption */}
-        {current.body && current.kind !== "text" && (
-          <div
-            className="absolute bottom-6 left-4 right-4 text-center text-sm rounded-xl px-4 py-2.5 backdrop-blur-md"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)", color: WA.text }}
-          >
-            {current.body}
-          </div>
-        )}
-      </div>
-
-      {/* Views footer */}
-      {isSelf && (
-        <div style={{ backgroundColor: WA.darkSurface }}>
-          <button
-            onClick={() => setShowViewers((v) => !v)}
-            className="flex items-center gap-2 px-4 py-3 text-sm w-full"
-            style={{ color: WA.grayLight }}
-          >
-            <Eye className="h-4 w-4" />
-            <span className="font-medium">
-              {viewers.length} {viewers.length === 1 ? "view" : "views"}
-            </span>
-          </button>
-          {showViewers && (
-            <div className="max-h-44 overflow-y-auto px-4 pb-4 space-y-3">
-              {viewers.length === 0 ? (
-                <p className="text-xs" style={{ color: WA.gray }}>No one has seen this yet.</p>
-              ) : viewers.map((v) => (
-                <div key={v.id} className="flex items-center gap-3">
-                  {v.avatar_url ? (
-                    <img src={v.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: WA.darkElevated, color: WA.text }}>
-                      {v.display_name?.charAt(0).toUpperCase() ?? "?"}
-                    </div>
-                  )}
-                  <span className="text-sm font-medium" style={{ color: WA.text }}>{v.display_name}</span>
-                  <span className="text-xs ml-auto" style={{ color: WA.gray }}>
-                    {new Date(v.viewed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+        {statuses
