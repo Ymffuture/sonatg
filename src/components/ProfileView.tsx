@@ -70,9 +70,7 @@ export function ProfileViewModal({
         >
           {/* Header */}
           <div className="flex justify-end p-4 pb-0">
-            <Watermark content={['Swiftmeta', { text: 'SonaTG', font: { fontSize: 12 } }]}>
-    <div style={{ height: 500 }} />
-  </Watermark>
+           
             <Tooltip title="Close">
               <button
                 onClick={onClose}
