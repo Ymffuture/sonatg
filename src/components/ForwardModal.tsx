@@ -1,10 +1,26 @@
 import { useState, useMemo } from "react";
-import { Search, X, Check, Forward } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  CloseOutlined,
+  SearchOutlined,
+  CheckOutlined,
+  ForwardOutlined,
+  RobotOutlined,
+  LoadingOutlined,
+} from "@ant-design/icons";
+import {
+  Avatar,
+  Button,
+  Input,
+  Empty,
+  Spin,
+  Tooltip,
+  Badge,
+  message,
+} from "antd";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import type { MessageRow, Profile } from "@/lib/db";
+import type { MessageRow } from "@/lib/db";
 import { type ChatWithMeta, chatTitle, chatAvatarUrl, isAIChat } from "@/utils/utils";
-import { Avatar } from "./Avatar";
 import { useBackToClose } from "@/hooks/useBackStack";
 
 export function ForwardModal({
@@ -52,11 +68,11 @@ export function ForwardModal({
       }));
       const { error } = await supabase.from("messages").insert(inserts);
       if (error) throw error;
-      toast.success(`Forwarded to ${selected.size} chat${selected.size === 1 ? "" : "s"}`);
+      message.success(`Forwarded to ${selected.size} chat${selected.size === 1 ? "" : "s"}`);
       onForwarded();
       onClose();
     } catch (e) {
-      toast.error((e as Error).message || "Couldn't forward message");
+      message.error((e as Error).message || "Couldn't forward message");
     } finally {
       setSending(false);
     }
@@ -64,66 +80,189 @@ export function ForwardModal({
 
   return (
     <div className="fixed inset-0 z-[110] flex flex-col justify-end bg-black/30 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="flex max-h-[80vh] w-full flex-col rounded-t-3xl border-t border-white/20 dark:border-white/10 bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-xl shadow-2xl md:mx-auto md:mb-8 md:max-w-md md:rounded-3xl"
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+        className="relative flex max-h-[85vh] w-full flex-col rounded-t-3xl border-t border-white/20 dark:border-white/10 bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-xl shadow-2xl md:mx-auto md:mb-8 md:max-w-md md:rounded-3xl md:border overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4">
+        {/* Sending overlay */}
+        <AnimatePresence>
+          {sending && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+            >
+              <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: "#E07A5F" }} spin />} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#E07A5F]/10">
           <h3 className="flex items-center gap-2 text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-            <Forward className="h-4 w-4 text-[#E07A5F]" /> Forward to…
+            <ForwardOutlined className="text-[#E07A5F]" /> Forward to…
           </h3>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close">
-            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
-          </button>
+          <Tooltip title="Close" placement="bottom">
+            <button
+              onClick={onClose}
+              className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20 transition"
+              aria-label="Close"
+            >
+              <CloseOutlined className="text-sm text-[#2D3436] dark:text-[#E8E8E8]" />
+            </button>
+          </Tooltip>
         </div>
 
-        <div className="px-5 pb-3">
-          <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2 border border-[#E07A5F]/10">
-            <Search className="h-4 w-4 text-[#8C8C8C]" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search chats"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]"
+        {/* Search */}
+        <div className="px-5 py-3">
+          <Input
+            prefix={<SearchOutlined className="text-[#8C8C8C] mr-1" />}
+            placeholder="Search chats"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            allowClear
+            className="rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] border-[#E07A5F]/10 hover:border-[#E07A5F]/30 focus:border-[#E07A5F] text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]"
+          />
+        </div>
+
+        {/* Selected count chip */}
+        <AnimatePresence>
+          {selected.size > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-5 overflow-hidden"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Badge
+                  count={selected.size}
+                  style={{ backgroundColor: "#E07A5F", fontWeight: 700 }}
+                />
+                <span className="text-xs font-medium text-[#8C8C8C]">
+                  {selected.size === 1 ? "chat selected" : "chats selected"}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Grid */}
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+          {filtered.length === 0 ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span className="text-sm text-[#8C8C8C]">No chats found.</span>
+              }
+              className="py-12"
             />
-          </div>
+          ) : (
+            <motion.div
+              layout
+              className="grid grid-cols-3 sm:grid-cols-4 gap-3"
+            >
+              <AnimatePresence>
+                {filtered.map((c) => {
+                  const title = chatTitle(c, meId);
+                  const isSel = selected.has(c.id);
+                  const avatarUrl = chatAvatarUrl(c, meId);
+
+                  return (
+                    <motion.button
+                      key={c.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      whileHover={{ scale: 1.06, y: -2 }}
+                      whileTap={{ scale: 0.94 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      onClick={() => toggle(c.id)}
+                      className={`flex flex-col items-center gap-2.5 p-3 rounded-2xl transition-colors outline-none ${
+                        isSel
+                          ? "bg-[#E07A5F]/10 ring-1 ring-[#E07A5F]/40"
+                          : "hover:bg-white/60 dark:hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="relative">
+                        <Avatar
+                          src={avatarUrl || undefined}
+                          size={64}
+                          className="shadow-md transition-all"
+                          style={{
+                            border: isSel ? "2.5px solid #E07A5F" : "2.5px solid transparent",
+                            backgroundColor: !avatarUrl ? "#E07A5F" : undefined,
+                          }}
+                        >
+                          <span className="text-lg font-bold text-white">
+                            {title.charAt(0).toUpperCase()}
+                          </span>
+                        </Avatar>
+
+                        {/* Selection checkmark */}
+                        <AnimatePresence>
+                          {isSel && (
+                            <motion.div
+                              initial={{ scale: 0, rotate: -45 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              exit={{ scale: 0, rotate: 45 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                              className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E07A5F] border-2 border-white dark:border-[#1a1a1a] shadow-sm"
+                            >
+                              <CheckOutlined className="text-[10px] text-white font-bold" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* AI indicator */}
+                        {!isSel && isAIChat(c) && (
+                          <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#2A2A2A] border border-[#E07A5F]/30 shadow-sm">
+                            <RobotOutlined className="text-[10px] text-[#E07A5F]" />
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="w-full text-center text-[11px] font-semibold text-[#2D3436] dark:text-[#E8E8E8] line-clamp-2 leading-tight">
+                        {title}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 pb-2 scrollbar-thin">
-          {filtered.map((c) => {
-            const title = chatTitle(c, meId);
-            const isSel = selected.has(c.id);
-            return (
-              <button
-                key={c.id}
-                onClick={() => toggle(c.id)}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-[#F4A261]/10 transition"
-              >
-                <Avatar url={chatAvatarUrl(c, meId)} name={title} size={42} ai={isAIChat(c)} />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8]">{title}</span>
-                <div
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
-                    isSel ? "border-[#E07A5F] bg-[#E07A5F]" : "border-[#8C8C8C]/40"
-                  }`}
-                >
-                  {isSel && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
-                </div>
-              </button>
-            );
-          })}
-          {filtered.length === 0 && <p className="p-6 text-center text-sm text-[#8C8C8C]">No chats found.</p>}
-        </div>
-
-        <div className="border-t border-[#E07A5F]/10 p-4">
-          <button
+        {/* Action bar */}
+        <div className="border-t border-[#E07A5F]/10 p-4 bg-white/50 dark:bg-[#1a1a1a]/50 backdrop-blur-xl">
+          <Button
+            type="primary"
+            block
+            size="large"
+            loading={sending}
+            disabled={selected.size === 0}
             onClick={forward}
-            disabled={selected.size === 0 || sending}
-            className="w-full rounded-xl bg-[#E07A5F] py-3 text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition"
+            icon={<ForwardOutlined />}
+            style={{
+              backgroundColor: "#E07A5F",
+              borderColor: "#E07A5F",
+              borderRadius: 12,
+              fontWeight: 600,
+            }}
+            className="hover:opacity-90 transition-opacity"
           >
-            {sending ? "Forwarding…" : selected.size > 0 ? `Forward to ${selected.size}` : "Select a chat"}
-          </button>
+            {selected.size > 0
+              ? `Forward to ${selected.size} chat${selected.size === 1 ? "" : "s"}`
+              : "Select a chat"}
+          </Button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
