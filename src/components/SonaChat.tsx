@@ -4,7 +4,7 @@ import {
   Plus, X, LogOut, Trash2,
   MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
-  Share2, BadgeCheck, FileText, DoorOpen, Download,
+  Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
   AlertTriangle,
 } from "lucide-react";
@@ -75,9 +75,13 @@ import {
   MAX_IMAGES, MAX_IMAGE_BYTES, MAX_DOCS, MAX_DOC_BYTES, DOC_EXTENSIONS, docExtOf, formatBytes,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
-import { Bubble, Composer } from "./MessageBubble";
+import { Bubble, Composer, MediaViewer } from "./MessageBubble";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
 import { ProfileViewModal } from "./ProfileView";
+import { ForwardModal } from "./ForwardModal";
+import { MediaGalleryModal } from "./MediaGalleryModal";
+import { uploadToCloudinary, readVideoDurationMs } from "@/utils/cloudinary";
+import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 
 
 // Call-log messages store their metadata as JSON in the file_name column
@@ -186,6 +190,12 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
       return (
         <span className="inline-flex items-center gap-1">
           <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message ({fmtDuration(msg.duration_ms)})
+        </span>
+      );
+    case "video":
+      return (
+        <span className="inline-flex items-center gap-1">
+          <Video className="h-4 w-4 shrink-0" /> Video
         </span>
       );
     case "file":
@@ -417,6 +427,12 @@ function SonaChatInner() {
   const [showMemberList, setShowMemberList] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<MessageRow | null>(null);
+  const [showMediaGallery, setShowMediaGallery] = useState(false);
+  const [galleryViewer, setGalleryViewer] = useState<{ kind: "image" | "video" | "pdf"; url: string; name?: string | null } | null>(null);
+  const [videoUploadPct, setVideoUploadPct] = useState<number | null>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+  const signCloudinaryUpload = useServerFn(getCloudinaryUploadSignature);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
   const [recordingOthers, setRecordingOthers] = useState<string[]>([]);
@@ -1114,6 +1130,36 @@ function SonaChatInner() {
       }
       return combined;
     });
+  };
+
+  const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // Cloudinary free tier cap — comfortably covers 50MB+ videos
+  const onPickVideo = async (file?: File | null) => {
+    if (!file || !me || !activeId) return;
+    if (!file.type.startsWith("video/")) { toast.error("Please choose a video file"); return; }
+    if (file.size > MAX_VIDEO_BYTES) { toast.error(`Video is too large — max ${formatBytes(MAX_VIDEO_BYTES)}`); return; }
+
+    setVideoUploadPct(0);
+    try {
+      const [durationMs, uploaded] = await Promise.all([
+        readVideoDurationMs(file).catch(() => 0),
+        uploadToCloudinary(file, "video", signCloudinaryUpload, (pct) => setVideoUploadPct(pct)),
+      ]);
+      const { error } = await supabase.from("messages").insert({
+        chat_id: activeId,
+        sender_id: me.id,
+        kind: "video",
+        media_url: uploaded.secure_url,
+        file_name: file.name,
+        file_size: uploaded.bytes ?? file.size,
+        duration_ms: Math.round(uploaded.duration ? uploaded.duration * 1000 : durationMs),
+      });
+      if (error) throw error;
+      playSendSound();
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't upload video");
+    } finally {
+      setVideoUploadPct(null);
+    }
   };
 
   const toggleReaction = async (messageId: string, emoji: string) => {
@@ -1942,6 +1988,11 @@ useEffect(() => {
                           icon: <Clock className="h-4 w-4" />,
                         },
                         {
+                          key: "media-gallery",
+                          label: "Media, links, and docs",
+                          icon: <ImageIcon className="h-4 w-4" />,
+                        },
+                        {
                           key: "hide",
                           label: (
                             <span className="flex w-full items-center">
@@ -1976,6 +2027,7 @@ useEffect(() => {
                         if (key === "search") setShowMsgSearch((s) => !s);
                         if (key === "summarize") runSummary();
                         if (key === "scheduled") openScheduledList();
+                        if (key === "media-gallery") setShowMediaGallery(true);
                       },
                     }}
                   >
@@ -2100,6 +2152,7 @@ useEffect(() => {
       }
       replyCount={repliesByParent[m.id]?.length ?? 0}
       onOpenThread={() => setThreadRootId(m.id)}
+      onForward={() => setForwardingMessage(m)}
     />
     </motion.div>
     </div>
@@ -2249,6 +2302,9 @@ useEffect(() => {
                   }}
                   onRecordingChange={sendRecording}
                   onSchedule={(date) => send(date)}
+                  onPickVideo={onPickVideo}
+                  videoRef={videoRef}
+                  videoUploadPct={videoUploadPct}
                 />
                 )}
               </>
@@ -2353,9 +2409,70 @@ useEffect(() => {
           onEdit={() => { setViewingProfile(null); setShowSettings(true); }}
           moderation={viewingProfile.id === me.id ? myModeration : null}
           onReport={viewingProfile.id !== me.id && !viewingProfile.is_ai ? () => { setViewingProfile(null); setReportTarget(viewingProfile); } : undefined}
+          online={onlineIds.has(viewingProfile.id)}
+          lastSeen={viewingProfile.last_seen ?? null}
+          onOpenMedia={
+            viewingProfile.id !== me.id && activeId
+              ? () => { setViewingProfile(null); setShowMediaGallery(true); }
+              : undefined
+          }
+          isBlocked={viewingProfile.id === activeOtherId ? iBlockedThem : undefined}
+          onToggleBlock={
+            viewingProfile.id === activeOtherId
+              ? () => { const fn = iBlockedThem ? unblockOther : blockOther; setViewingProfile(null); fn(); }
+              : undefined
+          }
         />
       )}
 
+
+      {forwardingMessage && me && (
+        <ForwardModal
+          message={forwardingMessage}
+          chats={chats}
+          meId={me.id}
+          onClose={() => setForwardingMessage(null)}
+          onForwarded={() => {}}
+        />
+      )}
+
+      {showMediaGallery && activeId && (
+        <MediaGalleryModal
+          chatId={activeId}
+          onClose={() => setShowMediaGallery(false)}
+          onOpenViewer={(kind, url, name) => setGalleryViewer({ kind, url, name })}
+        />
+      )}
+
+      {galleryViewer && (galleryViewer.kind === "image" || galleryViewer.kind === "pdf") && (
+        <MediaViewer
+          items={[{ kind: galleryViewer.kind, url: galleryViewer.url, name: galleryViewer.name }]}
+          initialIndex={0}
+          onClose={() => setGalleryViewer(null)}
+        />
+      )}
+
+      {galleryViewer && galleryViewer.kind === "video" && (
+        <div
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/90 p-4"
+          onClick={() => setGalleryViewer(null)}
+        >
+          <button
+            onClick={() => setGalleryViewer(null)}
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            aria-label="Close video"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <video
+            src={galleryViewer.url}
+            controls
+            autoPlay
+            className="max-h-[85vh] max-w-full rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {showSettings && me && (
         <SettingsModal

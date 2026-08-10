@@ -1146,6 +1146,31 @@ export function Bubble({
               </div>
             )}
 
+            {msg.kind === "video" && msg.media_url && (
+              <div className="relative mb-1 -mx-1 -mt-1 group/video">
+                <video
+                  src={msg.media_url}
+                  controls
+                  preload="metadata"
+                  className="max-h-72 w-full rounded-lg bg-black"
+                />
+                <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                  {msg.file_size ? (
+                    <span className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                      {formatBytes(msg.file_size)}
+                    </span>
+                  ) : null}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`); }}
+                    aria-label="Download video"
+                    className="grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover/video:opacity-100 hover:bg-black/70 active:scale-95 transition-all"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {msg.kind === "file" && msg.media_url && (
               <button
                 onClick={(e) => {
@@ -1418,7 +1443,7 @@ export function VoicePlayer({
 /* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
-  hasAttachments, sending, onSchedule,
+  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
@@ -1432,6 +1457,9 @@ export function Composer({
   hasAttachments?: boolean;
   sending?: boolean;
   onSchedule?: (date: Date) => void;
+  onPickVideo?: (file?: File | null) => void;
+  videoRef?: React.RefObject<HTMLInputElement | null>;
+  videoUploadPct?: number | null;
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");
@@ -1731,6 +1759,33 @@ export function Composer({
               className="hidden"
               onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
             />
+
+            {onPickVideo && videoRef && (
+              <>
+                <button
+                  onClick={() => videoRef.current?.click()}
+                  disabled={videoUploadPct != null}
+                  className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition mb-0.5 disabled:opacity-60"
+                  aria-label="Attach video"
+                >
+                  {videoUploadPct != null ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin text-[#E07A5F]" />
+                      <span className="absolute -bottom-1 text-[8px] font-semibold text-[#E07A5F]">{videoUploadPct}%</span>
+                    </>
+                  ) : (
+                    <Video className="h-5 w-5" />
+                  )}
+                </button>
+                <input
+                  ref={videoRef}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => { onPickVideo(e.target.files?.[0] ?? null); e.target.value = ""; }}
+                />
+              </>
+            )}
 
             {(draft.trim() || hasAttachments) && onSchedule && (
               <div className="relative shrink-0 mb-0.5">
