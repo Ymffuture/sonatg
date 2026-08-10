@@ -4,9 +4,10 @@ import {
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
-  FileText, 
+  FileText, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import EmojiPicker, { Theme as EmojiTheme, EmojiStyle, type EmojiClickData } from "emoji-picker-react";
 
 import { RiEmojiStickerLine } from "react-icons/ri";
@@ -1070,7 +1071,7 @@ export function Bubble({
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-text px-3 py-1.5 shadow-sm ${bubbleRadius} ${
+            className={`relative cursor-pointer select-none px-3 py-1.5 shadow-sm ${bubbleRadius} ${
               mine
                 ? "bg-[#1E1E1E] dark:bg-gray-600 text-white"
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
@@ -1462,6 +1463,7 @@ export function Composer({
   videoUploadPct?: number | null;
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");
   const [isDark, setIsDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
   useEffect(() => {
@@ -1712,12 +1714,63 @@ export function Composer({
       {!recording && (
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <div className="flex flex-1 items-end gap-1.5 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5 border border-[#E07A5F]/10">
-            <button
-              onClick={() => setShowEmoji((s) => !s)}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition mb-0.5"
-            >
-              <RiEmojiStickerLine className="h-5 w-5" />
-            </button>
+            <div className="relative shrink-0 mb-0.5">
+              <motion.button
+                onClick={() => setShowAttachMenu((s) => !s)}
+                animate={{ rotate: showAttachMenu ? 45 : 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                className={`grid h-10 w-10 place-items-center rounded-full transition-colors ${
+                  showAttachMenu ? "bg-[#E07A5F]/15 text-[#E07A5F]" : "text-[#8C8C8C] hover:bg-[#E07A5F]/10"
+                }`}
+                aria-label={showAttachMenu ? "Close attachment menu" : "Add attachment"}
+                aria-expanded={showAttachMenu}
+              >
+                <Plus className="h-5 w-5" />
+              </motion.button>
+
+              <AnimatePresence>
+                {showAttachMenu && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setShowAttachMenu(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 8 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 8 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                      className="absolute bottom-full left-0 z-40 mb-3 flex items-center gap-1 rounded-2xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] p-1.5 shadow-xl origin-bottom-left"
+                    >
+                      {[
+                        { key: "emoji", label: "Emoji", icon: <RiEmojiStickerLine className="h-5 w-5" />, onClick: () => { setShowEmoji((s) => !s); setShowAttachMenu(false); } },
+                        { key: "doc", label: "File", icon: <Paperclip className="h-5 w-5" />, onClick: () => { docRef.current?.click(); setShowAttachMenu(false); } },
+                        { key: "image", label: "Image", icon: <ImageIcon className="h-5 w-5" />, onClick: () => { fileRef.current?.click(); setShowAttachMenu(false); } },
+                        ...(onPickVideo && videoRef
+                          ? [{
+                              key: "video",
+                              label: "Video",
+                              icon: videoUploadPct != null ? <Loader2 className="h-5 w-5 animate-spin" /> : <Video className="h-5 w-5" />,
+                              onClick: () => { if (videoUploadPct == null) { videoRef.current?.click(); setShowAttachMenu(false); } },
+                            }]
+                          : []),
+                      ].map((item, i) => (
+                        <motion.button
+                          key={item.key}
+                          initial={{ opacity: 0, scale: 0.6, y: 6 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ delay: i * 0.035, type: "spring", stiffness: 420, damping: 22 }}
+                          onClick={item.onClick}
+                          disabled={item.key === "video" && videoUploadPct != null}
+                          aria-label={item.label}
+                          title={item.label}
+                          className="grid h-11 w-11 place-items-center rounded-xl text-[#8C8C8C] hover:bg-[#E07A5F]/10 hover:text-[#E07A5F] transition disabled:opacity-50"
+                        >
+                          {item.icon}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
 
             <textarea
               value={draft}
@@ -1725,16 +1778,15 @@ export function Composer({
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); } }}
               rows={1}
               placeholder="Message"
-              className="max-h-36 min-h-[40px] flex-1 resize bg-transparent text-[15px] outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2"
+              className="max-h-36 min-h-[40px] flex-1 resize bg-transparent text-[15px] outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2 select-text"
             />
 
-            <button
-              onClick={() => docRef.current?.click()}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition mb-0.5"
-              aria-label="Attach file"
-            >
-              <Paperclip className="h-5 w-5" />
-            </button>
+            {videoUploadPct != null && (
+              <span className="mb-1 shrink-0 rounded-full bg-[#E07A5F]/10 px-2 py-1 text-[10px] font-semibold text-[#E07A5F]">
+                {videoUploadPct}%
+              </span>
+            )}
+
             <input
               ref={docRef}
               type="file"
@@ -1743,14 +1795,6 @@ export function Composer({
               className="hidden"
               onChange={(e) => { onPickDocs(e.target.files); e.target.value = ""; }}
             />
-
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition mb-0.5"
-              aria-label="Image"
-            >
-              <ImageIcon className="h-5 w-5" />
-            </button>
             <input
               ref={fileRef}
               type="file"
@@ -1759,32 +1803,14 @@ export function Composer({
               className="hidden"
               onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
             />
-
             {onPickVideo && videoRef && (
-              <>
-                <button
-                  onClick={() => videoRef.current?.click()}
-                  disabled={videoUploadPct != null}
-                  className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition mb-0.5 disabled:opacity-60"
-                  aria-label="Attach video"
-                >
-                  {videoUploadPct != null ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin text-[#E07A5F]" />
-                      <span className="absolute -bottom-1 text-[8px] font-semibold text-[#E07A5F]">{videoUploadPct}%</span>
-                    </>
-                  ) : (
-                    <Video className="h-5 w-5" />
-                  )}
-                </button>
-                <input
-                  ref={videoRef}
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={(e) => { onPickVideo(e.target.files?.[0] ?? null); e.target.value = ""; }}
-                />
-              </>
+              <input
+                ref={videoRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={(e) => { onPickVideo(e.target.files?.[0] ?? null); e.target.value = ""; }}
+              />
             )}
 
             {(draft.trim() || hasAttachments) && onSchedule && (
