@@ -16,3 +16,8 @@ alter table public.messages
 -- automatically, no view change needed.
 alter table public.messages
   add column if not exists is_forwarded boolean not null default false;
+
+-- `profiles` was never added to the realtime publication, so a client
+-- subscribing to postgres_changes on it (e.g. to live-update "last seen")
+-- would never receive events even though the query itself is valid.
+alter publication supabase_realtime add table public.profiles;
