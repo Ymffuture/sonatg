@@ -151,6 +151,7 @@ export type Database = {
           file_size: number | null
           id: string
           is_encrypted: boolean
+          is_forwarded: boolean
           kind: string
           media_url: string | null
           reply_to_id: string | null
@@ -169,6 +170,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_encrypted?: boolean
+          is_forwarded?: boolean
           kind?: string
           media_url?: string | null
           reply_to_id?: string | null
@@ -187,6 +189,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_encrypted?: boolean
+          is_forwarded?: boolean
           kind?: string
           media_url?: string | null
           reply_to_id?: string | null
@@ -555,6 +558,7 @@ export type Database = {
           file_size: number | null
           id: string | null
           is_encrypted: boolean | null
+          is_forwarded: boolean | null
           kind: string | null
           media_url: string | null
           reply_to_id: string | null
@@ -573,6 +577,7 @@ export type Database = {
           file_size?: number | null
           id?: string | null
           is_encrypted?: boolean | null
+          is_forwarded?: boolean | null
           kind?: string | null
           media_url?: string | null
           reply_to_id?: string | null
@@ -591,6 +596,7 @@ export type Database = {
           file_size?: number | null
           id?: string | null
           is_encrypted?: boolean | null
+          is_forwarded?: boolean | null
           kind?: string | null
           media_url?: string | null
           reply_to_id?: string | null
