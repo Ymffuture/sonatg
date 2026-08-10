@@ -34,7 +34,7 @@ export type MessageRow = {
   id: string;
   chat_id: string;
   sender_id: string;
-  kind: "text" | "image" | "voice" | "file" | "call";
+  kind: "text" | "image" | "voice" | "file" | "call" | "video";
   body: string | null;
   media_url: string | null;
   duration_ms: number | null;
@@ -47,6 +47,7 @@ export type MessageRow = {
   file_size?: number | null;
   expires_at?: string | null;
   scheduled_at?: string | null;
+  is_forwarded?: boolean;
 };
 
 
