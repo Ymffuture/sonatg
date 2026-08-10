@@ -1,21 +1,24 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CloseOutlined,
-  EditOutlined,
   MessageOutlined,
-  BlockOutlined,
+  EditOutlined,
+  CalendarOutlined,
+  WarningOutlined,
+  PictureOutlined,
+  RightOutlined,
+  StopOutlined,
   UnlockOutlined,
   FlagOutlined,
-  CalendarOutlined,
-  PictureOutlined,
-  WarningOutlined,
   CrownOutlined,
   RobotOutlined,
-  RightOutlined,
-  ZoomInOutlined,
   InfoCircleOutlined,
+  CheckCircleFilled,
+  SafetyCertificateOutlined,
 } from "@ant-design/icons";
-import { Image, Button, Tag, Divider, Tooltip } from "antd";
+import { Image, Tooltip, Badge, Tag, Divider, Watermark } from "antd";
+import { Avatar } from "./Avatar";
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
 
@@ -42,246 +45,306 @@ export function ProfileViewModal({
   isBlocked?: boolean;
   onToggleBlock?: () => void;
 }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
   const joined = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })
     : null;
   const mod = moderation && MOD_META[moderation.action] ? { ...MOD_META[moderation.action]!, ...moderation } : null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl border border-white/20 dark:border-white/10 bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-xl shadow-2xl scrollbar-thin"
-        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4"
+        onClick={onClose}
       >
-        {/* Sticky Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-end px-4 py-3 bg-white/50 dark:bg-[#1a1a1a]/50 backdrop-blur-md">
-          <Tooltip title="Close" placement="bottom">
-            <button
-              onClick={onClose}
-              className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#E07A5F]/10 transition"
-              aria-label="Close"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 24 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.92, y: 24 }}
+          transition={{ type: "spring", damping: 26, stiffness: 320 }}
+          className="w-full max-w-sm rounded-3xl border border-white/20 dark:border-white/10 bg-white/85 dark:bg-[#1a1a1a]/85 backdrop-blur-xl shadow-2xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex justify-end p-4 pb-0">
+            <Watermark content={['Swiftmeta', { text: 'SonaTG', font: { fontSize: 12 } }]}>
+    <div style={{ height: 500 }} />
+  </Watermark>
+            <Tooltip title="Close">
+              <button
+                onClick={onClose}
+                className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#E07A5F]/10 transition"
+                aria-label="Close"
+              >
+                <CloseOutlined className="text-sm text-[#2D3436] dark:text-[#E8E8E8]" />
+              </button>
+            </Tooltip>
+          </div>
+
+          <div className="flex flex-col items-center text-center px-6 pb-6 -mt-1">
+            {/* Avatar with zoom */}
+            <div
+              className={`relative group ${profile.avatar_url ? "cursor-pointer" : ""}`}
+              onClick={() => profile.avatar_url && setPreviewOpen(true)}
             >
-              <CloseOutlined className="text-sm text-[#2D3436] dark:text-[#E8E8E8]" />
-            </button>
-          </Tooltip>
-        </div>
+              <Badge
+                dot
+                status={online ? "success" : "default"}
+                offset={[-4, 92]}
+                className={!online ? "opacity-0" : ""}
+              >
+                <div
+                  className="rounded-full p-[3px]"
+                  style={{
+                    background: online
+                      ? "linear-gradient(135deg, #25D366, #E07A5F)"
+                      : "transparent",
+                  }}
+                >
+                  <Avatar url={profile.avatar_url} name={profile.display_name} size={96} ai={profile.is_ai} />
+                </div>
+              </Badge>
 
-        {/* Profile Hero */}
-        <div className="flex flex-col items-center text-center px-6 pb-2">
-          {/* Zoomable Avatar */}
-          <div className="relative">
-            {profile.avatar_url ? (
-              <Image
-                src={profile.avatar_url}
-                alt={profile.display_name}
-                width={128}
-                height={128}
-                className="rounded-full object-cover border-4 border-white dark:border-[#2A2A2A] shadow-2xl"
-                preview={{
-                  mask: (
-                    <div className="flex items-center justify-center w-full h-full rounded-full bg-black/30 text-white transition">
-                      <ZoomInOutlined className="text-xl" />
-                    </div>
-                  ),
-                  maskClassName: "rounded-full",
-                }}
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#E07A5F] to-[#F4A261] flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 border-white dark:border-[#2A2A2A]">
-                {profile.display_name.charAt(0).toUpperCase()}
-              </div>
-            )}
-
-            {/* Floating Badges */}
-            <div className="absolute -bottom-1 -right-1 flex gap-1">
-              {profile.is_pro && (
-                <Tooltip title="Pro member">
-                  <div className="h-7 w-7 rounded-full bg-[#E07A5F] flex items-center justify-center shadow-md border-2 border-white dark:border-[#1a1a1a]">
-                    <CrownOutlined className="text-xs text-white" />
-                  </div>
-                </Tooltip>
+              {profile.avatar_url && (
+                <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                  <PictureOutlined className="text-white text-xl opacity-0 group-hover:opacity-80 transition-all" />
+                </div>
               )}
+
+              {/* Hidden antd Image for zoom preview */}
+              <Image
+                src={profile.avatar_url || undefined}
+                preview={{
+                  visible: previewOpen,
+                  onVisibleChange: (vis) => setPreviewOpen(vis),
+                  mask: false,
+                }}
+                style={{ display: "none" }}
+              />
+            </div>
+
+            {/* Name & Badges */}
+            <div className="mt-4 flex items-center gap-2 flex-wrap justify-center">
+              <h2 className="text-xl font-bold text-[#2D3436] dark:text-[#E8E8E8]">
+                {profile.display_name}
+              </h2>
               {profile.is_ai && (
                 <Tooltip title="AI Assistant">
-                  <div className="h-7 w-7 rounded-full bg-[#2A2A2A] flex items-center justify-center shadow-md border-2 border-white dark:border-[#1a1a1a]">
-                    <RobotOutlined className="text-xs text-[#E07A5F]" />
-                  </div>
+                  <Tag
+                    color="#E07A5F"
+                    icon={<RobotOutlined />}
+                    className="rounded-full border-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    AI
+                  </Tag>
+                </Tooltip>
+              )}
+              {profile.is_pro && (
+                <Tooltip title="Pro Member">
+                  <Tag
+                    color="#E07A5F"
+                    icon={<CrownOutlined />}
+                    className="rounded-full border-0 text-[10px] font-bold px-2 py-0.5"
+                  >
+                    PRO
+                  </Tag>
                 </Tooltip>
               )}
             </div>
-          </div>
 
-          {/* Name */}
-          <h2 className="mt-5 text-xl font-bold text-[#2D3436] dark:text-[#E8E8E8]">
-            {profile.display_name}
-          </h2>
-
-          {/* Presence */}
-          {!isSelf && !profile.is_ai && (online !== undefined || lastSeen !== undefined) && (
-            <div className="mt-2">
-              {online ? (
-                <Tag className="rounded-full px-3 py-0.5 text-xs font-medium border-0 bg-[#22c55e]/15 text-[#22c55e]">
-                  Online
-                </Tag>
-              ) : lastSeen ? (
-                <Tag className="rounded-full px-3 py-0.5 text-xs font-medium border-0 bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C]">
-                  <CalendarOutlined className="mr-1" />
-                  {fmtLastSeen(lastSeen)}
-                </Tag>
-              ) : (
-                <Tag className="rounded-full px-3 py-0.5 text-xs font-medium border-0 bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C]">
-                  Offline
-                </Tag>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* About Section */}
-        {profile.bio && (
-          <div className="px-6 py-2">
-            <Divider className="my-3 border-[#E07A5F]/10" />
-            <div className="text-left">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#8C8C8C] mb-1.5">About</p>
-              <p className="text-sm text-[#5C5C5C] dark:text-[#B8B8B8] leading-relaxed font-medium">
-                {profile.bio}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Moderation Warning */}
-        <AnimatePresence>
-          {mod && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="px-6 overflow-hidden"
-            >
-              <div
-                className="rounded-2xl px-4 py-3 text-left"
-                style={{ backgroundColor: `${mod.color}15`, border: `1px solid ${mod.color}40` }}
-              >
-                <p className="flex items-center gap-1.5 text-xs font-bold" style={{ color: mod.color }}>
-                  <WarningOutlined /> {mod.label}
-                </p>
-                <p className="mt-1 text-xs text-[#5C5C5C] dark:text-[#B8B8B8]">{mod.reason || mod.note}</p>
-                {mod.expires_at && (
-                  <p className="mt-1 text-[11px] text-[#8C8C8C]">Until {new Date(mod.expires_at).toLocaleDateString()}</p>
+            {/* Presence */}
+            {!isSelf && !profile.is_ai && (online !== undefined || lastSeen !== undefined) && (
+              <p className="mt-1.5 text-xs font-medium flex items-center gap-1.5">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${online ? "bg-green-400 animate-pulse" : "bg-[#8C8C8C]"}`}
+                />
+                {online ? (
+                  <span className="text-green-400">Online</span>
+                ) : lastSeen ? (
+                  <span className="text-[#8C8C8C]">{fmtLastSeen(lastSeen)}</span>
+                ) : (
+                  <span className="text-[#8C8C8C]">Offline</span>
                 )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Info & Media Links */}
-        <div className="px-6 py-2">
-          <Divider className="my-3 border-[#E07A5F]/10" />
-          <div className="space-y-3">
-            {joined && (
-              <div className="flex items-center gap-3 text-sm text-[#8C8C8C]">
-                <div className="h-9 w-9 rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] flex items-center justify-center">
-                  <CalendarOutlined className="text-[#E07A5F]" />
-                </div>
-                <span className="font-medium">Joined {joined}</span>
-              </div>
+              </p>
             )}
 
-            {!isSelf && onOpenMedia && (
-              <button
-                onClick={onOpenMedia}
-                className="flex w-full items-center gap-3 rounded-xl border border-[#E07A5F]/10 bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-3 text-left hover:bg-[#EFE6D8] dark:hover:bg-[#333] transition group"
+            {/* Bio */}
+            {profile.bio && (
+              <p className="mt-3 text-sm text-[#5C5C5C] dark:text-[#B8B8B8] leading-relaxed max-w-[280px]">
+                {profile.bio}
+              </p>
+            )}
+
+            {/* Moderation Warning */}
+            <AnimatePresence>
+              {mod && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-4 w-full overflow-hidden"
+                >
+                  <div
+                    className="w-full rounded-2xl px-4 py-3 text-left"
+                    style={{
+                      backgroundColor: `${mod.color}1A`,
+                      border: `1px solid ${mod.color}44`,
+                    }}
+                  >
+                    <p
+                      className="flex items-center gap-1.5 text-xs font-bold"
+                      style={{ color: mod.color }}
+                    >
+                      <WarningOutlined /> {mod.label}
+                    </p>
+                    <p className="mt-1 text-xs text-[#5C5C5C] dark:text-[#B8B8B8]">
+                      {mod.reason || mod.note}
+                    </p>
+                    {mod.expires_at && (
+                      <p className="mt-1 text-[11px] text-[#8C8C8C]">
+                        Until {new Date(mod.expires_at).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ─── Info Grid (WhatsApp-style) ─── */}
+            <div className="mt-5 w-full grid grid-cols-3 gap-2">
+              {joined && (
+                <Tooltip title={`Joined ${joined}`}>
+                  <div className="flex flex-col items-center gap-1.5 rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333]">
+                    <CalendarOutlined className="text-[#E07A5F] text-lg" />
+                    <span className="text-[10px] font-semibold text-[#8C8C8C]">{joined}</span>
+                  </div>
+                </Tooltip>
+              )}
+              <Tooltip
+                title={
+                  online
+                    ? "Online now"
+                    : lastSeen
+                    ? `Last seen ${fmtLastSeen(lastSeen)}`
+                    : "Offline"
+                }
               >
-                <div className="h-9 w-9 rounded-xl bg-[#E07A5F]/10 flex items-center justify-center text-[#E07A5F]">
-                  <PictureOutlined className="text-lg" />
+                <div className="flex flex-col items-center gap-1.5 rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333]">
+                  <CheckCircleFilled
+                    className={online ? "text-green-400 text-lg" : "text-[#8C8C8C] text-lg"}
+                  />
+                  <span className="text-[10px] font-semibold text-[#8C8C8C]">
+                    {online ? "Online" : "Away"}
+                  </span>
                 </div>
+              </Tooltip>
+              <Tooltip title="End-to-end encrypted">
+                <div className="flex flex-col items-center gap-1.5 rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333]">
+                  <SafetyCertificateOutlined className="text-[#E07A5F] text-lg" />
+                  <span className="text-[10px] font-semibold text-[#8C8C8C]">Secure</span>
+                </div>
+              </Tooltip>
+            </div>
+
+            <Divider className="my-4 border-[#E07A5F]/10" />
+
+            {/* Media, links, docs */}
+            {!isSelf && onOpenMedia && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onOpenMedia}
+                className="flex w-full items-center gap-3 rounded-2xl border border-[#E07A5F]/10 bg-[#F5F0E8] dark:bg-[#2A2A2A] px-4 py-3.5 text-left hover:bg-[#EFE6D8] dark:hover:bg-[#333] transition"
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E07A5F]/10 text-[#E07A5F]">
+                  <PictureOutlined className="text-lg" />
+                </span>
                 <span className="flex-1 text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
                   Media, links, and docs
                 </span>
-                <RightOutlined className="text-xs text-[#8C8C8C] group-hover:translate-x-0.5 transition-transform" />
-              </button>
+                <RightOutlined className="text-xs text-[#8C8C8C]" />
+              </motion.button>
             )}
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div className="px-6 py-4 space-y-2.5">
-          {isSelf ? (
-            <Button
-              type="primary"
-              block
-              size="large"
-              icon={<EditOutlined />}
-              onClick={onEdit}
-              style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 9999, fontWeight: 600, height: 44 }}
-              className="hover:opacity-90 transition shadow-lg"
-            >
-              Edit profile
-            </Button>
-          ) : (
-            <>
-              {!profile.is_ai && onMessage && (
-                <Button
-                  type="primary"
-                  block
-                  size="large"
-                  icon={<MessageOutlined />}
-                  onClick={onMessage}
-                  style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 9999, fontWeight: 600, height: 44 }}
-                  className="hover:opacity-90 transition shadow-lg"
+            {/* ─── Action Grid ─── */}
+            <div className="mt-3 w-full grid grid-cols-2 gap-2">
+              {isSelf ? (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onEdit}
+                  className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#E07A5F] py-3 text-sm font-semibold text-white hover:opacity-90 transition shadow-lg"
                 >
-                  Message
-                </Button>
+                  <EditOutlined /> Edit profile
+                </motion.button>
+              ) : (
+                <>
+                  {!profile.is_ai && onMessage && (
+                    <Tooltip title="Send message">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onMessage}
+                        className="flex flex-col items-center gap-1.5 rounded-xl bg-[#E07A5F] py-3 text-white hover:opacity-90 transition shadow-md"
+                      >
+                        <MessageOutlined className="text-lg" />
+                        <span className="text-[11px] font-semibold">Message</span>
+                      </motion.button>
+                    </Tooltip>
+                  )}
+                  {onToggleBlock && (
+                    <Tooltip title={isBlocked ? "Unblock user" : "Block user"}>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onToggleBlock}
+                        className={`flex flex-col items-center gap-1.5 rounded-xl py-3 transition shadow-md ${
+                          isBlocked
+                            ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                            : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#EFE6D8] dark:hover:bg-[#333]"
+                        }`}
+                      >
+                        {isBlocked ? (
+                          <UnlockOutlined className="text-lg" />
+                        ) : (
+                          <StopOutlined className="text-lg" />
+                        )}
+                        <span className="text-[11px] font-semibold">
+                          {isBlocked ? "Unblock" : "Block"}
+                        </span>
+                      </motion.button>
+                    </Tooltip>
+                  )}
+                  {onReport && (
+                    <Tooltip title="Report user">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onReport}
+                        className="flex flex-col items-center gap-1.5 rounded-xl bg-red-500/10 py-3 text-red-500 hover:bg-red-500/20 transition shadow-md"
+                      >
+                        <FlagOutlined className="text-lg" />
+                        <span className="text-[11px] font-semibold">Report</span>
+                      </motion.button>
+                    </Tooltip>
+                  )}
+                </>
               )}
-              {onToggleBlock && (
-                <Button
-                  block
-                  size="large"
-                  icon={isBlocked ? <UnlockOutlined /> : <BlockOutlined />}
-                  onClick={onToggleBlock}
-                  style={{ borderRadius: 9999, fontWeight: 600, height: 44 }}
-                  className="bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border-0 hover:bg-[#EFE6D8] dark:hover:bg-[#333] transition"
-                >
-                  {isBlocked ? "Unblock" : "Block"}
-                </Button>
-              )}
-              {onReport && (
-                <Button
-                  block
-                  size="large"
-                  icon={<FlagOutlined />}
-                  onClick={onReport}
-                  danger
-                  ghost
-                  style={{ borderRadius: 9999, fontWeight: 600, height: 44 }}
-                  className="border-red-500/30 text-red-500 hover:border-red-500 hover:text-red-500 transition"
-                >
-                  Report
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+            </div>
 
-        {/* Swiftmeta App Info Footer */}
-        <div className="px-6 pb-6 pt-0 text-center">
-          <Divider className="my-2 border-[#E07A5F]/10" />
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-[10px] text-[#8C8C8C] flex items-center justify-center gap-1.5 font-medium">
+            {/* ─── Powered by Swiftmeta ─── */}
+            <div className="mt-5 flex items-center justify-center gap-1.5 text-[10px] text-[#8C8C8C]">
               <InfoCircleOutlined />
-              <span>Powered by Swiftmeta</span>
-            </p>
-            <p className="text-[10px] text-[#8C8C8C]/60 max-w-[240px] leading-tight">
-              Sona — Talk Gold. Private messaging, voice & video calls, and AI-powered conversations.
-            </p>
+              <span>
+                Powered by <span className="font-semibold text-[#E07A5F]">Swiftmeta</span>
+              </span>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
-    </div>
+    </AnimatePresence>
   );
 }
