@@ -787,6 +787,48 @@ function SonaChatInner() {
     return () => { supabase.removeChannel(chan); };
   }, [me]);
 
+  // Keep last_seen fresh while active, so it means something more useful than
+  // "whenever I last clicked Sign out" — was previously only written on
+  // explicit sign-out, so the "Last seen ..." label was almost always stale.
+  useEffect(() => {
+    if (!me) return;
+    const bumpLastSeen = () => {
+      supabase.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", me.id).then();
+    };
+    bumpLastSeen(); // on mount / session start
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") bumpLastSeen();
+    }, 45_000);
+    const onVisibility = () => { if (document.visibilityState === "hidden") bumpLastSeen(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("beforeunload", bumpLastSeen);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("beforeunload", bumpLastSeen);
+    };
+  }, [me]);
+
+  // Live-sync other users' profile changes (last_seen, avatar, bio, etc.) —
+  // profiles were previously only fetched once per loadChats() call, so
+  // "Last seen" never updated in an open chat until something unrelated
+  // (a new message, membership change) happened to trigger a refetch.
+  useEffect(() => {
+    if (!me) return;
+    const chan = supabase
+      .channel("sona-profiles-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload) => {
+          const row = payload.new as Profile;
+          setProfiles((prev) => (prev[row.id] ? { ...prev, [row.id]: { ...prev[row.id], ...row } } : prev));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(chan); };
+  }, [me]);
+
   const sendTyping = useCallback(() => {
     const chan = typingChanRef.current;
     if (!chan || !me) return;
@@ -1208,7 +1250,19 @@ function SonaChatInner() {
       reason: reportReason,
       details: reportDetails.trim() || null,
     });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      // Postgrest error codes: 42P01 = relation (table) doesn't exist —
+      // almost always means the "reports" table migration was never
+      // applied to this Supabase project. 42501 = RLS/permission denied.
+      if (error.code === "42P01") {
+        toast.error("Reporting isn't set up yet — the reports table is missing from the database. Ask an admin to run the pending Supabase migrations.");
+      } else if (error.code === "42501") {
+        toast.error("You don't have permission to submit a report — check the reports table's row-level security policies.");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
     toast.success("Report sent to the Sona team");
     setReportTarget(null);
     setReportDetails("");
