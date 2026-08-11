@@ -288,7 +288,7 @@ export function ProfileViewModal({
                       size="large"
                       icon={<MessageOutlined />}
                       onClick={onMessage}
-                      style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 9999, height: 44 }}
+                      style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 99, height: 44 }}
                       className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity"
                     >
                       Message
@@ -300,10 +300,10 @@ export function ProfileViewModal({
                       size="large"
                       icon={isBlocked ? <UnlockOutlined /> : <BlockOutlined />}
                       onClick={onToggleBlock}
-                      style={{ borderRadius: 9999, height: 44 }}
+                      style={{ borderRadius: 99, height: 44 }}
                       className="!font-semibold !bg-[#F5F0E8] dark:!bg-[#2A2A2A] !text-[#2D3436] dark:!text-[#E8E8E8] hover:!bg-[#EFE6D8] dark:hover:!bg-[#333] !border-0 !shadow-sm"
                     >
-                      {isBlocked ? "Unblock user" : "Block user"}
+                      {isBlocked ? "Unblock" : "Block"}
                     </Button>
                   )}
                   {onReport && (
@@ -314,10 +314,10 @@ export function ProfileViewModal({
                       onClick={onReport}
                       danger
                       ghost
-                      style={{ borderRadius: 9999, height: 44 }}
+                      style={{ borderRadius: 99, height: 44 }}
                       className="!font-semibold !border-red-400/40 hover:!border-red-500 hover:!text-red-500"
                     >
-                      Report user
+                      Report
                     </Button>
                   )}
                 </>
