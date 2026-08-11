@@ -82,8 +82,8 @@ export function ProfileViewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <Watermark
-          content="Swiftmeta"
-          font={{ color: "rgba(224, 122, 95, 0.07)", fontSize: 13 }}
+          content="Swiftmeta" 
+          font={{ color: "#1E1E1E" , fontSize: 18 }}
           gap={[72, 72]}
           rotate={-22}
           className="h-full"
@@ -274,7 +274,7 @@ export function ProfileViewModal({
                   size="large"
                   icon={<EditOutlined />}
                   onClick={onEdit}
-                  style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 9999, height: 44 }}
+                  style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 999, height: 44 }}
                   className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity"
                 >
                   Edit profile
@@ -288,7 +288,7 @@ export function ProfileViewModal({
                       size="large"
                       icon={<MessageOutlined />}
                       onClick={onMessage}
-                      style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 99, height: 44 }}
+                      style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 50, height: 44 }}
                       className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity"
                     >
                       Message
@@ -300,7 +300,7 @@ export function ProfileViewModal({
                       size="large"
                       icon={isBlocked ? <UnlockOutlined /> : <BlockOutlined />}
                       onClick={onToggleBlock}
-                      style={{ borderRadius: 99, height: 44 }}
+                      style={{ borderRadius: 50, height: 44 }}
                       className="!font-semibold !bg-[#F5F0E8] dark:!bg-[#2A2A2A] !text-[#2D3436] dark:!text-[#E8E8E8] hover:!bg-[#EFE6D8] dark:hover:!bg-[#333] !border-0 !shadow-sm"
                     >
                       {isBlocked ? "Unblock" : "Block"}
@@ -314,7 +314,7 @@ export function ProfileViewModal({
                       onClick={onReport}
                       danger
                       ghost
-                      style={{ borderRadius: 99, height: 44 }}
+                      style={{ borderRadius: 50, height: 44 }}
                       className="!font-semibold !border-red-400/40 hover:!border-red-500 hover:!text-red-500"
                     >
                       Report
