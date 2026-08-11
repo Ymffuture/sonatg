@@ -1449,7 +1449,7 @@ useEffect(() => {
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
       <Watermark
-          content="™" 
+          content="" 
           font={{ color: "#e1f6fc" , fontSize: 8}}
           gap={[72, 72]}
           rotate={-22}
