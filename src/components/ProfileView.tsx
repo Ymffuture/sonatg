@@ -82,8 +82,8 @@ export function ProfileViewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <Watermark
-          content="Swiftmeta" 
-          font={{ color: "#8C8C8C" , fontSize: 10}}
+          content={profile.display_name} 
+          font={{ color: "#e1f6fc" , fontSize: 8}}
           gap={[72, 72]}
           rotate={-22}
           className="h-full"
