@@ -83,8 +83,8 @@ export function ProfileViewModal({
       >
         <Watermark
           content={profile.display_name} 
-          font={{ color: "#e1f6fc" , fontSize: 8}}
-          gap={[72, 72]}
+          font={{ color: "#8c8c8c" , fontSize: 8}}
+          gap={[300, 200]}
           rotate={-22}
           className="h-full"
         >
