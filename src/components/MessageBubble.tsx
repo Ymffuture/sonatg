@@ -1071,7 +1071,7 @@ export function Bubble({
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-none px-3 py-1.5 shadow-sm ${bubbleRadius} ${
+            className={`relative cursor-pointer select-none px-3 py-1.5 shadow-xl ${bubbleRadius} ${
               mine
                 ? "bg-[#1E1E1E] dark:bg-gray-600 text-white"
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
@@ -1085,20 +1085,18 @@ export function Bubble({
                       Sona
                       <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
                     </span>
-                    <span className="text-[10px] text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer">
-                      Learn more
-                    </span>
+                    
                   </div>
                 ) : (
-                  <span className="text-xs font-medium italic text-[#E07A5F]">
-                    {sender?.display_name ?? "Unknown"}
+                  <span className="text-xs font-medium italic text-[#8c8c8c]">
+                    ~ {sender?.display_name ?? "Unknown"}
                   </span>
                 )}
               </div>
             )}
 
             {msg.is_forwarded && (
-              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600 " : "text-[#8C8C8C]"}`}>
                 <Forward className="h-3 w-3" /> Forwarded
               </div>
             )}
@@ -1119,7 +1117,7 @@ export function Bubble({
                 {!imgLoaded && (
                   <div className="absolute inset-0 z-10 rounded-lg overflow-hidden bg-[#F5F0E8] dark:bg-[#2A2A2A] flex items-center justify-center">
                     <Skeleton.Node active className="!w-full !h-full !rounded-lg">
-                      <ImageIcon className="h-10 w-10 text-[#8C8C8C]" />
+                      <ImageIcon className="h-16 w-16 text-[#8C8C8C]" />
                     </Skeleton.Node>
                   </div>
                 )}
@@ -1141,7 +1139,7 @@ export function Bubble({
                 >
                   <Download className="h-4 text-purple w-4" />
                 </button>
-                <div className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                <div className="absolute bottom-1 -right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
                   Photo
                 </div>
               </div>
@@ -1272,6 +1270,11 @@ export function Bubble({
               )}
 
               <div className="flex items-center gap-1 translate-y-0.5">
+                {msg.is_forwarded && (
+              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+                <Forward className="h-3 w-3" /> Forwarded
+              </div>
+            )}
                 {msg.edited_at && <span className="text-[10px] italic opacity-70">edited</span>}
                 <span className="text-[10.5px] tabular-nums">{fmtTime(msg.created_at)}</span>
                 {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
