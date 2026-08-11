@@ -9,7 +9,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import { Dropdown } from "antd";
+import { Dropdown, Watermark } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoMdTimer } from "react-icons/io";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -1448,6 +1448,13 @@ useEffect(() => {
   
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
+      <Watermark
+          content="Swiftmeta" 
+          font={{ color: "#8C8C8C" , fontSize: 14}}
+          gap={[72, 72]}
+          rotate={-22}
+          className="h-full"
+        >
       {me && <CallManager ref={callManagerRef} meId={me.id} meName={me.display_name ?? "Someone"} meAvatar={me.avatar_url ?? null} />}
       {myModeration && (
         <div
@@ -1464,6 +1471,7 @@ useEffect(() => {
         </div>
       )}
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
+        
         <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
           {/* Sidebar */}
           <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
@@ -2629,6 +2637,7 @@ useEffect(() => {
       </AnimatePresence>
 
       {showTour && <OnboardingTour steps={ONBOARDING_STEPS} onFinish={() => setShowTour(false)} />}
+      </Watermark>
     </div>
   );
 }
