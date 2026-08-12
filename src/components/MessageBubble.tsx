@@ -1254,7 +1254,7 @@ export function Bubble({
                       <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
                         <button
                           onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-                          className={`flex items-center absolute rounded-full top-[45px] left-[28px] gap-2 px-1.5 py-1 text-[11px] shadow-sm transition active:scale-95 ${
+                          className={`flex items-center absolute rounded-full top-[45px] left-[12px] gap-2 px-1.5 py-1 text-[11px] shadow-sm transition active:scale-95 ${
                             mine
                               ? "text-[#1E90FF] bg-[#1E1E1E] "
                               : "text-[#1E1E1E ] bg-[#1E1E1E] "
