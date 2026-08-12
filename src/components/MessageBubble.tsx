@@ -428,10 +428,10 @@ function MessageContextMenu({
     <div
       ref={menuRef}
       style={style}
-      className="w-52 rounded p-4 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="w-52 rounded-2xl p-2 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       <div className="flex items-center justify-around border-b border-[#1E1E1E]/10 px-2 py-2">
-        {["❤️", "💔", "👎 ", "😂", "😮", "😢", "🙏","😴" ].map((emoji) => (
+        {["❤️", "👎 ", "😂", "😮", "😢", "🙏" ].map((emoji) => (
           <button
             key={emoji}
             onClick={() => { onReact(emoji); onClose(); }}
@@ -1254,10 +1254,10 @@ export function Bubble({
                       <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
                         <button
                           onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-                          className={`flex items-center absolute rounded-full top-[25px] left-3 gap-2 px-1.5 py-1 text-[11px] shadow-sm transition active:scale-95 ${
+                          className={`flex items-center absolute rounded-full top-[45px] left-[28px] gap-2 px-1.5 py-1 text-[11px] shadow-sm transition active:scale-95 ${
                             mine
-                              ? "text-[#1E90FF] "
-                              : "text-[#2D3436]"
+                              ? "text-[#1E90FF] bg-[#1E1E1E] "
+                              : "text-[#1E1E1E ] bg-[#1E1E1E] "
                           } ${mineReacted ? "transparent" : ""}`}
                         >
                           <span>{e}</span>
