@@ -6,7 +6,7 @@ import {
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
-  AlertTriangle,
+  AlertTriangle, FolderPlus, FolderCog, Flag,
 } from "lucide-react";
 
 import { Dropdown, Watermark } from "antd";
@@ -886,15 +886,81 @@ function SonaChatInner() {
     for (const c of chats) for (const m of c.members) map[m.id] = m;
     return map;
   }, [chats, me]);
-  const [activeFolder, setActiveFolder] = useState<"all" | "unread" | "groups" | "pinned" | "customized">("all");
+  // "all" | "unread" | "groups" | "pinned" | a custom folder id (e.g. "custom:1699999999")
+  const [activeFolder, setActiveFolder] = useState<string>("all");
+
+  // Custom folders (e.g. "Work", "Family", "Close friends") the user can create,
+  // rename, and delete to group chats however they like. Purely client-side,
+  // persisted per-account in localStorage — no server/schema changes needed.
+  type CustomFolder = { id: string; name: string };
+  const [customFolders, setCustomFolders] = useState<CustomFolder[]>([]);
+  const [chatFolderMap, setChatFolderMap] = useState<Record<string, string[]>>({}); // chatId -> folderId[]
+  const [assigningFolders, setAssigningFolders] = useState(false); // shows the "add selected chats to folder" panel
+
+  useEffect(() => {
+    if (!me) return;
+    try {
+      const foldersRaw = localStorage.getItem(`sona:folders:${me.id}`);
+      setCustomFolders(foldersRaw ? JSON.parse(foldersRaw) : []);
+      const mapRaw = localStorage.getItem(`sona:folder-map:${me.id}`);
+      setChatFolderMap(mapRaw ? JSON.parse(mapRaw) : {});
+    } catch {
+      setCustomFolders([]);
+      setChatFolderMap({});
+    }
+  }, [me?.id]);
+
+  const persistFolders = (next: CustomFolder[]) => {
+    setCustomFolders(next);
+    if (me) localStorage.setItem(`sona:folders:${me.id}`, JSON.stringify(next));
+  };
+  const persistFolderMap = (next: Record<string, string[]>) => {
+    setChatFolderMap(next);
+    if (me) localStorage.setItem(`sona:folder-map:${me.id}`, JSON.stringify(next));
+  };
+
+  const createCustomFolder = () => {
+    const name = window.prompt("Name this folder (e.g. Work, Family, Close friends)")?.trim();
+    if (!name) return;
+    const id = `custom:${Date.now()}`;
+    persistFolders([...customFolders, { id, name: name.slice(0, 30) }]);
+    setActiveFolder(id);
+    toast.success(`Folder "${name}" created`);
+  };
+
+  const renameCustomFolder = (id: string, current: string) => {
+    const name = window.prompt("Rename folder", current)?.trim();
+    if (!name) return;
+    persistFolders(customFolders.map((f) => (f.id === id ? { ...f, name: name.slice(0, 30) } : f)));
+  };
+
+  const deleteCustomFolder = (id: string, name: string) => {
+    if (!window.confirm(`Delete the "${name}" folder? Chats inside it won't be deleted.`)) return;
+    persistFolders(customFolders.filter((f) => f.id !== id));
+    const nextMap: Record<string, string[]> = {};
+    for (const [chatId, ids] of Object.entries(chatFolderMap)) {
+      const remaining = ids.filter((f) => f !== id);
+      if (remaining.length) nextMap[chatId] = remaining;
+    }
+    persistFolderMap(nextMap);
+    if (activeFolder === id) setActiveFolder("all");
+  };
+
+  const toggleChatInFolder = (chatId: string, folderId: string) => {
+    const current = chatFolderMap[chatId] ?? [];
+    const next = current.includes(folderId) ? current.filter((f) => f !== folderId) : [...current, folderId];
+    persistFolderMap({ ...chatFolderMap, [chatId]: next });
+  };
+
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
 
     if (activeFolder === "unread" && c.unread === 0) return false;
     if (activeFolder === "groups" && !c.is_group) return false;
     if (activeFolder === "pinned" && !c.isPinned) return false;
+    if (activeFolder.startsWith("custom:") && !(chatFolderMap[c.id] ?? []).includes(activeFolder)) return false;
     return chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase());
-  }), [chats, query, me, blockedIds, activeFolder]);
+  }), [chats, query, me, blockedIds, activeFolder, chatFolderMap]);
 
   const unreadFolderCount = chats.filter((c) => c.unread > 0).length;
 
@@ -1608,11 +1674,15 @@ useEffect(() => {
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 py-2">
                   <Loader2 className="h-3 w-3 animate-spin text-[#E07A5F]" />
                   
-                </div>) :(
+                </div>) :(<>
+                  <button onClick={() => setAssigningFolders(true)} disabled={selectedChatIds.size === 0}
+                    className="flex items-center gap-1 rounded bg-[#E07A5F] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-[#c96548] transition">
+                    <FolderCog className="h-3.5 w-3.5" /> Folder
+                  </button>
                   <button onClick={deleteSelectedChats} disabled={selectedChatIds.size === 0}
                     className="flex items-center gap-1 rounded bg-red-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-red-600 transition">
                     <Trash2 className="h-3.5 w-3.5" /> Delete
-                  </button>)} 
+                  </button></>)} 
                   <button onClick={exitSelectMode}
                     className="rounded border border-[#2D3436] px-3 py-1.5 text-xs font-semibold dark:text-white text-[#2D3436] hover:bg-[#3D4446] transition">
                     Cancel
@@ -1635,7 +1705,6 @@ useEffect(() => {
                 { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
                 { key: "groups", label: "Groups" },
                 { key: "pinned", label: "Favorites" },
-                { key: "customized", label: "+" },
               ] as const).map((f) => (
                 <button
                   key={f.key}
@@ -1649,6 +1718,35 @@ useEffect(() => {
                   {f.label}
                 </button>
               ))}
+
+              {customFolders.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFolder(f.id)}
+                  onDoubleClick={() => renameCustomFolder(f.id, f.name)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    deleteCustomFolder(f.id, f.name);
+                  }}
+                  title="Tap to filter · double-tap to rename · right-click to delete"
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    activeFolder === f.id
+                      ? "bg-[#E07A5F] text-white"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
+                  }`}
+                >
+                  {f.name}
+                </button>
+              ))}
+
+              <button
+                onClick={createCustomFolder}
+                title="Create a custom folder"
+                aria-label="Create a custom folder"
+                className="shrink-0 rounded-full bg-[#F5F0E8] px-3 py-1.5 text-xs font-medium text-[#8C8C8C] transition hover:bg-[#F4A261]/20 dark:bg-[#2A2A2A]"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
             </div>
 
             {me && (
@@ -1759,16 +1857,34 @@ useEffect(() => {
               </span>
               <div className="flex shrink-0 flex-col items-end gap-1">
                 {!selectMode && (
-                  <button
-                    onClick={(e) => togglePin(e, c)}
-                    className={`grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${
-                      c.isPinned ? "" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
-                    }`}
-                    aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
-                    title={c.isPinned ? "Unpin chat" : "Pin chat"}
-                  >
-                    <Pin className={`h-3 w-3 ${c.isPinned ? "fill-[#E07A5F] text-[#E07A5F]" : "text-[#8C8C8C]"}`} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {!ai && !c.is_group && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const otherId = c.memberIds.find((id) => id !== me.id);
+                          const p = otherId ? profilesById[otherId] : undefined;
+                          if (p) setReportTarget(p);
+                          else toast.error("Couldn't find that user's profile to report.");
+                        }}
+                        className="grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full opacity-40 hover:opacity-100 hover:bg-[#F4A261]/20 md:opacity-0 md:group-hover:opacity-100 transition"
+                        aria-label="Report user"
+                        title="Report user"
+                      >
+                        <Flag className="h-3 w-3 text-[#8C8C8C] hover:text-[#E07A5F]" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => togglePin(e, c)}
+                      className={`grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${
+                        c.isPinned ? "" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
+                      }`}
+                      aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
+                      title={c.isPinned ? "Unpin chat" : "Pin chat"}
+                    >
+                      <Pin className={`h-3 w-3 ${c.isPinned ? "fill-[#E07A5F] text-[#E07A5F]" : "text-[#8C8C8C]"}`} />
+                    </button>
+                  </div>
                 )}
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "#D97757" } : undefined}>
                   {last ? fmtChatTimestamp(last.created_at) : ""}
@@ -2082,6 +2198,18 @@ useEffect(() => {
                               iBlockedThem
                                 ? { key: "unblock", label: "Unblock", icon: <Ban className="h-4 w-4" />, onClick: unblockOther }
                                 : { key: "block", label: "Block", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther },
+                            ]
+                          : []),
+                        // Groups don't have one "other user" — surface the member list so
+                        // the person can pick exactly who they want to report or block.
+                        ...(!isAIChat(active) && active.is_group
+                          ? [
+                              {
+                                key: "report-member",
+                                label: "Report a member",
+                                icon: <AlertTriangle className="h-4 w-4" />,
+                                onClick: () => setShowMemberList(true),
+                              },
                             ]
                           : []),
                       ],
@@ -2429,6 +2557,53 @@ useEffect(() => {
           onUpdated={loadChats}
           onDelete={() => deleteGroup(active.id)}
         />
+      )}
+
+      {assigningFolders && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setAssigningFolders(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-[#FFFDF9] p-5 shadow-xl dark:bg-[#242424]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="flex items-center gap-2 text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+              <FolderCog className="h-4 w-4 text-[#E07A5F]" /> Add to folder
+            </h3>
+            <p className="mt-1 text-xs text-[#8C8C8C]">{selectedChatIds.size} chat{selectedChatIds.size === 1 ? "" : "s"} selected</p>
+
+            <div className="mt-3 max-h-64 space-y-1 overflow-y-auto">
+              {customFolders.length === 0 && (
+                <p className="py-4 text-center text-xs text-[#8C8C8C]">No folders yet. Create one first with the + button on the chat list.</p>
+              )}
+              {customFolders.map((f) => {
+                const chatIds = [...selectedChatIds];
+                const allIn = chatIds.length > 0 && chatIds.every((id) => (chatFolderMap[id] ?? []).includes(f.id));
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      const next = { ...chatFolderMap };
+                      for (const id of chatIds) {
+                        const cur = next[id] ?? [];
+                        next[id] = allIn ? cur.filter((x) => x !== f.id) : [...new Set([...cur, f.id])];
+                      }
+                      persistFolderMap(next);
+                    }}
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-[#F5F0E8] dark:hover:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+                  >
+                    {f.name}
+                    {allIn && <Check className="h-4 w-4 text-[#E07A5F]" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={createCustomFolder} className="flex items-center gap-1 rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
+                <FolderPlus className="h-3.5 w-3.5" /> New folder
+              </button>
+              <button onClick={() => { setAssigningFolders(false); exitSelectMode(); }} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {reportTarget && me && (
