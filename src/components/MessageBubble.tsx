@@ -1254,11 +1254,11 @@ export function Bubble({
                       <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
                         <button
                           onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-                          className={`flex items-center gap-2 px-1.5 py-2 text-[11px] shadow-sm transition active:scale-95 ${
+                          className={`flex items-center relative top-0 gap-2 px-1.5 py-1 text-[11px] shadow-sm transition active:scale-95 ${
                             mine
-                              ? "border-white/20 bg-white/15"
-                              : "border-[#E07A5F]/15 bg-[#FFFDF9] dark:bg-[#2A2A2A]"
-                          } ${mineReacted ? "bg-white/10" : ""}`}
+                              ? "text-[#1E90FF] "
+                              : "text-[#2D3436]"
+                          } ${mineReacted ? "transparent" : ""}`}
                         >
                           <span>{e}</span>
                           <span className="text-[9px] opacity-80 font-medium">{n}</span>
