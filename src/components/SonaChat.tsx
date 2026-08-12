@@ -365,7 +365,7 @@ function SonaChatInner() {
   const navigate = useNavigate();
   const askAI = useServerFn(askSonaAI);
   const askSummary = useServerFn(summarizeChat);
-
+  const [isSummarized, setIsSummarized] =useState(false) ;
   const [me, setMe] = useState<Profile | null>(null);
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
@@ -998,7 +998,7 @@ function SonaChatInner() {
     const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me?.id ?? "");
     if (error) { toast.error(error.message); return; }
     setScheduledMessages((prev) => prev.filter((m) => m.id !== messageId));
-    toast.success("Scheduled message canceled");
+    antMessage.success("Scheduled message canceled");
   };
 
   const togglePin = async (e: React.MouseEvent, chat: ChatWithMeta) => {
@@ -1097,11 +1097,11 @@ function SonaChatInner() {
     loadChats();
 
     if (failed === 0) {
-      toast.success(count === 1 ? "Chat deleted" : `${count} chats deleted`);
+      antMessage.success(count === 1 ? "Chat deleted" : `${count} chats deleted`);
     } else if (failed === count) {
-      toast.error(count === 1 ? "Couldn't delete chat" : "Couldn't delete any of the selected chats");
+      antMessage.error(count === 1 ? "Couldn't delete chat" : "Couldn't delete any of the selected chats");
     } else {
-      toast.warning(`Deleted ${count - failed} of ${count} chats — ${failed} failed`);
+      antMessage.warning(`Deleted ${count - failed} of ${count} chats — ${failed} failed`);
     }
   };
 
@@ -1160,7 +1160,7 @@ function SonaChatInner() {
       for (const doc of pendingDocs) {
         const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${doc.name}`;
         const { error: upErr } = await supabase.storage.from("chat-media").upload(path, doc, { contentType: doc.type || "application/octet-stream" });
-        if (upErr) { toast.error(`Couldn't upload ${doc.name}: ${explainSupabaseError(upErr).title}`); continue; }
+        if (upErr) { antMessage.error(`Couldn't upload ${doc.name}: ${explainSupabaseError(upErr).title}`); continue; }
         const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
         outgoing.push({ kind: "file", media_url: signed?.signedUrl ?? null, file_name: doc.name, file_size: doc.size });
       }
@@ -1188,7 +1188,7 @@ function SonaChatInner() {
         if (error) { toast.error(error.message); continue; }
       }
       if (scheduledFor) {
-        toast.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);
+        antMessage.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);
       } else {
         playSendSound();
       }
@@ -1383,12 +1383,14 @@ function SonaChatInner() {
     if (!activeId) return;
     if (!requirePro("AI chat summary")) return;
     setShowHeaderMenu(false);
-    antMessage.loading("Summarizing…", { id: "sum" }, 3);
+    setIsSummarized(true) ;
+    antMessage.loading("Summarizing…", { id: "sum" });
     try {
       const r = await askSummary({ data: { chatId: activeId } }) as { summary: string };
       setSummary(r.summary);
       antMessage.success("Summary ready", { id: "sum" });
-    } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
+      setIsSummarized(false) ;
+    } catch (e) { antMessage.error((e as Error).message, { id: "sum" }); }
   };
 
   const startCall = (kind: "voice" | "video") => {
@@ -1578,7 +1580,7 @@ useEffect(() => {
         navigator.share({ title: "Sona", text: "Chat with me on Sona!", url: shareUrl }).catch(() => {});
       } else {
         navigator.clipboard.writeText(shareUrl);
-        toast.success("App link copied to clipboard!");
+        antMessage.success("App link copied to clipboard!");
       }
     }}
     className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white transition-colors"
@@ -2152,7 +2154,7 @@ useEffect(() => {
                               {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
                             </span>
                           ),
-                          icon: <Sparkles className="h-4 w-4 text-[#1E1E1E]" />,
+                          icon: <Sparkles className={`h-4 w-4 text-[#1E1E1E] ${isSummarized? "animate-spin text-green-600" :"" } `} />,
                         },
                         ...(!isAIChat(active)
                           ? [
