@@ -1384,11 +1384,11 @@ function SonaChatInner() {
     if (!requirePro("AI chat summary")) return;
     setShowHeaderMenu(false);
     setIsSummarized(true) ;
-    antMessage.loading("Summarizing…", { id: "sum" });
+    toast.loading("Summarizing…", { id: "sum" });
     try {
       const r = await askSummary({ data: { chatId: activeId } }) as { summary: string };
       setSummary(r.summary);
-      antMessage.success("Summary ready", { id: "sum" });
+      toast.success("Summary ready", { id: "sum" });
       setIsSummarized(false) ;
     } catch (e) { antMessage.error((e as Error).message, { id: "sum" }); }
   };
@@ -2148,9 +2148,10 @@ useEffect(() => {
                         },
                         {
                           key: "summarize",
+                          disabled :isSummarized, 
                           label: (
-                            <span className="flex w-full items-center">
-                              Summarize
+                            <span className={`flex w-full items-center ${isSummarized? "animate-pulse" :"" } `} >
+                              {  isSummarized? "Summarizing...":"Summarize "} 
                               {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
                             </span>
                           ),
