@@ -1352,7 +1352,7 @@ function SonaChatInner() {
 
   const requirePro = (feature: string): boolean => {
     if (me?.is_pro) return true;
-    toast.error(`${feature} is a Sona Pro feature — upgrade in Settings → Subscription.`);
+    antMessage.error(`${feature} is a Sona Pro feature — upgrade in Settings → Subscription.`);
     setShowHeaderMenu(false);
     setShowSettings(true);
     return false;
@@ -1383,11 +1383,11 @@ function SonaChatInner() {
     if (!activeId) return;
     if (!requirePro("AI chat summary")) return;
     setShowHeaderMenu(false);
-    toast.loading("Summarizing…", { id: "sum" });
+    antMessage.loading("Summarizing…", { id: "sum" }, 3);
     try {
       const r = await askSummary({ data: { chatId: activeId } }) as { summary: string };
       setSummary(r.summary);
-      toast.success("Summary ready", { id: "sum" });
+      antMessage.success("Summary ready", { id: "sum" });
     } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
   };
 
@@ -1512,11 +1512,11 @@ useEffect(() => {
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
                   <div className="h-16 w-16 rounded-2xl bg-[#E07A5F]/20 animate-pulse" />
-                  <img src={sonaLogo} alt="" className="absolute inset-0 h-16 w-16 rounded-2xl object-contain p-2 opacity-80" />
+                  <img src={sonaLogo} alt="" className="absolute inset-0 h-16 w-16 rounded-2xl object-contain p-2 opacity-60" />
                 </div>
                 <div className="flex items-center gap-2 text-[#8C8C8C]">
-                  <Loader2 className="h-4 w-4 animate-spin text-[#E07A5F]" />
-                  <span className="text-sm font-medium">Loading Sona…</span>
+                  <Loader2 className="h-6 w-6 animate-spin text-[#E07A5F]" />
+                  
                 </div>
               </div>
             </section>
@@ -1714,7 +1714,7 @@ useEffect(() => {
               </div>
             </div>
 
-            <div data-tour="folder-tabs" className="flex items-center gap-2 overflow-x-auto px-3 pb-4 scrollbar-thin">
+            <div data-tour="folder-tabs" className="flex items-center gap-2 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-hiding">
               {([
                 { key: "all", label: "All" },
                 { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
@@ -1724,7 +1724,7 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
                       ? "bg-[#E07A5F] text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
