@@ -29,6 +29,14 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
     display: none; 
 }
+/* If your plugin doesn't handle Safari/Chrome natively */
+.scrollbar-hiding::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hiding {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
