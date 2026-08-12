@@ -9,7 +9,7 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import EmojiPicker, { Theme as EmojiTheme, EmojiStyle, type EmojiClickData } from "emoji-picker-react";
-
+import { FaRegThumbsUp } from "react-icons/fa6";
 import { RiEmojiStickerLine } from "react-icons/ri";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
@@ -446,7 +446,7 @@ function MessageContextMenu({
         <MenuItem icon={<CornerUpLeft className="h-4 w-4" />} label="Reply" onClick={() => { onReply(); onClose(); }} />
         <MenuItem icon={<Forward className="h-4 w-4" />} label="Forward" onClick={() => { onForward(); onClose(); }} />
         {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
-        <MenuItem icon={<SmilePlus className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
+        <MenuItem icon={<FaRegThumbsUp className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
         {mine && isText && <MenuItem icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => { onEdit(); onClose(); }} />}
         <div className="my-1 border-t border-[#E07A5F]/10" />
         {mine && <MenuItem icon={<Trash2 className="h-4 w-4 text-red-500" />} label="Delete" danger onClick={() => { onDelete(); onClose(); }} />}
