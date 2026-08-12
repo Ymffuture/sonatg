@@ -1778,7 +1778,7 @@ useEffect(() => {
             )}
 
 
-            <div className="scrollbar-thin flex-1 overflow-y-auto pb-24">
+            <div className="scrollbar-hiding flex-1 overflow-y-auto pb-24">
              <AnimatePresence initial={false}>
              {(filtered.map((c) => {
       const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
@@ -2077,7 +2077,7 @@ useEffect(() => {
     <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
   ) : isAIChat(active) ? (
     <span className="inline-flex items-center gap-1.5">   
-      Sona AI Ask Anything
+      Ask Anything... 
     </span>
   ) : active.is_group ? (
     <div className="relative flex overflow-hidden w-full">
