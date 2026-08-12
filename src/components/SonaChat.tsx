@@ -1478,7 +1478,7 @@ useEffect(() => {
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
     return (
-      <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
+      <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] hide-scrollbar dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
         <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
           <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
             {/* Sidebar with nav bar skeleton */}
@@ -1528,7 +1528,7 @@ useEffect(() => {
 
   
   return (
-    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
+    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] hide-scrollbar dark:text-[#E8E8E8]">
       <Watermark
           content="" 
           font={{ color: "#e1f6fc" , fontSize: 8}}
