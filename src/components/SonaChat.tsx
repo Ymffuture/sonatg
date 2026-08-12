@@ -9,7 +9,7 @@ import {
   AlertTriangle, FolderPlus, FolderCog, Flag,
 } from "lucide-react";
 
-import { Dropdown, Watermark } from "antd";
+import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoMdTimer } from "react-icons/io";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -910,6 +910,9 @@ function SonaChatInner() {
     }
   }, [me?.id]);
 
+  // Drives the "New folder" / "Rename folder" modal (replaces window.prompt).
+  const [folderModal, setFolderModal] = useState<{ mode: "create" | "rename"; id?: string; value: string } | null>(null);
+
   const persistFolders = (next: CustomFolder[]) => {
     setCustomFolders(next);
     if (me) localStorage.setItem(`sona:folders:${me.id}`, JSON.stringify(next));
@@ -919,23 +922,33 @@ function SonaChatInner() {
     if (me) localStorage.setItem(`sona:folder-map:${me.id}`, JSON.stringify(next));
   };
 
-  const createCustomFolder = () => {
-    const name = window.prompt("Name this folder (e.g. Work, Family, Close friends)")?.trim();
+  const openCreateFolderModal = () => setFolderModal({ mode: "create", value: "" });
+  const openRenameFolderModal = (id: string, current: string) => setFolderModal({ mode: "rename", id, value: current });
+
+  const submitFolderModal = () => {
+    if (!folderModal) return;
+    const name = folderModal.value.trim().slice(0, 30);
     if (!name) return;
-    const id = `custom:${Date.now()}`;
-    persistFolders([...customFolders, { id, name: name.slice(0, 30) }]);
-    setActiveFolder(id);
-    toast.success(`Folder "${name}" created`);
+    if (folderModal.mode === "create") {
+      const id = `custom:${Date.now()}`;
+      persistFolders([...customFolders, { id, name }]);
+      setActiveFolder(id);
+      antMessage.success(`Folder "${name}" created`);
+    } else if (folderModal.id) {
+      persistFolders(customFolders.map((f) => (f.id === folderModal.id ? { ...f, name } : f)));
+      antMessage.success("Folder renamed");
+    }
+    setFolderModal(null);
   };
 
-  const renameCustomFolder = (id: string, current: string) => {
-    const name = window.prompt("Rename folder", current)?.trim();
-    if (!name) return;
-    persistFolders(customFolders.map((f) => (f.id === id ? { ...f, name: name.slice(0, 30) } : f)));
-  };
-
-  const deleteCustomFolder = (id: string, name: string) => {
-    if (!window.confirm(`Delete the "${name}" folder? Chats inside it won't be deleted.`)) return;
+  const deleteCustomFolder = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: `Delete "${name}" folder?`,
+      description: "Chats inside it won't be deleted, only removed from the folder.",
+      confirmText: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     persistFolders(customFolders.filter((f) => f.id !== id));
     const nextMap: Record<string, string[]> = {};
     for (const [chatId, ids] of Object.entries(chatFolderMap)) {
@@ -944,6 +957,8 @@ function SonaChatInner() {
     }
     persistFolderMap(nextMap);
     if (activeFolder === id) setActiveFolder("all");
+    setFolderModal(null);
+    antMessage.success(`Folder "${name}" deleted`);
   };
 
   const toggleChatInFolder = (chatId: string, folderId: string) => {
@@ -1321,15 +1336,15 @@ function SonaChatInner() {
       // almost always means the "reports" table migration was never
       // applied to this Supabase project. 42501 = RLS/permission denied.
       if (error.code === "42P01") {
-        toast.error("Reporting isn't set up yet — the reports table is missing from the database. Ask an admin to run the pending Supabase migrations.");
+        antMessage.error("Reporting isn't set up yet — the reports table is missing from the database. Ask an admin to run the pending Supabase migrations.");
       } else if (error.code === "42501") {
-        toast.error("You don't have permission to submit a report — check the reports table's row-level security policies.");
+        antMessage.error("You don't have permission to submit a report — check the reports table's row-level security policies.");
       } else {
-        toast.error(error.message);
+        antMessage.error(error.message);
       }
       return;
     }
-    toast.success("Report sent to the Sona team");
+    antMessage.success("Report sent to the Sona team");
     setReportTarget(null);
     setReportDetails("");
   };
@@ -1723,12 +1738,12 @@ useEffect(() => {
                 <button
                   key={f.id}
                   onClick={() => setActiveFolder(f.id)}
-                  onDoubleClick={() => renameCustomFolder(f.id, f.name)}
+                  onDoubleClick={() => openRenameFolderModal(f.id, f.name)}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    deleteCustomFolder(f.id, f.name);
+                    openRenameFolderModal(f.id, f.name);
                   }}
-                  title="Tap to filter · double-tap to rename · right-click to delete"
+                  title="Tap to filter · double-tap or right-click to rename"
                   className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.id
                       ? "bg-[#E07A5F] text-white"
@@ -1740,7 +1755,7 @@ useEffect(() => {
               ))}
 
               <button
-                onClick={createCustomFolder}
+                onClick={openCreateFolderModal}
                 title="Create a custom folder"
                 aria-label="Create a custom folder"
                 className="shrink-0 rounded-full bg-[#F5F0E8] px-3 py-1.5 text-xs font-medium text-[#8C8C8C] transition hover:bg-[#F4A261]/20 dark:bg-[#2A2A2A]"
@@ -1865,7 +1880,7 @@ useEffect(() => {
                           const otherId = c.memberIds.find((id) => id !== me.id);
                           const p = otherId ? profilesById[otherId] : undefined;
                           if (p) setReportTarget(p);
-                          else toast.error("Couldn't find that user's profile to report.");
+                          else antMessage.error("Couldn't find that user's profile to report.");
                         }}
                         className="grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full opacity-40 hover:opacity-100 hover:bg-[#F4A261]/20 md:opacity-0 md:group-hover:opacity-100 transition"
                         aria-label="Report user"
@@ -2595,7 +2610,7 @@ useEffect(() => {
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
-              <button onClick={createCustomFolder} className="flex items-center gap-1 rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
+              <button onClick={openCreateFolderModal} className="flex items-center gap-1 rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
                 <FolderPlus className="h-3.5 w-3.5" /> New folder
               </button>
               <button onClick={() => { setAssigningFolders(false); exitSelectMode(); }} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">
@@ -2605,6 +2620,43 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      <Modal
+        open={!!folderModal}
+        title={folderModal?.mode === "create" ? "New folder" : "Rename folder"}
+        onCancel={() => setFolderModal(null)}
+        footer={[
+          ...(folderModal?.mode === "rename" && folderModal.id
+            ? [
+                <button
+                  key="delete"
+                  onClick={() => {
+                    const folder = customFolders.find((cf) => cf.id === folderModal.id);
+                    if (folder) deleteCustomFolder(folder.id, folder.name);
+                  }}
+                  className="mr-auto rounded-xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-500/20 transition"
+                >
+                  Delete folder
+                </button>,
+              ]
+            : []),
+          <button key="cancel" onClick={() => setFolderModal(null)} className="rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
+            Cancel
+          </button>,
+          <button key="save" onClick={submitFolderModal} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">
+            {folderModal?.mode === "create" ? "Create" : "Save"}
+          </button>,
+        ]}
+      >
+        <Input
+          autoFocus
+          maxLength={30}
+          placeholder="e.g. Work, Family, Close friends"
+          value={folderModal?.value ?? ""}
+          onChange={(e) => setFolderModal((s) => (s ? { ...s, value: e.target.value } : s))}
+          onPressEnter={submitFolderModal}
+        />
+      </Modal>
 
       {reportTarget && me && (
         <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setReportTarget(null)}>
