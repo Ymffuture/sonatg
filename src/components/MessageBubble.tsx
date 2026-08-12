@@ -428,10 +428,10 @@ function MessageContextMenu({
     <div
       ref={menuRef}
       style={style}
-      className="w-52 rounded-xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="w-52 rounded p-4 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       <div className="flex items-center justify-around border-b border-[#1E1E1E]/10 px-2 py-2">
-        {["❤️", "👍", "😂", "😮", "😢", "🙏"].map((emoji) => (
+        {["❤️", "💔", "👎 ", "😂", "😮", "😢", "🙏","😴" ].map((emoji) => (
           <button
             key={emoji}
             onClick={() => { onReact(emoji); onClose(); }}
@@ -862,7 +862,7 @@ return (
     target="_blank"
     rel="noopener noreferrer"
     className={`
-      group mb-2 block max-w-[320px] overflow-hidden rounded-2xl border
+      group mb-4 block max-w-[320px] overflow-hidden rounded-2xl border
       transition-all duration-200 ease-out
       hover:-translate-y-0.5 hover:shadow-lg
       active:scale-[0.99] active:shadow-md
@@ -1254,11 +1254,11 @@ export function Bubble({
                       <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
                         <button
                           onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-                          className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] shadow-sm transition active:scale-95 ${
+                          className={`flex items-center gap-2 px-1.5 py-2 text-[11px] shadow-sm transition active:scale-95 ${
                             mine
                               ? "border-white/20 bg-white/15"
                               : "border-[#E07A5F]/15 bg-[#FFFDF9] dark:bg-[#2A2A2A]"
-                          } ${mineReacted ? "ring-1 ring-[#E07A5F]" : ""}`}
+                          } ${mineReacted ? "bg-white/10" : ""}`}
                         >
                           <span>{e}</span>
                           <span className="text-[9px] opacity-80 font-medium">{n}</span>
