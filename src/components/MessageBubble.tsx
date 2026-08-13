@@ -1246,28 +1246,28 @@ export function Bubble({
               }`}
             >
               {Object.keys(counts).length > 0 && (
-                <div className="flex flex-wrap items-center gap-1 mr-auto mb-0.5">
-                  {Object.entries(counts).map(([e, n]) => {
-                    const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
-                    const reactorNames = getReactorNames(e);
-                    return (
-                      <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
-                        <button
-                          onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-                          className={`flex items-center absolute rounded-full top-[35px] left-[4px] gap-2 px-1.5 py-1 text-[11px] shadow-sm transition active:scale-95 ${
-                            mine
-                              ? "text-[#1E90FF] bg-[#1E1E1E] "
-                              : "text-[#1E1E1E ] bg-[#1E1E1E] "
-                          } ${mineReacted ? "transparent" : ""}`}
-                        >
-                          <span>{e}</span>
-                          <span className="text-[9px] opacity-80 font-medium">{n}</span>
-                        </button>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              )}
+  <div className={`flex flex-wrap items-center gap-1 absolute z-10 ${mine ? "left-2" : "right-2"} -bottom-2.5`}>
+    {Object.entries(counts).map(([e, n]) => {
+      const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
+      const reactorNames = getReactorNames(e);
+      return (
+        <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
+          <button
+            onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
+            className={`flex items-center gap-[3px] rounded-full border px-[6px] py-[2px] text-[11px] shadow-md transition-transform active:scale-90 ${
+              mineReacted
+                ? "bg-[#FFF0EB] dark:bg-[#3A2A25] border-[#E07A5F]/40 text-[#E07A5F]"
+                : "bg-white dark:bg-[#2A2A2A] border-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8]"
+            }`}
+          >
+            <span className="leading-none">{e}</span>
+            {n > 1 && <span className="text-[10px] font-semibold leading-none opacity-80">{n}</span>}
+          </button>
+        </Tooltip>
+      );
+    })}
+  </div>
+)}
 
               <div className="flex items-center gap-1 translate-y-0.5">
                 {msg.is_forwarded && (
