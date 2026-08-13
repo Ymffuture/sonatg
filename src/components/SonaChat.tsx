@@ -2,16 +2,16 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
-  MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
-  Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
+  MessageSquarePlus, Settings, Shield, Sparkles, Lock, Unlock,
+  Ban, Reply, Pencil, Crown, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
-  Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
+  Tag, HelpCircle, Loader2,
   AlertTriangle, FolderPlus, FolderCog, Flag,
 } from "lucide-react";
 
 import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
-import { IoMdTimer } from "react-icons/io";
+import { IoMdTimer, IoMdMic } from "react-icons/io";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,38 +20,10 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import { pushBackLayer } from "@/hooks/useBackStack";
-import { FaSquareThreads } from "react-icons/fa6";
-import { IoFootstepsOutline } from "react-icons/io5" ;
-/* Shows an "Admin console" entry only for accounts with the admin role. */
-function AdminLink({ onNavigate }: { onNavigate: () => void }) {
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return;
-      const { data } = await supabase
-        .from("user_roles").select("role")
-        .eq("user_id", auth.user.id).eq("role", "admin").maybeSingle();
-      if (alive) setIsAdmin(!!data);
-    })();
-    return () => { alive = false; };
-  }, []);
-  if (!isAdmin) return null;
-  return (
-    <Link
-      to="/admin"
-      onClick={onNavigate}
-      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
-    >
-      <Shield className="h-4 w-4 shrink-0" />
-      Admin console
-    </Link>
-  );
-}
-import { OnboardingTour, hasSeenOnboarding, type TourStep } from "./OnboardingTour";
+import { IoFootstepsOutline } from "react-icons/io5";
+import { hasSeenOnboarding } from "./OnboardingTour";
 import {
-  SONA_AI_ID, fmtTime, fmtLastSeen, fmtDateLabel, CHAT_CATEGORIES,
+  SONA_AI_ID, fmtLastSeen, fmtDateLabel, CHAT_CATEGORIES,
   type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
   type BlockRow, type ChatCategory, type ChatMemberRole,
 } from "@/lib/db";
@@ -61,12 +33,6 @@ import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
 import sonaAi from "@/assets/sona01.png";
 import { VscVerifiedFilled } from "react-icons/vsc";
-import { MdInsertPhoto } from "react-icons/md";
-import { IoMdMic } from "react-icons/io";
-import { FaFileLines } from "react-icons/fa6";
-import { FaLock } from "react-icons/fa6"; 
-import { MdSearch } from "react-icons/md";
-import { BiSolidMessageSquareAdd } from "react-icons/bi";
 import { RiArrowLeftWideFill } from "react-icons/ri";
 
 import {
@@ -75,281 +41,17 @@ import {
   MAX_IMAGES, MAX_IMAGE_BYTES, MAX_DOCS, MAX_DOC_BYTES, DOC_EXTENSIONS, docExtOf, formatBytes,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
-import { Bubble, Composer, MediaViewer } from "./MessageBubble";
-import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
-import { ProfileViewModal } from "./ProfileView";
-import { ForwardModal } from "./ForwardModal";
-import { MediaGalleryModal } from "./MediaGalleryModal";
+import { Bubble, Composer } from "./MessageBubble";
+import { MemberListModal, GroupSettingsModal, NewChatModal } from "./ChatModals";
 import { uploadToCloudinary, readVideoDurationMs } from "@/utils/cloudinary";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 
-
-// Call-log messages store their metadata as JSON in the file_name column
-// (body stays null so MessagePreview's switch renders it, rather than the
-// raw JSON, when there's no body text).
-type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
-function parseCallBody(raw: string | null): CallLogMeta {
-  try {
-    const parsed = raw ? JSON.parse(raw) : null;
-    if (parsed && (parsed.kind === "voice" || parsed.kind === "video")) {
-      return {
-        kind: parsed.kind,
-        outcome: parsed.outcome === "missed" || parsed.outcome === "declined" ? parsed.outcome : "answered",
-        durationMs: typeof parsed.durationMs === "number" ? parsed.durationMs : 0,
-      };
-    }
-  } catch { /* fall through to default */ }
-  return { kind: "voice", outcome: "answered", durationMs: 0 };
-}
-
-const ONBOARDING_STEPS: TourStep[] = [
-  {
-    targetSelector: '[data-tour="new-chat-fab"]',
-    title: "Start a conversation",
-    description: "Tap here to message someone new or create a group.",
-    placement: "top",
-  },
-  {
-    targetSelector: '[data-tour="search-chats"]',
-    title: "Find anything fast",
-    description: "Search your chats here, or search inside any open chat from its menu.",
-    placement: "bottom",
-  },
-  {
-    targetSelector: '[data-tour="folder-tabs"]',
-    title: "Stay organized",
-    description: "Filter your chat list by Unread, Groups, or Pinned to cut through the noise.",
-    placement: "bottom",
-  },
-  {
-    targetSelector: '[data-tour="status-bar"]',
-    title: "Share a status",
-    description: "Post a photo, video, or text update that disappears after 24 hours — just like a story.",
-    placement: "bottom",
-  },
-  {
-    targetSelector: '[data-tour="settings-btn"]',
-    title: "Make it yours",
-    description: "Open this menu to set your profile photo and bio, manage subscriptions, switch themes, and more.",
-    placement: "left",
-  },
-];
-
-const DISAPPEARING_OPTIONS: { label: string; seconds: number | null }[] = [
-  { label: "Off", seconds: null },
-  { label: "24 hours", seconds: 24 * 60 * 60 },
-  { label: "7 days", seconds: 7 * 24 * 60 * 60 },
-  { label: "90 days", seconds: 90 * 24 * 60 * 60 },
-];
-function disappearingLabel(seconds?: number | null) {
-  return DISAPPEARING_OPTIONS.find((o) => o.seconds === (seconds ?? null))?.label ?? "Off";
-}
-
-function fmtDuration(ms?: number | null) {
-  const totalSec = Math.max(0, Math.round((ms ?? 0) / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function fmtChatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const t = d.getTime();
-  if (t >= startOfToday) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-  }
-  if (t >= startOfToday - 86_400_000) return "Yesterday";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}/${mm}/${dd}`;
-}
-
-function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
-  if (!msg) return null; // ← add this guard
-
-  if (msg.is_encrypted) {
-    return (
-      <span className="inline-flex items-center gap-1 opacity-70">
-        <FaLock className="h-4 w-4 shrink-0 text-red-500 " /> Locked
-      </span>
-    );
-  }
-  if (msg.body) return <span className="truncate">{msg.body}</span>;
-
-  switch (msg.kind) {
-    case "image":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <MdInsertPhoto className="h-4 w-4 shrink-0" /> Photo
-        </span>
-      );
-    case "voice":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message ({fmtDuration(msg.duration_ms)})
-        </span>
-      );
-    case "video":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <Video className="h-4 w-4 shrink-0" /> Video
-        </span>
-      );
-    case "file":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <FaFileLines className="h-4 w-4 shrink-0" /> {msg.file_name || "File"}
-        </span>
-      );
-    case "call": {
-      const call = parseCallBody(msg.file_name ?? null);
-      return (
-        <span className="inline-flex items-center gap-1">
-          {call.kind === "video" ? <Video className="h-4 w-4 shrink-0" /> : <PhoneMissed className="h-4 text-red-600 w-4 shrink-0" />}
-          {call.outcome === "missed" || call.outcome === "declined"
-            ? `${call.outcome === "missed" ? "Missed" : "Declined"} ${call.kind === "video" ? "video call" : "call"}`
-            : `${call.kind === "video" ? "Video call" : "Voice call"} · ${fmtDuration(call.durationMs)}`}
-        </span>
-      );
-    }
-    default:
-      return <span>…</span>;
-  }
-}
-
-/* ─── Category Icons (no emojis) ─── */
-function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: string; className?: string }) {
-  switch (category) {
-    case "business": return <Briefcase className={className} />;
-    case "gaming": return <Gamepad2 className={className} />;
-    case "education": return <GraduationCap className={className} />;
-    case "lifestyle": return <Heart className={className} />;
-    case "entertainment": return <Music className={className} />;
-    case "travel": return <Plane className={className} />;
-    case "news": return <Newspaper className={className} />;
-    case "support": return <HelpCircle className={className} />;
-    default: return <Users className={className} />;
-  }
-}
-
-function ThreadPanel({
-  root, replies, me, profiles, decrypted, onClose, onSendReply,
-}: {
-  root: MessageRow | null;
-  replies: MessageRow[];
-  me: Profile;
-  profiles: Record<string, Profile>;
-  decrypted: Record<string, string>;
-  onClose: () => void;
-  onSendReply: (text: string) => Promise<void>;
-}) {
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-
-  const bodyOf = (m: MessageRow) => (m.is_encrypted ? decrypted[m.id] ?? "Locked message" : m.body ?? "");
-  const nameOf = (senderId: string) => (senderId === me.id ? "You" : profiles[senderId]?.display_name ?? "…");
-
-  const send = async () => {
-    const t = text.trim();
-    if (!t || sending) return;
-    setSending(true);
-    try {
-      await onSendReply(t);
-      setText("");
-    } finally {
-      setSending(false);
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      className="absolute inset-0 z-40 flex justify-end bg-black/20 w-full"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 380, damping: 38 }}
-        className="flex h-full w-full max-w-sm flex-col border-l border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-[#E07A5F]/10 px-4 py-3">
-          <h3 className="text-sm flex gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><FaSquareThreads className="text-[purple]" /> Threads</h3>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close thread">
-            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
-          {root && (
-            <div className="mb-3 rounded-xl border border-[#E07A5F]/15 bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3">
-              <div className="flex items-center gap-2">
-                <Avatar url={profiles[root.sender_id]?.avatar_url} name={nameOf(root.sender_id)} size={24} />
-                <span className="text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{nameOf(root.sender_id)}</span>
-                <span className="text-[10px] text-[#8C8C8C]">{fmtTime(root.created_at)}</span>
-              </div>
-              <p className="mt-1.5 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
-                {bodyOf(root) || (root.kind === "image" ? "Photo" : root.kind === "voice" ? "Voice message" : root.kind === "file" ? root.file_name || "File" : "…")}
-              </p>
-            </div>
-          )}
-
-          <div className="mb-2 text-xs font-medium text-[#8C8C8C]">
-            {replies.length} {replies.length === 1 ? "reply" : "replies"}
-          </div>
-
-          <div className="space-y-3">
-            {replies.map((r) => (
-              <div key={r.id} className="flex items-start gap-3 m-2">
-                <Avatar url={profiles[r.sender_id]?.avatar_url} name={nameOf(r.sender_id)} size={28} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{nameOf(r.sender_id)}</span>
-                    <span className="text-[10px] text-[#8C8C8C]">{fmtTime(r.created_at)}</span>
-                  </div>
-                  <p className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">
-                    {bodyOf(r) || (r.kind === "image" ? "Photo" : r.kind === "voice" ? "Voice message" : r.kind === "file" ? r.file_name || "File" : "…")}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {replies.length === 0 && (
-              <p className="text-sm text-[#8C8C8C]">No replies yet — start the thread below.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="border-t border-[#E07A5F]/10 p-3">
-          <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-              placeholder="Reply in thread…"
-              className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]"
-            />
-            <button
-              onClick={send}
-              disabled={!text.trim() || sending}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white disabled:opacity-40 transition"
-              aria-label="Send reply"
-            >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
+// Extracted helpers/constants and presentational sub-components
+// (see ./sonaChatShared, ./SonaChatParts, ./SonaChatLoadingSkeleton, ./SonaChatModals)
+import { DISAPPEARING_OPTIONS, disappearingLabel, fmtChatTimestamp } from "./sonaChatShared";
+import { AdminLink, MessagePreview, CategoryIcon, ThreadPanel } from "./SonaChatParts";
+import { SonaChatLoadingSkeleton } from "./SonaChatLoadingSkeleton";
+import { SonaChatModals } from "./SonaChatModals";
 
 export default function SonaChat() {
   return (
@@ -1479,53 +1181,7 @@ useEffect(() => {
     
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
-    return (
-      <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] hide-scrollbar dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
-        <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
-          <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
-            {/* Sidebar with nav bar skeleton */}
-            <aside className="relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]">
-              {/* Nav bar skeleton */}
-              <div className="flex items-center justify-between gap-2 px-4 py-3">
-                <div className="h-8 w-28 rounded-lg bg-[#E07A5F]/10 animate-pulse" />
-                <div className="flex items-center gap-1">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-9 w-9 rounded-full bg-[silver]/10 animate-pulse" />
-                  ))}
-                </div>
-              </div>
-              <div className="px-3 pb-2 pt-2">
-                <div className="h-10 rounded-full bg-[#E07A5F]/10 animate-pulse" />
-              </div>
-              <div className="flex-1 space-y-1 px-2 pt-1">
-                {[1, 2, 3, 4, 5, 6, 7,8,9,10,11,12,13].map((i) => (
-                  <div key={i} className="flex items-center gap-3 p-3">
-                    <div className="h-12 w-12 shrink-0 rounded-full bg-[#1E1E1E]/20 animate-pulse" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 w-2/5 rounded bg-[#E07A5F]/20 animate-pulse" />
-                      <div className="h-2.5 w-4/5 rounded bg-[#E07A5F]/10 animate-pulse" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </aside>
-            {/* Main page loader */}
-            <section className="hidden md:flex h-full flex-1 flex-col bg-[#F0EBE3] dark:bg-[#1A1A1A] items-center justify-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <div className="h-16 w-16 rounded-2xl bg-[#E07A5F]/20 animate-pulse" />
-                  <img src={sonaLogo} alt="" className="absolute inset-0 h-16 w-16 rounded-2xl object-contain p-2 opacity-60" />
-                </div>
-                <div className="flex items-center gap-2 text-[#8C8C8C]">
-                  <Loader2 className="h-6 w-6 animate-spin text-[#E07A5F]" />
-                  
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
-      </div>
-    );
+    return <SonaChatLoadingSkeleton />;
   }
 
   
@@ -2692,181 +2348,43 @@ useEffect(() => {
         </div>
       )}
 
-      {viewingProfile && me && (
-        <ProfileViewModal
-          profile={viewingProfile}
-          isSelf={viewingProfile.id === me.id}
-          onClose={() => setViewingProfile(null)}
-          onMessage={() => messageProfile(viewingProfile)}
-          onEdit={() => { setViewingProfile(null); setShowSettings(true); }}
-          moderation={viewingProfile.id === me.id ? myModeration : null}
-          onReport={viewingProfile.id !== me.id && !viewingProfile.is_ai ? () => { setViewingProfile(null); setReportTarget(viewingProfile); } : undefined}
-          online={onlineIds.has(viewingProfile.id)}
-          lastSeen={viewingProfile.last_seen ?? null}
-          onOpenMedia={
-            viewingProfile.id !== me.id && activeId
-              ? () => { setViewingProfile(null); setShowMediaGallery(true); }
-              : undefined
-          }
-          isBlocked={viewingProfile.id === activeOtherId ? iBlockedThem : undefined}
-          onToggleBlock={
-            viewingProfile.id === activeOtherId
-              ? () => { const fn = iBlockedThem ? unblockOther : blockOther; setViewingProfile(null); fn(); }
-              : undefined
-          }
-        />
-      )}
-
-
-      {forwardingMessage && me && (
-        <ForwardModal
-          message={forwardingMessage}
-          chats={chats}
-          meId={me.id}
-          onClose={() => setForwardingMessage(null)}
-          onForwarded={() => {}}
-        />
-      )}
-
-      {showMediaGallery && activeId && (
-        <MediaGalleryModal
-          chatId={activeId}
-          onClose={() => setShowMediaGallery(false)}
-          onOpenViewer={(kind, url, name) => setGalleryViewer({ kind, url, name })}
-        />
-      )}
-
-      {galleryViewer && (galleryViewer.kind === "image" || galleryViewer.kind === "pdf") && (
-        <MediaViewer
-          items={[{ kind: galleryViewer.kind, url: galleryViewer.url, name: galleryViewer.name }]}
-          initialIndex={0}
-          onClose={() => setGalleryViewer(null)}
-        />
-      )}
-
-      {galleryViewer && galleryViewer.kind === "video" && (
-        <div
-          className="fixed inset-0 z-[120] grid place-items-center bg-black/90 p-4"
-          onClick={() => setGalleryViewer(null)}
-        >
-          <button
-            onClick={() => setGalleryViewer(null)}
-            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
-            aria-label="Close video"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <video
-            src={galleryViewer.url}
-            controls
-            autoPlay
-            className="max-h-[85vh] max-w-full rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-
-      {showSettings && me && (
-        <SettingsModal
-          me={me}
-          onClose={() => setShowSettings(false)}
-          onSaved={(p) => { setMe(p); setProfiles((prev) => ({ ...prev, [p.id]: p })); }}
-        />
-      )}
-
-      {needsUnlock && activeId && active?.is_hidden && (
-        <UnlockModal
-          chatId={activeId}
-          onUnlocked={() => setNeedsUnlock(false)}
-          onCancel={() => { setNeedsUnlock(false); setActiveId(null); }}
-        />
-      )}
-
-      <AnimatePresence>
-      {summary !== null && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setSummary(null)}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
-            transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-4 w-4 text-[#E07A5F]" />
-              <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Chat summary</h3>
-            </div>
-            <p className="whitespace-pre-wrap text-sm text-[#8C8C8C]">{summary}</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  const blob = new Blob([summary], { type: "text/plain;charset=utf-8" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `${(active ? chatTitle(active, me.id) : "chat").replace(/[^\w\- ]/g, "")} summary.txt`;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  URL.revokeObjectURL(url);
-                }}
-                className="flex items-center gap-1.5 rounded-xl bg-[#E07A5F] px-3 py-2 text-sm font-medium text-white hover:opacity-90 transition"
-              >
-                <Download className="h-4 w-4" /> Download
-              </button>
-              <button onClick={() => setSummary(null)} className="rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/20 transition">Close</button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-      {showScheduledList && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setShowScheduledList(false)}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
-            transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="h-4 w-4 text-[#E07A5F]" />
-              <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Scheduled messages</h3>
-            </div>
-            {scheduledMessages.length === 0 ? (
-              <p className="text-sm text-[#8C8C8C]">No messages scheduled in this chat.</p>
-            ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {scheduledMessages.map((m) => (
-                  <div key={m.id} className="flex items-start gap-2 rounded-xl border border-[#E07A5F]/10 bg-white/60 dark:bg-white/5 p-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">{m.body || "(attachment)"}</p>
-                      <p className="text-xs text-[#8C8C8C]">{m.scheduled_at && new Date(m.scheduled_at).toLocaleString()}</p>
-                    </div>
-                    <button
-                      onClick={() => cancelScheduled(m.id)}
-                      className="shrink-0 rounded-full p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
-                      aria-label="Cancel scheduled message"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="mt-4 flex justify-end">
-              <button onClick={() => setShowScheduledList(false)} className="rounded-xl bg-[#F5F0E8] dark:bg-[#3A3A3A] px-3 py-2 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/20 transition">Close</button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
-
-      {showTour && <OnboardingTour steps={ONBOARDING_STEPS} onFinish={() => setShowTour(false)} />}
+      <SonaChatModals
+        me={me}
+        chats={chats}
+        active={active}
+        activeId={activeId}
+        activeOtherId={activeOtherId}
+        onlineIds={onlineIds}
+        myModeration={myModeration}
+        viewingProfile={viewingProfile}
+        setViewingProfile={setViewingProfile}
+        messageProfile={messageProfile}
+        setShowSettings={setShowSettings}
+        setReportTarget={setReportTarget}
+        iBlockedThem={iBlockedThem}
+        unblockOther={unblockOther}
+        blockOther={blockOther}
+        forwardingMessage={forwardingMessage}
+        setForwardingMessage={setForwardingMessage}
+        showMediaGallery={showMediaGallery}
+        setShowMediaGallery={setShowMediaGallery}
+        galleryViewer={galleryViewer}
+        setGalleryViewer={setGalleryViewer}
+        showSettings={showSettings}
+        setMe={setMe}
+        setProfiles={setProfiles}
+        needsUnlock={needsUnlock}
+        setNeedsUnlock={setNeedsUnlock}
+        setActiveId={setActiveId}
+        summary={summary}
+        setSummary={setSummary}
+        showScheduledList={showScheduledList}
+        setShowScheduledList={setShowScheduledList}
+        scheduledMessages={scheduledMessages}
+        cancelScheduled={cancelScheduled}
+        showTour={showTour}
+        setShowTour={setShowTour}
+      />
       </Watermark>
     </div>
   );
