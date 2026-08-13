@@ -1251,7 +1251,7 @@ export function Bubble({
             >
               
               {Object.keys(counts).length > 0 && (
-  <div className={`absolute z-10 ${mine ? "left-3" : "left-3"} -bottom-4`}>
+  <div className={`absolute z-10 ${mine ? "left-3.5" : "left-3.5"} -bottom-4.5`}>
     <Tooltip
       title={
         <div className="flex flex-col gap-2 py-0.5">
