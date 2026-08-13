@@ -1249,27 +1249,45 @@ export function Bubble({
                 mine ? "text-white/85" : "text-[#8C8C8C]"
               }`}
             >
+              
               {Object.keys(counts).length > 0 && (
-  <div className={`flex flex-wrap items-center gap-1 absolute z-10 ${mine ? "left-2" : "left-2"} -bottom-2.5`}>
-    {Object.entries(counts).map(([e, n]) => {
-      const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
-      const reactorNames = getReactorNames(e);
-      return (
-        <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
-          <button
-            onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-            className={`flex items-center gap-[3px] rounded-full border px-[6px] py-[6px] text-[11px] shadow-md transition-transform active:scale-90 ${
-              mineReacted
-                ? "bg-[#1E1E1E] border-[#000] text-[#E8E8E8]"
-                : "bg-[#1E1E1E] border-[#000] text-[#E8E8E8 ] dark:text-[#E8E8E8]"
-            }`}
-          >
-            <span className="leading-none">{e}</span>
-            {n > 1 && <span className="text-[10px] font-semibold leading-none opacity-80">{n}</span>}
-          </button>
-        </Tooltip>
-      );
-    })}
+  <div className={`absolute z-10 ${mine ? "left-2" : "left-2"} -bottom-3`}>
+    <Tooltip
+      title={
+        <div className="flex flex-col gap-1 py-0.5">
+          {Object.entries(counts).map(([emoji, count]) => (
+            <div key={emoji} className="flex items-center gap-2 text-xs">
+              <span className="text-sm">{emoji}</span>
+              <span className="opacity-90">{getReactorNames(emoji).join(", ")}</span>
+            </div>
+          ))}
+        </div>
+      }
+      placement="top"
+    >
+      <button
+        onClick={(ev) => { ev.stopPropagation(); /* open reactions detail sheet */ }}
+        className="flex items-center gap-[3px] rounded-full border bg-white dark:bg-[#2A2A2A] border-black/5 dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.12)] px-[6px] py-[6px] transition-transform active:scale-95"
+      >
+        {/* Overlapping emojis */}
+        <div className="flex items-center">
+          {Object.keys(counts).map((emoji, i) => (
+            <span
+              key={emoji}
+              className="text-[13px] leading-none"
+              style={{ marginLeft: i > 0 ? "-2px" : undefined }}
+            >
+              {emoji}
+            </span>
+          ))}
+        </div>
+
+        {/* Total count */}
+        <span className="text-[11px] font-semibold text-[#666] dark:text-[#aaa] leading-none ml-0.5">
+          {Object.values(counts).reduce((sum, c) => sum + c, 0)}
+        </span>
+      </button>
+    </Tooltip>
   </div>
 )}
 
