@@ -1251,7 +1251,7 @@ export function Bubble({
             >
               
               {Object.keys(counts).length > 0 && (
-  <div className={`absolute z-10 ${mine ? "left-3.5" : "left-3.5"} -bottom-4.5`}>
+  <div className={`absolute z-10 ${mine ? "left-1.5" : "left-1.5"} -bottom-3.5`}>
     <Tooltip
       title={
         <div className="flex flex-col gap-2 py-0.5">
@@ -1284,7 +1284,7 @@ export function Bubble({
 
         {/* Total count */}
         <span className="text-[11px] font-semibold text-[#666] dark:text-[#aaa] leading-none ml-0.5">
-          {Object.values(counts).reduce((sum, c) => sum + c, 0)}
+          {Object.values(counts).reduce((sum, c) => sum + c, 1)}
         </span>
       </button>
     </Tooltip>
