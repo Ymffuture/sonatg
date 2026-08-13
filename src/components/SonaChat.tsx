@@ -1500,7 +1500,7 @@ useEffect(() => {
                 <div className="h-10 rounded-full bg-[#E07A5F]/10 animate-pulse" />
               </div>
               <div className="flex-1 space-y-1 px-2 pt-1">
-                {[...Array(21).key()].map((i) => (
+                {[...Array(21).keys()].map((i) => (
                   <div key={i+1} style={{ animationDelay: `${i * 0.15}s` }} className="flex items-center gap-3 p-3">
                     <div className="h-12 w-12 shrink-0 rounded-full dark:bg-[#fff] bg-gray-100 animate-pulse" />
                     <div className="flex-1 space-y-2">
