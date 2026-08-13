@@ -1481,52 +1481,106 @@ useEffect(() => {
     
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
-    return (
-      <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] hide-scrollbar dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
-        <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
-          <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
-            {/* Sidebar with nav bar skeleton */}
-            <aside className="relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]">
-              {/* Nav bar skeleton */}
-              <div className="flex items-center justify-between gap-2 px-4 py-3">
-                <div className="h-8 w-28 rounded-lg bg-[#E07A5F]/10 animate-pulse" />
-                <div className="flex items-center gap-1">
-                  {[...Array(3).keys()].map((i) => (
-                 <div key={i + 1} style={{ animationDelay: `${i * 0.15}s` }} className="h-9 w-9 rounded-full bg-[silver]/10 animate-pulse" />
-                   ))}
-                </div>
-              </div>
-              <div className="px-3 pb-2 pt-2">
-                <div className="h-10 rounded-full bg-[#E07A5F]/10 animate-pulse" />
-              </div>
-              <div className="flex-1 space-y-1 px-2 pt-1">
-                {[...Array(21).keys()].map((i) => (
-                  <div key={i+1} style={{ animationDelay: `${i * 0.15}s` }} className="flex items-center gap-3 p-3">
-                    <div className="h-12 w-12 shrink-0 rounded-full dark:bg-[#fff] bg-gray-100 animate-pulse" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 w-2/5 rounded bg-[#E07A5F]/20 animate-pulse" />
-                      <div className="h-2.5 w-4/5 rounded bg-[#E07A5F]/10 animate-pulse" />
-                    </div>
-                  </div>
+    return(
+    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
+      <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
+        <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
+          
+          {/* ─── Sidebar ─── */}
+          <aside className="relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]">
+            
+            {/* Nav bar */}
+            <div className="flex items-center justify-between gap-2 px-4 py-3">
+              <div className="h-7 w-24 rounded-lg bg-[#E07A5F]/15 animate-pulse" />
+              <div className="flex items-center gap-1.5 rounded-full border border-[#E07A5F]/10 bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5">
+                {[...Array(3).keys()].map((i) => (
+                  <div
+                    key={i}
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                    className="h-8 w-8 rounded-full bg-[silver]/10 animate-pulse"
+                  />
                 ))}
               </div>
-            </aside>
-            {/* Main page loader */}
-            <section className="hidden md:flex h-full flex-1 flex-col bg-[#F0EBE3] dark:bg-[#1A1A1A] items-center justify-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <div className="h-16 w-16 rounded-2xl bg-[#E07A5F]/20 animate-pulse" />
-                  <img src={sonaLogo} alt="" className="absolute inset-0 h-16 w-16 rounded-2xl object-contain p-2 opacity-60" />
-                </div>
-                <div className="flex items-center gap-2 text-[#8C8C8C]">
-                  <Loader2 className="h-6 w-6 animate-spin text-[#E07A5F]" />
-                  
-                </div>
+            </div>
+
+            {/* Search */}
+            <div className="px-3 pb-2 pt-1">
+              <div className="h-11 w-full rounded-full bg-[#E07A5F]/10 animate-pulse" />
+            </div>
+
+            {/* Filter pills */}
+            <div className="flex items-center gap-2 px-3 pb-3 pt-1 overflow-x-auto scrollbar-hide">
+              {[...Array(6).keys()].map((i) => (
+                <div
+                  key={i}
+                  style={{ animationDelay: `${i * 0.06}s` }}
+                  className={`h-8 rounded-full bg-[#E07A5F]/10 animate-pulse shrink-0 ${
+                    i === 0 ? "w-11" : i === 1 ? "w-20" : i === 4 ? "w-24" : "w-[72px]"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Status banner */}
+            <div className="mx-3 mb-2">
+              <div className="flex items-center gap-3 h-12 w-full rounded-2xl bg-[#E07A5F]/8 animate-pulse px-4">
+                <div className="h-5 w-5 rounded-full bg-[#E07A5F]/15 animate-pulse" />
+                <div className="h-3.5 w-36 rounded bg-[#E07A5F]/15 animate-pulse" />
               </div>
-            </section>
-          </div>
+            </div>
+
+            {/* Chat rows */}
+            <div className="flex-1 space-y-0.5 px-2 pt-1 overflow-y-auto">
+              {[...Array(10).keys()].map((i) => (
+                <div
+                  key={i}
+                  style={{ animationDelay: `${i * 0.05}s` }}
+                  className="flex items-center gap-3 p-3 rounded-xl"
+                >
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    <div className="h-12 w-12 rounded-full bg-[silver]/10 animate-pulse" />
+                    {i % 3 === 1 && (
+                      <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#FFFDF9] dark:border-[#1E1E1E] bg-[silver]/10 animate-pulse" />
+                    )}
+                  </div>
+
+                  {/* Text content */}
+                  <div className="flex-1 min-w-0 space-y-2.5">
+                    {/* Name + time */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="h-3.5 w-32 rounded bg-[#E07A5F]/20 animate-pulse" />
+                      <div className="h-3 w-9 rounded bg-[#E07A5F]/10 animate-pulse shrink-0" />
+                    </div>
+                    {/* Preview + badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="h-2.5 w-[70%] rounded bg-[#E07A5F]/10 animate-pulse" />
+                      {i % 2 === 0 && (
+                        <div className="h-5 w-5 rounded-full bg-[#E07A5F]/25 animate-pulse shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* FAB */}
+            <div className="absolute bottom-6 right-4">
+              <div className="h-14 w-14 rounded-2xl bg-[#E07A5F]/20 animate-pulse shadow-xl" />
+            </div>
+          </aside>
+
+          {/* ─── Main area (empty) ─── */}
+          <section className="hidden md:flex h-full flex-1 flex-col bg-[#F0EBE3] dark:bg-[#1A1A1A] items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-16 w-16 rounded-2xl bg-[#E07A5F]/20 animate-pulse" />
+              <div className="h-3 w-28 rounded bg-[#E07A5F]/10 animate-pulse" />
+            </div>
+          </section>
         </div>
       </div>
+    </div>
+  
     );
   }
 
