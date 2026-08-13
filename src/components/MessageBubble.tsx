@@ -991,9 +991,13 @@ export function Bubble({
   };
 
   const bubbleRadius = mine
-    ? grouped ? "rounded-2xl rounded-tr-sm" : "rounded-2xl rounded-tr-sm"
-    : grouped ? "rounded-2xl rounded-tl-sm" : "rounded-2xl rounded-tl-sm";
-
+  ? grouped
+    ? "rounded-2xl rounded-tr-sm"      /* sent, grouped: sharp top-right to stack */
+    : "rounded-2xl rounded-br-sm"      /* sent, first: sharp bottom-right tail */
+  : grouped
+    ? "rounded-2xl rounded-tl-sm"      /* received, grouped: sharp top-left to stack */
+    : "rounded-2xl rounded-bl-sm";     /* received, first: sharp bottom-left tail */
+  
   // Call-ended log entries render as a centered pill, WhatsApp-style,
   // instead of the normal left/right chat bubble.
   if (msg.kind === "call") {
@@ -1071,7 +1075,7 @@ export function Bubble({
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-none px-3 py-1.5 shadow-xl ${bubbleRadius} ${
+            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl ${bubbleRadius} ${
               mine
                 ? "bg-[#1E1E1E] dark:bg-gray-600 text-white"
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
@@ -1246,7 +1250,7 @@ export function Bubble({
               }`}
             >
               {Object.keys(counts).length > 0 && (
-  <div className={`flex flex-wrap items-center gap-1 absolute z-10 ${mine ? "left-2" : "right-2"} -bottom-2.5`}>
+  <div className={`flex flex-wrap items-center gap-1 absolute z-10 ${mine ? "left-2" : "left-2"} -bottom-2.5`}>
     {Object.entries(counts).map(([e, n]) => {
       const mineReacted = reactions.some((r) => r.emoji === e && r.user_id === me.id);
       const reactorNames = getReactorNames(e);
