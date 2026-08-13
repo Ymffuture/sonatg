@@ -1103,7 +1103,7 @@ export function Bubble({
 
             {parentBody !== undefined && (
               <div
-                className={`mb-1.5 rounded-lg border-l-[3px] border-[#E07A5F] px-2 py-1.5 text-[11px] ${
+                className={`mb-1.5 rounded-lg border-l-[6px] border-[#E07A5F] px-2 py-1.5 text-[11px] ${
                   mine ? "bg-black/10" : "bg-[#F5F0E8] dark:bg-white/5"
                 }`}
               >
@@ -1254,10 +1254,10 @@ export function Bubble({
         <Tooltip key={e} title={reactorNames.join(", ")} placement="top">
           <button
             onClick={(ev) => { ev.stopPropagation(); onReact(e); }}
-            className={`flex items-center gap-[3px] rounded-full border px-[6px] py-[2px] text-[11px] shadow-md transition-transform active:scale-90 ${
+            className={`flex items-center gap-[3px] rounded-full border px-[6px] py-[6px] text-[11px] shadow-md transition-transform active:scale-90 ${
               mineReacted
-                ? "bg-[#FFF0EB] dark:bg-[#3A2A25] border-[#E07A5F]/40 text-[#E07A5F]"
-                : "bg-white dark:bg-[#2A2A2A] border-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8]"
+                ? "bg-[#1E1E1E] border-[#000] text-[#E8E8E8]"
+                : "bg-[#1E1E1E] border-[#000] text-[#E8E8E8 ] dark:text-[#E8E8E8]"
             }`}
           >
             <span className="leading-none">{e}</span>
