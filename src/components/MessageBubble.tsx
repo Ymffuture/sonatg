@@ -1251,10 +1251,10 @@ export function Bubble({
             >
               
               {Object.keys(counts).length > 0 && (
-  <div className={`absolute z-10 ${mine ? "left-2" : "left-2"} -bottom-3`}>
+  <div className={`absolute z-10 ${mine ? "left-3" : "left-3"} -bottom-4`}>
     <Tooltip
       title={
-        <div className="flex flex-col gap-1 py-0.5">
+        <div className="flex flex-col gap-2 py-0.5">
           {Object.entries(counts).map(([emoji, count]) => (
             <div key={emoji} className="flex items-center gap-2 text-xs">
               <span className="text-sm">{emoji}</span>
@@ -1267,15 +1267,15 @@ export function Bubble({
     >
       <button
         onClick={(ev) => { ev.stopPropagation(); /* open reactions detail sheet */ }}
-        className="flex items-center gap-[3px] rounded-full border bg-white dark:bg-[#2A2A2A] border-black/5 dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.12)] px-[6px] py-[6px] transition-transform active:scale-95"
+        className="flex items-center gap-[3px] rounded-full border bg-[#1E1E1E] dark:bg-[#2A2A2A] border-black/5 dark:border-black shadow-[0_1px_4px_rgba(0,0,0,0.12)] px-[6px] py-[6px] transition-transform active:scale-95"
       >
         {/* Overlapping emojis */}
-        <div className="flex items-center">
+        <div className="flex gap-2 items-center">
           {Object.keys(counts).map((emoji, i) => (
             <span
               key={emoji}
               className="text-[13px] leading-none"
-              style={{ marginLeft: i > 0 ? "-2px" : undefined }}
+              style={{ marginLeft: i > 0 ? "-3px" : undefined }}
             >
               {emoji}
             </span>
