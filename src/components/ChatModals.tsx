@@ -18,6 +18,7 @@ import {
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/utils/utils";
 import { Avatar } from "./Avatar";
 import { Spin, Skeleton, Tooltip, notification } from "antd";
+import SoundSettings from "./SoundSettings";
 
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
@@ -768,6 +769,12 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
               {notif !== "granted" && (
                 <button onClick={askNotif} className="mt-2 rounded-lg bg-white/50 dark:bg-white/5 px-3 py-1.5 text-xs hover:bg-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8] border border-white/20 dark:border-white/10 transition">Enable</button>
               )}
+            </div>
+            <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Music className="h-4 w-4 text-[#E07A5F]" /> Sounds</div>
+              <div className="mt-3">
+                <SoundSettings />
+              </div>
             </div>
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
               <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Shield className="h-4 w-4 text-[#E07A5F]" /> Security</div>
