@@ -1,34 +1,96 @@
 // src/components/SoundSettings.tsx
-import { useEffect, useState } from "react";
-import { SoundOutlined, CustomerServiceOutlined, PhoneOutlined, PlayCircleOutlined, StopOutlined, SaveOutlined } from "@ant-design/icons";
-import { Switch, Slider, Input, Button, Typography, Space, Divider } from "antd";
+import { useState } from "react";
+import {
+  SoundOutlined,
+  CustomerServiceOutlined,
+  PhoneOutlined,
+  CheckCircleFilled,
+  PlayCircleOutlined,
+  StopOutlined,
+} from "@ant-design/icons";
+import { Switch, Slider, Typography, Space } from "antd";
 import { useSounds } from "@/hooks/useSounds";
+import { SOUND_PRESETS, type SoundKey, type SoundPreset } from "@/lib/soundPresets";
 
 const { Text } = Typography;
 
-type SourceKey = "send" | "receive" | "ringtone";
-
-const ROWS: { key: SourceKey; label: string; icon: React.ReactNode; placeholder: string }[] = [
-  { key: "send", label: "Send sound", icon: <SoundOutlined />, placeholder: "/send.mp3 or URL" },
-  { key: "receive", label: "Receive sound", icon: <CustomerServiceOutlined />, placeholder: "/receive.mp3 or URL" },
-  { key: "ringtone", label: "Ringtone", icon: <PhoneOutlined />, placeholder: "/ringtone.mp3 or URL" },
+const SECTIONS: { key: SoundKey; label: string; icon: React.ReactNode }[] = [
+  { key: "send", label: "Message sound", icon: <SoundOutlined /> },
+  { key: "receive", label: "Notification sound", icon: <CustomerServiceOutlined /> },
+  { key: "ringtone", label: "Ringtone", icon: <PhoneOutlined /> },
 ];
+
+function PresetRow({
+  preset,
+  active,
+  onSelect,
+  isPlaying,
+  onTogglePreview,
+}: {
+  preset: SoundPreset;
+  active: boolean;
+  onSelect: () => void;
+  isPlaying: boolean;
+  onTogglePreview: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+        active
+          ? "bg-[#E07A5F]/12 dark:bg-[#E07A5F]/20"
+          : "hover:bg-[#F5F0E8] dark:hover:bg-[#2A2A2A]"
+      }`}
+    >
+      <span className="text-lg leading-none">{preset.emoji}</span>
+      <span className="flex-1 min-w-0">
+        <Text
+          className={`!text-sm !block !truncate ${
+            active
+              ? "!font-semibold !text-[#E07A5F]"
+              : "!font-medium !text-[#2D3436] dark:!text-[#E8E8E8]"
+          }`}
+        >
+          {preset.name}
+        </Text>
+      </span>
+      <span
+        role="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onTogglePreview();
+        }}
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#E07A5F] hover:bg-[#E07A5F]/10 transition"
+      >
+        {isPlaying ? <StopOutlined /> : <PlayCircleOutlined />}
+      </span>
+      {active && <CheckCircleFilled className="shrink-0 text-[#E07A5F]" />}
+    </button>
+  );
+}
 
 export default function SoundSettings() {
   const sounds = useSounds();
-  const [urls, setUrls] = useState<Record<SourceKey, string>>({ send: "", receive: "", ringtone: "" });
+  const [previewing, setPreviewing] = useState<string | null>(null); // `${key}:${id}`
 
-  useEffect(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem("sona.sounds.sources") || "{}");
-      setUrls({ send: raw.send || "", receive: raw.receive || "", ringtone: raw.ringtone || "" });
-    } catch {}
-  }, []);
-
-  const testFor = (key: SourceKey) => {
-    if (key === "send") sounds.testSend();
-    else if (key === "receive") sounds.testReceive();
-    else sounds.startRingtone();
+  const togglePreview = (key: SoundKey, preset: SoundPreset) => {
+    const id = `${key}:${preset.id}`;
+    if (key === "ringtone") {
+      if (previewing === id) {
+        sounds.stopRingtone();
+        setPreviewing(null);
+      } else {
+        sounds.stopRingtone();
+        // temporarily select+play so the correct preset (incl. file-backed default) is used
+        sounds.selectPreset(key, preset.id);
+        sounds.startRingtone();
+        setPreviewing(id);
+      }
+      return;
+    }
+    preset.play();
+    setPreviewing(id);
+    window.setTimeout(() => setPreviewing((p) => (p === id ? null : p)), 500);
   };
 
   return (
@@ -62,47 +124,32 @@ export default function SoundSettings() {
         />
       </div>
 
-      <Divider className="!my-1 !border-[#E07A5F]/10" />
-
-      {/* Custom sources */}
-      <div className="space-y-3">
-        {ROWS.map((row) => (
-          <div key={row.key} className="rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3.5 space-y-2">
-            <Space size={8}>
-              <span className="text-[#E07A5F]">{row.icon}</span>
-              <Text className="!text-xs !font-semibold !uppercase !tracking-wide !text-[#8C8C8C]">{row.label}</Text>
-            </Space>
-            <div className="flex items-center gap-2">
-              <Input
-                value={urls[row.key]}
-                onChange={(e) => setUrls((prev) => ({ ...prev, [row.key]: e.target.value }))}
-                placeholder={row.placeholder}
-                size="middle"
-                className="!rounded-xl"
-              />
-              <Button
-                icon={<SaveOutlined />}
-                onClick={() => sounds.setSource(row.key, urls[row.key] || null)}
-                style={{ borderRadius: 999 }}
-              />
-              <Button
-                icon={<PlayCircleOutlined />}
-                onClick={() => testFor(row.key)}
-                style={{ borderRadius: 999, color: "#E07A5F", borderColor: "#E07A5F55" }}
-              />
-              {row.key === "ringtone" && (
-                <Button
-                  icon={<StopOutlined />}
-                  onClick={() => sounds.stopRingtone()}
-                  danger
-                  ghost
-                  style={{ borderRadius: 999 }}
+      {/* WhatsApp-style scrollable pickers */}
+      {SECTIONS.map((section) => (
+        <div key={section.key} className="rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3.5">
+          <Space size={8} className="mb-2 px-0.5">
+            <span className="text-[#E07A5F]">{section.icon}</span>
+            <Text className="!text-xs !font-semibold !uppercase !tracking-wide !text-[#8C8C8C]">
+              {section.label}
+            </Text>
+          </Space>
+          <div className="max-h-48 overflow-y-auto scrollbar-thin space-y-0.5 pr-1">
+            {SOUND_PRESETS[section.key].map((preset) => {
+              const id = `${section.key}:${preset.id}`;
+              return (
+                <PresetRow
+                  key={preset.id}
+                  preset={preset}
+                  active={sounds.selected[section.key] === preset.id}
+                  isPlaying={previewing === id}
+                  onSelect={() => sounds.selectPreset(section.key, preset.id)}
+                  onTogglePreview={() => togglePreview(section.key, preset)}
                 />
-              )}
-            </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
