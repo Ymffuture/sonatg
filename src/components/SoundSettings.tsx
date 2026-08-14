@@ -42,7 +42,9 @@ function PresetRow({
           : "hover:bg-[#F5F0E8] dark:hover:bg-[#2A2A2A]"
       }`}
     >
-      <span className="text-lg leading-none">{preset.emoji}</span>
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${active ? "bg-[#E07A5F]/20" : "bg-white/60 dark:bg-white/5"}`}>
+        <preset.icon className="h-4 w-4" style={{ color: active ? "#E07A5F" : "#8C8C8C" }} />
+      </span>
       <span className="flex-1 min-w-0">
         <Text
           className={`!text-sm !block !truncate ${
