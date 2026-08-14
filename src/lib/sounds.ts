@@ -1,70 +1,33 @@
 import { Howl, Howler } from "howler";
+import { SOUND_PRESETS, DEFAULT_PRESET_IDS, getPreset, type SoundKey } from "./soundPresets";
 
 /**
  * SoundManager provides:
  * - playSendSound / playReceiveSound / playRingtone / stopRingtone
  * - preload, setVolume, getVolume, mute/unmute
- * - updateSoundSource(type, url) to change the audio file used for a sound
+ * - selectPreset(key, presetId) to switch between built-in sounds
  *
- * Uses Howler for asset playback, falls back to simple WebAudio beeps when no asset is provided.
+ * Built-in presets are synthesized via WebAudio (see soundPresets.ts), except the
+ * default ringtone which plays the bundled /ringtone.mp3 through Howler.
  */
 
-type SoundKey = "send" | "receive" | "ringtone";
-
-const DEFAULT_SOURCES: Record<SoundKey, string | null> = {
-  send: null,
-  receive: null,
-  ringtone: "/ringtone.mp3",
-};
+export type { SoundKey };
 
 class SoundManager {
-  private howls: Partial<Record<SoundKey, Howl>> = {};
-  private sources: Record<SoundKey, string | null>;
-  private ringtoneId: number | null = null;
+  private howl: Howl | null = null; // only used for file-backed presets (default ringtone)
+  private ringtoneHowlId: number | null = null;
+  private ringtoneLoopTimer: ReturnType<typeof setInterval> | null = null;
   private enabled = true;
   private volume = 0.8;
+  private selected: Record<SoundKey, string>;
 
-  constructor(initialSources?: Partial<Record<SoundKey, string | null>>) {
-    this.sources = { ...DEFAULT_SOURCES, ...(initialSources ?? {}) };
+  constructor(initialSelected?: Partial<Record<SoundKey, string>>) {
+    this.selected = { ...DEFAULT_PRESET_IDS, ...(initialSelected ?? {}) };
     Howler.volume(this.volume);
-    this.initHowls();
-  }
-
-  private initHowls() {
-    (Object.keys(this.sources) as SoundKey[]).forEach((k) => {
-      const src = this.sources[k];
-      if (src) {
-        this.howls[k] = new Howl({ src: [src], html5: true, volume: this.volume });
-      } else {
-        this.howls[k] = undefined;
-      }
-    });
-  }
-
-  private playBeep(freq: number, durMs: number, vol = 0.15, type: OscillatorType = "sine", startDelay = 0) {
-    if (typeof window === "undefined") return;
-    const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
-    if (!AC) return;
-    try {
-      const ctx = new AC();
-      const now = ctx.currentTime + startDelay;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(vol, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + durMs / 1000);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + durMs / 1000 + 0.02);
-    } catch {
-      // ignore
-    }
   }
 
   preload() {
-    Object.values(this.howls).forEach((h) => h?.load());
+    // Nothing to preload — presets are synthesized on demand. Kept for API compatibility.
   }
 
   setEnabled(enabled: boolean) {
@@ -77,57 +40,66 @@ class SoundManager {
   setVolume(v: number) {
     this.volume = Math.max(0, Math.min(1, v));
     Howler.volume(this.volume);
-    Object.values(this.howls).forEach((h) => {
-      if (h) h.volume(this.volume);
-    });
+    if (this.howl) this.howl.volume(this.volume);
   }
   getVolume() {
     return this.volume;
   }
 
-  updateSoundSource(key: SoundKey, url: string | null) {
-    this.sources[key] = url;
-    if (this.howls[key]) {
-      try { this.howls[key]!.unload(); } catch {}
-      this.howls[key] = undefined;
-    }
-    if (url) {
-      this.howls[key] = new Howl({ src: [url], html5: true, volume: this.volume });
+  getSelected(key: SoundKey) {
+    return this.selected[key];
+  }
+
+  selectPreset(key: SoundKey, presetId: string) {
+    this.selected[key] = presetId;
+    if (key === "ringtone") {
+      // if a ringtone is currently playing, restart it with the new preset
+      const wasPlaying = this.ringtoneHowlId !== null || this.ringtoneLoopTimer !== null;
+      if (wasPlaying) {
+        this.stopRingtone();
+        this.playRingtone(true);
+      }
     }
   }
 
   playSendSound() {
     if (!this.enabled) return;
-    const h = this.howls.send;
-    if (h) { h.play(); return; }
-    this.playBeep(660, 90, 0.14, "sine", 0);
-    this.playBeep(990, 110, 0.12, "sine", 0.06);
+    getPreset("send", this.selected.send).play();
   }
 
   playReceiveSound() {
     if (!this.enabled) return;
-    const h = this.howls.receive;
-    if (h) { h.play(); return; }
-    this.playBeep(880, 110, 0.14, "sine", 0);
-    this.playBeep(660, 140, 0.12, "sine", 0.09);
+    getPreset("receive", this.selected.receive).play();
   }
 
   playRingtone(loop = true) {
     if (!this.enabled) return;
-    const h = this.howls.ringtone;
-    if (h) {
-      this.ringtoneId = h.play();
-      if (loop) h.loop(true, this.ringtoneId);
+    const preset = getPreset("ringtone", this.selected.ringtone);
+
+    if (preset.fileUrl) {
+      if (!this.howl) {
+        this.howl = new Howl({ src: [preset.fileUrl], html5: true, volume: this.volume });
+      }
+      this.ringtoneHowlId = this.howl.play();
+      if (loop) this.howl.loop(true, this.ringtoneHowlId);
       return;
     }
-    // no asset => do nothing
+
+    // Generated loop preset: play immediately, then repeat on an interval.
+    preset.play();
+    if (loop && preset.loop) {
+      this.ringtoneLoopTimer = setInterval(() => preset.play(), preset.loopIntervalMs ?? 1200);
+    }
   }
 
   stopRingtone() {
-    const h = this.howls.ringtone;
-    if (h && this.ringtoneId !== null) {
-      try { h.stop(this.ringtoneId); } catch {}
-      this.ringtoneId = null;
+    if (this.howl && this.ringtoneHowlId !== null) {
+      try { this.howl.stop(this.ringtoneHowlId); } catch {}
+      this.ringtoneHowlId = null;
+    }
+    if (this.ringtoneLoopTimer) {
+      clearInterval(this.ringtoneLoopTimer);
+      this.ringtoneLoopTimer = null;
     }
   }
 
@@ -146,4 +118,6 @@ export const preloadSounds = () => soundManager.preload();
 export const setSoundVolume = (v: number) => soundManager.setVolume(v);
 export const getSoundVolume = () => soundManager.getVolume();
 export const setSoundEnabled = (e: boolean) => soundManager.setEnabled(e);
-export const updateSoundSource = (k: SoundKey, url: string | null) => soundManager.updateSoundSource(k, url);
+export const selectSoundPreset = (k: SoundKey, id: string) => soundManager.selectPreset(k, id);
+export const getSelectedPreset = (k: SoundKey) => soundManager.getSelected(k);
+export { SOUND_PRESETS };
