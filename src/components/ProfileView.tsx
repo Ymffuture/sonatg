@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CloseOutlined,
@@ -18,6 +19,7 @@ import {
   ExclamationCircleOutlined,
   SafetyCertificateOutlined,
   InfoCircleOutlined,
+  SoundOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -30,9 +32,11 @@ import {
   Typography,
   Space,
   Alert,
+  Modal,
 } from "antd";
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
+import SoundSettings from "@/components/SoundSettings";
 
 const { Text, Title } = Typography;
 
@@ -65,6 +69,8 @@ export function ProfileViewModal({
   const mod = moderation && MOD_META[moderation.action]
     ? { ...MOD_META[moderation.action]!, ...moderation }
     : null;
+
+  const [soundSettingsOpen, setSoundSettingsOpen] = useState(false);
 
   const initial = profile.display_name?.charAt(0).toUpperCase() ?? "?";
   const fallbackSvg = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -268,17 +274,29 @@ export function ProfileViewModal({
             {/* Actions */}
             <Space direction="vertical" className="!w-full" size={10}>
               {isSelf ? (
-                <Button
-                  type="primary"
-                  block
-                  size="large"
-                  icon={<EditOutlined />}
-                  onClick={onEdit}
-                  style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 999, height: 44 }}
-                  className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity"
-                >
-                  Edit profile
-                </Button>
+                <>
+                  <Button
+                    type="primary"
+                    block
+                    size="large"
+                    icon={<EditOutlined />}
+                    onClick={onEdit}
+                    style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 999, height: 44 }}
+                    className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity"
+                  >
+                    Edit profile
+                  </Button>
+                  <Button
+                    block
+                    size="large"
+                    icon={<SoundOutlined />}
+                    onClick={() => setSoundSettingsOpen(true)}
+                    style={{ borderRadius: 999, height: 44 }}
+                    className="!font-semibold !bg-[#F5F0E8] dark:!bg-[#2A2A2A] !text-[#2D3436] dark:!text-[#E8E8E8] hover:!bg-[#EFE6D8] dark:hover:!bg-[#333] !border-0 !shadow-sm"
+                  >
+                    Sound settings
+                  </Button>
+                </>
               ) : (
                 <>
                   {!profile.is_ai && onMessage && (
@@ -339,6 +357,28 @@ export function ProfileViewModal({
           </div>
         </Watermark>
       </motion.div>
+
+      {isSelf && (
+        <Modal
+          title={
+            <span className="flex items-center gap-2 text-[#2D3436] dark:text-[#E8E8E8]">
+              <SoundOutlined style={{ color: "#E07A5F" }} /> Sound settings
+            </span>
+          }
+          open={soundSettingsOpen}
+          onCancel={(e) => {
+            e.stopPropagation();
+            setSoundSettingsOpen(false);
+          }}
+          footer={null}
+          centered
+          destroyOnClose
+          className="[&_.ant-modal-content]:!rounded-3xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <SoundSettings />
+        </Modal>
+      )}
     </div>
   );
 }
