@@ -13,6 +13,7 @@ import { Result } from "antd";
 import appCss from "../styles.css?url";
 import { reportError } from "../lib/error-reporting";
 import { ConfirmProvider } from "@/hooks/useConfirmDialog";
+import { SoundsProvider } from "@/hooks/useSounds";
 
 function NotFoundComponent() {
   return (
@@ -83,8 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Private messaging, voice & video calls, and AI-powered conversations — all in one beautiful place." },
       { name: "keywords", content: "messaging, chat, private, encrypted, voice calls, video calls, AI chat" },
       { name: "author", content: "Sona" },
-      { name:"google-adsense-account", content:"ca-pub-2722864790738174"} , 
-      { name:"google-site-verification", content:"xXWElQQdEb1YSMqAy524N-B58KqSZqsf5zc0O8fWg3A"}, 
+      {name:"google-site-verification", content:"xXWElQQdEb1YSMqAy524N-B58KqSZqsf5zc0O8fWg3A"}, 
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Sona" },
@@ -173,7 +173,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfirmProvider>
-        <Outlet />
+        <SoundsProvider>
+          <Outlet />
+        </SoundsProvider>
       </ConfirmProvider>
     </QueryClientProvider>
   );
