@@ -36,7 +36,7 @@ import {
 } from "antd";
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
-import SoundSettings from "@/components/SoundSettings";
+import SoundSettings from "./SoundSettings";
 
 const { Text, Title } = Typography;
 
