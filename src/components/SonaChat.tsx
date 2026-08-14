@@ -83,6 +83,7 @@ import { ProfileViewModal } from "./ProfileView";
 import { ForwardModal } from "./ForwardModal";
 import { MediaGalleryModal } from "./MediaGalleryModal";
 import { uploadToCloudinary, readVideoDurationMs } from "@/utils/cloudinary";
+import { useMessageModeration, ModerationAlert } from "@/features/moderation";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 
 
@@ -389,6 +390,7 @@ function SonaChatInner() {
   }, [pendingImageUrls]);
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  const { checkMessage, lastResult: moderationResult } = useMessageModeration();
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [showDisappearingMenu, setShowDisappearingMenu] = useState(false);
   const [scheduledMessages, setScheduledMessages] = useState<MessageRow[]>([]);
@@ -1145,6 +1147,14 @@ function SonaChatInner() {
     if (active?.is_hidden && firstBody && isUnlocked(activeId)) {
       const enc = await encryptBody(activeId, firstBody);
       if (enc) { firstBody = enc; is_encrypted = true; }
+    }
+
+    if (plaintext && me) {
+      const verdict = await checkMessage(plaintext, activeId, me.id, null);
+      if (!verdict.allowed) {
+        toast.error("This message can't be sent — it looks like it violates community guidelines.");
+        return;
+      }
     }
 
     setSending(true);
@@ -2550,6 +2560,12 @@ useEffect(() => {
                     )}
                   </div>
                 ) : (
+                <>
+                {moderationResult && (moderationResult.shouldLog || !moderationResult.allowed) && (
+                  <div className="px-4 pt-3">
+                    <ModerationAlert result={moderationResult} />
+                  </div>
+                )}
                 <Composer
                   draft={draft}
                   setDraft={(v) => { setDraft(v); if (v) sendTyping(); }}
@@ -2575,6 +2591,7 @@ useEffect(() => {
                   videoRef={videoRef}
                   videoUploadPct={videoUploadPct}
                 />
+                </>
                 )}
               </>
             ) : (
