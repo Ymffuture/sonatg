@@ -692,27 +692,34 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 mb-4">
-          <Settings className="h-4 w-4 text-[#E07A5F]" />
-          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Settings</h3>
-          {me.is_pro && (
-            <Tooltip title="Pro Member">
-              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/20 px-2 py-0.5 text-[10px] font-semibold text-[#E07A5F] border border-[#E07A5F]/20 cursor-default">
-                <Crown className="h-3 w-3" /> Pro
-              </span>
-            </Tooltip>
-          )}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm sm:p-4" onClick={onClose}>
+      <div
+        className="flex w-full sm:max-w-md flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl shadow-2xl max-h-[92vh] sm:max-h-[85vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 px-5 pt-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="h-4 w-4 text-[#E07A5F]" />
+            <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Settings</h3>
+            {me.is_pro && (
+              <Tooltip title="Pro Member">
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/20 px-2 py-0.5 text-[10px] font-semibold text-[#E07A5F] border border-[#E07A5F]/20 cursor-default">
+                  <Crown className="h-3 w-3" /> Pro
+                </span>
+              </Tooltip>
+            )}
+          </div>
+          <div className="mb-2 flex gap-1 rounded-xl bg-white/50 dark:bg-white/5 p-1 text-xs border border-white/20 dark:border-white/10 backdrop-blur-sm">
+            {(["profile", "advanced", "subscription"] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`flex-1 rounded-lg px-2 py-1.5 capitalize transition ${tab === t ? "bg-white/80 dark:bg-white/10 font-semibold shadow text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10" : "text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-[#E8E8E8]"}`}>
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="mb-4 flex gap-1 rounded-xl bg-white/50 dark:bg-white/5 p-1 text-xs border border-white/20 dark:border-white/10 backdrop-blur-sm">
-          {(["profile", "advanced", "subscription"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 rounded-lg px-2 py-1.5 capitalize transition ${tab === t ? "bg-white/80 dark:bg-white/10 font-semibold shadow text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10" : "text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-[#E8E8E8]"}`}>
-              {t}
-            </button>
-          ))}
-        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-5 py-3">
 
         {tab === "profile" && (
           <div className="space-y-3">
@@ -855,7 +862,9 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
           </div>
         )}
 
-        <div className="mt-5 flex items-center justify-between gap-2 border-t border-white/20 dark:border-white/10 pt-4">
+        </div>
+
+        <div className="shrink-0 flex items-center justify-between gap-2 border-t border-white/20 dark:border-white/10 px-5 py-4">
           <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-1 transition"><LogOut className="h-3.5 w-3.5" /> Sign out</button>
           <div className="flex gap-2">
             <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8] transition">Close</button>
