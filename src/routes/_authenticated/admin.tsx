@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
+  ShieldAlert, Upload, Activity,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
+import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv } from "@/features/admin";
+import type { ModerationQueueRow, DashboardStats } from "@/features/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -51,13 +54,17 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"members" | "reports" | "orgs" | "invites">("members");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites">("dashboard");
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
   const [domains, setDomains] = useState<OrgDomain[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [queue, setQueue] = useState<ModerationQueueRow[]>([]);
+  const [csvBusy, setCsvBusy] = useState(false);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -79,12 +86,14 @@ function AdminPage() {
   const loadAll = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, m, d, i, r] = await Promise.all([
+      const [p, m, d, i, r, q, s] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_moderation").select("*").order("created_at", { ascending: false }),
         supabase.from("org_domains").select("*").order("domain"),
         supabase.from("org_invites").select("*").order("created_at", { ascending: false }),
         supabase.from("reports").select("*").order("created_at", { ascending: false }),
+        supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(100),
+        fetchDashboardStats().catch(() => null),
       ]);
       if (p.error) throw p.error;
       setProfiles((p.data ?? []) as Profile[]);
@@ -92,6 +101,8 @@ function AdminPage() {
       setDomains((d.data ?? []) as OrgDomain[]);
       setInvites((i.data ?? []) as Invite[]);
       setReports((r.data ?? []) as Report[]);
+      setQueue((q.data ?? []) as ModerationQueueRow[]);
+      setStats(s);
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -230,6 +241,39 @@ function AdminPage() {
     } catch (e) { err(e, "Couldn't create invitation"); }
   };
 
+  const onRosterCsvSelected = async (file?: File | null) => {
+    if (!file) return;
+    setCsvBusy(true);
+    try {
+      const text = await file.text();
+      const rows = parseRosterCsv(text);
+      const result = await importRosterAsInvites(rows, activeDomains);
+      notification.success({
+        message: "Roster imported",
+        description: `${result.imported} invited · ${result.skippedInvalidEmail.length} invalid · ${result.skippedWrongDomain.length} wrong domain`,
+        placement: "top",
+      });
+      loadAll();
+    } catch (e) {
+      err(e, "Couldn't import roster CSV");
+    } finally {
+      setCsvBusy(false);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+    }
+  };
+
+  const markFlagReviewed = async (row: ModerationQueueRow) => {
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("moderation_flags")
+        .update({ reviewed: true, reviewed_by: auth.user?.id ?? null, reviewed_at: new Date().toISOString() })
+        .eq("id", row.id);
+      if (error) throw error;
+      loadAll();
+    } catch (e) { err(e, "Couldn't update flag"); }
+  };
+
   const revokeInvite = async (inv: Invite) => {
     try {
       const { error } = await supabase.from("org_invites").update({ status: "revoked" }).eq("id", inv.id);
@@ -273,17 +317,54 @@ function AdminPage() {
         {busy && <Loader2 className="ml-auto h-4 w-4 animate-spin text-[#E07A5F]" />}
       </header>
 
-      <nav className="flex gap-2 px-4 py-3">
-        {([["members", "Members", Users], ["reports", "Reports", Flag], ["orgs", "Organizations", Building2], ["invites", "Invites", Mail]] as const).map(([k, label, Icon]) => (
+      <nav className="flex flex-wrap gap-2 px-4 py-3">
+        {([
+          ["dashboard", "Dashboard", Activity],
+          ["members", "Members", Users],
+          ["reports", "Reports", Flag],
+          ["moderation", "Moderation", ShieldAlert],
+          ["orgs", "Organizations", Building2],
+          ["invites", "Invites", Mail],
+        ] as const).map(([k, label, Icon]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
               tab === k ? "bg-[#E07A5F] text-white" : "bg-white text-[#8C8C8C] dark:bg-[#1E1E1E]"}`}>
             <Icon className="h-3.5 w-3.5" /> {label}
+            {k === "moderation" && stats && stats.unreviewed_flags > 0 && (
+              <span className="ml-0.5 rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">{stats.unreviewed_flags}</span>
+            )}
           </button>
         ))}
       </nav>
 
       <main className="px-4 pb-16">
+        {tab === "dashboard" && (
+          <section className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[
+                { label: "Members", value: stats?.total_members },
+                { label: "Active (24h)", value: stats?.active_users_24h },
+                { label: "Active (7d)", value: stats?.active_users_7d },
+                { label: "Messages (24h)", value: stats?.messages_24h },
+                { label: "Messages (7d)", value: stats?.messages_7d },
+                { label: "Unreviewed flags", value: stats?.unreviewed_flags },
+              ].map((card) => (
+                <div key={card.label} className="rounded-2xl bg-white p-4 dark:bg-[#1E1E1E]">
+                  <p className="text-xs text-[#8C8C8C]">{card.label}</p>
+                  <p className="mt-1 text-2xl font-bold text-[#2D3436] dark:text-[#E8E8E8]">{card.value ?? "—"}</p>
+                </div>
+              ))}
+            </div>
+            {!!stats?.unreviewed_high_severity_flags && (
+              <div className="flex items-center gap-2 rounded-2xl bg-red-500/10 p-3 text-sm font-medium text-red-600">
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                {stats.unreviewed_high_severity_flags} high-severity moderation flag{stats.unreviewed_high_severity_flags === 1 ? "" : "s"} need review.
+                <button onClick={() => setTab("moderation")} className="ml-auto underline">View</button>
+              </div>
+            )}
+          </section>
+        )}
+
         {tab === "members" && (
           <section>
             <div className="mb-3 flex items-center gap-2 rounded-2xl bg-white px-3 py-2 dark:bg-[#1E1E1E]">
@@ -332,6 +413,31 @@ function AdminPage() {
                   </li>
                 );
               })}
+            </ul>
+          </section>
+        )}
+
+        {tab === "moderation" && (
+          <section>
+            <ul className="space-y-2">
+              {queue.map((row) => (
+                <li key={row.id} className={`rounded-2xl bg-white p-3 dark:bg-[#1E1E1E] ${row.reviewed ? "opacity-60" : ""}`}>
+                  <div className="flex items-start gap-3">
+                    <ShieldAlert className={`mt-0.5 h-4 w-4 shrink-0 ${row.severity === "high" ? "text-red-500" : row.severity === "medium" ? "text-amber-500" : "text-[#8C8C8C]"}`} />
+                    <div className="min-w-0 flex-1">
+                      {/* Smart, human-readable one-liner instead of raw category arrays / JSON */}
+                      <p className="text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8]">{summarizeModerationRow(row)}</p>
+                      <p className="mt-1 text-xs italic text-[#8C8C8C]">"{row.body_snapshot.length > 80 ? `${row.body_snapshot.slice(0, 79)}…` : row.body_snapshot}"</p>
+                    </div>
+                    {!row.reviewed && (
+                      <button onClick={() => markFlagReviewed(row)} className="shrink-0 flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600">
+                        <CheckCircle2 className="h-3 w-3" /> Reviewed
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+              {!queue.length && <p className="px-1 text-sm text-[#8C8C8C]">Nothing flagged yet.</p>}
             </ul>
           </section>
         )}
@@ -431,6 +537,20 @@ function AdminPage() {
         {tab === "invites" && (
           <section>
             <div className="rounded-2xl bg-white p-4 dark:bg-[#1E1E1E]">
+              <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Bulk import student roster</p>
+              <p className="mt-1 text-xs text-[#8C8C8C]">CSV with an "email" column (a "name" column is fine too, just not stored yet).</p>
+              <div className="mt-3">
+                <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden"
+                  onChange={(e) => onRosterCsvSelected(e.target.files?.[0])} />
+                <button onClick={() => csvInputRef.current?.click()} disabled={csvBusy}
+                  className="flex items-center justify-center gap-1 rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                  {csvBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {csvBusy ? "Importing…" : "Upload roster CSV"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl bg-white p-4 dark:bg-[#1E1E1E]">
               <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Invite someone</p>
               <p className="mt-1 text-xs text-[#8C8C8C]">
                 {activeDomains.length ? `Allowed: ${activeDomains.map((d) => `@${d}`).join(", ")}` : "Add an organization first to restrict invites."}
