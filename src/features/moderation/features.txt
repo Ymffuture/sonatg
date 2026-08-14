@@ -1,0 +1,28 @@
+Good — this repo uses TanStack Start server functions calling OpenRouter via a Supabase-authed gateway. I'll follow that exact pattern for the AI moderation check, as a new file, so it plugs into the existing auth/gateway setup without touching `ai.functions.ts`.Now a merge helper and updated hook that combines the local engine + AI verdict:Now the alert UI component and barrel export:Now the DB side — a migration for the moderation queue that the AI/local flags log into, plus RLS so only admins can read it:Existing `has_role(uid, 'admin')` / `'moderator'` roles already exist — I'll reuse them.Now let me copy the whole feature to outputs and present it:Done — the AI layer is now integrated as a two-stage pipeline, all in `src/features/moderation/`:
+
+**How it works together**
+1. `detectionEngine.ts` runs instantly, client-side, no network — blocked words + pattern signals (repeated targeting, message bursts, shouting, aggressive punctuation).
+2. Only if that finds *something* worth a second look, `aiModeration.functions.ts` fires a server-side call (same OpenRouter gateway pattern your `ai.functions.ts` already uses) to classify sarcasm, coded insults, leetspeak, and polite-sounding pile-on messages the word list can't catch.
+3. `mergeVerdicts.ts` combines both into one final `ModerationResult` — AI only escalates severity, never overrides a clean local result on its own (fails open on parse/network errors so a flaky AI call never blocks sends).
+
+**New files added, nothing existing touched:**
+- `types.ts`, `blockedWords.ts`, `detectionEngine.ts` — local rules engine
+- `aiModeration.functions.ts` — AI classifier server function
+- `mergeVerdicts.ts` — combines local + AI
+- `useMessageModeration.ts` — the hook your UI calls
+- `ModerationAlert.tsx` — the warning/block banner
+- `index.ts` — barrel export
+- `supabase/migrations/20260814120000_moderation_flags.sql` — `moderation_flags` table + `moderation_queue` view, reusing your existing `has_role('admin'|'moderator')` system
+
+**The one unavoidable integration point** (can't add a feature without *some* call site): in `SonaChat.tsx`'s send handler, right before the `supabase.from("messages").insert(...)` calls around line 1179/1272, add:
+
+```ts
+import { useMessageModeration, ModerationAlert } from "@/features/moderation";
+// in component:
+const { checkMessage, lastResult } = useMessageModeration({ config: { blockThreshold: "high" } });
+// before insert:
+const verdict = await checkMessage(plaintext, activeId, me.id, active?.recipient_id);
+if (!verdict.allowed) { toast.error("Message blocked by moderation"); return; }
+```
+
+Set `OPENROUTER_API_KEY` and optionally `MODERATION_AI_MODEL` in your env — it reuses the same OpenRouter account as Sona AI. Want me to also scaffold the admin moderation-queue dashboard tab next?
