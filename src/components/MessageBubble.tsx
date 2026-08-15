@@ -1681,7 +1681,7 @@ export function Composer({
                   className="w-[2px] rounded-full bg-[#1E1E1E] animate-pulse"
                   style={{
                     height: `${Math.random() * 20 + 4}px`,
-                    animationDelay: `${i * 0.03}s`,
+                    animationDelay: `${i * 0.02}s`,
                   }}
                 />
               ))}
@@ -1689,11 +1689,11 @@ export function Composer({
 
             <div
               className={`flex flex-col items-center gap-0.5 transition-all duration-200 shrink-0 ${
-                slideY > 30 ? "opacity-100 -translate-y-1" : "opacity-50 translate-y-0"
+                slideY > 10 ? "opacity-100 -translate-y-1" : "opacity-50 translate-y-0"
               }`}
             >
-              <Lock className="h-4 w-4 text-[#E07A5F]" />
-              <span className="text-[10px] text-[#E07A5F] font-medium">Slide up</span>
+              <Lock className="h-4 w-4 text-[#1E1E1E]" />
+              <span className="text-[8px] text-[#E07A5F] font-medium">Slide Up</span>
             </div>
           </div>
         </div>
@@ -1703,8 +1703,8 @@ export function Composer({
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <button
             onClick={cancelRecording}
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#F5F0E8] dark:bg-[#3A3A3A] text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
-          >
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#1E1E1E] dark:bg-zinc-800 text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
+            >
             <X className="h-5 w-5" />
           </button>
 
@@ -1730,8 +1730,8 @@ export function Composer({
 
           <button
             onClick={finalizeRecording}
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
-          >
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#1E1E1E] dark:bg-zinc-800 text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
+            >
             <Check className="h-5 w-5" />
           </button>
         </div>
@@ -1892,7 +1892,7 @@ export function Composer({
               disabled={sending}
               className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#1E1E1E] dark:bg-zinc-800 text-white shadow-md hover:bg-[#D4694F] transition active:scale-95 disabled:opacity-60 disabled:active:scale-100"
             >
-             <IoSend className={`h-6 w-6 ${sending? "text-gray-600" :"" } `} />
+             <IoSend className={`h-6 w-6 ${sending? "animate-pulse" :"" } `} />
             </button>
           ) : (
             <button
@@ -1905,9 +1905,9 @@ export function Composer({
                 const touch = e.touches[0];
                 handleStartRec(touch.clientX, touch.clientY);
               }}
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#1E1E1E] dark:bg-zinc-800 text-white shadow-md hover:bg-[#D4694F] transition active:scale-95"
             >
-              <Mic className="h-5 w-5" />
+              <Mic className="h-6 w-6" />
             </button>
           )}
         </div>
