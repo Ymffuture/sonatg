@@ -1818,7 +1818,7 @@ export function Composer({
                           title={item.label}
                           className="grid h-11 w-11 place-items-center rounded-xl text-[#8C8C8C] hover:bg-[#E07A5F]/10 hover:text-[#E07A5F] transition disabled:opacity-50"
                         >
-                          {isAI? "Text based AI" : item.icon}
+                          {item.icon}
                         </motion.button>
                       ))}
                     </motion.div>
