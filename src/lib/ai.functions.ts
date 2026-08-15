@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { askGeminiWithAttachment, urlToGeminiAttachment } from "@/lib/gemini.functions";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
@@ -64,17 +65,9 @@ function describeForHistory(m: { kind: string; body?: string | null; file_name?:
   }
 }
 
-// Fetches a URL and returns it as a base64 data: URI, for embedding
-// images/files directly in the request rather than relying on the model
-// provider being able to fetch our (often expiring, signed) Supabase URLs
-// itself.
-async function urlToDataUri(url: string): Promise<{ dataUri: string; contentType: string }> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Couldn't download attachment [${res.status}]`);
-  const contentType = res.headers.get("content-type") ?? "application/octet-stream";
-  const buffer = Buffer.from(await res.arrayBuffer());
-  return { dataUri: `data:${contentType};base64,${buffer.toString("base64")}`, contentType };
-}
+// Attachments (images/files) are now read via Gemini directly — see
+// urlToGeminiAttachment in gemini.functions.ts. This gateway is only
+// used for plain-text turns.
 
 export const askSonaAI = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -114,24 +107,33 @@ export const askSonaAI = createServerFn({ method: "POST" })
       content: describeForHistory(m as { kind: string; body?: string | null; file_name?: string | null }),
     }));
 
-    // Build the current turn — multimodal if an image and/or file is
-    // attached. Both fetch the attachment and inline it as a base64 data
-    // URI rather than passing the raw (often signed/expiring) Supabase URL
-    // straight through, since not every model/provider behind OpenRouter
-    // can be relied on to fetch external URLs itself.
-    const contentParts: unknown[] = [{ type: "text", text: data.prompt || "What's in this?" }];
-    if (data.imageUrl) {
-      const { dataUri } = await urlToDataUri(data.imageUrl);
-      contentParts.push({ type: "image_url", image_url: { url: dataUri } });
-    }
-    if (data.fileUrl) {
-      const { dataUri } = await urlToDataUri(data.fileUrl);
-      contentParts.push({
-        type: "file",
-        file: { filename: data.fileName || "attachment", file_data: dataUri },
+    // Build the current turn. When there's an image or file attached, hand
+    // it to Gemini directly — it reads documents/images (OCR, layout,
+    // charts) more reliably than the lightweight free-tier chat model this
+    // app otherwise uses for plain text. Plain text turns keep using the
+    // existing OpenRouter gateway below.
+    if (data.imageUrl || data.fileUrl) {
+      const attachmentUrl = data.imageUrl || data.fileUrl!;
+      const attachment = await urlToGeminiAttachment(attachmentUrl, data.fileName);
+      const reply = await askGeminiWithAttachment({
+        prompt: data.prompt || "What's in this?",
+        attachment,
+        history: history.map((h) => ({ role: h.role === "assistant" ? "model" : "user", text: String(h.content) })),
+        systemInstruction:
+          `You are Sona AI, a warm, witty chat companion inside the Sona messaging app. ` +
+          `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
+          `Keep replies short, friendly, and conversational — like a good friend texting back. Use emoji sparingly.`,
       });
+
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: insErr } = await supabaseAdmin.from("messages").insert({
+        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: reply,
+      });
+      if (insErr) throw insErr;
+      return { ok: true };
     }
-    const userContent: unknown = data.imageUrl || data.fileUrl ? contentParts : data.prompt;
+
+    const userContent: unknown = data.prompt;
 
     const messages = [
       {
