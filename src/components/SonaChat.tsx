@@ -504,6 +504,7 @@ function SonaChatInner() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
@@ -1701,12 +1702,21 @@ useEffect(() => {
   >
     <Share2 className="h-4 w-4" />
   </button>
-<button 
+<button
+  onClick={() => cameraRef.current?.click()}
   className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white transition-colors"
-    aria-label="Share app"
+    aria-label="Take photo"
     title="Camera">
 <IoCameraOutline className="h-4 w-4"/>
 </button>
+<input
+  ref={cameraRef}
+  type="file"
+  accept="image/*"
+  capture="environment"
+  className="hidden"
+  onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
+/>
   {/* Divider */}
   <div className="w-px h-5 bg-slate-300 dark:bg-slate-600" />
 
