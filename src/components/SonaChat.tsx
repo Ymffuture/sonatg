@@ -1519,7 +1519,7 @@ useEffect(() => {
             </div>
 
             {/* Filter pills */}
-            <div className="flex items-center gap-2 px-3 pb-3 pt-1 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-2 px-3 pb-3 pt-1 overflow-x-auto scrollbar-hiding ">
               {[...Array(6).keys()].map((i) => (
                 <div
                   key={i}
@@ -2562,7 +2562,7 @@ useEffect(() => {
                 ) : (
                 <>
                 {moderationResult && (moderationResult.shouldLog || !moderationResult.allowed) && (
-                  <div className="px-4 pt-3 chat-pattern">
+                  <div className="px-4 pt-3 chat-pattern absolute">
                     <ModerationAlert result={moderationResult} />
                   </div>
                 )}
