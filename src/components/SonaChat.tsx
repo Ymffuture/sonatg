@@ -2562,7 +2562,7 @@ useEffect(() => {
                 ) : (
                 <>
                 {moderationResult && (moderationResult.shouldLog || !moderationResult.allowed) && (
-                  <div className="px-4 pt-3">
+                  <div className="px-4 pt-3 chat-pattern">
                     <ModerationAlert result={moderationResult} />
                   </div>
                 )}
