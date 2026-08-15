@@ -1707,7 +1707,7 @@ export function Composer({
                 slideY > 10 ? "opacity-100 -translate-y-1" : "opacity-50 translate-y-0"
               }`}
             >
-              <Lock className="h-4 w-4 text-[#1E1E1E]" />
+              <Lock className="h-4 w-4 text-red-400" />
               <span className="text-[8px] text-[#E07A5F] font-medium">Slide Up</span>
             </div>
           </div>
