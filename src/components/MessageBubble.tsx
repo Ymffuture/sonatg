@@ -21,6 +21,7 @@ import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
   URL_REGEX, URL_REGEX_TEST, DOC_EXTENSIONS, docExtOf,
 } from "@/utils/utils";
+import { IoSend } from "react-icons/io5";
 import { Avatar, TickIcon } from "./Avatar";
 import { LuCalendarClock } from "react-icons/lu";
 type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
@@ -1891,7 +1892,7 @@ export function Composer({
               disabled={sending}
               className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95 disabled:opacity-60 disabled:active:scale-100"
             >
-              {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+             <IoSend className={`h-5 w-5 ${sending? "text-gray-600" :"" } `} />
             </button>
           ) : (
             <button
