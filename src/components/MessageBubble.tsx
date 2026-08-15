@@ -1484,14 +1484,14 @@ export function VoicePlayer({
 /* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
-  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct, onCreatePoll,
+  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct, onCreatePoll, hideFileAttachments,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
-  onPickImages: (files?: FileList | null) => void;
-  fileRef: React.RefObject<HTMLInputElement | null>;
-  onPickDocs: (files?: FileList | null) => void;
-  docRef: React.RefObject<HTMLInputElement | null>;
+  onPickImages?: (files?: FileList | null) => void;
+  fileRef?: React.RefObject<HTMLInputElement | null>;
+  onPickDocs?: (files?: FileList | null) => void;
+  docRef?: React.RefObject<HTMLInputElement | null>;
   onSend: () => void;
   onVoiceUploaded: (blob: Blob, durationMs: number) => void;
   onRecordingChange?: (recording: boolean) => void;
@@ -1502,6 +1502,8 @@ export function Composer({
   videoRef?: React.RefObject<HTMLInputElement | null>;
   videoUploadPct?: number | null;
   onCreatePoll?: () => void;
+  /** When true, hides File/Image/Poll from the attach menu — used for the Sona AI chat, which reads uploads inline via Gemini instead of storing them as regular chat attachments. */
+  hideFileAttachments?: boolean;
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -1782,8 +1784,12 @@ export function Composer({
                     >
                       {[
                         { key: "emoji", label: "Emoji", icon: <RiEmojiStickerLine className="h-5 w-5" />, onClick: () => { setShowEmoji((s) => !s); setShowAttachMenu(false); } },
-                        { key: "doc", label: "File", icon: <Paperclip className="h-5 w-5" />, onClick: () => { docRef.current?.click(); setShowAttachMenu(false); } },
-                        { key: "image", label: "Image", icon: <ImageIcon className="h-5 w-5" />, onClick: () => { fileRef.current?.click(); setShowAttachMenu(false); } },
+                        ...(!hideFileAttachments && onPickDocs && docRef
+                          ? [{ key: "doc", label: "File", icon: <Paperclip className="h-5 w-5" />, onClick: () => { docRef.current?.click(); setShowAttachMenu(false); } }]
+                          : []),
+                        ...(!hideFileAttachments && onPickImages && fileRef
+                          ? [{ key: "image", label: "Image", icon: <ImageIcon className="h-5 w-5" />, onClick: () => { fileRef.current?.click(); setShowAttachMenu(false); } }]
+                          : []),
                         ...(onPickVideo && videoRef
                           ? [{
                               key: "video",
@@ -1792,7 +1798,7 @@ export function Composer({
                               onClick: () => { if (videoUploadPct == null) { videoRef.current?.click(); setShowAttachMenu(false); } },
                             }]
                           : []),
-                        ...(onCreatePoll
+                        ...(!hideFileAttachments && onCreatePoll
                           ? [{
                               key: "poll",
                               label: "Poll",
@@ -1842,7 +1848,7 @@ export function Composer({
               multiple
               accept={DOC_EXTENSIONS.join(",")}
               className="hidden"
-              onChange={(e) => { onPickDocs(e.target.files); e.target.value = ""; }}
+              onChange={(e) => { onPickDocs?.(e.target.files); e.target.value = ""; }}
             />
             <input
               ref={fileRef}
@@ -1850,7 +1856,7 @@ export function Composer({
               multiple
               accept="image/*"
               className="hidden"
-              onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
+              onChange={(e) => { onPickImages?.(e.target.files); e.target.value = ""; }}
             />
             {onPickVideo && videoRef && (
               <input

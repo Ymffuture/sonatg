@@ -85,7 +85,7 @@ import { MediaGalleryModal } from "./MediaGalleryModal";
 import { uploadToCloudinary, readVideoDurationMs } from "@/utils/cloudinary";
 import { useMessageModeration, ModerationAlert } from "@/features/moderation";
 import { getOrgFileLimits } from "@/features/admin";
-import { PollComposerModal } from "@/features/classroom";
+import { PollComposerModal, canPostInChat } from "@/features/classroom";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 
 
@@ -394,6 +394,7 @@ function SonaChatInner() {
   const [sending, setSending] = useState(false);
   const { checkMessage, lastResult: moderationResult } = useMessageModeration();
   const [showPollComposer, setShowPollComposer] = useState(false);
+  const [broadcastLocked, setBroadcastLocked] = useState(false);
   const [orgFileLimits, setOrgFileLimits] = useState({ maxDocBytes: MAX_DOC_BYTES, maxImageBytes: MAX_IMAGE_BYTES });
   useEffect(() => { getOrgFileLimits().then(setOrgFileLimits).catch(() => {}); }, []);
 
@@ -889,6 +890,15 @@ function SonaChatInner() {
 
   const active = chats.find((c) => c.id === activeId);
 
+  useEffect(() => {
+    if (!me || !activeId || !active?.is_group) { setBroadcastLocked(false); return; }
+    let cancelled = false;
+    canPostInChat(activeId, me.id)
+      .then((can) => { if (!cancelled) setBroadcastLocked(!can); })
+      .catch(() => { if (!cancelled) setBroadcastLocked(false); });
+    return () => { cancelled = true; };
+  }, [activeId, active?.is_group, me]);
+
   const activeOtherId = active && !active.is_group && me
     ? active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID) ?? null
     : null;
@@ -900,10 +910,12 @@ function SonaChatInner() {
         ? "Your account is banned — you can't send messages."
         : `Your account is suspended${myModeration?.expires_at ? ` until ${new Date(myModeration.expires_at).toLocaleDateString()}` : ""} — you can't send messages.`)
     : iBlockedThem
-      ? "You blocked this person. You can't send messages to this person."
+      ? "You blocked this person. Messages won't go through in either direction until you unblock them."
       : theyBlockedMe
-        ? "You can't send messages to this person."
-        : null;
+        ? "You can't message this person right now."
+        : broadcastLocked
+          ? "Only admins can send messages to this group."
+          : null;
 
   const profilesById = useMemo(() => {
     const map: Record<string, Profile> = {};
@@ -1200,6 +1212,8 @@ function SonaChatInner() {
       if (outgoing.length === 0 && plaintext) outgoing.push({ kind: "text" });
 
       let firstAttachedImageUrl: string | null = null;
+      let firstAttachedFileUrl: string | null = null;
+      let firstAttachedFileName: string | null = null;
       const expiresAt = active?.disappearing_seconds
         ? new Date(Date.now() + active.disappearing_seconds * 1000).toISOString()
         : null;
@@ -1207,6 +1221,7 @@ function SonaChatInner() {
       for (let i = 0; i < outgoing.length; i++) {
         const item = outgoing[i];
         if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
+        if (item.kind === "file" && !firstAttachedFileUrl) { firstAttachedFileUrl = item.media_url ?? null; firstAttachedFileName = item.file_name ?? null; }
         const { error } = await supabase.from("messages").insert({
           chat_id: activeId, sender_id: me.id, kind: item.kind,
           body: i === 0 ? firstBody : null,
@@ -1228,14 +1243,24 @@ function SonaChatInner() {
 
       const prompt = plaintext;
       const attachedImageUrl = firstAttachedImageUrl;
+      const attachedFileUrl = firstAttachedFileUrl;
+      const attachedFileName = firstAttachedFileName;
       setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
 
       if (!scheduledFor && active && !active.is_hidden) {
         const isAI = isAIChat(active);
         const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
-        if ((isAI || mentionsSona) && (prompt || attachedImageUrl)) {
+        if ((isAI || mentionsSona) && (prompt || attachedImageUrl || attachedFileUrl)) {
           toast.loading("Sona is thinking…", { id: "sona-ai" });
-          askAI({ data: { chatId: activeId, prompt: prompt || "What's in this image?", imageUrl: attachedImageUrl } })
+          askAI({
+            data: {
+              chatId: activeId,
+              prompt: prompt || (attachedFileUrl ? "What's in this file?" : "What's in this image?"),
+              imageUrl: attachedImageUrl,
+              fileUrl: attachedFileUrl,
+              fileName: attachedFileName,
+            },
+          })
             .then(() => toast.dismiss("sona-ai"))
             .catch((e) => toast.error(e.message, { id: "sona-ai" }));
         }
@@ -2238,17 +2263,19 @@ useEffect(() => {
                           label: "Search" ,
                           icon: <Search className="h-4 w-4" />,
                         },
-                        {
-                          key: "summarize",
-                          disabled :isSummarized, 
-                          label: (
-                            <span className={`flex w-full items-center ${isSummarized? "animate-pulse" :"" } `} >
-                              {  isSummarized? "Summarizing...":"Summarize "} 
-                              {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
-                            </span>
-                          ),
-                          icon: <Sparkles className={`h-4 w-4 text-[#1E1E1E] ${isSummarized? "animate-spin text-green-600" :"" } `} />,
-                        },
+                        ...(!isAIChat(active)
+                          ? [{
+                              key: "summarize",
+                              disabled: isSummarized,
+                              label: (
+                                <span className={`flex w-full items-center ${isSummarized ? "animate-pulse" : ""} `}>
+                                  {isSummarized ? "Summarizing..." : "Summarize "}
+                                  {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                                </span>
+                              ),
+                              icon: <Sparkles className={`h-4 w-4 text-[#1E1E1E] ${isSummarized ? "animate-spin text-green-600" : ""} `} />,
+                            }]
+                          : []),
                         ...(!isAIChat(active)
                           ? [
                               {
@@ -2270,27 +2297,31 @@ useEffect(() => {
                               },
                             ]
                           : []),
-                        {
-                          key: "scheduled",
-                          label: "Scheduled messages",
-                          icon: <Clock className="h-4 w-4" />,
-                        },
+                        ...(!isAIChat(active)
+                          ? [{
+                              key: "scheduled",
+                              label: "Scheduled messages",
+                              icon: <Clock className="h-4 w-4" />,
+                            }]
+                          : []),
                         {
                           key: "media-gallery",
                           label: "Media, links, and docs",
                           icon: <ImageIcon className="h-4 w-4" />,
                         },
-                        {
-                          key: "hide",
-                          label: (
-                            <span className="flex w-full items-center">
-                              {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
-                              {!me.is_pro && !active.is_hidden && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
-                            </span>
-                          ),
-                          icon: active.is_hidden ? <Unlock className="h-4 w-4" /> : <Shield className="h-4 w-4" />,
-                          onClick: toggleHideChat,
-                        },
+                        ...(!isAIChat(active)
+                          ? [{
+                              key: "hide",
+                              label: (
+                                <span className="flex w-full items-center">
+                                  {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
+                                  {!me.is_pro && !active.is_hidden && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                                </span>
+                              ),
+                              icon: active.is_hidden ? <Unlock className="h-4 w-4" /> : <Shield className="h-4 w-4" />,
+                              onClick: toggleHideChat,
+                            }]
+                          : []),
                         ...(active.is_hidden && isUnlocked(active.id)
                           ? [{ key: "lock", label: "Lock now", icon: <Lock className="h-4 w-4" />, onClick: relock }]
                           : []),
@@ -2571,7 +2602,11 @@ useEffect(() => {
                 {composerNotice ? (
                   <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] px-4 py-5 text-center dark:bg-[#242424]">
                     <p className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl bg-[#F5F0E8] px-4 py-3 text-sm font-medium text-[#8C8C8C] dark:bg-[#2A2A2A]">
-                      <Ban className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+                      {broadcastLocked && !accountRestricted && !iBlockedThem && !theyBlockedMe ? (
+                        <Radio className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+                      ) : (
+                        <Ban className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+                      )}
                       {composerNotice}
                     </p>
                     {iBlockedThem && !accountRestricted && (
@@ -2607,11 +2642,11 @@ useEffect(() => {
                     });
                   }}
                   onRecordingChange={sendRecording}
-                  onSchedule={(date) => send(date)}
+                  onSchedule={isAIChat(active) ? undefined : (date) => send(date)}
                   onPickVideo={onPickVideo}
                   videoRef={videoRef}
                   videoUploadPct={videoUploadPct}
-                  onCreatePoll={() => setShowPollComposer(true)}
+                  onCreatePoll={isAIChat(active) ? undefined : () => setShowPollComposer(true)}
                 />
                 </>
                 )}
