@@ -1618,7 +1618,7 @@ export function Composer({
   }, [recording, cancelRecording, lockRecording, finalizeRecording]);
 
   return (
-    <div className="relative chat-pattern px-3 py-3 md:px-4 md:py-3 select-none">
+    <div className="relative chat-pattern px-4 py-6 md:px-4 md:py-3 select-none">
       {showEmoji && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowEmoji(false)} />
@@ -1890,9 +1890,9 @@ export function Composer({
             <button
               onClick={() => onSend()}
               disabled={sending}
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] transition active:scale-95 disabled:opacity-60 disabled:active:scale-100"
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#1E1E1E] dark:bg-zinc-800 text-white shadow-md hover:bg-[#D4694F] transition active:scale-95 disabled:opacity-60 disabled:active:scale-100"
             >
-             <IoSend className={`h-5 w-5 ${sending? "text-gray-600" :"" } `} />
+             <IoSend className={`h-6 w-6 ${sending? "text-gray-600" :"" } `} />
             </button>
           ) : (
             <button
