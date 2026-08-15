@@ -84,6 +84,8 @@ import { ForwardModal } from "./ForwardModal";
 import { MediaGalleryModal } from "./MediaGalleryModal";
 import { uploadToCloudinary, readVideoDurationMs } from "@/utils/cloudinary";
 import { useMessageModeration, ModerationAlert } from "@/features/moderation";
+import { getOrgFileLimits } from "@/features/admin";
+import { PollComposerModal } from "@/features/classroom";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 
 
@@ -391,6 +393,25 @@ function SonaChatInner() {
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const { checkMessage, lastResult: moderationResult } = useMessageModeration();
+  const [showPollComposer, setShowPollComposer] = useState(false);
+  const [orgFileLimits, setOrgFileLimits] = useState({ maxDocBytes: MAX_DOC_BYTES, maxImageBytes: MAX_IMAGE_BYTES });
+  useEffect(() => { getOrgFileLimits().then(setOrgFileLimits).catch(() => {}); }, []);
+
+  const onPollCreated = async (pollId: string) => {
+    setShowPollComposer(false);
+    if (!me || !activeId) return;
+    try {
+      const { error } = await supabase.from("messages").insert({
+        chat_id: activeId,
+        sender_id: me.id,
+        kind: "poll",
+        body: JSON.stringify({ pollId }),
+      });
+      if (error) throw error;
+    } catch (e) {
+      toast.error(`Poll created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
+    }
+  };
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [showDisappearingMenu, setShowDisappearingMenu] = useState(false);
   const [scheduledMessages, setScheduledMessages] = useState<MessageRow[]>([]);
@@ -1234,9 +1255,9 @@ function SonaChatInner() {
   const onPickImages = (files?: FileList | null) => {
     if (!files || files.length === 0) return;
     const incoming = Array.from(files);
-    const oversized = incoming.filter((f) => f.size > MAX_IMAGE_BYTES);
-    const valid = incoming.filter((f) => f.size <= MAX_IMAGE_BYTES);
-    if (oversized.length) toast.error(`${oversized.length} image${oversized.length === 1 ? "" : "s"} skipped — over 2MB`);
+    const oversized = incoming.filter((f) => f.size > orgFileLimits.maxImageBytes);
+    const valid = incoming.filter((f) => f.size <= orgFileLimits.maxImageBytes);
+    if (oversized.length) toast.error(`${oversized.length} image${oversized.length === 1 ? "" : "s"} skipped — over ${formatBytes(orgFileLimits.maxImageBytes)}`);
 
     setPendingImages((prev) => {
       const combined = [...prev, ...valid];
@@ -1252,10 +1273,10 @@ function SonaChatInner() {
     if (!files || files.length === 0) return;
     const incoming = Array.from(files);
     const wrongType = incoming.filter((f) => !DOC_EXTENSIONS.includes(docExtOf(f.name)));
-    const oversized = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size > MAX_DOC_BYTES);
-    const valid = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size <= MAX_DOC_BYTES);
+    const oversized = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size > orgFileLimits.maxDocBytes);
+    const valid = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size <= orgFileLimits.maxDocBytes);
     if (wrongType.length) toast.error(`Unsupported file type: ${wrongType.map((f) => f.name).join(", ")}`);
-    if (oversized.length) toast.error(`${oversized.length} file${oversized.length === 1 ? "" : "s"} skipped — over 5MB`);
+    if (oversized.length) toast.error(`${oversized.length} file${oversized.length === 1 ? "" : "s"} skipped — over ${formatBytes(orgFileLimits.maxDocBytes)}`);
 
     setPendingDocs((prev) => {
       const combined = [...prev, ...valid];
@@ -2590,6 +2611,7 @@ useEffect(() => {
                   onPickVideo={onPickVideo}
                   videoRef={videoRef}
                   videoUploadPct={videoUploadPct}
+                  onCreatePoll={() => setShowPollComposer(true)}
                 />
                 </>
                 )}
@@ -2652,6 +2674,14 @@ useEffect(() => {
           onClose={() => setShowGroupSettings(false)}
           onUpdated={loadChats}
           onDelete={() => deleteGroup(active.id)}
+        />
+      )}
+
+      {showPollComposer && activeId && (
+        <PollComposerModal
+          chatId={activeId}
+          onClose={() => setShowPollComposer(false)}
+          onCreated={onPollCreated}
         />
       )}
 

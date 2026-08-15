@@ -4,7 +4,7 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Image as ImageIcon, Palette, Zap, MessageSquare,
+  Image as ImageIcon, Palette, Zap, MessageSquare, Radio, Copy, KeyRound,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,8 @@ import {
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/utils/utils";
 import { Avatar } from "./Avatar";
 import { Spin, Skeleton, Tooltip, notification } from "antd";
+import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
+import type { ClassRow } from "@/features/classroom";
 import SoundSettings from "./SoundSettings";
 
 /* ─── Themed Notification Helper ─── */
@@ -172,6 +174,59 @@ export function GroupSettingsModal({
   const [addSelected, setAddSelected] = useState<Set<string>>(new Set());
   const [addBusy, setAddBusy] = useState(false);
 
+  const [isBroadcast, setIsBroadcast] = useState(false);
+  const [classInfo, setClassInfo] = useState<ClassRow | null>(null);
+  const [classroomBusy, setClassroomBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: chatRow }, { data: cls }] = await Promise.all([
+        supabase.from("chats").select("is_broadcast").eq("id", chat.id).maybeSingle(),
+        supabase.from("classes").select("*").eq("chat_id", chat.id).eq("is_active", true).maybeSingle(),
+      ]);
+      setIsBroadcast(Boolean((chatRow as { is_broadcast?: boolean } | null)?.is_broadcast));
+      setClassInfo((cls as ClassRow) ?? null);
+    })();
+  }, [chat.id]);
+
+  const toggleBroadcast = async () => {
+    setClassroomBusy(true);
+    try {
+      const next = !isBroadcast;
+      await setChatBroadcastMode(chat.id, next);
+      setIsBroadcast(next);
+      notify.success({
+        message: next ? "Broadcast mode on" : "Broadcast mode off",
+        description: next ? "Only you (and other posters) can send messages here — everyone else can read." : "Everyone in the group can send messages again.",
+      });
+    } catch (e) {
+      const explained = explainSupabaseError(e);
+      notify.error({ message: explained.title, description: explained.explanation });
+    } finally {
+      setClassroomBusy(false);
+    }
+  };
+
+  const generateClassCode = async () => {
+    setClassroomBusy(true);
+    try {
+      const created = await createClass(chat.id, chat.title || "Class");
+      setClassInfo(created);
+      notify.success({ message: "Class code created", description: created.join_code });
+    } catch (e) {
+      const explained = explainSupabaseError(e);
+      notify.error({ message: explained.title, description: explained.explanation });
+    } finally {
+      setClassroomBusy(false);
+    }
+  };
+
+  const copyClassCode = () => {
+    if (!classInfo) return;
+    navigator.clipboard?.writeText(classInfo.join_code);
+    notify.success({ message: "Code copied", description: classInfo.join_code });
+  };
+
   useEffect(() => {
     if (!addOpen) return;
     (async () => {
@@ -301,6 +356,50 @@ export function GroupSettingsModal({
           )}
         </div>
 
+        {/* Classroom mode */}
+        <div className="rounded-xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-white/5 p-3 backdrop-blur-sm space-y-3">
+          <p className="flex items-center gap-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+            <GraduationCap className="h-3.5 w-3.5 text-[#E07A5F]" /> Classroom
+          </p>
+
+          <button
+            onClick={toggleBroadcast}
+            disabled={classroomBusy}
+            className="w-full flex items-center gap-2 rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 disabled:opacity-60"
+          >
+            <Radio className="h-4 w-4 text-[#E07A5F]" />
+            <span className="flex-1 text-left">
+              Broadcast-only
+              <span className="block text-[11px] font-normal text-[#8C8C8C]">Only you can post — others can read but not reply</span>
+            </span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isBroadcast ? "bg-emerald-500/15 text-emerald-600" : "bg-[#8C8C8C]/15 text-[#8C8C8C]"}`}>
+              {isBroadcast ? "On" : "Off"}
+            </span>
+          </button>
+
+          {classInfo ? (
+            <div className="flex items-center gap-2 rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 border border-white/30 dark:border-white/10">
+              <KeyRound className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] text-[#8C8C8C]">Join code</p>
+                <p className="font-mono text-sm font-semibold tracking-wider text-[#2D3436] dark:text-[#E8E8E8]">{classInfo.join_code}</p>
+              </div>
+              <button onClick={copyClassCode} aria-label="Copy join code" className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-[#E07A5F]/10">
+                <Copy className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={generateClassCode}
+              disabled={classroomBusy}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#E07A5F]/10 px-3 py-2.5 text-sm font-semibold text-[#E07A5F] disabled:opacity-60"
+            >
+              {classroomBusy ? <Spin size="small" /> : <KeyRound className="h-4 w-4" />}
+              Generate join code
+            </button>
+          )}
+        </div>
+
         {/* Danger zone */}
         <div className="pt-2 border-t border-white/20 dark:border-white/10">
           <button
@@ -328,7 +427,7 @@ export function GroupSettingsModal({
 /* ─── New Chat ─── */
 export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClose: () => void; onCreated: (id: string) => void }) {
   useBackToClose(onClose);
-  const [mode, setMode] = useState<"direct" | "group">("direct");
+  const [mode, setMode] = useState<"direct" | "group" | "class">("direct");
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,6 +438,9 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [groupError, setGroupError] = useState<{ title: string; explanation: string; raw: string } | null>(null);
+
+  const [classCode, setClassCode] = useState("");
+  const [joiningClass, setJoiningClass] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -441,7 +543,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-[#E07A5F]" />
             <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-              {mode === "direct" ? "Choose a friend" : "New group"}
+              {mode === "direct" ? "Choose a friend" : mode === "group" ? "New group" : "Join a class"}
             </h3>
           </div>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#E07A5F]/10 transition" aria-label="Close">
@@ -463,7 +565,45 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
           >
             New group
           </button>
+          <button
+            onClick={() => setMode("class")}
+            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "class" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
+          >
+            Join with code
+          </button>
         </div>
+
+        {mode === "class" && (
+          <div className="px-5 pb-4 space-y-3">
+            <p className="text-xs text-[#8C8C8C]">Enter the class code your teacher shared (e.g. K7QX-3RTN).</p>
+            <input
+              value={classCode}
+              onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+              placeholder="XXXX-XXXX"
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm font-mono tracking-wider outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
+            />
+            <button
+              onClick={async () => {
+                if (!classCode.trim()) return;
+                setJoiningClass(true);
+                try {
+                  const chatId = await joinClassByCode(classCode);
+                  notify.success({ message: "Joined class", description: "You now have access to the class chat." });
+                  onCreated(chatId);
+                } catch (e) {
+                  const explained = explainSupabaseError(e);
+                  notify.error({ message: "Couldn't join", description: explained.explanation || "Check the code and try again." });
+                } finally {
+                  setJoiningClass(false);
+                }
+              }}
+              disabled={joiningClass || !classCode.trim()}
+              className="w-full flex items-center justify-center gap-2 rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-60 transition"
+            >
+              {joiningClass ? <><Spin size="small" /> Joining…</> : "Join class"}
+            </button>
+          </div>
+        )}
 
         {mode === "group" && (
           <div className="px-5 pb-3 space-y-3">
@@ -497,6 +637,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
           </div>
         )}
 
+        {mode !== "class" && (
         <div className="px-5 pb-3">
           <p className="text-xs text-[#8C8C8C]">
             {mode === "direct" ? "Pick from Sona users or search by name / email." : "Select the people to add to your group."}
@@ -506,6 +647,8 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]" />
           </div>
         </div>
+        )}
+        {mode !== "class" && (
         <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-3">
           {loading ? (
             <div className="px-4 py-6 space-y-3">
@@ -550,6 +693,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
             </button>
           ))}
         </div>
+        )}
 
         {mode === "group" && (
           <div className="px-5 pb-6 pt-2 border-t border-white/20 dark:border-white/10">

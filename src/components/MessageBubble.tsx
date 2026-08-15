@@ -4,9 +4,10 @@ import {
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
-  FileText, Plus,
+  FileText, Plus, ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PollCard } from "@/features/classroom";
 import { motion, AnimatePresence } from "framer-motion";
 import EmojiPicker, { Theme as EmojiTheme, EmojiStyle, type EmojiClickData } from "emoji-picker-react";
 import { FaRegThumbsUp } from "react-icons/fa6";
@@ -1025,6 +1026,19 @@ export function Bubble({
     );
   }
 
+  // Poll/quiz messages render as a self-contained PollCard instead of the
+  // normal text/media bubble. body stores JSON: {"pollId": "..."}.
+  if (msg.kind === "poll") {
+    let pollId: string | null = null;
+    try { pollId = (JSON.parse(msg.body ?? "{}") as { pollId?: string }).pollId ?? null; } catch { /* ignore malformed body */ }
+    if (!pollId) return null;
+    return (
+      <div className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}>
+        <PollCard pollId={pollId} meId={me.id} />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className={`group select-none flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}>
@@ -1470,7 +1484,7 @@ export function VoicePlayer({
 /* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
-  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct,
+  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct, onCreatePoll,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
@@ -1487,6 +1501,7 @@ export function Composer({
   onPickVideo?: (file?: File | null) => void;
   videoRef?: React.RefObject<HTMLInputElement | null>;
   videoUploadPct?: number | null;
+  onCreatePoll?: () => void;
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -1775,6 +1790,14 @@ export function Composer({
                               label: "Video",
                               icon: videoUploadPct != null ? <Loader2 className="h-5 w-5 animate-spin" /> : <Video className="h-5 w-5" />,
                               onClick: () => { if (videoUploadPct == null) { videoRef.current?.click(); setShowAttachMenu(false); } },
+                            }]
+                          : []),
+                        ...(onCreatePoll
+                          ? [{
+                              key: "poll",
+                              label: "Poll",
+                              icon: <ListChecks className="h-5 w-5" />,
+                              onClick: () => { onCreatePoll(); setShowAttachMenu(false); },
                             }]
                           : []),
                       ].map((item, i) => (
