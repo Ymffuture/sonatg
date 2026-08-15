@@ -2508,7 +2508,7 @@ useEffect(() => {
                 )}
 
                 {(pendingImages.length > 0 || pendingDocs.length > 0) && (
-                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-3 md:px-6">
+                  <div className="chat-pattern px-3 py-3 md:px-6">
                     <div className="mx-auto max-w-3xl space-y-2">
                       {pendingImages.length > 0 && (
                         <div className="flex gap-2 overflow-x-auto pb-1">
