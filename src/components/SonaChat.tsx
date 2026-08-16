@@ -74,7 +74,7 @@ import { RiArrowLeftWideFill } from "react-icons/ri";
 import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
   explainSupabaseError, categoryMeta, readStatusFor,
-  MAX_IMAGES, MAX_IMAGE_BYTES, MAX_DOCS, MAX_DOC_BYTES, DOC_EXTENSIONS, docExtOf, formatBytes,
+  MAX_IMAGES, MAX_IMAGE_BYTES, MAX_DOCS, MAX_DOC_BYTES, DOC_EXTENSIONS, docExtOf, formatBytes, compressImageForUpload,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer, MediaViewer } from "./MessageBubble";
@@ -554,19 +554,24 @@ function SonaChatInner() {
     const chatIds = (memberships ?? []).map((m: { chat_id: string }) => m.chat_id);
     if (chatIds.length === 0) { setChats([]); setLoadingChats(false); return; }
 
-    const { data: chatRows } = await supabase
-      .from("chats").select("*").in("id", chatIds).order("last_message_at", { ascending: false });
-    const { data: allMembers } = await supabase
-      .from("chat_members").select("chat_id, user_id, role, is_pinned, pinned_at").in("chat_id", chatIds);
+    // These two only depend on chatIds (not on each other) — firing them
+    // together instead of one-after-another cuts a full round trip off
+    // every chat-list load. Same for the pair below.
+    const [{ data: chatRows }, { data: allMembers }] = await Promise.all([
+      supabase.from("chats").select("*").in("id", chatIds).order("last_message_at", { ascending: false }),
+      supabase.from("chat_members").select("chat_id, user_id, role, is_pinned, pinned_at").in("chat_id", chatIds),
+    ]);
     const memberIds = Array.from(new Set((allMembers ?? []).map((m: { user_id: string }) => m.user_id)));
-    const { data: profs } = await supabase.from("profiles").select("*").in("id", memberIds);
+
+    const [{ data: profs }, { data: latest }] = await Promise.all([
+      supabase.from("profiles").select("*").in("id", memberIds),
+      supabase.from("visible_messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }).limit(500),
+    ]);
 
     const profMap: Record<string, Profile> = {};
     (profs ?? []).forEach((p) => { profMap[(p as Profile).id] = p as Profile; });
     setProfiles((prev) => ({ ...prev, ...profMap }));
 
-    const { data: latest } = await supabase
-      .from("visible_messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }).limit(500);
     const rows = (latest ?? []) as MessageRow[];
     const lastByChat: Record<string, MessageRow> = {};
     rows.forEach((m) => { if (!lastByChat[m.chat_id]) lastByChat[m.chat_id] = m; });
@@ -663,8 +668,13 @@ function SonaChatInner() {
       supabase.rpc("cleanup_expired_messages").then(() => {});
     }
     (async () => {
-      const { data: msgs } = await supabase.from("visible_messages").select("*").eq("chat_id", activeId).order("created_at");
-      const rows = (msgs ?? []) as MessageRow[];
+      const { data: msgs } = await supabase
+        .from("visible_messages")
+        .select("*")
+        .eq("chat_id", activeId)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      const rows = ((msgs ?? []) as MessageRow[]).reverse(); // fetched newest-first for the LIMIT, flip back to chronological
       setMessages(rows);
       const ids = rows.map((m) => m.id);
       if (ids.length) {
@@ -1222,8 +1232,9 @@ function SonaChatInner() {
       const outgoing: Outgoing[] = [];
 
       for (const img of pendingImages) {
-        const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${img.name}`;
-        const { error: upErr } = await supabase.storage.from("chat-media").upload(path, img);
+        const compressed = await compressImageForUpload(img);
+        const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${compressed.name}`;
+        const { error: upErr } = await supabase.storage.from("chat-media").upload(path, compressed);
         if (upErr) { toast.error(`Couldn't upload ${img.name}: ${explainSupabaseError(upErr).title}`); continue; }
         const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
         outgoing.push({ kind: "image", media_url: signed?.signedUrl ?? null });
