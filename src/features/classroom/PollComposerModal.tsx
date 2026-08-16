@@ -96,7 +96,7 @@ export function PollComposerModal({ chatId, onClose, onCreated }: PollComposerMo
             </div>
           ))}
           {options.length < 8 && (
-            <button onClick={addOption} className="flex items-center gap-1 text-xs font-semibold text-[#E07A5F]">
+            <button onClick={addOption} className="flex items-center gap-1 text-xs font-semibold dark:text-white text-[#2D3436]">
               <Plus className="h-3.5 w-3.5" /> Add option
             </button>
           )}
@@ -112,7 +112,7 @@ export function PollComposerModal({ chatId, onClose, onCreated }: PollComposerMo
         <button
           onClick={submit}
           disabled={busy}
-          className="mt-5 w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white disabled:opacity-60"
+          className="mt-5 w-full rounded-full bg-[#1E1E1E] dark:bg-zinc-800 py-3 text-sm font-semibold text-white disabled:opacity-60"
         >
           {busy ? "Creating…" : "Post poll"}
         </button>
