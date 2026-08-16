@@ -73,14 +73,14 @@ export function PollCard({ pollId, meId }: PollCardProps) {
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="w-full max-w-[320px] overflow-hidden rounded-2xl border border-[#E07A5F]/15 bg-white/80 shadow-lg backdrop-blur-md dark:border-[#E07A5F]/10 dark:bg-[#1E1E1E]/90"
+      className="w-full max-w-[600px] overflow-hidden rounded-2xl border border-[#E07A5F]/15 bg-white/80 shadow-lg backdrop-blur-md dark:border-[#E07A5F]/10 dark:bg-[#1E1E1E]/90"
     >
       {/* Header */}
-      <div className="flex items-center gap-2.5 border-b border-[#E07A5F]/10 px-4 py-3 dark:border-white/5">
+      <div className="flex items-center gap-2.5 border-b border-[#1E1E1E]/10 px-4 py-3 dark:border-white/5">
         <div
           className={`grid h-8 w-8 place-items-center rounded-full ${
             poll.is_quiz
-              ? "bg-[#E07A5F]/10 text-[#E07A5F]"
+              ? "bg-[#E07A5F]/10 dark:text-[#1E1E1E] text-gray-600"
               : "bg-emerald-500/10 text-emerald-500"
           }`}
         >
@@ -130,7 +130,7 @@ export function PollCard({ pollId, meId }: PollCardProps) {
                   mine
                     ? isWrong
                       ? "border-red-400/30 bg-red-500/[0.06]"
-                      : "border-[#E07A5F]/30 bg-[#E07A5F]/[0.06]"
+                      : "border-[#E07A5F]/30 bg-[#2D3436]/[0.06]"
                     : "border-transparent bg-[#F5F0E8]/60 hover:bg-[#F5F0E8] dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
                 } disabled:cursor-not-allowed`}
               >
@@ -158,7 +158,7 @@ export function PollCard({ pollId, meId }: PollCardProps) {
                       mine
                         ? isWrong
                           ? "border-red-400 bg-red-400 text-white"
-                          : "border-[#E07A5F] bg-[#E07A5F] text-white"
+                          : "border-[#1E1E1E] bg-[#8c8c8c] text-white"
                         : "border-[#8C8C8C]/30 dark:border-white/20"
                     }`}
                   >
@@ -266,7 +266,7 @@ export function PollCard({ pollId, meId }: PollCardProps) {
             {totalVotes.toLocaleString()} vote{totalVotes === 1 ? "" : "s"}
           </span>
           {hasVoted && (
-            <span className="ml-1 rounded-full bg-[#E07A5F]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#E07A5F]">
+            <span className="ml-1 rounded-full bg-green-400 px-1.5 py-0.5 text-[10px] font-medium text-[green]">
               You voted
             </span>
           )}
