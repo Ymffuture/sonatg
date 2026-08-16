@@ -68,6 +68,56 @@ export const MAX_DOCS = 2;
 export const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5MB
 export const DOC_EXTENSIONS = [".pdf", ".docx", ".json", ".js", ".jsx", ".ts", ".tsx", ".java", ".py", ".c", ".cpp", ".go", ".rb", ".php", ".txt", ".md", ".css", ".html", ".sql", ".yaml", ".yml"];
 
+/**
+ * Downscales and re-compresses an image client-side before upload. A
+ * photo straight from a phone camera is routinely 3000×4000px / 4-8MB —
+ * nothing in the chat UI ever displays it larger than a few hundred
+ * pixels, so uploading (and every recipient re-downloading) the original
+ * is pure wasted time on both ends. Caps the longest edge at `maxDim` and
+ * re-encodes as JPEG at `quality`. Falls back to the original file if
+ * canvas encoding fails or the image is already smaller than the target
+ * (no point re-compressing an already-small image).
+ */
+export async function compressImageForUpload(
+  file: File,
+  maxDim = 1600,
+  quality = 0.82,
+): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file; // don't touch GIFs (animation would break)
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    if (scale >= 1 && file.size <= MAX_IMAGE_BYTES) {
+      bitmap.close();
+      return file; // already small enough on both dimensions and size
+    }
+
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { bitmap.close(); return file; }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+    if (!blob) return file;
+
+    // Only use the compressed version if it's actually smaller — a tiny
+    // or already-compressed source image can occasionally re-encode
+    // larger, in which case the original wins.
+    if (blob.size >= file.size) return file;
+
+    const newName = file.name.replace(/\.\w+$/, "") + ".jpg";
+    return new File([blob], newName, { type: "image/jpeg", lastModified: Date.now() });
+  } catch {
+    return file; // any failure (unsupported format, etc.) — just send the original
+  }
+}
+
 export function docExtOf(name: string) {
   const i = name.lastIndexOf(".");
   return i === -1 ? "" : name.slice(i).toLowerCase();
