@@ -115,6 +115,17 @@ export function PollCard({ pollId, meId }: { pollId: string; meId: string }) {
 
   useEffect(() => { reload(); }, [pollId]);
 
+  // Every hook must run on every render regardless of whether `poll` has
+  // loaded yet — this used to sit after the `if (!poll) return null;`
+  // below, which meant it was skipped on the first render (poll === null)
+  // but called on subsequent ones, changing the hook count between
+  // renders and triggering "Rendered fewer hooks than expected" (React
+  // error #310). Keeping all hooks above any early return fixes it.
+  const sortedOptions = useMemo(() => {
+    if (!poll) return [];
+    return [...poll.options].sort((a, b) => (poll.voteCounts[b.id] ?? 0) - (poll.voteCounts[a.id] ?? 0));
+  }, [poll]);
+
   if (!poll) return null;
 
   const totalVotes = Object.values(poll.voteCounts).reduce((a, b) => a + b, 0);
@@ -133,9 +144,6 @@ export function PollCard({ pollId, meId }: { pollId: string; meId: string }) {
   };
 
   const maxCount = Math.max(...Object.values(poll.voteCounts), 0);
-  const sortedOptions = useMemo(() => {
-    return [...poll.options].sort((a, b) => (poll.voteCounts[b.id] ?? 0) - (poll.voteCounts[a.id] ?? 0));
-  }, [poll]);
 
   return (
     <motion.div
