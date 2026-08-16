@@ -6,7 +6,7 @@ import {
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
-  AlertTriangle, FolderPlus, FolderCog, Flag,
+  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2,
 } from "lucide-react";
 import { LuCircleFadingPlus } from "react-icons/lu";
 import { IoCameraOutline } from "react-icons/io5";
@@ -182,7 +182,32 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
       </span>
     );
   }
-  if (msg.body) return <span className="truncate">{msg.body}</span>;
+
+  // Poll bodies store raw JSON ({"pollId": "..."}), so this must be
+  // checked before the generic `msg.body` fallback below — otherwise a
+  // reply/quote preview would show the JSON blob instead of "Poll".
+  if (msg.kind === "poll") {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <ListChecks className="h-4 w-4 shrink-0 text-[#E07A5F]" /> Poll
+      </span>
+    );
+  }
+
+  if (msg.body) {
+    // A plain text message whose body is (or starts with) a link gets a
+    // link-style preview, same treatment photos/videos already get,
+    // instead of just dumping the raw URL as truncated text.
+    if (/https?:\/\/\S+/i.test(msg.body)) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <Link2 className="h-4 w-4 shrink-0 text-[#4FA6E0]" />
+          <span className="truncate">{msg.body}</span>
+        </span>
+      );
+    }
+    return <span className="truncate">{msg.body}</span>;
+  }
 
   switch (msg.kind) {
     case "image":
@@ -2538,7 +2563,7 @@ useEffect(() => {
                           {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
                         </div>
                         <div className="truncate opacity-80 text-[#2D3436] dark:text-[#E8E8E8]">
-                          {editing ? (editing.body ?? "") : (replyTo?.body ?? (replyTo?.kind === "image" ? "Photo" : replyTo?.kind === "voice" ? "Voice note" : ""))}
+                          {editing ? (editing.body ?? "") : <MessagePreview msg={replyTo} decrypted={decrypted} />}
                         </div>
                       </div>
                       <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Cancel">
