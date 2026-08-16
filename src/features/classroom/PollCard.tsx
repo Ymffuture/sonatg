@@ -98,7 +98,7 @@ export function PollCard({ pollId, meId }: { pollId: string; meId: string }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="min-w-[600px] max-w-[640px]"
+      className="min-w-[600px]"
     >
       {/* WhatsApp-style message bubble */}
       <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-[#1E1E1E]">
