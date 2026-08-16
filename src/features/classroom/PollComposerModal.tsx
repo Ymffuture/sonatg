@@ -5,7 +5,7 @@
 // on the app's other modal primitives, just plain Tailwind.
 
 import { useState } from "react";
-import { X, Plus, Trash2, HelpCircle, EyeOff } from "lucide-react";
+import { X, Plus, Trash2, HelpCircle, EyeOff, Circle, CheckSquare } from "lucide-react";
 import { createPoll, updatePoll, replacePollOptions } from "./polls";
 import type { PollWithOptions } from "./types";
 
@@ -27,6 +27,7 @@ export function PollComposerModal({ chatId, onClose, onCreated, editing, onUpdat
   const [question, setQuestion] = useState(editing?.question ?? "");
   const [options, setOptions] = useState<string[]>(editing ? editing.options.map((o) => o.label) : ["", ""]);
   const [isQuiz, setIsQuiz] = useState(editing?.is_quiz ?? false);
+  const [allowMultiple, setAllowMultiple] = useState(editing?.allow_multiple ?? false);
   const [correctIndex, setCorrectIndex] = useState<number | null>(editing?.correct_option_index ?? null);
   const [hideResults, setHideResults] = useState(editing ? !editing.results_visible : false);
   const [busy, setBusy] = useState(false);
@@ -35,6 +36,12 @@ export function PollComposerModal({ chatId, onClose, onCreated, editing, onUpdat
   const updateOption = (i: number, v: string) => setOptions((prev) => prev.map((o, idx) => (idx === i ? v : o)));
   const addOption = () => options.length < 8 && setOptions((prev) => [...prev, ""]);
   const removeOption = (i: number) => setOptions((prev) => prev.filter((_, idx) => idx !== i));
+
+  const toggleQuiz = (checked: boolean) => {
+    setIsQuiz(checked);
+    setCorrectIndex(null);
+    if (checked) setAllowMultiple(false); // a quiz has exactly one correct answer
+  };
 
   const submit = async () => {
     const cleanOptions = options.map((o) => o.trim()).filter(Boolean);
@@ -49,6 +56,7 @@ export function PollComposerModal({ chatId, onClose, onCreated, editing, onUpdat
         await updatePoll(editing.id, {
           question: question.trim(),
           correctOptionIndex: isQuiz ? correctIndex : null,
+          allowMultiple,
         });
         if (!hasVotes) {
           await replacePollOptions(editing.id, cleanOptions);
@@ -62,6 +70,7 @@ export function PollComposerModal({ chatId, onClose, onCreated, editing, onUpdat
           options: cleanOptions,
           isQuiz,
           correctOptionIndex: isQuiz ? correctIndex : null,
+          allowMultiple,
           resultsVisible: !hideResults,
         });
         onCreated(poll.id);
@@ -132,8 +141,39 @@ export function PollComposerModal({ chatId, onClose, onCreated, editing, onUpdat
           )}
         </div>
 
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setAllowMultiple(false)}
+            disabled={hasVotes}
+            className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition disabled:opacity-60 ${
+              !allowMultiple
+                ? "border-[#E07A5F] bg-[#E07A5F]/10 text-[#E07A5F]"
+                : "border-black/10 dark:border-white/10 text-[#8C8C8C]"
+            }`}
+          >
+            <Circle className="h-3.5 w-3.5" /> Single choice
+          </button>
+          <button
+            type="button"
+            onClick={() => !isQuiz && setAllowMultiple(true)}
+            disabled={hasVotes || isQuiz}
+            title={isQuiz ? "Quizzes only allow one correct answer" : undefined}
+            className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition disabled:opacity-60 ${
+              allowMultiple
+                ? "border-[#E07A5F] bg-[#E07A5F]/10 text-[#E07A5F]"
+                : "border-black/10 dark:border-white/10 text-[#8C8C8C]"
+            }`}
+          >
+            <CheckSquare className="h-3.5 w-3.5" /> Multiple choice
+          </button>
+        </div>
+        {hasVotes && (
+          <p className="mt-1.5 text-[11px] text-[#8C8C8C]">Can't change single/multiple choice after votes are in.</p>
+        )}
+
         <label className="mt-4 flex items-center gap-2 text-xs font-medium text-[#2D3436] dark:text-[#E8E8E8]">
-          <input type="checkbox" checked={isQuiz} onChange={(e) => { setIsQuiz(e.target.checked); setCorrectIndex(null); }} className="h-4 w-4 accent-[#E07A5F]" />
+          <input type="checkbox" checked={isQuiz} onChange={(e) => toggleQuiz(e.target.checked)} className="h-4 w-4 accent-[#E07A5F]" />
           Quiz mode (mark the correct answer)
         </label>
 

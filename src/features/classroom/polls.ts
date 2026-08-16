@@ -157,3 +157,60 @@ export async function deletePoll(pollId: string): Promise<void> {
   const { error } = await supabase.from("polls").delete().eq("id", pollId);
   if (error) throw error;
 }
+
+export interface PollParticipant {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface PollParticipation {
+  totalMembers: number;
+  answered: PollParticipant[];
+  notAnswered: PollParticipant[];
+}
+
+/**
+ * Compares a poll's distinct voters against the chat's member list, so
+ * the creator can see who in the group has/hasn't answered — not just a
+ * raw vote count. AI members and the poll's own creator are excluded
+ * from "not answered" (a bot won't vote, and the creator isn't expected
+ * to answer their own poll).
+ */
+export async function getPollParticipation(pollId: string, chatId: string): Promise<PollParticipation> {
+  const [{ data: votes, error: voteErr }, { data: memberRows, error: memErr }, { data: pollRow, error: pollErr }] =
+    await Promise.all([
+      supabase.from("poll_votes").select("user_id").eq("poll_id", pollId),
+      supabase.from("chat_members").select("user_id").eq("chat_id", chatId),
+      supabase.from("polls").select("created_by").eq("id", pollId).single(),
+    ]);
+  if (voteErr) throw voteErr;
+  if (memErr) throw memErr;
+  if (pollErr) throw pollErr;
+
+  const votedIds = new Set((votes ?? []).map((v) => v.user_id as string));
+  const memberIds = (memberRows ?? []).map((m) => m.user_id as string);
+  const creatorId = pollRow?.created_by as string | undefined;
+
+  const eligibleIds = memberIds.filter((id) => id !== creatorId);
+  if (eligibleIds.length === 0) {
+    return { totalMembers: 0, answered: [], notAnswered: [] };
+  }
+
+  const { data: profiles, error: profErr } = await supabase
+    .from("profiles")
+    .select("id,display_name,avatar_url,is_ai")
+    .in("id", eligibleIds);
+  if (profErr) throw profErr;
+
+  const answered: PollParticipant[] = [];
+  const notAnswered: PollParticipant[] = [];
+  for (const p of profiles ?? []) {
+    if (p.is_ai) continue; // bots don't vote — don't count them as "haven't answered"
+    const entry: PollParticipant = { userId: p.id, displayName: p.display_name ?? "Someone", avatarUrl: p.avatar_url ?? null };
+    if (votedIds.has(p.id)) answered.push(entry);
+    else notAnswered.push(entry);
+  }
+
+  return { totalMembers: answered.length + notAnswered.length, answered, notAnswered };
+}

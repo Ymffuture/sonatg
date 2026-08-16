@@ -19,11 +19,19 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  X,
+  UserCheck,
+  UserX,
 } from "lucide-react";
-import { loadPollWithResults, votePoll, retractVote, closePoll, reopenPoll, revealPollResults, hidePollResults, deletePoll } from "./polls";
+import {
+  loadPollWithResults, votePoll, retractVote, closePoll, reopenPoll, revealPollResults, hidePollResults, deletePoll,
+  getPollParticipation, type PollParticipation,
+} from "./polls";
 import type { PollWithOptions } from "./types";
 import { PollComposerModal } from "./PollComposerModal";
 import { useConfirm } from "@/hooks/useConfirmDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { Avatar } from "@/components/Avatar";
 
 /* ─── Chart Colors ─── */
 const CHART_COLORS = ["#4ade80", "#22d3ee", "#a78bfa", "#fbbf24", "#fb7185", "#34d399"];
@@ -223,6 +231,9 @@ export function PollCard({ pollId, meId }: { pollId: string; meId: string }) {
   const [busy, setBusy] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  const [showParticipation, setShowParticipation] = useState(false);
+  const [participation, setParticipation] = useState<PollParticipation | null>(null);
+  const [participationLoading, setParticipationLoading] = useState(false);
 
   const reload = async () => {
     try {
@@ -234,6 +245,31 @@ export function PollCard({ pollId, meId }: { pollId: string; meId: string }) {
   };
 
   useEffect(() => { reload(); }, [pollId]);
+
+  // Live updates: anyone voting/retracting, or the creator closing,
+  // reopening, or revealing results, should reflect for every viewer
+  // without a manual refresh — same as a normal chat message arriving.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`poll-${pollId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "poll_votes", filter: `poll_id=eq.${pollId}` }, reload)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "polls", filter: `id=eq.${pollId}` }, reload)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "polls", filter: `id=eq.${pollId}` }, () => setPoll(null))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [pollId]);
+
+  const openParticipation = async () => {
+    if (!poll) return;
+    setShowParticipation(true);
+    setParticipationLoading(true);
+    try {
+      const data = await getPollParticipation(poll.id, poll.chat_id);
+      setParticipation(data);
+    } finally {
+      setParticipationLoading(false);
+    }
+  };
 
   const sortedOptions = useMemo(() => {
     if (!poll) return [];
@@ -446,12 +482,25 @@ export function PollCard({ pollId, meId }: { pollId: string; meId: string }) {
 
         {/* ─── Footer ─── */}
         <div className="flex items-center justify-between border-t border-black/5 dark:border-white/5 bg-[#F0F2F5]/50 dark:bg-white/[0.02] px-3.5 py-2">
-          <div className="flex items-center gap-1.5 text-[11px] text-[#8C8C8C]">
-            <Users className="h-3 w-3" />
-            <span className="font-medium">
-              {totalVotes} vote{totalVotes === 1 ? "" : "s"}
-            </span>
-          </div>
+          {isCreator ? (
+            <button
+              type="button"
+              onClick={openParticipation}
+              className="flex items-center gap-1.5 text-[11px] text-[#8C8C8C] hover:text-[#E07A5F] transition-colors"
+            >
+              <Users className="h-3 w-3" />
+              <span className="font-medium underline decoration-dotted underline-offset-2">
+                {totalVotes} vote{totalVotes === 1 ? "" : "s"} · who answered?
+              </span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[11px] text-[#8C8C8C]">
+              <Users className="h-3 w-3" />
+              <span className="font-medium">
+                {totalVotes} vote{totalVotes === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
 
           {poll.closes_at && (
             <div className="flex items-center gap-1.5 text-[11px] text-[#8C8C8C]">
@@ -461,6 +510,70 @@ export function PollCard({ pollId, meId }: { pollId: string; meId: string }) {
           )}
         </div>
       </div>
+
+      {showParticipation && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowParticipation(false)}>
+          <div
+            className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-white dark:bg-[#1E1E1E] p-5 max-h-[75vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-[#111827] dark:text-[#E8E8E8]">Who's answered</p>
+              <button onClick={() => setShowParticipation(false)} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {participationLoading ? (
+              <div className="grid h-32 place-items-center text-xs text-[#8C8C8C]">Loading…</div>
+            ) : participation ? (
+              <>
+                <p className="mt-1 text-xs text-[#8C8C8C]">
+                  {participation.answered.length} of {participation.totalMembers} group member{participation.totalMembers === 1 ? "" : "s"} answered
+                </p>
+
+                <div className="mt-4">
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-green-500">
+                    <UserCheck className="h-3.5 w-3.5" /> Answered ({participation.answered.length})
+                  </p>
+                  {participation.answered.length === 0 ? (
+                    <p className="text-xs text-[#8C8C8C]">No one yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {participation.answered.map((p) => (
+                        <div key={p.userId} className="flex items-center gap-2">
+                          <Avatar url={p.avatarUrl} name={p.displayName} size={28} />
+                          <span className="truncate text-sm text-[#111827] dark:text-[#E8E8E8]">{p.displayName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#8C8C8C]">
+                    <UserX className="h-3.5 w-3.5" /> Haven't answered ({participation.notAnswered.length})
+                  </p>
+                  {participation.notAnswered.length === 0 ? (
+                    <p className="text-xs text-[#8C8C8C]">Everyone's answered! 🎉</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {participation.notAnswered.map((p) => (
+                        <div key={p.userId} className="flex items-center gap-2 opacity-60">
+                          <Avatar url={p.avatarUrl} name={p.displayName} size={28} />
+                          <span className="truncate text-sm text-[#111827] dark:text-[#E8E8E8]">{p.displayName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 text-xs text-[#8C8C8C]">Couldn't load participation.</p>
+            )}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
