@@ -13,6 +13,16 @@ export interface CreatePollInput {
   correctOptionIndex?: number | null;
   allowMultiple?: boolean;
   closesAt?: string | null;
+  /** false = hide the tally from voters until the creator reveals it or the poll closes (quiz-style). Default true. */
+  resultsVisible?: boolean;
+}
+
+export interface UpdatePollInput {
+  question?: string;
+  /** Replacing options only works cleanly before anyone has voted — see replacePollOptions(). */
+  correctOptionIndex?: number | null;
+  allowMultiple?: boolean;
+  closesAt?: string | null;
 }
 
 export async function createPoll(input: CreatePollInput): Promise<PollWithOptions> {
@@ -31,6 +41,7 @@ export async function createPoll(input: CreatePollInput): Promise<PollWithOption
       correct_option_index: input.correctOptionIndex ?? null,
       allow_multiple: input.allowMultiple ?? false,
       closes_at: input.closesAt ?? null,
+      results_visible: input.resultsVisible ?? true,
     })
     .select("*")
     .single();
@@ -87,4 +98,62 @@ export async function loadPollWithResults(pollId: string): Promise<PollWithOptio
   }
 
   return { ...(poll as PollRow), options: (options ?? []) as PollOption[], voteCounts, myVotes };
+}
+
+/** Closes voting immediately (sets closes_at to now). Creator/admin only — enforced by RLS. */
+export async function closePoll(pollId: string): Promise<void> {
+  const { error } = await supabase.from("polls").update({ closes_at: new Date().toISOString() }).eq("id", pollId);
+  if (error) throw error;
+}
+
+/** Reopens a closed poll, either indefinitely or until a new deadline. Creator/admin only. */
+export async function reopenPoll(pollId: string, closesAt: string | null = null): Promise<void> {
+  const { error } = await supabase.from("polls").update({ closes_at: closesAt }).eq("id", pollId);
+  if (error) throw error;
+}
+
+/** Reveals results to voters when the poll was created with resultsVisible: false. Creator/admin only. */
+export async function revealPollResults(pollId: string): Promise<void> {
+  const { error } = await supabase.from("polls").update({ results_visible: true }).eq("id", pollId);
+  if (error) throw error;
+}
+
+/** Re-hides results (e.g. creator wants to walk through a quiz one question at a time). Creator/admin only. */
+export async function hidePollResults(pollId: string): Promise<void> {
+  const { error } = await supabase.from("polls").update({ results_visible: false }).eq("id", pollId);
+  if (error) throw error;
+}
+
+/** Edits the question/settings of a poll. Doesn't touch options — see replacePollOptions(). Creator/admin only. */
+export async function updatePoll(pollId: string, patch: UpdatePollInput): Promise<void> {
+  const update: Record<string, unknown> = {};
+  if (patch.question !== undefined) update.question = patch.question;
+  if (patch.correctOptionIndex !== undefined) update.correct_option_index = patch.correctOptionIndex;
+  if (patch.allowMultiple !== undefined) update.allow_multiple = patch.allowMultiple;
+  if (patch.closesAt !== undefined) update.closes_at = patch.closesAt;
+  if (Object.keys(update).length === 0) return;
+  const { error } = await supabase.from("polls").update(update).eq("id", pollId);
+  if (error) throw error;
+}
+
+/**
+ * Replaces a poll's option list. Only safe to call when the poll has no
+ * votes yet (the UI should disable editing options once voting starts) —
+ * deleting an option a user already voted for would silently drop their
+ * vote via the options table's cascade.
+ */
+export async function replacePollOptions(pollId: string, labels: string[]): Promise<PollOption[]> {
+  if (labels.length < 2) throw new Error("A poll needs at least 2 options");
+  const { error: delErr } = await supabase.from("poll_options").delete().eq("poll_id", pollId);
+  if (delErr) throw delErr;
+  const rows = labels.map((label, position) => ({ poll_id: pollId, label, position }));
+  const { data, error } = await supabase.from("poll_options").insert(rows).select("*");
+  if (error) throw error;
+  return (data ?? []) as PollOption[];
+}
+
+/** Deletes a poll entirely (options/votes cascade). Creator/admin only. */
+export async function deletePoll(pollId: string): Promise<void> {
+  const { error } = await supabase.from("polls").delete().eq("id", pollId);
+  if (error) throw error;
 }

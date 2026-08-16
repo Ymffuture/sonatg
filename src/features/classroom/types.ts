@@ -27,6 +27,7 @@ export interface PollRow {
   correct_option_index: number | null;
   allow_multiple: boolean;
   closes_at: string | null;
+  results_visible: boolean;
   created_at: string;
 }
 
