@@ -17,7 +17,7 @@ import { SoundsProvider } from "@/hooks/useSounds";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#2D3436] px-4">
       <Result
         status="404"
         title="404"
@@ -90,7 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "Sona" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "application-name", content: "Sona" },
-      { name: "msapplication-TileColor", content: "#E07A5F" },
+      { name: "msapplication-TileColor", content: "#1E1E1E" },
       { name: "msapplication-config", content: "/browserconfig.xml" },
       { property: "og:site_name", content: "Sona" },
       { property: "og:title", content: "Sona — Talk Gold" },
@@ -114,7 +114,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/sonatg-logo.png", type: "image/png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/favicon.png" },
-      { rel: "mask-icon", href: "/192-logo.png", color: "#E07A5F" },
+      { rel: "mask-icon", href: "/192-logo.png", color: "#1E1E1E" },
     ],
   }),
   shellComponent: RootShell,
