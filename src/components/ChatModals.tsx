@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X, Settings, DoorOpen, BadgeCheck, Camera, UserPlus, CheckSquare, Square, Trash2,
-  Ban, Search, Sparkles, Crown, Plus, Users,
+  Ban, Search, Sparkles, Crown, Plus, Users, UserX,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
   Image as ImageIcon, Palette, Zap, MessageSquare, Radio, Copy, KeyRound,
@@ -12,6 +12,7 @@ import { startPaystackCheckout } from "@/lib/paystack.functions";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
 import { useBackToClose } from "@/hooks/useBackStack";
+import { useConfirm } from "@/hooks/useConfirmDialog";
 import {
   CHAT_CATEGORIES, type Profile, type ChatCategory,
 } from "@/lib/db";
@@ -84,12 +85,14 @@ function GlassSheet({
 
 /* ─── Member List ─── */
 export function MemberListModal({
-  chat, meId, isAdmin, onClose, onOpenSettings, onLeave, onViewProfile,
+  chat, meId, isAdmin, onClose, onOpenSettings, onLeave, onViewProfile, onRemoveMember,
 }: {
   chat: ChatWithMeta; meId: string; isAdmin: boolean;
   onClose: () => void; onOpenSettings: () => void; onLeave: () => void;
   onViewProfile?: (member: Profile) => void;
+  onRemoveMember?: (member: Profile) => void;
 }) {
+  const confirm = useConfirm();
   return (
     <GlassSheet onClose={onClose}>
       <div className="pt-2.5 pb-1 flex justify-center">
@@ -131,6 +134,24 @@ export function MemberListModal({
                 <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Owner" : "participant"}</span>
                 {m.bio && <p className="mt-0.5 truncate text-xs text-[#8C8C8C]/80 italic">{m.bio}</p>}
               </div>
+              {isAdmin && m.id !== meId && onRemoveMember && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const ok = await confirm({
+                      title: `Remove ${m.display_name}?`,
+                      description: "They'll be removed from this group and won't see new messages, but can be re-added later.",
+                      confirmText: "Remove",
+                      danger: true,
+                    });
+                    if (ok) onRemoveMember(m);
+                  }}
+                  aria-label={`Remove ${m.display_name}`}
+                  className="shrink-0 grid h-8 w-8 place-items-center rounded-full text-[#8C8C8C] hover:bg-red-500/10 hover:text-red-500 transition"
+                >
+                  <UserX className="h-4 w-4" />
+                </button>
+              )}
             </div>
           );
         })}
@@ -164,6 +185,7 @@ export function GroupSettingsModal({
   onUpdated: () => void; onDelete: () => void;
 }) {
   const [title, setTitle] = useState(chat.title ?? "");
+  const [category, setCategory] = useState<ChatCategory>(chat.category ?? "general");
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const avatarPreview = useMemo(() => (avatarFile ? URL.createObjectURL(avatarFile) : null), [avatarFile]);
@@ -246,7 +268,7 @@ export function GroupSettingsModal({
         const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
         avatar_url = signed?.signedUrl ?? avatar_url;
       }
-      const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url }).eq("id", chat.id);
+      const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url, category }).eq("id", chat.id);
       if (error) throw error;
       notify.success({ message: "Group updated", description: "Your changes to the group name, photo, or settings have been saved for everyone." });
       onUpdated();
@@ -313,6 +335,29 @@ export function GroupSettingsModal({
             onChange={(e) => setTitle(e.target.value)}
             className="mt-1 w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
           />
+        </div>
+
+        {/* Category */}
+        <div>
+          <label className="text-xs font-medium text-[#8C8C8C]">Category</label>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {CHAT_CATEGORIES.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setCategory(cat.value)}
+                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition border ${
+                  category === cat.value
+                    ? "bg-[#E07A5F] text-white border-[#E07A5F] shadow-md"
+                    : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border-white/30 dark:border-white/10 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-white/10"
+                }`}
+              >
+                <Tooltip title={cat.label}>
+                  <span className="flex items-center"><CategoryIcon category={cat.value} /></span>
+                </Tooltip>
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Add members */}

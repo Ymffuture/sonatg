@@ -1129,7 +1129,14 @@ export function Bubble({
                 }`}
               >
                 <div className="font-semibold italic text-[#E07A5F] text-[11px]">{parentName}</div>
-                <div className="truncate opacity-80 max-w-[240px] leading-tight">{parentBody}</div>
+                {/* Fade-out on the right edge instead of a hard "…" cutoff —
+                    reads more naturally for a preview snippet, and doesn't
+                    clip a clickable link mid-URL. */}
+                <div
+                  className="overflow-hidden whitespace-nowrap max-w-[240px] leading-tight opacity-80 [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)]"
+                >
+                  {parentBody}
+                </div>
               </div>
             )}
 

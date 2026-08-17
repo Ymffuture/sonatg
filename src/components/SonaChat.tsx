@@ -6,7 +6,7 @@ import {
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
-  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2,
+  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Eraser,
 } from "lucide-react";
 import { LuCircleFadingPlus } from "react-icons/lu";
 import { IoCameraOutline } from "react-icons/io5";
@@ -172,6 +172,33 @@ function fmtChatTimestamp(iso: string): string {
   return `${yyyy}/${mm}/${dd}`;
 }
 
+// ─── Per-chat draft persistence ────────────────────────────────
+// Keeps an unsent message from being lost if you switch chats, close the
+// tab, or the send fails (e.g. no network) — same idea as WhatsApp/Slack
+// remembering what you were mid-typing. Scoped per chat id in
+// localStorage; failures (private browsing, storage disabled, quota) are
+// swallowed since a draft is a nice-to-have, never worth crashing over.
+const draftKey = (chatId: string) => `sona:draft:${chatId}`;
+
+function saveDraftToStorage(chatId: string, text: string) {
+  try {
+    if (text) localStorage.setItem(draftKey(chatId), text);
+    else localStorage.removeItem(draftKey(chatId));
+  } catch { /* storage unavailable — draft just won't persist, not fatal */ }
+}
+
+function loadDraftFromStorage(chatId: string): string {
+  try {
+    return localStorage.getItem(draftKey(chatId)) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function clearDraftFromStorage(chatId: string) {
+  try { localStorage.removeItem(draftKey(chatId)); } catch { /* no-op */ }
+}
+
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
   if (!msg) return null; // ← add this guard
 
@@ -196,13 +223,25 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
 
   if (msg.body) {
     // A plain text message whose body is (or starts with) a link gets a
-    // link-style preview, same treatment photos/videos already get,
-    // instead of just dumping the raw URL as truncated text.
-    if (/https?:\/\/\S+/i.test(msg.body)) {
+    // link-style preview, same treatment photos/videos already get. The
+    // URL itself is a real clickable link — tapping it opens the page
+    // directly from the preview instead of only being able to jump to
+    // the original message first.
+    const linkMatch = msg.body.match(/https?:\/\/\S+/i);
+    if (linkMatch) {
+      const url = linkMatch[0];
       return (
-        <span className="inline-flex items-center gap-1">
+        <span className="inline-flex min-w-0 items-center gap-1">
           <Link2 className="h-4 w-4 shrink-0 text-[#4FA6E0]" />
-          <span className="truncate">{msg.body}</span>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="truncate text-[#4FA6E0] underline decoration-[#4FA6E0]/40 underline-offset-2 hover:decoration-[#4FA6E0]"
+          >
+            {msg.body}
+          </a>
         </span>
       );
     }
@@ -406,6 +445,23 @@ function SonaChatInner() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState("");
+
+  // Restore a saved draft (from a prior visit, or one preserved after a
+  // failed send) whenever you switch into a chat — mirrors how WhatsApp
+  // remembers what you were mid-typing per conversation.
+  useEffect(() => {
+    if (!activeId) return;
+    setDraft(loadDraftFromStorage(activeId));
+  }, [activeId]);
+
+  // Persist as you type (debounced) so the draft survives a chat switch,
+  // tab close, or crash — not just an explicit send failure.
+  useEffect(() => {
+    if (!activeId) return;
+    const t = setTimeout(() => saveDraftToStorage(activeId, draft), 400);
+    return () => clearTimeout(t);
+  }, [activeId, draft]);
+
   const [showEmoji, setShowEmoji] = useState(false);
   const [pendingImages, setPendingImages] = useState<File[]>([]);
   const pendingImageUrls = useMemo(
@@ -1095,6 +1151,8 @@ function SonaChatInner() {
   }), [chats, query, me, blockedIds, activeFolder, chatFolderMap]);
 
   const unreadFolderCount = chats.filter((c) => c.unread > 0).length;
+  const groupsFolderCount = chats.filter((c) => c.is_group).length;
+  const favoritesFolderCount = chats.filter((c) => c.isPinned).length;
 
   // Selection handlers
   const openScheduledList = async () => {
@@ -1173,6 +1231,13 @@ function SonaChatInner() {
     toast.success("You left the group");
     setShowMemberList(false);
     if (activeId === chatId) setActiveId(null);
+    loadChats();
+  };
+
+  const removeMember = async (chatId: string, member: Profile) => {
+    const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", member.id);
+    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    toast.success(`Removed ${member.display_name}`);
     loadChats();
   };
 
@@ -1292,6 +1357,16 @@ function SonaChatInner() {
       }
       if (outgoing.length === 0 && plaintext) outgoing.push({ kind: "text" });
 
+      const hadAttachmentsPicked = pendingImages.length > 0 || pendingDocs.length > 0;
+      if (outgoing.length === 0 && hadAttachmentsPicked) {
+        // Every upload failed (most commonly: no network) and there was
+        // no text to fall back to sending on its own. Keep the picked
+        // files in place so the user can just hit send again — don't
+        // silently drop what they attached.
+        toast.error("Couldn't upload — check your connection and try again.");
+        return;
+      }
+
       let firstAttachedImageUrl: string | null = null;
       let firstAttachedFileUrl: string | null = null;
       let firstAttachedFileName: string | null = null;
@@ -1299,6 +1374,7 @@ function SonaChatInner() {
         ? new Date(Date.now() + active.disappearing_seconds * 1000).toISOString()
         : null;
       const scheduledAt = scheduledFor ? scheduledFor.toISOString() : null;
+      let anySucceeded = false;
       for (let i = 0; i < outgoing.length; i++) {
         const item = outgoing[i];
         if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
@@ -1332,6 +1408,7 @@ function SonaChatInner() {
           if (!scheduledFor) setMessages((prev) => prev.filter((m) => m.id !== tempId));
           continue;
         }
+        anySucceeded = true;
         if (!scheduledFor && inserted) {
           setMessages((prev) => {
             // If the realtime echo of this same insert already arrived
@@ -1345,8 +1422,17 @@ function SonaChatInner() {
       }
       if (scheduledFor) {
         antMessage.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);
-      } else {
+      } else if (anySucceeded) {
         playSendSound();
+      }
+
+      if (outgoing.length > 0 && !anySucceeded && !scheduledFor) {
+        // Every attempt failed (most commonly: no network). Keep the
+        // draft text and any picked images/docs exactly as they were, so
+        // the user can just hit send again once they're back online —
+        // the debounced localStorage effect already has this text saved.
+        toast.error("Couldn't send — your message is saved as a draft, try again when you're back online.");
+        return;
       }
 
       const prompt = plaintext;
@@ -1354,6 +1440,7 @@ function SonaChatInner() {
       const attachedFileUrl = firstAttachedFileUrl;
       const attachedFileName = firstAttachedFileName;
       setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
+      if (activeId) clearDraftFromStorage(activeId);
 
       if (!scheduledFor && active && !active.is_hidden) {
         const isAI = isAIChat(active);
@@ -1542,6 +1629,30 @@ function SonaChatInner() {
     if (error) { toast.error(error.message); return; }
     toast.success(next ? "Chat hidden — set a passcode to unlock" : "Chat is no longer hidden");
     setShowHeaderMenu(false);
+    loadChats();
+  };
+
+  const clearChat = async () => {
+    if (!active || !me) return;
+    setShowHeaderMenu(false);
+    const ok = await confirm({
+      title: "Clear this chat?",
+      description: "Removes all messages from your view only — the other person or group members will still see them. This can't be undone.",
+      confirmText: "Clear chat",
+      danger: true,
+    });
+    if (!ok) return;
+    const clearedBefore = new Date().toISOString();
+    const { error } = await supabase
+      .from("chat_clears")
+      .upsert({ chat_id: active.id, user_id: me.id, cleared_before: clearedBefore }, { onConflict: "chat_id,user_id" });
+    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    // Instant local feedback — don't wait on a refetch to reflect the clear.
+    setMessages([]);
+    setReactions([]);
+    setReads([]);
+    chatCacheRef.current[active.id] = { messages: [], reactions: [], reads: [] };
+    toast.success("Chat cleared");
     loadChats();
   };
 
@@ -1952,10 +2063,10 @@ useEffect(() => {
 
             <div data-tour="folder-tabs" className="flex items-center gap-2 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-hiding">
               {([
-                { key: "all", label: "All" },
+                { key: "all", label: `All${chats.length ? ` ${chats.length}` : ""}` },
                 { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
-                { key: "groups", label: "Groups" },
-                { key: "pinned", label: "Favorites" },
+                { key: "groups", label: `Groups${groupsFolderCount ? ` ${groupsFolderCount}` : ""}` },
+                { key: "pinned", label: `Favorites${favoritesFolderCount ? ` ${favoritesFolderCount}` : ""}` },
               ] as const).map((f) => (
                 <button
                   key={f.key}
@@ -2426,6 +2537,12 @@ useEffect(() => {
                           label: "Media, links, and docs",
                           icon: <ImageIcon className="h-4 w-4" />,
                         },
+                        {
+                          key: "clear",
+                          label: "Clear chat",
+                          icon: <Eraser className="h-4 w-4" />,
+                          onClick: clearChat,
+                        },
                         ...(!isAIChat(active)
                           ? [{
                               key: "hide",
@@ -2644,7 +2761,7 @@ useEffect(() => {
                         <div className="font-semibold text-[#E07A5F] flex items-center gap-1">
                           {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
                         </div>
-                        <div className="truncate opacity-80 text-[#2D3436] dark:text-[#E8E8E8]">
+                        <div className="overflow-hidden whitespace-nowrap opacity-80 text-[#2D3436] dark:text-[#E8E8E8] [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)]">
                           {editing ? (editing.body ?? "") : <MessagePreview msg={replyTo} decrypted={decrypted} />}
                         </div>
                       </div>
@@ -2816,6 +2933,7 @@ useEffect(() => {
           onOpenSettings={() => { setShowMemberList(false); setShowGroupSettings(true); }}
           onLeave={() => leaveGroup(active.id)}
           onViewProfile={(m) => { setShowMemberList(false); setViewingProfile(m); }}
+          onRemoveMember={(m) => removeMember(active.id, m)}
         />
       )}
 
