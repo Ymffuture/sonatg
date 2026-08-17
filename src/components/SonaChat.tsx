@@ -61,7 +61,7 @@ import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/li
 import { playSendSound, playReceiveSound } from "@/lib/sounds";
 import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
-import sonaAi from "@/assets/sona01.png";
+import sonaAi from "@/assets/sona02.png";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
@@ -87,7 +87,7 @@ import { useMessageModeration, ModerationAlert } from "@/features/moderation";
 import { getOrgFileLimits } from "@/features/admin";
 import { PollComposerModal, canPostInChat } from "@/features/classroom";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
-
+import { FaPoll } from "react-icons/fa";
 
 // Call-log messages store their metadata as JSON in the file_name column
 // (body stays null so MessagePreview's switch renders it, rather than the
@@ -216,7 +216,7 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
   if (msg.kind === "poll") {
     return (
       <span className="inline-flex items-center gap-1">
-        <ListChecks className="h-4 w-4 shrink-0 text-[#E07A5F]" /> Poll
+        <FaPoll className="h-4 w-4 shrink-0 text-[#E07A5F]/10" /> Poll
       </span>
     );
   }
@@ -2063,7 +2063,7 @@ useEffect(() => {
 
             <div data-tour="folder-tabs" className="flex items-center gap-2 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-hiding">
               {([
-                { key: "all", label: `All${chats.length ? ` ${chats.length}` : ""}` },
+                { key: "all", label: `All` },
                 { key: "unread", label: `Unread ${unreadFolderCount ? ` ${unreadFolderCount}` : ""}` },
                 { key: "groups", label: `Groups${groupsFolderCount ? ` ${groupsFolderCount}` : ""}` },
                 { key: "pinned", label: `Favorites${favoritesFolderCount ? ` ${favoritesFolderCount}` : ""}` },
@@ -2073,7 +2073,7 @@ useEffect(() => {
                   onClick={() => setActiveFolder(f.key)}
                   className={`shrink-0 rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
-                      ? "bg-[#E07A5F] text-white"
+                      ? "bg-[#E07A5F]/10 text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
                   }`}
                 >
