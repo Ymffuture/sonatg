@@ -1125,7 +1125,7 @@ export function Bubble({
             {parentBody !== undefined && (
               <div
                 className={`mb-1.5 rounded-lg border-l-[1px] border-[#E07A5F] px-2 py-1.5 text-[11px] ${
-                  mine ? "bg-black/10" : "bg-[red] dark:bg-white/5"
+                  mine ? "bg-black/10" : "bg-[#2D3436]/10 dark:bg-white/5"
                 }`}
               >
                 <div className="font-semibold italic text-[#E07A5F] text-[11px]">{parentName}</div>
