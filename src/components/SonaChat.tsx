@@ -1259,7 +1259,8 @@ function SonaChatInner() {
         const item = outgoing[i];
         if (item.kind === "image" && !firstAttachedImageUrl) firstAttachedImageUrl = item.media_url ?? null;
         if (item.kind === "file" && !firstAttachedFileUrl) { firstAttachedFileUrl = item.media_url ?? null; firstAttachedFileName = item.file_name ?? null; }
-        const { error } = await supabase.from("messages").insert({
+
+        const payload = {
           chat_id: activeId, sender_id: me.id, kind: item.kind,
           body: i === 0 ? firstBody : null,
           media_url: item.media_url ?? null,
@@ -1269,8 +1270,34 @@ function SonaChatInner() {
           reply_to_id: i === 0 ? (replyTo?.id ?? null) : null,
           expires_at: expiresAt,
           scheduled_at: scheduledAt,
-        });
-        if (error) { toast.error(error.message); continue; }
+        };
+
+        // Scheduled messages shouldn't show up in the feed now — they're
+        // not due yet — so only optimistically render immediate sends.
+        const tempId = `optimistic:${crypto.randomUUID()}`;
+        if (!scheduledFor) {
+          setMessages((prev) => [
+            ...prev,
+            { id: tempId, created_at: new Date().toISOString(), ...payload, _pending: true } as MessageRow,
+          ]);
+        }
+
+        const { data: inserted, error } = await supabase.from("messages").insert(payload).select().single();
+        if (error) {
+          toast.error(error.message);
+          if (!scheduledFor) setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          continue;
+        }
+        if (!scheduledFor && inserted) {
+          setMessages((prev) => {
+            // If the realtime echo of this same insert already arrived
+            // (rare, but possible under high latency), drop that copy
+            // before swapping the temp bubble for the real row, so we
+            // don't end up with the same message twice.
+            const withoutRealtimeDupe = prev.filter((m) => m.id !== (inserted as MessageRow).id);
+            return withoutRealtimeDupe.map((m) => (m.id === tempId ? (inserted as MessageRow) : m));
+          });
+        }
       }
       if (scheduledFor) {
         antMessage.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);

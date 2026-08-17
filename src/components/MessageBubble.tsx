@@ -1090,7 +1090,9 @@ export function Bubble({
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl ${bubbleRadius} ${
+            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl transition-opacity ${bubbleRadius} ${
+              msg._pending ? "opacity-60" : "opacity-100"
+            } ${
               mine
                 ? "bg-[#1E1E1E] dark:bg-gray-600 text-white"
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
@@ -1123,7 +1125,7 @@ export function Bubble({
             {parentBody !== undefined && (
               <div
                 className={`mb-1.5 rounded-lg border-l-[1px] border-[#E07A5F] px-2 py-1.5 text-[11px] ${
-                  mine ? "bg-black/10" : "bg-[#8C8C8C]/10 dark:bg-white/5"
+                  mine ? "bg-black/10" : "bg-[red] dark:bg-white/5"
                 }`}
               >
                 <div className="font-semibold italic text-[#E07A5F] text-[11px]">{parentName}</div>
@@ -1314,7 +1316,7 @@ export function Bubble({
             )}
                 {msg.edited_at && <span className="text-[10px] italic opacity-70">edited</span>}
                 <span className="text-[10.5px] tabular-nums">{fmtTime(msg.created_at)}</span>
-                {mine && <TickIcon status={status} className="h-3.5 w-3.5" />}
+                {mine && (msg._pending ? <Clock className="h-3 w-3 text-white/60" /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
               </div>
             </div>
           </div>
