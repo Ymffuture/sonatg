@@ -6,7 +6,6 @@ import {
   Crown, Phone, Download, Forward, UserCircle2, FolderOpen, Video, FileText,
   CalendarClock, Pin, Ban, Radio, ChevronDown, ChevronUp,
 } from "lucide-react";
-import {AppLogo} from "./sonatg-logo.png" ;
 export const Route = createFileRoute("/learn")({
   head: () => ({
     meta: [
@@ -389,7 +388,11 @@ function LearnPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <img src={AppLogo} alt="" className="flex items-center gap-2 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-hiding" size={28} />
+            <img
+  src="/sonatg-logo.png"
+  alt="Sona"
+  className="h-7 w-auto"
+/>
           </div>
         </div>
       </header>
