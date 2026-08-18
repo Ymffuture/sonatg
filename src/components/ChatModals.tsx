@@ -4,7 +4,7 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users, UserX,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Image as ImageIcon, Palette, Zap, MessageSquare, Radio, Copy, KeyRound,
+  Image as ImageIcon, Palette, Zap, MessageSquare, Radio, Copy, KeyRound, Mail,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/ut
 import { Avatar } from "./Avatar";
 import { Spin, Skeleton, Tooltip, notification } from "antd";
 import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
+import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
 import SoundSettings from "./SoundSettings";
 
@@ -800,6 +801,27 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [notif, setNotif] = useState<NotificationPermission>(typeof Notification !== "undefined" ? Notification.permission : "default");
+  const [emailPrefs, setEmailPrefs] = useState<NotificationPreferences | null>(null);
+  const [emailPrefsBusy, setEmailPrefsBusy] = useState(false);
+
+  useEffect(() => {
+    fetchMyNotificationPreferences(me.id).then(setEmailPrefs).catch(() => {});
+  }, [me.id]);
+
+  const toggleEmailPref = async (key: "notify_app_updates" | "notify_offline_messages") => {
+    if (!emailPrefs) return;
+    const next = { ...emailPrefs, [key]: !emailPrefs[key] };
+    setEmailPrefs(next); // optimistic
+    setEmailPrefsBusy(true);
+    try {
+      await updateMyNotificationPreferences(me.id, { [key]: next[key] });
+    } catch {
+      setEmailPrefs(emailPrefs); // revert on failure
+      notify.error({ message: "Couldn't update", description: "Try again in a moment." });
+    } finally {
+      setEmailPrefsBusy(false);
+    }
+  };
 
   const pickAvatar = () => avatarInputRef.current?.click();
 
@@ -965,6 +987,38 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
               {notif !== "granted" && (
                 <button onClick={askNotif} className="mt-2 rounded-lg bg-white/50 dark:bg-white/5 px-3 py-1.5 text-xs hover:bg-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8] border border-white/20 dark:border-white/10 transition">Enable</button>
               )}
+            </div>
+            <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Mail className="h-4 w-4 text-[#E07A5F]" /> Email notifications</div>
+              <p className="mt-1 text-xs text-[#8C8C8C]">Sent to {me.email || "your account email"} — separate from the in-app push notifications above.</p>
+              <div className="mt-3 space-y-2">
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-[#2D3436] dark:text-[#E8E8E8]">
+                    New message while I'm offline
+                    <span className="block text-[10px] text-[#8C8C8C]">A friend messages you and you're away — get an email so you don't miss it.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={emailPrefs?.notify_offline_messages ?? true}
+                    disabled={!emailPrefs || emailPrefsBusy}
+                    onChange={() => toggleEmailPref("notify_offline_messages")}
+                    className="h-4 w-4 shrink-0 accent-[#E07A5F]"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-[#2D3436] dark:text-[#E8E8E8]">
+                    App updates
+                    <span className="block text-[10px] text-[#8C8C8C]">Get an email when there's a new announcement about the app.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={emailPrefs?.notify_app_updates ?? true}
+                    disabled={!emailPrefs || emailPrefsBusy}
+                    onChange={() => toggleEmailPref("notify_app_updates")}
+                    className="h-4 w-4 shrink-0 accent-[#E07A5F]"
+                  />
+                </label>
+              </div>
             </div>
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
               <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Music className="h-4 w-4 text-[#E07A5F]" /> Sounds</div>
