@@ -2115,9 +2115,9 @@ useEffect(() => {
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-                  className="flex w-full items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 px-4 py-3 text-sm font-semibold text-[#8c8c8c] transition hover:bg-[#1E1E1E]/20"
+                  className="flex w-full items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#1E1E1E] border border-[#F5F0E8]/20 px-4 py-3 text-sm font-semibold text-[#8c8c8c] transition hover:bg-[#1E1E1E]/20"
                 >
-                  <LuCircleFadingPlus className="h-6 text-[#1E1E1E] w-6" /> Status &amp; Update news
+                  <LuCircleFadingPlus className="h-6 text-[#1E1E1E] dark:text-[#E07A5F]/5 w-6" /> Status &amp; Update news
                 </button>
               </div>
             )}
@@ -2180,7 +2180,7 @@ useEffect(() => {
                 className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FAF8F5] ring-2 ring-[#FAF8F5] dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
-                <CiTimer className="h-5 w-5 dark:text-white text-[#8c8c8c]" />
+                <CiTimer className="h-4 w-4 dark:text-white text-[#8c8c8c]" />
               </div>
             )}
             {selectMode && (
