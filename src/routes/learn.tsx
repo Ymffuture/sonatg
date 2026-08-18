@@ -21,7 +21,7 @@ export const Route = createFileRoute("/learn")({
 const GREEN = "#1E1E1E ";
 const ORANGE = "#F59E0B";
 const DARK = "#1f2c34";
-const BRAND = "#128C7E";
+const BRAND = "#1E1E1E ";
 const BG = "#efeae2";
 const CARD = "#ffffff";
 
@@ -381,17 +381,17 @@ function AccordionItem({ section, index }: { section: Section; index: number }) 
 
 function LearnPage() {
   return (
-    <div className="min-h-dvh bg-[#efeae2] text-[#111b21] dark:bg-[#0b141a] dark:text-white">
+    <div className="min-h-dvh bg-[transparent] text-[#111b21] dark:bg-[#ffffff] dark:text-white">
       <header className="sticky top-0 z-10 border-b border-black/5 bg-[#128C7E] text-white shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <Link to="/" className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/15">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-8 w-8" />
           </Link>
           <div>
             <img
-  src="/sonatg-logo.png"
+  src="/s-logo.png"
   alt="Sona"
-  className="h-7 w-auto"
+  className="h-8 w-auto"
 />
           </div>
         </div>
@@ -399,7 +399,7 @@ function LearnPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <section className="rounded-[28px] bg-white p-6 shadow-sm dark:bg-[#202c33]">
-          <h2 className="text-2xl font-bold">Welcome to Sona ✨</h2>
+          <h2 className="text-2xl font-bold">Welcome to Sona</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[#667781] dark:text-[#aebac1]">
             Sona is a warm, private messenger with a built-in AI companion. Below is everything the app can do, followed by a quick reference for every upload limit in one place.
           </p>
