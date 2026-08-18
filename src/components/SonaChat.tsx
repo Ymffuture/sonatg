@@ -2117,7 +2117,7 @@ useEffect(() => {
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
                   className="flex w-full items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#1E1E1E] border border-[#F5F0E8]/20 px-4 py-3 text-sm font-semibold text-[#8c8c8c] transition hover:bg-[#1E1E1E]/20"
                 >
-                  <LuCircleFadingPlus className="h-6 text-[#1E1E1E] dark:text-[#E07A5F]/5 w-6" /> Status &amp; Update news
+                  <LuCircleFadingPlus className="h-6 text-[#1E1E1E] dark:text-[#E07A5F] opacity-80 w-6" /> Status &amp; Update news
                 </button>
               </div>
             )}
