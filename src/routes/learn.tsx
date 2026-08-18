@@ -6,7 +6,7 @@ import {
   Crown, Phone, Download, Forward, UserCircle2, FolderOpen, Video, FileText,
   CalendarClock, Pin, Ban, Radio, ChevronDown, ChevronUp,
 } from "lucide-react";
-
+import {AppLogo} from "./sonatg-logo.png" ;
 export const Route = createFileRoute("/learn")({
   head: () => ({
     meta: [
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/learn")({
   component: LearnPage,
 });
 
-const GREEN = "#25D366";
+const GREEN = "#1E1E1E ";
 const ORANGE = "#F59E0B";
 const DARK = "#1f2c34";
 const BRAND = "#128C7E";
@@ -389,8 +389,7 @@ function LearnPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-lg font-semibold leading-tight">Learn Sona</h1>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-white/75">Every feature, and every upload limit</p>
+            <img src={AppLogo} alt="" className="flex items-center gap-2 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-hiding" size={28} />
           </div>
         </div>
       </header>
