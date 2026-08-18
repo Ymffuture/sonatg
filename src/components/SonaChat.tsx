@@ -1918,14 +1918,14 @@ useEffect(() => {
     aria-label="Share app"
     title="Share app"
   >
-    <Share2 className="h-9 w-9" />
+    <Share2 className="h-6 w-6" />
   </button>
 <button
   onClick={() => cameraRef.current?.click()}
   className="grid h-9 w-9 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
     aria-label="Take photo"
     title="Camera">
-<IoCameraOutline className="h-9 w-9"/>
+<IoCameraOutline className="h-6 w-6"/>
 </button>
 <input
   ref={cameraRef}
@@ -1949,7 +1949,7 @@ useEffect(() => {
       aria-label="More options"
       aria-expanded={showHeaderMenu}
     >
-      <MoreVertical className="h-4 w-4" />
+      <MoreVertical className="h-5 w-5" />
     </button>
 
     <AnimatePresence>
@@ -2105,7 +2105,7 @@ useEffect(() => {
                 onClick={openCreateFolderModal}
                 title="Create a custom folder"
                 aria-label="Create a custom folder"
-                className="shrink-0 rounded-full bg-[#F5F0E8] px-3 py-1.5 text-xs font-medium text-[#8C8C8C] transition hover:bg-[#F4A261]/20 dark:bg-[#2A2A2A]"
+                className="shrink-0 rounded-full bg-[#F5F0E8] px-3 py-3 text-xs font-medium text-[#8C8C8C] transition hover:bg-[#F4A261]/20 dark:bg-[#2A2A2A]"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -2115,9 +2115,9 @@ useEffect(() => {
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-                  className="flex w-full items-center gap-2 rounded-full bg-[#E07A5F]/10 px-4 py-4 text-sm font-semibold text-[#E07A5F] transition hover:bg-[#E07A5F]/20"
+                  className="flex w-full items-center gap-2 rounded-full bg-[#F5F0E8] px-4 py-4 text-sm font-semibold text-[#8c8c8c] transition hover:bg-[#1E1E1E]/20"
                 >
-                  <LuCircleFadingPlus className="h-4 w-4" /> Status &amp; Update news
+                  <LuCircleFadingPlus className="h-6 w-6" /> Status &amp; Update news
                 </button>
               </div>
             )}
@@ -2163,8 +2163,8 @@ useEffect(() => {
               const hasStatus = !ai && otherId && usersWithStatus.has(otherId);
               return (
                 <div
-                  className="rounded-full"
-                  style={hasStatus ? { padding: 4, background: "linear-gradient(117deg, #128C7E, #075E54 )", cursor: "pointer" } : undefined}
+                  className={`rounded-full ${hasStatus?  "ring-2 ring-[25D366]" :""} `} 
+                  style={hasStatus ? { padding: 4, background: "transparent", cursor: "pointer" } : undefined}
                   onClick={hasStatus ? (e) => {
                     e.stopPropagation();
                     navigate({ to: "/status", search: { user: otherId! } });
@@ -2177,7 +2177,7 @@ useEffect(() => {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F0EBE3] ring-2 ring-[#F0EBE3] dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FAF8F5] ring-2 ring-[#FAF8F5] dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
                 <CiTimer className="h-5 w-5 dark:text-white text-[#8c8c8c]" />
@@ -2349,7 +2349,7 @@ useEffect(() => {
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                     {!!active.disappearing_seconds && (
                       <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F0EBE3] ring-2 ring-[#F0EBE3] dark:ring-[#1A1A1A]"
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FAF8F5] ring-2 ring-[#FAF8F5] dark:ring-[#1A1A1A]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
                         <CiTimer className="h-4 w-4 text-[#8C8C8C] " />
