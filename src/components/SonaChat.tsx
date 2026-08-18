@@ -2074,7 +2074,7 @@ useEffect(() => {
                   className={`shrink-0 rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
                       ? "bg-[#E07A5F] dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
-                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 dark:text-[#E07A5F]/5 hover:bg-[#F4A261]/20"
                   }`}
                 >
                   {f.label}
@@ -2105,7 +2105,7 @@ useEffect(() => {
                 onClick={openCreateFolderModal}
                 title="Create a custom folder"
                 aria-label="Create a custom folder"
-                className="shrink-0 rounded-full bg-[#F5F0E8] px-3 py-3 text-xs font-medium text-[#8C8C8C] transition hover:bg-[#F4A261]/20 dark:bg-[#2A2A2A]"
+                className="shrink-0 rounded-full bg-[#F5F0E8] px-2 py-2 text-xs font-medium text-[#8C8C8C] transition hover:bg-[#F4A261]/20 dark:bg-[#2A2A2A]"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
@@ -2115,7 +2115,7 @@ useEffect(() => {
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-                  className="flex w-full items-center gap-2 rounded-full bg-[#F5F0E8] px-4 py-4 text-sm font-semibold text-[#8c8c8c] transition hover:bg-[#1E1E1E]/20"
+                  className="flex w-full items-center gap-2 rounded-full bg-[#F5F0E8] dark:[#1E1E1E] border border-[#F5F0E8]/10 px-4 py-4 text-sm font-semibold text-[#8c8c8c] transition hover:bg-[#1E1E1E]/20"
                 >
                   <LuCircleFadingPlus className="h-6 w-6" /> Status &amp; Update news
                 </button>
@@ -2177,7 +2177,7 @@ useEffect(() => {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FAF8F5] ring-2 ring-[#FAF8F5] dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FAF8F5] ring-2 ring-[#FAF8F5] dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
                 <CiTimer className="h-5 w-5 dark:text-white text-[#8c8c8c]" />
