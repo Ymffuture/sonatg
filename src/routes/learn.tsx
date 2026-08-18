@@ -382,7 +382,7 @@ function AccordionItem({ section, index }: { section: Section; index: number }) 
 function LearnPage() {
   return (
     <div className="min-h-dvh bg-[transparent] text-[#111b21] dark:bg-[#ffffff] dark:text-white">
-      <header className="sticky top-0 z-10 border-b border-black/5 bg-[#128C7E] text-white shadow-sm">
+      <header className="sticky top-0 z-10 border-b border-black/5 bg-[transparent] text-white shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <Link to="/" className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/15">
             <ArrowLeft className="h-8 w-8" />
@@ -391,7 +391,7 @@ function LearnPage() {
             <img
   src="/s-logo.png"
   alt="Sona"
-  className="h-8 w-auto"
+  className="h-10 w-full"
 />
           </div>
         </div>
