@@ -1896,13 +1896,13 @@ useEffect(() => {
     <span className="text-[26px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#2D3436] to-[#5a5a5a] dark:from-white dark:to-[#b0b0b0]">
       Sona
     </span>
-    <span className="text-[26px] font-black tracking-tighter text-[#E07A5F]">
+    <span className="text-[20px] font-black tracking-tighter text-[#E07A5F]">
       TG
     </span>
   </div>
 </div>
               {/* Header toolbar: Share + More dropdown */}
-<div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 border border-slate-800 dark:border-slate-700 rounded-md px-1 py-1">
+<div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 rounded-md px-1 py-1">
   {/* Share — always visible */}
   <button
     onClick={() => {
@@ -2073,7 +2073,7 @@ useEffect(() => {
                   onClick={() => setActiveFolder(f.key)}
                   className={`shrink-0 rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
-                      ? "bg-[#E07A5F] dark:bg-[#1E1E1E] text-white"
+                      ? "bg-[#E07A5F] dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
                   }`}
                 >
@@ -2177,7 +2177,7 @@ useEffect(() => {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#fff] ring-2 ring-[#fff] dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F5F0E8] ring-2 ring-[#fff] dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
                 <CiTimer className="h-5 w-5 dark:text-white text-[#8c8c8c]" />
@@ -2349,7 +2349,7 @@ useEffect(() => {
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                     {!!active.disappearing_seconds && (
                       <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FFFDF9] ring-2 ring-[#FFFDF9] dark:ring-[#1A1A1A]"
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F5F0E8] ring-2 ring-[#F5F0E8] dark:ring-[#1A1A1A]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
                         <CiTimer className="h-4 w-4 text-[#8C8C8C] " />
