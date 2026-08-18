@@ -1914,7 +1914,7 @@ useEffect(() => {
         antMessage.success("App link copied to clipboard!");
       }
     }}
-    className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white transition-colors"
+    className="grid h-12 w-12 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
     aria-label="Share app"
     title="Share app"
   >
@@ -1922,7 +1922,7 @@ useEffect(() => {
   </button>
 <button
   onClick={() => cameraRef.current?.click()}
-  className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/20 text-gray-600 dark:text-white transition-colors"
+  className="grid h-12 w-12 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
     aria-label="Take photo"
     title="Camera">
 <IoCameraOutline className="h-4 w-4"/>
@@ -2177,7 +2177,7 @@ useEffect(() => {
             })()}
             {!!c.disappearing_seconds && !selectMode && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F5F0E8] ring-2 ring-[#fff] dark:ring-[#1E1E1E]"
+                className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F0EBE3] ring-2 ring-[#F0EBE3] dark:ring-[#1E1E1E]"
                 title={`Disappearing messages: ${disappearingLabel(c.disappearing_seconds)}`}
               >
                 <CiTimer className="h-5 w-5 dark:text-white text-[#8c8c8c]" />
@@ -2303,7 +2303,7 @@ useEffect(() => {
     setShowNewChat(true);
   }}
   aria-label="New chat"
-  className="group absolute bottom-8 right-5 z-30 grid h-[72px] w-[72px] place-items-center rounded-2xl
+  className="group absolute bottom-8 right-5 z-30 grid h-[64px] w-[64px] place-items-center rounded-2xl
     /* Glass base */
     bg-white/20 dark:bg-white/10
     backdrop-blur-xl
@@ -2349,7 +2349,7 @@ useEffect(() => {
                     <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
                     {!!active.disappearing_seconds && (
                       <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F5F0E8] ring-2 ring-[#F5F0E8] dark:ring-[#1A1A1A]"
+                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#F0EBE3] ring-2 ring-[#F0EBE3] dark:ring-[#1A1A1A]"
                         title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
                       >
                         <CiTimer className="h-4 w-4 text-[#8C8C8C] " />
