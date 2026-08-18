@@ -74,6 +74,7 @@ export const notifyOfflineMessage = createServerFn({ method: "POST" })
           toName: profile.display_name ?? "there",
           senderName: data.senderName,
           messagePreview: data.messageBody,
+          chatUrl: `${process.env.APP_URL || "https://your-app.vercel.app"}/?chat=${data.chatId}`,
         });
         notified++;
       } catch (e) {

@@ -80,6 +80,9 @@ export async function sendAppUpdateEmail(params: {
     templateId,
     toEmail: params.toEmail,
     toName: params.toName,
-    templateParams: { announcement_message: params.announcementMessage },
+    templateParams: {
+      announcement_message: params.announcementMessage,
+      app_url: process.env.APP_URL || "https://your-app.vercel.app",
+    },
   });
 }
