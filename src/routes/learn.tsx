@@ -19,10 +19,10 @@ export const Route = createFileRoute("/learn")({
 });
 
 const GREEN = "#1E1E1E ";
-const ORANGE = "#F59E0B";
-const DARK = "#1f2c34";
+const ORANGE = "#E07A5F";
+const DARK = "#8c8c8c";
 const BRAND = "#1E1E1E ";
-const BG = "#efeae2";
+const BG = "#FAF8F5";
 const CARD = "#ffffff";
 
 type Section = {
@@ -382,10 +382,10 @@ function AccordionItem({ section, index }: { section: Section; index: number }) 
 function LearnPage() {
   return (
     <div className="min-h-dvh bg-[transparent] text-[#111b21] dark:bg-[#ffffff] dark:text-white">
-      <header className="sticky top-0 z-10 border-b border-black/5 bg-[transparent] text-white shadow-sm">
+      <header className="sticky top-0 z-10 border-b border-black/5 bg-[#fff] text-[#1E1E1E] ">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <Link to="/" className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/15">
-            <ArrowLeft className="h-8 w-8" />
+            <ArrowLeft className="h-8 w-8 " />
           </Link>
           <div>
             <img
@@ -432,7 +432,7 @@ function LearnPage() {
         <div className="py-8 text-center">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-95"
+            className="inline-flex items-center gap-2 rounded-full bg-[#E07A5F] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-95"
           >
             <MessageCircle className="h-4 w-4" />
             Back to chats
