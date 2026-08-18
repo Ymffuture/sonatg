@@ -1896,8 +1896,8 @@ useEffect(() => {
     <span className="text-[26px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#2D3436] to-[#5a5a5a] dark:from-white dark:to-[#b0b0b0]">
       Sona
     </span>
-    <span className="text-[20px] font-black tracking-tighter text-[#E07A5F]">
-      TG
+    <span className="text-[7px] font-black tracking-tighter text-[#E07A5F]">
+      ©
     </span>
   </div>
 </div>
@@ -1914,18 +1914,18 @@ useEffect(() => {
         antMessage.success("App link copied to clipboard!");
       }
     }}
-    className="grid h-12 w-12 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
+    className="grid h-9 w-9 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
     aria-label="Share app"
     title="Share app"
   >
-    <Share2 className="h-4 w-4" />
+    <Share2 className="h-9 w-9" />
   </button>
 <button
   onClick={() => cameraRef.current?.click()}
-  className="grid h-12 w-12 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
+  className="grid h-9 w-9 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
     aria-label="Take photo"
     title="Camera">
-<IoCameraOutline className="h-4 w-4"/>
+<IoCameraOutline className="h-9 w-9"/>
 </button>
 <input
   ref={cameraRef}
@@ -1936,7 +1936,7 @@ useEffect(() => {
   onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
 />
   {/* Divider */}
-  <div className="w-px h-5 bg-slate-300 dark:bg-slate-600" />
+  <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
 
   {/* More options dropdown */}
 <div className="relative" ref={headerMenuRef}>
