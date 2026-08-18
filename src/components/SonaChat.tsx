@@ -6,11 +6,13 @@ import {
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
-  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Eraser,
+  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Eraser, Megaphone,
 } from "lucide-react";
 import { LuCircleFadingPlus } from "react-icons/lu";
 import { IoCameraOutline } from "react-icons/io5";
 import { CiTimer } from "react-icons/ci";
+import { fetchActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
+import { notifyOfflineMessage } from "@/lib/notifications.functions";
 import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoMdTimer } from "react-icons/io";
@@ -444,6 +446,23 @@ function SonaChatInner() {
   const [reads, setReads] = useState<MessageReadRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [query, setQuery] = useState("");
+  const [announcement, setAnnouncement] = useState<AppAnnouncement | null>(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+
+  useEffect(() => {
+    fetchActiveAnnouncement().then(setAnnouncement).catch(() => {});
+    const channel = supabase
+      .channel("app-announcements")
+      .on("postgres_changes", { event: "*", schema: "public", table: "app_announcements" }, () => {
+        fetchActiveAnnouncement().then((a) => {
+          setAnnouncement(a);
+          setAnnouncementDismissed(false); // a new/changed announcement should be seen again even if a prior one was dismissed
+        }).catch(() => {});
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const [draft, setDraft] = useState("");
 
   // Restore a saved draft (from a prior visit, or one preserved after a
@@ -1442,6 +1461,19 @@ function SonaChatInner() {
       setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
       if (activeId) clearDraftFromStorage(activeId);
 
+      // Let any offline recipient know by email — fire-and-forget, never
+      // blocks the send UI. The server figures out who's actually
+      // offline and opted in before sending anything.
+      if (anySucceeded && !scheduledFor && active && !isAIChat(active)) {
+        notifyOfflineMessage({
+          data: {
+            chatId: activeId,
+            senderName: me.display_name || "Someone",
+            messageBody: prompt || (attachedImageUrl ? "Sent a photo" : attachedFileUrl ? "Sent a file" : "Sent a message"),
+          },
+        }).catch(() => {}); // best-effort — a failed notification shouldn't surface as a send error
+      }
+
       if (!scheduledFor && active && !active.is_hidden) {
         const isAI = isAIChat(active);
         const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
@@ -2060,6 +2092,20 @@ useEffect(() => {
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
               </div>
             </div>
+
+            {announcement && !announcementDismissed && (
+              <div className="mx-3 mb-3 flex items-start gap-2 rounded-2xl bg-[#E07A5F]/10 border border-[#E07A5F]/20 px-3.5 py-2.5">
+                <Megaphone className="h-4 w-4 shrink-0 mt-0.5 text-[#E07A5F]" />
+                <p className="flex-1 text-xs leading-snug text-[#2D3436] dark:text-[#E8E8E8]">{announcement.message}</p>
+                <button
+                  onClick={() => setAnnouncementDismissed(true)}
+                  aria-label="Dismiss announcement"
+                  className="shrink-0 grid h-5 w-5 place-items-center rounded-full hover:bg-[#E07A5F]/15 text-[#8C8C8C]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
 
             <div data-tour="folder-tabs" className="flex items-center gap-2 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-hiding">
               {([
