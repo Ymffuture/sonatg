@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
-  ShieldAlert, Upload, Activity,
+  ShieldAlert, Upload, Activity, Megaphone, X,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,8 @@ import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
 import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv } from "@/features/admin";
 import type { ModerationQueueRow, DashboardStats } from "@/features/admin";
+import { fetchActiveAnnouncement, postAnnouncement, clearActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
+import { notifyAppUpdateSubscribers } from "@/lib/notifications.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -54,7 +56,11 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "announcements">("dashboard");
+  const [announcement, setAnnouncement] = useState<AppAnnouncement | null>(null);
+  const [announcementDraft, setAnnouncementDraft] = useState("");
+  const [notifyOnPost, setNotifyOnPost] = useState(false);
+  const [announcementBusy, setAnnouncementBusy] = useState(false);
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
@@ -86,7 +92,7 @@ function AdminPage() {
   const loadAll = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, m, d, i, r, q, s] = await Promise.all([
+      const [p, m, d, i, r, q, s, a] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_moderation").select("*").order("created_at", { ascending: false }),
         supabase.from("org_domains").select("*").order("domain"),
@@ -94,6 +100,7 @@ function AdminPage() {
         supabase.from("reports").select("*").order("created_at", { ascending: false }),
         supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(100),
         fetchDashboardStats().catch(() => null),
+        fetchActiveAnnouncement().catch(() => null),
       ]);
       if (p.error) throw p.error;
       setProfiles((p.data ?? []) as Profile[]);
@@ -103,6 +110,8 @@ function AdminPage() {
       setReports((r.data ?? []) as Report[]);
       setQueue((q.data ?? []) as ModerationQueueRow[]);
       setStats(s);
+      setAnnouncement(a);
+      if (a) setAnnouncementDraft(a.message);
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -241,6 +250,39 @@ function AdminPage() {
     } catch (e) { err(e, "Couldn't create invitation"); }
   };
 
+  const onPostAnnouncement = async () => {
+    if (!announcementDraft.trim()) return;
+    setAnnouncementBusy(true);
+    try {
+      const posted = await postAnnouncement(announcementDraft.trim(), notifyOnPost);
+      setAnnouncement(posted);
+      notification.success({ message: "Announcement posted", description: "It's now showing below the search bar for everyone." });
+      if (notifyOnPost) {
+        notifyAppUpdateSubscribers({ data: { announcementId: posted.id } })
+          .then((r) => notification.info({ message: "Update emails sent", description: `${r.notified} subscriber(s) notified.` }))
+          .catch((e) => notification.error({ message: "Couldn't send update emails", description: e instanceof Error ? e.message : String(e) }));
+      }
+    } catch (e) {
+      err(e, "Couldn't post announcement");
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
+
+  const onClearAnnouncement = async () => {
+    setAnnouncementBusy(true);
+    try {
+      await clearActiveAnnouncement();
+      setAnnouncement(null);
+      setAnnouncementDraft("");
+      notification.success({ message: "Announcement cleared" });
+    } catch (e) {
+      err(e, "Couldn't clear announcement");
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
+
   const onRosterCsvSelected = async (file?: File | null) => {
     if (!file) return;
     setCsvBusy(true);
@@ -323,6 +365,7 @@ function AdminPage() {
           ["members", "Members", Users],
           ["reports", "Reports", Flag],
           ["moderation", "Moderation", ShieldAlert],
+          ["announcements", "Announcements", Megaphone],
           ["orgs", "Organizations", Building2],
           ["invites", "Invites", Mail],
         ] as const).map(([k, label, Icon]) => (
@@ -439,6 +482,54 @@ function AdminPage() {
               ))}
               {!queue.length && <p className="px-1 text-sm text-[#8C8C8C]">Nothing flagged yet.</p>}
             </ul>
+          </section>
+        )}
+
+        {tab === "announcements" && (
+          <section className="space-y-3">
+            <div className="rounded-2xl bg-white p-4 dark:bg-[#1E1E1E]">
+              <p className="flex items-center gap-2 text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                <Megaphone className="h-4 w-4 text-[#E07A5F]" /> App-wide banner
+              </p>
+              <p className="mt-1 text-xs text-[#8C8C8C]">
+                Shows below the search bar for every user — e.g. "We're updating the app, some features may be unavailable for a bit."
+              </p>
+              <textarea
+                value={announcementDraft}
+                onChange={(e) => setAnnouncementDraft(e.target.value)}
+                placeholder="Message to show everyone…"
+                rows={3}
+                className="mt-3 w-full rounded-xl bg-[#F0EBE3] px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+              />
+              <label className="mt-2 flex items-center gap-2 text-xs font-medium text-[#2D3436] dark:text-[#E8E8E8]">
+                <input type="checkbox" checked={notifyOnPost} onChange={(e) => setNotifyOnPost(e.target.checked)} className="h-4 w-4 accent-[#E07A5F]" />
+                Also email everyone subscribed to app-update emails
+              </label>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={onPostAnnouncement}
+                  disabled={announcementBusy || !announcementDraft.trim()}
+                  className="flex items-center gap-1 rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {announcementBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Megaphone className="h-4 w-4" />}
+                  Post banner
+                </button>
+                {announcement && (
+                  <button
+                    onClick={onClearAnnouncement}
+                    disabled={announcementBusy}
+                    className="flex items-center gap-1 rounded-xl bg-[#8C8C8C]/10 px-4 py-2 text-sm font-semibold text-[#8C8C8C] disabled:opacity-60"
+                  >
+                    <X className="h-4 w-4" /> Take down
+                  </button>
+                )}
+              </div>
+              {announcement && (
+                <p className="mt-3 text-[11px] text-[#8C8C8C]">
+                  Currently live since {new Date(announcement.created_at).toLocaleString()}
+                </p>
+              )}
+            </div>
           </section>
         )}
 
