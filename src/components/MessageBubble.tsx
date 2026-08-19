@@ -943,7 +943,7 @@ return (
 } 
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
-  overrideBody, onDelete, onReply, onEdit, parentName, parentBody, actionsOpen, onToggleActions, onTranscribed,
+  overrideBody, onDelete, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread,allImages, onForward,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
@@ -952,6 +952,8 @@ export function Bubble({
   overrideBody?: string; onDelete: () => void;
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: React.ReactNode;
+  /** Called when the user taps the quoted reply preview — scrolls to and highlights the original message. */
+  onJumpToParent?: () => void;
   actionsOpen: boolean; onToggleActions: () => void;
   onTranscribed?: (messageId: string, transcript: string) => void;
   replyCount?: number;
@@ -1137,9 +1139,14 @@ const tailClass = !grouped && mine
 
             {parentBody !== undefined && (
               <div
+                role={onJumpToParent ? "button" : undefined}
+                tabIndex={onJumpToParent ? 0 : undefined}
+                onClick={(e) => { if (onJumpToParent) { e.stopPropagation(); onJumpToParent(); } }}
+                onKeyDown={(e) => { if (onJumpToParent && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onJumpToParent(); } }}
+                title={onJumpToParent ? "Jump to original message" : undefined}
                 className={`mb-1.5 rounded-lg border-l-[1px] border-[#E07A5F] px-2 py-1.5 text-[11px] ${
                   mine ? "bg-black/10" : "bg-[#2D3436]/10 dark:bg-white/5"
-                }`}
+                } ${onJumpToParent ? "cursor-pointer hover:brightness-95 active:brightness-90 transition" : ""}`}
               >
                 <div className="font-semibold italic text-[#E07A5F] text-[11px]">{parentName}</div>
                 {/* Fade-out on the right edge instead of a hard "…" cutoff —

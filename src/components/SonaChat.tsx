@@ -1166,8 +1166,35 @@ function SonaChatInner() {
     if (activeFolder === "groups" && !c.is_group) return false;
     if (activeFolder === "pinned" && !c.isPinned) return false;
     if (activeFolder.startsWith("custom:") && !(chatFolderMap[c.id] ?? []).includes(activeFolder)) return false;
-    return chatTitle(c, me.id).toLowerCase().includes(query.toLowerCase());
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    // WhatsApp-style search: match the chat title as well as the last message's
+    // decrypted preview text, so results surface even when the query only
+    // appears inside a message rather than the chat/contact name.
+    if (chatTitle(c, me.id).toLowerCase().includes(q)) return true;
+    // Only plain (unencrypted) last messages can be matched client-side —
+    // encrypted previews stay "Locked" until opened, same as elsewhere in the app.
+    const last = c.lastMessage;
+    if (last && !last.is_encrypted && last.kind !== "poll" && last.body) {
+      return last.body.toLowerCase().includes(q);
+    }
+    return false;
   }), [chats, query, me, blockedIds, activeFolder, chatFolderMap]);
+
+  // "Ask Sona AI" entry shown above results, WhatsApp/Meta-AI style, whenever
+  // there's a non-empty search query. Opens (or starts) the Sona AI chat and
+  // hands the typed query over as the draft so the user can review before sending.
+  const askSonaAIFromSearch = () => {
+    const q = query.trim();
+    if (!q) return;
+    const aiChat = chats.find((c) => isAIChat(c));
+    if (aiChat) {
+      setActiveId(aiChat.id);
+    }
+    setDraft(q);
+    setQuery("");
+    setShowSidebarMobile(false);
+  };
 
   const unreadFolderCount = chats.filter((c) => c.unread > 0).length;
   const groupsFolderCount = chats.filter((c) => c.is_group).length;
@@ -1774,6 +1801,20 @@ function SonaChatInner() {
     const el = target && msgRefs.current.get(target.id);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [msgSearchIndex, msgSearchMatches, showMsgSearch]);
+
+  // Tapping a reply's quoted preview scrolls to the original message it
+  // replied to, WhatsApp-style, and briefly highlights it so it's easy to spot.
+  const [jumpHighlightId, setJumpHighlightId] = useState<string | null>(null);
+  const jumpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jumpToMessage = (messageId: string) => {
+    const el = msgRefs.current.get(messageId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setJumpHighlightId(messageId);
+    if (jumpTimeoutRef.current) clearTimeout(jumpTimeoutRef.current);
+    jumpTimeoutRef.current = setTimeout(() => setJumpHighlightId(null), 1600);
+  };
+  useEffect(() => () => { if (jumpTimeoutRef.current) clearTimeout(jumpTimeoutRef.current); }, []);
   
 useEffect(() => {
   if (!showHeaderMenu) return;
@@ -2170,6 +2211,20 @@ useEffect(() => {
 
 
             <div className="scrollbar-hiding flex-1 overflow-y-auto pb-24">
+             {query.trim() && (
+               <button
+                 onClick={askSonaAIFromSearch}
+                 className="mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-2xl bg-gradient-to-r from-[#E07A5F]/10 to-[#F4A261]/10 border border-[#E07A5F]/20 px-4 py-3 text-left transition hover:from-[#E07A5F]/15 hover:to-[#F4A261]/15"
+               >
+                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#E07A5F] to-[#F4A261] text-white">
+                   <Sparkles className="h-4.5 w-4.5" />
+                 </div>
+                 <div className="min-w-0 flex-1">
+                   <div className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Ask Sona AI</div>
+                   <div className="truncate text-xs text-[#8C8C8C]">“{query.trim()}”</div>
+                 </div>
+               </button>
+             )}
              <AnimatePresence initial={false}>
              {(filtered.map((c) => {
       const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
@@ -2719,6 +2774,7 @@ useEffect(() => {
     : undefined;
 
   const isCurrentMatch = showMsgSearch && msgSearchMatches[msgSearchIndex]?.id === m.id;
+  const isJumpHighlighted = jumpHighlightId === m.id;
 
   return (
     <div key={m.id} className="contents">
@@ -2736,7 +2792,11 @@ useEffect(() => {
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
       ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
-      className={isCurrentMatch ? "rounded-2xl ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-transparent transition-all" : ""}
+      className={
+        isCurrentMatch || isJumpHighlighted
+          ? "rounded-2xl ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-transparent transition-all"
+          : ""
+      }
     >
     <Bubble
       msg={m}
@@ -2756,6 +2816,7 @@ useEffect(() => {
       onEdit={() => startEdit(m)}
       parentName={parentName}
       parentBody={parentBody}
+      onJumpToParent={parentMsg ? () => jumpToMessage(parentMsg.id) : undefined}
       actionsOpen={openBubbleId === m.id}
       onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
       onTranscribed={(messageId, transcript) =>
