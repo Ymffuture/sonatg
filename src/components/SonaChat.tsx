@@ -2801,22 +2801,38 @@ useEffect(() => {
                 )}
 */} 
                 {(replyTo || editing) && (
-                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] px-3 py-2 md:px-6">
-                    <div className="mx-auto flex max-w-3xl items-center gap-3">
-                      <div className="flex-1 rounded-lg border-l-2 border-[#E07A5F] bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-1.5 text-xs">
-                        <div className="font-semibold text-[#E07A5F] flex items-center gap-1">
-                          {editing ? (<><Pencil className="h-3 w-3" /> Editing message</>) : (<><Reply className="h-3 w-3" /> Replying to {replyTo && (replyTo.sender_id === me?.id ? "yourself" : profiles[replyTo.sender_id]?.display_name ?? "…")}</>)}
-                        </div>
-                        <div className="overflow-hidden whitespace-nowrap opacity-80 text-[#2D3436] dark:text-[#E8E8E8] [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)]">
-                          {editing ? (editing.body ?? "") : <MessagePreview msg={replyTo} decrypted={decrypted} />}
-                        </div>
-                      </div>
-                      <button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Cancel">
-                        <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+  <div className="border-t border-[#E07A5F]/10 chat-pattern dark:bg-[#242424] px-3 py-2 md:px-6">
+    <div className="mx-auto flex max-w-3xl items-center gap-2">
+      <div className="flex-1 min-w-0 rounded-lg border-l-[3px] border-[#E07A5F] bg-[#F5F0E8]/60 dark:bg-[#2A2A2A]/60 px-3 py-1.5">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#E07A5F]">
+          {editing ? (
+            <>
+              <Pencil className="h-3 w-3" />
+              <span>Editing</span>
+            </>
+          ) : (
+            <>
+              <Reply className="h-3 w-3" />
+              <span>
+                {replyTo?.sender_id === me?.id ? "You" : profiles[replyTo?.sender_id]?.display_name ?? "…"}
+              </span>
+            </>
+          )}
+        </div>
+        <div className="mt-0.5 overflow-hidden text-xs text-[#2D3436]/60 dark:text-[#E8E8E8]/60 whitespace-nowrap [mask-image:linear-gradient(to_right,black_80%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_80%,transparent_100%)]">
+          {editing ? (editing.body ?? "") : <MessagePreview msg={replyTo} decrypted={decrypted} />}
+        </div>
+      </div>
+      <button
+        onClick={() => { setReplyTo(null); setEditing(null); if (editing) setDraft(""); }}
+        className="shrink-0 grid h-7 w-7 place-items-center rounded-full hover:bg-[#F4A261]/20 transition-colors"
+        aria-label="Cancel"
+      >
+        <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+      </button>
+    </div>
+  </div>
+)}
 
                 {(pendingImages.length > 0 || pendingDocs.length > 0) && (
                   <div className="chat-pattern px-3 py-3 md:px-6">
