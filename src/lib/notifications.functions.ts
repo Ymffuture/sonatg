@@ -50,10 +50,12 @@ export const notifyOfflineMessage = createServerFn({ method: "POST" })
     const recipientIds = (members ?? []).map((m) => m.user_id as string).filter((id) => id !== SONA_AI_ID);
     if (recipientIds.length === 0) return { notified: 0 };
 
-    const [{ data: profiles }, { data: prefs }] = await Promise.all([
+    const [{ data: profiles, error: profilesErr }, { data: prefs, error: prefsErr }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id,email,display_name").in("id", recipientIds),
       supabaseAdmin.from("notification_preferences").select("user_id,notify_offline_messages").in("user_id", recipientIds),
     ]);
+    if (profilesErr) throw new Error(`Failed to load profiles: ${profilesErr.message}`);
+    if (prefsErr) throw new Error(`Failed to load notification preferences: ${prefsErr.message}`);
 
     const optedOut = new Set(
       (prefs ?? []).filter((p) => p.notify_offline_messages === false).map((p) => p.user_id as string),
@@ -104,16 +106,20 @@ export const notifyAppUpdateSubscribers = createServerFn({ method: "POST" })
       .from("app_announcements").select("*").eq("id", data.announcementId).single();
     if (annErr || !announcement) throw new Error("Announcement not found");
 
-    const [{ data: allProfiles }, { data: prefs }] = await Promise.all([
+    const [{ data: allProfiles, error: profilesErr }, { data: prefs, error: prefsErr }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id,email,display_name").eq("is_ai", false),
       supabaseAdmin.from("notification_preferences").select("user_id,notify_app_updates"),
     ]);
+    if (profilesErr) throw new Error(`Failed to load profiles: ${profilesErr.message}`);
+    if (prefsErr) throw new Error(`Failed to load notification preferences: ${prefsErr.message}`);
+    console.log(`[notifyAppUpdateSubscribers] candidates=${allProfiles?.length ?? 0}`);
 
     const optedOut = new Set(
       (prefs ?? []).filter((p) => p.notify_app_updates === false).map((p) => p.user_id as string),
     );
 
     let notified = 0;
+    const failures: string[] = [];
     for (const profile of allProfiles ?? []) {
       if (optedOut.has(profile.id) || !profile.email) continue;
       try {
@@ -124,8 +130,15 @@ export const notifyAppUpdateSubscribers = createServerFn({ method: "POST" })
         });
         notified++;
       } catch (e) {
-        console.error("[notifyAppUpdateSubscribers] send failed for", profile.id, e);
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("[notifyAppUpdateSubscribers] send failed for", profile.id, msg);
+        failures.push(msg);
       }
     }
-    return { notified };
+    // Surface the first underlying error to the caller instead of only logging it,
+    // so "0 notified" always comes with a reason instead of a silent dead end.
+    if (notified === 0 && failures.length > 0) {
+      throw new Error(`All ${failures.length} send(s) failed. First error: ${failures[0]}`);
+    }
+    return { notified, failed: failures.length };
   });
