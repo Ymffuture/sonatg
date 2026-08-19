@@ -994,11 +994,11 @@ export function Bubble({
 
   const bubbleRadius = mine
   ? grouped
-    ? "rounded-2xl rounded-tr-sm"      /* sent, grouped: sharp top-right to stack */
-    : "rounded-2xl rounded-br-sm"      /* sent, first: sharp bottom-right tail */
+    ? "rounded-[7px] rounded-tr-[3px] rounded-br-[3px]"
+    : "rounded-[7px] rounded-tr-[3px]"
   : grouped
-    ? "rounded-2xl rounded-tl-sm"      /* received, grouped: sharp top-left to stack */
-    : "rounded-2xl rounded-bl-sm";     /* received, first: sharp bottom-left tail */
+    ? "rounded-[7px] rounded-tl-[3px] rounded-bl-[3px]"
+    : "rounded-[7px] rounded-tl-[3px]";
   
   // Call-ended log entries render as a centered pill, WhatsApp-style,
   // instead of the normal left/right chat bubble.
@@ -1094,7 +1094,7 @@ export function Bubble({
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
-                ? "bg-[#1E1E1E] dark:bg-gray-600 text-white"
+                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E]/5 text-white"
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             }`}
           >
@@ -1117,7 +1117,7 @@ export function Bubble({
             )}
 
             {msg.is_forwarded && (
-              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600 " : "text-[#8C8C8C]"}`}>
+              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600 dark:text-white" : "text-[#8C8C8C]"}`}>
                 <Forward className="h-3 w-3" /> Forwarded
               </div>
             )}
@@ -1316,11 +1316,7 @@ export function Bubble({
 )}
 
               <div className="flex items-center gap-1 translate-y-0.5">
-                {msg.is_forwarded && (
-              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
-                <Forward className="h-3 w-3" /> Forwarded
-              </div>
-            )}
+                
                 {msg.edited_at && <span className="text-[10px] italic opacity-70">edited</span>}
                 <span className="text-[10.5px] tabular-nums">{fmtTime(msg.created_at)}</span>
                 {mine && (msg._pending ? <Clock className="h-3 w-3 text-white/60" /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
