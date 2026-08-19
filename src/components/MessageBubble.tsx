@@ -992,13 +992,26 @@ export function Bubble({
       });
   };
 
-  const bubbleRadius = mine
+  // Tailwind classes for the bubble wrapper
+const bubbleBase = mine ? "bg-[#eeffde]" : "bg-white"; // your colors
+
+const bubbleRadius = mine
   ? grouped
-    ? "rounded-[7px] rounded-tr-[3px] rounded-br-[3px]"
-    : "rounded-[7px] rounded-tr-[3px]"
+    ? "rounded-[16px] rounded-tr-[2px] rounded-br-[2px]"
+    : "rounded-[16px] rounded-tr-[2px]"
   : grouped
-    ? "rounded-[7px] rounded-tl-[3px] rounded-bl-[3px]"
-    : "rounded-[7px] rounded-tl-[3px]";
+    ? "rounded-[16px] rounded-tl-[2px] rounded-bl-[2px]"
+    : "rounded-[16px] rounded-tl-[2px]";
+
+// Only show tail on non-grouped bubbles
+const tailClass = !grouped && mine
+  ? `after:content-[''] after:absolute after:top-0 after:-right-[8px] 
+     after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-bl-full`
+  : !grouped && !mine
+  ? `after:content-[''] after:absolute after:top-0 after:-left-[8px] 
+     after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-br-full`
+  : "";
+
   
   // Call-ended log entries render as a centered pill, WhatsApp-style,
   // instead of the normal left/right chat bubble.
@@ -1090,11 +1103,11 @@ export function Bubble({
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl transition-opacity ${bubbleRadius} ${
+            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl transition-opacity ${bubbleBase} ${bubbleRadius} ${tailClass} ${
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
-                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E]/5 text-white"
+                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] text-white"
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             }`}
           >
