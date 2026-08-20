@@ -1344,7 +1344,7 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[#eeffde]" : "bg-white"; // your colors
+const bubbleBase = mine ? "bg-[#eeffde] text-[#1E1E1E] " : "bg-white"; // your colors
 
 const bubbleRadius = mine
   ? grouped
@@ -1462,7 +1462,7 @@ const tailClass = !grouped && mine
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             } ${
               isHighlighted
-                ? "!border-2 !border-[#E07A5F] ring-4 ring-[#E07A5F]/30"
+                ? "!border-2 !border-[#E8E8E8] ring-2 ring-[#1E1E1E]"
                 : ""
             }`}
           >
