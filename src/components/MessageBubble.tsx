@@ -1458,8 +1458,8 @@ const tailClass = !grouped && mine
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
-                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] text-white"
-                : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] text-[#2D3436] "
+                : "bg-white dark:bg-[#2A2A2A] text-[#1E1E1E] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             } ${
               isHighlighted
                 ? "!border-2 !border-[#E8E8E8] ring-2 ring-[#1E1E1E]"
