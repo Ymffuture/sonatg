@@ -1633,7 +1633,7 @@ const tailClass = !grouped && mine
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenThread?.(); }}
                 className={`mb-1 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition hover:opacity-80 ${
-                  mine ? "text-white/90" : "text-[#E07A5F]"
+                  mine ? "text-zinc-400" : "text-[#2D3436]"
                 }`}
               >
                 <CornerUpLeft className="h-3.5 w-3.5" />
