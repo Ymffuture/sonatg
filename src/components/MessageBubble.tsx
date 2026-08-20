@@ -85,227 +85,564 @@ const notify = {
 };
 
 /* ─── Block Types ─── */
+
 type Block =
-  | { type: "paragraph"; tokens: InlineToken[] }
+  | { type: "paragraph"; children: InlineToken[] }
+  | { type: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; children: InlineToken[] }
+  | { type: "blockquote"; children: Block[] }
+  | { type: "list"; ordered: boolean; items: ListItem[] }
+  | { type: "thematicBreak" }
   | { type: "codeblock"; content: string; lang?: string }
-  | { type: "table"; headers: string[]; rows: string[][] };
+  | { type: "table"; header: InlineToken[][]; rows: InlineToken[][][] };
+
+type ListItem = {
+  checked?: boolean;
+  children: Block[];
+};
 
 type InlineToken =
   | { type: "text"; content: string }
-  | { type: "bold"; content: string }
-  | { type: "italic"; content: string }
+  | { type: "bold"; children: InlineToken[] }
+  | { type: "italic"; children: InlineToken[] }
+  | { type: "strike"; children: InlineToken[] }
   | { type: "code"; content: string }
-  | { type: "strike"; content: string }
-  | { type: "link"; content: string; href: string }
+  | { type: "link"; children: InlineToken[]; href: string }
+  | { type: "image"; alt: string; src: string; title?: string }
+  | { type: "autolink"; href: string }
   | { type: "br" };
 
-/* ─── Inline Parser ─── */
-const INLINE_PATTERNS = [
-  { regex: /\*\*([^*]+)\*\*/g, type: "bold" as const },
-  { regex: /__([^_]+)__/g, type: "bold" as const },
-  { regex: /\*([^*]+)\*/g, type: "italic" as const },
-  { regex: /_([^_]+)_/g, type: "italic" as const },
-  { regex: /~~([^~]+)~~/g, type: "strike" as const },
-  { regex: /`([^`]+)`/g, type: "code" as const },
-];
+const URL_REGEX = /\bhttps?:\/\/[^\s<>()]+[^\s<>().,;:!?]/i;
+const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 
-function parseInline(text: string): InlineToken[] {
-  if (!text) return [];
-  const tokens: InlineToken[] = [];
-  let pos = 0;
-
-  type Match = { start: number; end: number; type: InlineToken["type"]; content: string };
-  const matches: Match[] = [];
-
-  INLINE_PATTERNS.forEach(({ regex, type }) => {
-    let m: RegExpExecArray | null;
-    const localRegex = new RegExp(regex.source, regex.flags);
-    while ((m = localRegex.exec(text)) !== null) {
-      matches.push({ start: m.index, end: m.index + m[0].length, type, content: m[1] });
-    }
-  });
-
-  let lm: RegExpExecArray | null;
-  const linkRegex = new RegExp(URL_REGEX.source, URL_REGEX.flags);
-  while ((lm = linkRegex.exec(text)) !== null) {
-    matches.push({ start: lm.index, end: lm.index + lm[0].length, type: "link", content: lm[0] });
-  }
-
-  matches.sort((a, b) => a.start - b.start);
-
-  const filtered: Match[] = [];
-  let lastEnd = -1;
-  for (const m of matches) {
-    if (m.start >= lastEnd) {
-      filtered.push(m);
-      lastEnd = m.end;
-    }
-  }
-
-  for (const m of filtered) {
-    if (m.start > pos) tokens.push({ type: "text", content: text.slice(pos, m.start) });
-    if (m.type === "link") tokens.push({ type: "link", content: m.content, href: m.content });
-    else tokens.push({ type: m.type, content: m.content });
-    pos = m.end;
-  }
-  if (pos < text.length) tokens.push({ type: "text", content: text.slice(pos) });
-  return tokens;
+function normalizeText(text: string) {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
-/* ─── Block Parser (Tables + Code + Paragraphs) ─── */
-function parseBlocks(text: string): Block[] {
-  if (!text) return [];
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
-  const blocks: Block[] = [];
+function isBlank(line: string) {
+  return line.trim().length === 0;
+}
+
+function isThematicBreak(line: string) {
+  return /^\s*(\*\s*){3,}|^\s*(-\s*){3,}|^\s*(_\s*){3,}\s*$/.test(line);
+}
+
+function isHeading(line: string) {
+  const m = /^(#{1,6})\s+(.*)$/.exec(line);
+  return m ? { level: m[1].length as 1 | 2 | 3 | 4 | 5 | 6, text: m[2] } : null;
+}
+
+function isFence(line: string) {
+  const m = /^(\s*)(```|~~~)\s*([^\s`]*)\s*$/.exec(line);
+  return m ? { fence: m[11], lang: m[12] || undefined } : null;
+}
+
+function isBlockquote(line: string) {
+  const m = /^\s*>\s?(.*)$/.exec(line);
+  return m ? m : null;[13]
+}
+
+function isUnorderedListItem(line: string) {
+  const m = /^(\s*)([-+*])\s+(.*)$/.exec(line);
+  return m ? { indent: m.length, text: m } : null;[12][13]
+}
+
+function isOrderedListItem(line: string) {
+  const m = /^(\s*)(\d+)[.)]\s+(.*)$/.exec(line);
+  return m ? { indent: m.length, text: m } : null;[12][13]
+}
+
+function splitTableRow(line: string) {
+  const trimmed = line.trim();
+  const inner = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
+  const cleaned = inner.endsWith("|") ? inner.slice(0, -1) : inner;
+  return cleaned.split("|").map((s) => s.trim());
+}
+
+function isTableSeparator(line: string) {
+  return /^\s*\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?\s*$/.test(line);
+}
+
+function parseInline(text: string): InlineToken[] {
+  const tokens: InlineToken[] = [];
   let i = 0;
 
-  while (i < lines.length) {
-    const line = lines[i];
+  const pushText = (content: string) => {
+    if (content) tokens.push({ type: "text", content });
+  };
 
-    if (line.trim().startsWith("```")) {
-      const lang = line.trim().slice(3).trim();
-      const codeLines: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].trim().startsWith("```")) {
-        codeLines.push(lines[i]);
-        i++;
-      }
-      i++;
-      blocks.push({ type: "codeblock", content: codeLines.join("\n"), lang: lang || undefined });
+  while (i < text.length) {
+    if (text[i] === "\\" && i + 1 < text.length) {
+      pushText(text[i + 1]);
+      i += 2;
       continue;
     }
 
-    if (line.includes("|")) {
-      const nextLine = lines[i + 1];
-      if (nextLine && /^\s*\|?[\s\-:|]+\|?\s*$/.test(nextLine) && nextLine.includes("|")) {
-        const rawHeaders = line.split("|").map((s) => s.trim()).filter(Boolean);
-        i += 2;
-
-        const rows: string[][] = [];
-        while (i < lines.length && lines[i].includes("|")) {
-          const cells = lines[i].split("|").map((s) => s.trim()).filter(Boolean);
-          if (cells.length > 0) rows.push(cells);
-          i++;
-        }
-
-        if (rawHeaders.length > 0) {
-          blocks.push({ type: "table", headers: rawHeaders, rows });
+    if (text.startsWith("![", i)) {
+      const close = findMatchingBracket(text, i + 1);
+      if (close !== -1 && text[close + 1] === "(") {
+        const endParen = findMatchingParen(text, close + 1);
+        if (endParen !== -1) {
+          const alt = text.slice(i + 2, close);
+          const inside = text.slice(close + 2, endParen).trim();
+          const { href, title } = parseLinkTarget(inside);
+          tokens.push({ type: "image", alt, src: href, title });
+          i = endParen + 1;
           continue;
         }
       }
     }
 
-    if (line.trim()) {
-      const paraLines: string[] = [line];
-      i++;
-      while (i < lines.length && lines[i].trim() && !lines[i].includes("|") && !lines[i].trim().startsWith("```")) {
-        paraLines.push(lines[i]);
-        i++;
+    if (text[i] === "[") {
+      const close = findMatchingBracket(text, i);
+      if (close !== -1 && text[close + 1] === "(") {
+        const endParen = findMatchingParen(text, close + 1);
+        if (endParen !== -1) {
+          const label = text.slice(i + 1, close);
+          const inside = text.slice(close + 2, endParen).trim();
+          const { href } = parseLinkTarget(inside);
+          tokens.push({ type: "link", children: parseInline(label), href });
+          i = endParen + 1;
+          continue;
+        }
       }
-      const paraText = paraLines.join("\n");
-      const parts = paraText.split("\n");
-      const tokens: InlineToken[] = [];
-      parts.forEach((part, idx) => {
-        if (idx > 0) tokens.push({ type: "br" });
-        tokens.push(...parseInline(part));
-      });
-      blocks.push({ type: "paragraph", tokens });
+    }
+
+    const codeMatch = matchDelimited(text, i, "`");
+    if (codeMatch) {
+      tokens.push({ type: "code", content: codeMatch.content });
+      i = codeMatch.end;
       continue;
     }
 
-    i++;
+    if (text.startsWith("**", i) || text.startsWith("__", i)) {
+      const delim = text.substr(i, 2);
+      const close = findClosingDelimiter(text, i + 2, delim);
+      if (close !== -1) {
+        tokens.push({ type: "bold", children: parseInline(text.slice(i + 2, close)) });
+        i = close + 2;
+        continue;
+      }
+    }
+
+    if (text.startsWith("*", i) || text.startsWith("_", i)) {
+      const delim = text[i];
+      const close = findClosingDelimiter(text, i + 1, delim);
+      if (close !== -1) {
+        tokens.push({ type: "italic", children: parseInline(text.slice(i + 1, close)) });
+        i = close + 1;
+        continue;
+      }
+    }
+
+    if (text.startsWith("~~", i)) {
+      const close = findClosingDelimiter(text, i + 2, "~~");
+      if (close !== -1) {
+        tokens.push({ type: "strike", children: parseInline(text.slice(i + 2, close)) });
+        i = close + 2;
+        continue;
+      }
+    }
+
+    const remaining = text.slice(i);
+    const url = remaining.match(URL_REGEX)?.;
+    const email = remaining.match(EMAIL_REGEX)?.;
+    if (url && (!email || url.length <= email.length)) {
+      tokens.push({ type: "autolink", href: url });
+      i += url.length;
+      continue;
+    }
+    if (email) {
+      tokens.push({ type: "autolink", href: `mailto:${email}` });
+      i += email.length;
+      continue;
+    }
+
+    if (text[i] === "\n") {
+      tokens.push({ type: "br" });
+      i++;
+      continue;
+    }
+
+    let j = i;
+    while (
+      j < text.length &&
+      !["\\", "!", "[", "`", "*", "_", "~", "\n"].includes(text[j]) &&
+      !text.slice(j).match(/^https?:\/\//) &&
+      !text.slice(j).match(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
+    ) {
+      j++;
+    }
+    if (j === i) j++;
+    pushText(text.slice(i, j));
+    i = j;
+  }
+
+  return mergeTextTokens(tokens);
+}
+
+function mergeTextTokens(tokens: InlineToken[]): InlineToken[] {
+  const out: InlineToken[] = [];
+  for (const t of tokens) {
+    const last = out[out.length - 1];
+    if (t.type === "text" && last?.type === "text") last.content += t.content;
+    else out.push(t);
+  }
+  return out;
+}
+
+function findMatchingBracket(text: string, openIndex: number) {
+  let depth = 0;
+  for (let i = openIndex; i < text.length; i++) {
+    if (text[i] === "\\" && i + 1 < text.length) {
+      i++;
+      continue;
+    }
+    if (text[i] === "[") depth++;
+    else if (text[i] === "]") {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function findMatchingParen(text: string, openParenIndex: number) {
+  let depth = 0;
+  for (let i = openParenIndex; i < text.length; i++) {
+    if (text[i] === "\\" && i + 1 < text.length) {
+      i++;
+      continue;
+    }
+    if (text[i] === "(") depth++;
+    else if (text[i] === ")") {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function parseLinkTarget(input: string) {
+  const m = /^(.*?)(?:\s+"([^"]+)")?$/.exec(input);
+  const href = (m?.[13] || "").trim();
+  const title = m?.;[11]
+  return { href, title };
+}
+
+function matchDelimited(text: string, start: number, delimiter: string) {
+  if (!text.startsWith(delimiter, start)) return null;
+  const end = text.indexOf(delimiter, start + delimiter.length);
+  if (end === -1) return null;
+  const content = text.slice(start + delimiter.length, end);
+  return { content, end };
+}
+
+function findClosingDelimiter(text: string, start: number, delimiter: string) {
+  let i = start;
+  while (i < text.length) {
+    const idx = text.indexOf(delimiter, i);
+    if (idx === -1) return -1;
+    if (text[idx - 1] !== "\\") return idx;
+    i = idx + delimiter.length;
+  }
+  return -1;
+}
+
+function parseBlocks(text: string): Block[] {
+  const lines = normalizeText(text).split("\n");
+  const blocks: Block[] = [];
+  let i = 0;
+
+  const parseParagraph = () => {
+    const buffer: string[] = [];
+    while (i < lines.length && !isBlank(lines[i])) {
+      if (isFence(lines[i]) || isHeading(lines[i]) || isThematicBreak(lines[i]) || isBlockquote(lines[i]) !== null || isListItem(lines[i]) || isTableStart(lines, i)) break;
+      buffer.push(lines[i]);
+      i++;
+    }
+    if (buffer.length) blocks.push({ type: "paragraph", children: parseInline(buffer.join("\n")) });
+  };
+
+  const isListItem = (line: string) => isUnorderedListItem(line) || isOrderedListItem(line);
+
+  while (i < lines.length) {
+    if (isBlank(lines[i])) {
+      i++;
+      continue;
+    }
+
+    const fence = isFence(lines[i]);
+    if (fence) {
+      i++;
+      const content: string[] = [];
+      while (i < lines.length && !isFence(lines[i])) {
+        content.push(lines[i]);
+        i++;
+      }
+      if (i < lines.length) i++;
+      blocks.push({ type: "codeblock", content: content.join("\n"), lang: fence.lang });
+      continue;
+    }
+
+    const heading = isHeading(lines[i]);
+    if (heading) {
+      blocks.push({ type: "heading", level: heading.level, children: parseInline(heading.text.trim()) });
+      i++;
+      continue;
+    }
+
+    if (isThematicBreak(lines[i])) {
+      blocks.push({ type: "thematicBreak" });
+      i++;
+      continue;
+    }
+
+    const quote = isBlockquote(lines[i]);
+    if (quote !== null) {
+      const quoteLines: string[] = [];
+      while (i < lines.length) {
+        const q = isBlockquote(lines[i]);
+        if (q === null && !isBlank(lines[i])) break;
+        quoteLines.push(q ?? "");
+        i++;
+      }
+      blocks.push({ type: "blockquote", children: parseBlocks(quoteLines.join("\n")) });
+      continue;
+    }
+
+    const list = parseList(lines, i);
+    if (list) {
+      blocks.push(list.block);
+      i = list.nextIndex;
+      continue;
+    }
+
+    if (isTableStart(lines, i)) {
+      const { block, nextIndex } = parseTable(lines, i);
+      blocks.push(block);
+      i = nextIndex;
+      continue;
+    }
+
+    parseParagraph();
   }
 
   return blocks;
 }
 
-/* ─── Render Inline Tokens ─── */
-function renderInline(tokens: InlineToken[], keyPrefix: string) {
-  return tokens.map((token, i) => {
-    const key = `${keyPrefix}-${i}`;
-    switch (token.type) {
-      case "bold":
-        return <strong key={key} className="font-semibold">{token.content}</strong>;
-      case "italic":
-        return <em key={key} className="italic">{token.content}</em>;
-      case "strike":
-        return <s key={key} className="line-through opacity-70">{token.content}</s>;
-      case "code":
+function isTableStart(lines: string[], i: number) {
+  return i + 1 < lines.length && lines[i].includes("|") && isTableSeparator(lines[i + 1]);
+}
+
+function parseTable(lines: string[], i: number) {
+  const header = splitTableRow(lines[i]).map(parseInline);
+  const rows: InlineToken[][][] = [];
+  i += 2;
+  while (i < lines.length && lines[i].includes("|") && !isBlank(lines[i])) {
+    rows.push(splitTableRow(lines[i]).map(parseInline));
+    i++;
+  }
+  return { block: { type: "table" as const, header, rows }, nextIndex: i };
+}
+
+function parseList(lines: string[], startIndex: number): { block: Block; nextIndex: number } | null {
+  const firstUnordered = isUnorderedListItem(lines[startIndex]);
+  const firstOrdered = isOrderedListItem(lines[startIndex]);
+  const ordered = !!firstOrdered;
+  const items: ListItem[] = [];
+  let i = startIndex;
+
+  while (i < lines.length) {
+    const current = ordered ? isOrderedListItem(lines[i]) : isUnorderedListItem(lines[i]);
+    if (!current) break;
+
+    const itemLines: string[] = [];
+    const firstLine = current.text;
+
+    const task = /^\[( |x|X)\]\s+(.*)$/.exec(firstLine);
+    let checked: boolean | undefined;
+    if (task) {
+      checked = task.toLowerCase() === "x";[13]
+      itemLines.push(task);[11]
+    } else {
+      itemLines.push(firstLine);
+    }
+
+    i++;
+    while (i < lines.length && (lines[i].startsWith("  ") || isBlank(lines[i]))) {
+      if (isBlank(lines[i])) {
+        itemLines.push("");
+        i++;
+        continue;
+      }
+      itemLines.push(lines[i].replace(/^\s{2,3}/, ""));
+      i++;
+    }
+
+    items.push({ checked, children: parseBlocks(itemLines.join("\n")) });
+  }
+
+  if (!items.length) return null;
+  return { block: { type: "list", ordered, items }, nextIndex: i };
+}
+
+export function renderMarkdown(text: string, mine: boolean) {
+  return parseBlocks(text).map((block, i) => {
+    const key = `block-${i}`;
+    switch (block.type) {
+      case "paragraph":
         return (
-          <code key={key} className="rounded bg-black/10 px-1 py-0.5 text-[0.9em] font-mono dark:bg-white/15">
-            {token.content}
-          </code>
+          <p key={key} className="whitespace-pre-wrap break-words leading-snug">
+            {renderInlineTokens(block.children, key)}
+          </p>
         );
-      case "link":
+      case "heading":
+        return React.createElement(
+          `h${block.level}`,
+          { key, className: "font-semibold tracking-tight" },
+          renderInlineTokens(block.children, key)
+        );
+      case "blockquote":
         return (
-          <a
-            key={key}
-            href={token.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="underline underline-offset-2 opacity-90 hover:opacity-100 break-all"
-          >
-            {token.content}
-          </a>
+          <blockquote key={key} className="border-l-4 pl-3 opacity-90">
+            {block.children.map((child, idx) => (
+              <React.Fragment key={idx}>{renderBlock(child, `${key}-${idx}`)}</React.Fragment>
+            ))}
+          </blockquote>
         );
-      case "br":
-        return <br key={key} />;
-      default:
-        return <span key={key}>{token.content}</span>;
+      case "list":
+        return block.ordered ? (
+          <ol key={key} className="ml-5 list-decimal space-y-1">
+            {block.items.map((item, idx) => (
+              <li key={idx}>
+                {item.checked !== undefined && (
+                  <input type="checkbox" readOnly checked={item.checked} className="mr-2 align-middle" />
+                )}
+                {item.children.map((child, cidx) => (
+                  <React.Fragment key={cidx}>{renderBlock(child, `${key}-${idx}-${cidx}`)}</React.Fragment>
+                ))}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ul key={key} className="ml-5 list-disc space-y-1">
+            {block.items.map((item, idx) => (
+              <li key={idx}>
+                {item.checked !== undefined && (
+                  <input type="checkbox" readOnly checked={item.checked} className="mr-2 align-middle" />
+                )}
+                {item.children.map((child, cidx) => (
+                  <React.Fragment key={cidx}>{renderBlock(child, `${key}-${idx}-${cidx}`)}</React.Fragment>
+                ))}
+              </li>
+            ))}
+          </ul>
+        );
+      case "thematicBreak":
+        return <hr key={key} className="my-3 border-t opacity-30" />;
+      case "codeblock":
+        return (
+          <pre key={key} className="my-2 overflow-x-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 text-xs font-mono border border-[#E07A5F]/10">
+            {block.lang && <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#E07A5F] opacity-70">{block.lang}</div>}
+            <code>{block.content}</code>
+          </pre>
+        );
+      case "table":
+        return <TableRenderer key={key} header={block.header} rows={block.rows} mine={mine} />;
     }
   });
 }
 
-/* ─── Table Renderer ─── */
+function renderBlock(block: Block, keyPrefix: string): React.ReactNode {
+  switch (block.type) {
+    case "paragraph":
+      return <p className="whitespace-pre-wrap break-words leading-snug">{renderInlineTokens(block.children, keyPrefix)}</p>;
+    case "heading":
+      return React.createElement(`h${block.level}`, { className: "font-semibold tracking-tight" }, renderInlineTokens(block.children, keyPrefix));
+    case "blockquote":
+      return <blockquote className="border-l-4 pl-3 opacity-90">{block.children.map((child, i) => <React.Fragment key={i}>{renderBlock(child, `${keyPrefix}-${i}`)}</React.Fragment>)}</blockquote>;
+    case "list":
+      return block.ordered ? (
+        <ol className="ml-5 list-decimal space-y-1">
+          {block.items.map((item, i) => (
+            <li key={i}>
+              {item.checked !== undefined && <input type="checkbox" readOnly checked={item.checked} className="mr-2 align-middle" />}
+              {item.children.map((child, j) => <React.Fragment key={j}>{renderBlock(child, `${keyPrefix}-${i}-${j}`)}</React.Fragment>)}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <ul className="ml-5 list-disc space-y-1">
+          {block.items.map((item, i) => (
+            <li key={i}>
+              {item.checked !== undefined && <input type="checkbox" readOnly checked={item.checked} className="mr-2 align-middle" />}
+              {item.children.map((child, j) => <React.Fragment key={j}>{renderBlock(child, `${keyPrefix}-${i}-${j}`)}</React.Fragment>)}
+            </li>
+          ))}
+        </ul>
+      );
+    case "thematicBreak":
+      return <hr className="my-3 border-t opacity-30" />;
+    case "codeblock":
+      return <pre className="overflow-x-auto rounded bg-black/5 p-3 font-mono text-xs"><code>{block.content}</code></pre>;
+    case "table":
+      return <TableRenderer headers={block.header.map((h) => h.map((t) => t.type === "text" ? t.content : "").join(""))} rows={block.rows.map((r) => r.map((c) => c.map((t) => t.type === "text" ? t.content : "").join("")))} mine={false} />;
+  }
+}
+
+function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.ReactNode[] {
+  return tokens.map((token, i) => {
+    const key = `${keyPrefix}-${i}`;
+    switch (token.type) {
+      case "text":
+        return <span key={key}>{token.content}</span>;
+      case "bold":
+        return <strong key={key} className="font-semibold">{renderInlineTokens(token.children, key)}</strong>;
+      case "italic":
+        return <em key={key} className="italic">{renderInlineTokens(token.children, key)}</em>;
+      case "strike":
+        return <s key={key} className="line-through opacity-70">{renderInlineTokens(token.children, key)}</s>;
+      case "code":
+        return <code key={key} className="rounded bg-black/10 px-1 py-0.5 font-mono text-[0.9em] dark:bg-white/15">{token.content}</code>;
+      case "link":
+        return <a key={key} href={token.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 break-all">{renderInlineTokens(token.children, key)}</a>;
+      case "image":
+        return <img key={key} src={token.src} alt={token.alt} title={token.title} className="inline-block max-h-48 rounded" />;
+      case "autolink":
+        return <a key={key} href={token.href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 break-all">{token.href}</a>;
+      case "br":
+        return <br key={key} />;
+    }
+  });
+}
+
 function TableRenderer({
-  headers,
+  header,
   rows,
   mine,
 }: {
-  headers: string[];
+  header: string[];
   rows: string[][];
   mine: boolean;
 }) {
   return (
     <div className="my-2 overflow-x-auto rounded-lg border border-[#E07A5F]/20 dark:border-[#E07A5F]/15">
-      <table className="w-[110%] text-left text-[13px] border-collapse">
+      <table className="w-[110%] border-collapse text-left text-[13px]">
         <thead>
-          <tr className={`${mine ? "bg-black/15" : "bg-[#E07A5F]/8 dark:bg-[#E07A5F]/15"}`}>
-            {headers.map((h, i) => (
-              <th
-                key={i}
-                className={`px-3 py-2 font-semibold border-b ${
-                  mine
-                    ? "border-white/20 text-white/95"
-                    : "border-[#E07A5F]/20 text-[#2D3436] dark:text-[#E8E8E8]"
-                } ${i < headers.length - 1 ? (mine ? "border-r border-white/10" : "border-r border-[#E07A5F]/10") : ""}`}
-              >
-                {renderInline(parseInline(h), `th-${i}`)}
+          <tr className={mine ? "bg-black/15" : "bg-[#E07A5F]/8 dark:bg-[#E07A5F]/15"}>
+            {header.map((h, i) => (
+              <th key={i} className="border-b px-3 py-2 font-semibold">
+                {h}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, rIdx) => (
-            <tr
-              key={rIdx}
-              className={`${
-                mine
-                  ? rIdx % 2 === 0 ? "bg-black/5" : "bg-black/10"
-                  : rIdx % 2 === 0 ? "bg-transparent" : "bg-[#F5F0E8]/50 dark:bg-white/5"
-              } transition-colors hover:${mine ? "bg-black/15" : "bg-[#E07A5F]/5"}`}
-            >
+            <tr key={rIdx}>
               {row.map((cell, cIdx) => (
-                <td
-                  key={cIdx}
-                  className={`px-3 py-2 border-b ${
-                    mine
-                      ? "border-white/10 text-white/90"
-                      : "border-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8]"
-                  } ${cIdx < row.length - 1 ? (mine ? "border-r border-white/10" : "border-r border-[#E07A5F]/10") : ""}`}
-                >
-                  {renderInline(parseInline(cell), `td-${rIdx}-${cIdx}`)}
+                <td key={cIdx} className="border-b px-3 py-2">
+                  {cell}
                 </td>
               ))}
             </tr>
@@ -314,40 +651,6 @@ function TableRenderer({
       </table>
     </div>
   );
-}
-
-/* ─── Full Markdown Renderer ─── */
-function renderMarkdown(text: string, mine: boolean) {
-  const blocks = parseBlocks(text);
-  return blocks.map((block, i) => {
-    const key = `block-${i}`;
-    switch (block.type) {
-      case "codeblock":
-        return (
-          <pre
-            key={key}
-            className="my-2 overflow-x-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 text-xs font-mono border border-[#E07A5F]/10"
-          >
-            {block.lang && (
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#E07A5F] opacity-70">
-                {block.lang}
-              </div>
-            )}
-            <code className={mine ? "text-white/90" : "text-[#2D3436] dark:text-[#E8E8E8]"}>
-              {block.content}
-            </code>
-          </pre>
-        );
-      case "table":
-        return <TableRenderer key={key} headers={block.headers} rows={block.rows} mine={mine} />;
-      case "paragraph":
-        return (
-          <p key={key} className="whitespace-pre-wrap break-words leading-snug">
-            {renderInline(block.tokens, key)}
-          </p>
-        );
-    }
-  });
 }
 
 /* ─── Long Press Hook ─── */
