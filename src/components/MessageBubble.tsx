@@ -244,8 +244,8 @@ function parseInline(text: string): InlineToken[] {
     }
 
     const remaining = text.slice(i);
-    const url = remaining.match(URL_REGEX)?.;
-    const email = remaining.match(EMAIL_REGEX)?.;
+    const url = remaining.match(URL_REGEX)?.[0];
+    const email = remaining.match(EMAIL_REGEX)?.[0];
     if (url && (!email || url.length <= email.length)) {
       tokens.push({ type: "autolink", href: url });
       i += url.length;
@@ -324,8 +324,8 @@ function findMatchingParen(text: string, openParenIndex: number) {
 
 function parseLinkTarget(input: string) {
   const m = /^(.*?)(?:\s+"([^"]+)")?$/.exec(input);
-  const href = (m?.[13] || "").trim();
-  const title = m?.;[11]
+  const href = (m?.[1] || "").trim();
+  const title = m?.[2];
   return { href, title };
 }
 
