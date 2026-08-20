@@ -944,7 +944,7 @@ return (
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
-  replyCount, onOpenThread,allImages, onForward,
+  replyCount, onOpenThread,allImages, onForward, isHighlighted,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -954,6 +954,8 @@ export function Bubble({
   parentName?: string; parentBody?: React.ReactNode;
   /** Called when the user taps the quoted reply preview — scrolls to and highlights the original message. */
   onJumpToParent?: () => void;
+  /** True briefly after this message is jumped to (via reply-tap or search), to flash its border. */
+  isHighlighted?: boolean;
   actionsOpen: boolean; onToggleActions: () => void;
   onTranscribed?: (messageId: string, transcript: string) => void;
   replyCount?: number;
@@ -1105,12 +1107,16 @@ const tailClass = !grouped && mine
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl transition-opacity ${bubbleBase} ${bubbleRadius} ${tailClass} ${
+            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl transition-[opacity,box-shadow,border-color] duration-300 ${bubbleBase} ${bubbleRadius} ${tailClass} ${
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
                 ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] text-white"
                 : "bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+            } ${
+              isHighlighted
+                ? "!border-2 !border-[#E07A5F] ring-4 ring-[#E07A5F]/30"
+                : ""
             }`}
           >
             {!mine && !grouped && (isAI || isGroup) && (

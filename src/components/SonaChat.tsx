@@ -2793,7 +2793,7 @@ useEffect(() => {
       transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
       ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
       className={
-        isCurrentMatch || isJumpHighlighted
+        isCurrentMatch
           ? "rounded-2xl ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-transparent transition-all"
           : ""
       }
@@ -2817,6 +2817,7 @@ useEffect(() => {
       parentName={parentName}
       parentBody={parentBody}
       onJumpToParent={parentMsg ? () => jumpToMessage(parentMsg.id) : undefined}
+      isHighlighted={isJumpHighlighted}
       actionsOpen={openBubbleId === m.id}
       onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
       onTranscribed={(messageId, transcript) =>
