@@ -133,22 +133,22 @@ function isHeading(line: string) {
 
 function isFence(line: string) {
   const m = /^(\s*)(```|~~~)\s*([^\s`]*)\s*$/.exec(line);
-  return m ? { fence: m[11], lang: m[12] || undefined } : null;
+  return m ? { fence: m[2], lang: m[3] || undefined } : null;
 }
 
 function isBlockquote(line: string) {
   const m = /^\s*>\s?(.*)$/.exec(line);
-  return m ? m : null;[13]
+  return m ? m[1] : null;
 }
 
 function isUnorderedListItem(line: string) {
   const m = /^(\s*)([-+*])\s+(.*)$/.exec(line);
-  return m ? { indent: m.length, text: m } : null;[12][13]
+  return m ? { indent: m[1].length, text: m[3] } : null;
 }
 
 function isOrderedListItem(line: string) {
   const m = /^(\s*)(\d+)[.)]\s+(.*)$/.exec(line);
-  return m ? { indent: m.length, text: m } : null;[12][13]
+  return m ? { indent: m[1].length, text: m[3] } : null;
 }
 
 function splitTableRow(line: string) {
@@ -462,8 +462,8 @@ function parseList(lines: string[], startIndex: number): { block: Block; nextInd
     const task = /^\[( |x|X)\]\s+(.*)$/.exec(firstLine);
     let checked: boolean | undefined;
     if (task) {
-      checked = task.toLowerCase() === "x";[13]
-      itemLines.push(task);[11]
+      checked = task[1].toLowerCase() === "x";
+      itemLines.push(task[2]);
     } else {
       itemLines.push(firstLine);
     }
@@ -548,7 +548,14 @@ export function renderMarkdown(text: string, mine: boolean) {
           </pre>
         );
       case "table":
-        return <TableRenderer key={key} header={block.header} rows={block.rows} mine={mine} />;
+        return (
+          <TableRenderer
+            key={key}
+            header={block.header.map((h) => flattenInlineToText(h))}
+            rows={block.rows.map((r) => r.map((c) => flattenInlineToText(c)))}
+            mine={mine}
+          />
+        );
     }
   });
 }
@@ -586,8 +593,45 @@ function renderBlock(block: Block, keyPrefix: string): React.ReactNode {
     case "codeblock":
       return <pre className="overflow-x-auto rounded bg-black/5 p-3 font-mono text-xs"><code>{block.content}</code></pre>;
     case "table":
-      return <TableRenderer headers={block.header.map((h) => h.map((t) => t.type === "text" ? t.content : "").join(""))} rows={block.rows.map((r) => r.map((c) => c.map((t) => t.type === "text" ? t.content : "").join("")))} mine={false} />;
+      return (
+        <TableRenderer
+          header={block.header.map((h) => flattenInlineToText(h))}
+          rows={block.rows.map((r) => r.map((c) => flattenInlineToText(c)))}
+          mine={false}
+        />
+      );
   }
+}
+
+// Flattens a run of inline tokens (bold/italic/link/etc.) down to plain
+// text. Table cells render through TableRenderer's plain <td>/<th>, which
+// expects strings — passing raw token objects there triggers React error
+// #31 ("object with keys {type, children}"), since a {type, children}
+// shape is exactly what a bold/italic/paragraph token looks like.
+function flattenInlineToText(tokens: InlineToken[]): string {
+  return tokens
+    .map((t) => {
+      switch (t.type) {
+        case "text":
+          return t.content;
+        case "code":
+          return t.content;
+        case "autolink":
+          return t.href;
+        case "image":
+          return t.alt ?? "";
+        case "br":
+          return "\n";
+        case "bold":
+        case "italic":
+        case "strike":
+        case "link":
+          return flattenInlineToText(t.children);
+        default:
+          return "";
+      }
+    })
+    .join("");
 }
 
 function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.ReactNode[] {
