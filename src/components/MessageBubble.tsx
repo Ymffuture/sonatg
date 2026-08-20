@@ -671,7 +671,7 @@ function TableRenderer({
 }) {
   return (
     <div className="my-2 overflow-x-auto rounded-lg border border-[#E07A5F]/20 dark:border-[#E07A5F]/15">
-      <table className="w-[110%] border-collapse text-left text-[13px]">
+      <table className="w-[130%] border-collapse text-left text-[13px]">
         <thead>
           <tr className={mine ? "bg-black/15" : "bg-[#E07A5F]/8 dark:bg-[#E07A5F]/15"}>
             {header.map((h, i) => (
