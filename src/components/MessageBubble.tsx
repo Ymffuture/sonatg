@@ -1211,7 +1211,7 @@ return (
     target="_blank"
     rel="noopener noreferrer"
     className={`
-      group mb-4 block max-w-[320px] overflow-hidden rounded-2xl border
+      group mb-4 p-2 block max-w-[320px] overflow-hidden rounded-2xl border
       transition-all duration-200 ease-out
       hover:-translate-y-0.5 hover:shadow-lg
       active:scale-[0.99] active:shadow-md
@@ -1458,11 +1458,11 @@ const tailClass = !grouped && mine
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
-                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] text-[#2D3436] "
+                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] text-[#fff] "
                 : "bg-white dark:bg-[#2A2A2A] text-[#1E1E1E] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             } ${
               isHighlighted
-                ? "!border-2 !border-[#E8E8E8] ring-2 ring-[#1E1E1E]"
+                ? "!border-2 !border-[#E8E8E8] animate-pulse ring-2 ring-[#1E1E1E]"
                 : ""
             }`}
           >
@@ -1477,7 +1477,7 @@ const tailClass = !grouped && mine
                     
                   </div>
                 ) : (
-                  <span className="text-xs font-medium italic text-[#8c8c8c]">
+                  <span className="text-xs font-medium italic mb-2 text-[#8c8c8c]">
                     ~ {sender?.display_name ?? "Unknown"}
                   </span>
                 )}
