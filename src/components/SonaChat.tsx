@@ -2027,7 +2027,7 @@ useEffect(() => {
 
   
   return (
-    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] hide-scrollbar dark:text-[#E8E8E8]">
+    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] hide-scrollbar scrollbar-hiding dark:text-[#E8E8E8]">
       <Watermark
           content="" 
           font={{ color: "#e1f6fc" , fontSize: 8}}
@@ -2845,7 +2845,7 @@ useEffect(() => {
                   </div>
                 )}
 
-                <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
+                <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern scrollbar-hiding">
                   <div className="mx-auto flex max-w-3xl flex-col gap-0.5">
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
                       {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
