@@ -81,6 +81,8 @@ import {
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer, MediaViewer } from "./MessageBubble";
 import { MessageErrorBoundary } from "./MessageErrorBoundary";
+import Lottie from "lottie-react";
+import emptyChatsAnimation from "@/assets/lottie/empty-chats.json";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
 import { ProfileViewModal } from "./ProfileView";
 import { ForwardModal } from "./ForwardModal";
@@ -200,6 +202,41 @@ function loadDraftFromStorage(chatId: string): string {
 
 function clearDraftFromStorage(chatId: string) {
   try { localStorage.removeItem(draftKey(chatId)); } catch { /* no-op */ }
+}
+
+/**
+ * Smart empty state for the chat list: picks a different illustration/copy
+ * depending on *why* the list is empty, instead of a single static "No
+ * chats yet" line regardless of context.
+ *  - Brand-new user, zero chats ever      -> friendly first-chat nudge.
+ *  - Has chats, but the current search/   -> "no results" copy that points
+ *    folder filter matched nothing           at the "Ask Sona AI" row above
+ *                                             the list (see askSonaAIFromSearch).
+ */
+function EmptyChatsState({ hasAnyChats, query }: { hasAnyChats: boolean; query: string }) {
+  const isSearchMiss = hasAnyChats && query.length > 0;
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 px-6 py-10 text-center">
+      <div className="h-28 w-28 -mb-2">
+        <Lottie animationData={emptyChatsAnimation} loop autoplay className="h-full w-full" />
+      </div>
+      {isSearchMiss ? (
+        <>
+          <p className="text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8]">
+            No chats matching “{query}”
+          </p>
+          <p className="max-w-[220px] text-xs text-[#8C8C8C]">
+            Try a different search, or use “Ask Sona AI” above.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8]">No chats yet</p>
+          <p className="max-w-[220px] text-xs text-[#8C8C8C]">Tap + to start your first conversation.</p>
+        </>
+      )}
+    </div>
+  );
 }
 
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
@@ -2437,7 +2474,9 @@ useEffect(() => {
       );
     })
   )}
-  {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
+  {!loadingChats && filtered.length === 0 && (
+    <EmptyChatsState hasAnyChats={chats.length > 0} query={query.trim()} />
+  )}
 </AnimatePresence>
 </div>
             {/* Floating New-Chat FAB */}
