@@ -80,6 +80,7 @@ import {
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer, MediaViewer } from "./MessageBubble";
+import { MessageErrorBoundary } from "./MessageErrorBoundary";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
 import { ProfileViewModal } from "./ProfileView";
 import { ForwardModal } from "./ForwardModal";
@@ -2841,6 +2842,7 @@ useEffect(() => {
           : ""
       }
     >
+    <MessageErrorBoundary messageId={m.id}>
     <Bubble
       msg={m}
       me={me}
@@ -2870,6 +2872,7 @@ useEffect(() => {
       onOpenThread={() => setThreadRootId(m.id)}
       onForward={() => setForwardingMessage(m)}
     />
+    </MessageErrorBoundary>
     </motion.div>
     </div>
   );
