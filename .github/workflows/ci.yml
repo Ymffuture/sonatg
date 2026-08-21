@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Typecheck, lint & build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # `npm ci` requires package-lock.json to exactly match package.json,
+      # which isn't currently the case here (bun.lock is the lockfile this
+      # project is actually installed with). `npm install` is more lenient
+      # and works either way. Once package-lock.json is regenerated/removed
+      # in favor of bun.lock everywhere, this can switch to oven-sh/setup-bun.
+      - name: Install dependencies
+        run: npm install
+
+      # Non-blocking for now: several tables added in recent migrations
+      # (moderation_flags, notification_preferences, app_announcements,
+      # moderation_queue) aren't in src/integrations/supabase/database.types.ts
+      # yet, which currently causes ~30 pre-existing type errors unrelated to
+      # any single change. Run `supabase gen types typescript` against the
+      # live project and commit the refreshed file, then flip this to
+      # blocking (remove continue-on-error).
+      - name: Typecheck
+        run: npm run typecheck
+        continue-on-error: true
+
+      # Non-blocking for now: the codebase has a large pre-existing backlog
+      # of Prettier formatting violations. Run `npm run format` once to burn
+      # it down, then flip this to blocking.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      # This is the real gate — a broken build (syntax errors, missing
+      # imports, etc.) always fails the pipeline, regardless of the above.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_JWKS_URL: ${{ secrets.SUPABASE_JWKS_URL }}
