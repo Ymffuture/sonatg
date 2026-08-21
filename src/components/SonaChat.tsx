@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
-  MessageSquarePlus, Radio, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
+  MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
@@ -16,7 +16,7 @@ import { notifyOfflineMessage } from "@/lib/notifications.functions";
 import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoMdTimer } from "react-icons/io";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, ClientOnly } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
@@ -218,7 +218,19 @@ function EmptyChatsState({ hasAnyChats, query }: { hasAnyChats: boolean; query: 
   return (
     <div className="flex flex-col items-center justify-center gap-1 px-6 py-10 text-center">
       <div className="h-28 w-28 -mb-2">
-        <Lottie animationData={emptyChatsAnimation} loop autoplay className="h-full w-full" />
+        {/* Lottie relies on browser-only APIs (document, canvas/SVG) and can't
+            render during SSR — importing it there resolves to a plain object
+            instead of a component, which trips React error #130. ClientOnly
+            defers the real render to the browser after hydration. */}
+        <ClientOnly
+          fallback={
+            <div className="grid h-full w-full place-items-center text-5xl opacity-40" aria-hidden>
+              💬
+            </div>
+          }
+        >
+          <Lottie animationData={emptyChatsAnimation} loop autoplay className="h-full w-full" />
+        </ClientOnly>
       </div>
       {isSearchMiss ? (
         <>
