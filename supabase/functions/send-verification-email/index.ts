@@ -23,7 +23,7 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "";
 const EMAILJS_SERVICE_ID = Deno.env.get("EMAILJS_SERVICE_ID") ?? "";
-const EMAILJS_TEMPLATE_ID = Deno.env.get("EMAILJS_TEMPLATE_ID") ?? "";
+const EMAILJS_TEMPLATE_ID = Deno.env.get("EMAILJS_APP_UPDATE_TEMPLATE_ID") ?? "";
 const EMAILJS_PUBLIC_KEY = Deno.env.get("EMAILJS_PUBLIC_KEY") ?? "";
 const EMAILJS_PRIVATE_KEY = Deno.env.get("EMAILJS_PRIVATE_KEY") ?? "";
 const APP_URL = Deno.env.get("APP_URL") ?? "https://sonatg.vercel.app";
