@@ -2249,7 +2249,7 @@ useEffect(() => {
                 <button
                   title="Status &amp; Update news " 
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-                  className="group absolute bottom-[15%] right-5 z-30 grid h-[64px] w-[64px] place-items-center rounded-2xl
+                  className="group absolute bottom-[12%] right-5 z-30 grid h-[50px] w-[50px] place-items-center rounded-2xl
     /* Glass base */
     bg-white/20 dark:bg-white/10
     backdrop-blur-xl
@@ -2270,7 +2270,7 @@ useEffect(() => {
     active:translate-y-0.5 active:scale-[0.96] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_6px_rgba(224,122,95,0.15),inset_0_2px_4px_rgba(0,0,0,0.1)]
     dark:active:shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(0,0,0,0.3)]"
 >
-                  <LuCircleFadingPlus className="h-6 text-[#1E1E1E] dark:text-[#E07A5F] opacity-80 w-6" />
+                  <LuCircleFadingPlus className={`h-10 text-[#1E1E1E] dark:text-[#E07A5F] opacity-80 w-10 ${hasStatus ? "animate-pulse" :"" } `} />
                 </button>
               </div>
             )}
@@ -2472,7 +2472,7 @@ useEffect(() => {
     setShowNewChat(true);
   }}
   aria-label="New chat"
-  className="group absolute bottom-8 right-5 z-30 grid h-[64px] w-[64px] place-items-center rounded-2xl
+  className="group absolute bottom-8 right-5 z-30 grid h-[50px] w-[50px] place-items-center rounded-2xl
     /* Glass base */
     bg-white/20 dark:bg-white/10
     backdrop-blur-xl
