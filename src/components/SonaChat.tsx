@@ -2439,9 +2439,9 @@ useEffect(() => {
       );
     })
   )}
-  {!loadingChats && filtered.length === 0 && <div className="h-28 w-28 -mb-2">
+  {!loadingChats && filtered.length === 0 && ( <div className="h-28 w-28 -mb-2">
         <Lottie animationData={emptyChatsAnimation} loop autoplay className="h-full w-full" />
-      </div>} 
+      </div>)} 
 </div>
             {/* Floating New-Chat FAB */}
             <button
