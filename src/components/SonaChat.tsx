@@ -184,7 +184,6 @@ function fmtChatTimestamp(iso: string): string {
 // localStorage; failures (private browsing, storage disabled, quota) are
 // swallowed since a draft is a nice-to-have, never worth crashing over.
 
-const hasStatus = !ai && otherId && usersWithStatus.has(otherId);
 
 const draftKey = (chatId: string) => `sona:draft:${chatId}`;
 
@@ -2273,7 +2272,7 @@ useEffect(() => {
     active:translate-y-0.5 active:scale-[0.96] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_6px_rgba(224,122,95,0.15),inset_0_2px_4px_rgba(0,0,0,0.1)]
     dark:active:shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(0,0,0,0.3)]"
 >
-                  <LuCircleFadingPlus className={`h-10 text-[#1E1E1E] dark:text-[#E07A5F] opacity-80 w-10 ${hasStatus ? "animate-pulse" :"" } `} />
+                  <LuCircleFadingPlus className={`h-10 text-[#1E1E1E] dark:text-[#E07A5F] opacity-80 w-10 `} />
                 </button>
               </div>
             )}
