@@ -8,7 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { Result } from "antd";
+import { LuSearchX, LuAlertTriangle } from "react-icons/lu";
 
 import appCss from "../styles.css?url";
 import { reportError } from "../lib/error-reporting";
@@ -18,19 +18,19 @@ import { SoundsProvider } from "@/hooks/useSounds";
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#2D3436] px-4">
-      <Result
-        status="404"
-        title="404"
-        subTitle="The page you're looking for doesn't exist or has been moved."
-        extra={
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        }
-      />
+      <div className="flex flex-col items-center text-center">
+        <LuSearchX className="mb-6 h-20 w-20 text-white/80" />
+        <h1 className="mb-2 text-6xl font-bold text-white">404</h1>
+        <p className="mb-8 max-w-md text-lg text-white/70">
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Go home
+        </Link>
+      </div>
     </div>
   );
 }
@@ -44,30 +44,32 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Result
-        status="500"
-        title="This page didn't load"
-        subTitle="Something went wrong on our end. You can try refreshing or head back home."
-        extra={
-          <div className="flex flex-wrap justify-center gap-2">
-            <button
-              onClick={() => {
-                router.invalidate();
-                reset();
-              }}
-              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Try again
-            </button>
-            <a
-              href="/"
-              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-            >
-              Go home
-            </a>
-          </div>
-        }
-      />
+      <div className="flex flex-col items-center text-center">
+        <LuAlertTriangle className="mb-6 h-16 w-16 text-amber-500" />
+        <h1 className="mb-2 text-2xl font-semibold text-foreground">
+          This page didn't load
+        </h1>
+        <p className="mb-8 max-w-md text-muted-foreground">
+          Something went wrong on our end. You can try refreshing or head back home.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Try again
+          </button>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            Go home
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
@@ -116,7 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/favicon.png" },
       { rel: "mask-icon", href: "/192-logo.png", color: "#1E1E1E" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" }, 
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" }, // Fixed here!
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" }, 
     ],
   }),
