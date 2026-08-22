@@ -79,3 +79,5 @@ function EmptyChatState({ onStartChat }: { onStartChat: () => void }) {
     </div>
   );
 }
+
+export { EmptyChatState };
