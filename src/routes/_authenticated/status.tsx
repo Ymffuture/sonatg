@@ -4,10 +4,16 @@ import {
   ArrowLeft, Search, MoreVertical, RefreshCw, ExternalLink,
   Shield, FileText, Newspaper, X, Loader2
 } from "lucide-react";
+import { FloatButton } from "antd";
+import { EditOutlined, CameraOutlined } from "@ant-design/icons";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/lib/db";
 import { StatusBar, StatusComposer, StatusViewer } from "@/components/Status";
 import { fetchNews, type NewsItem } from "@/lib/news.functions";
+
+// WhatsApp-style warning-orange floating action buttons
+const FAB_ORANGE = "#F4A261";
+const FAB_ORANGE_DARK = "#E07A5F";
 
 export const Route = createFileRoute("/_authenticated/status")({
   component: StatusPage,
@@ -32,6 +38,7 @@ function StatusPage() {
   const [me, setMe] = useState<Profile | null>(null);
   const [profilesById, setProfilesById] = useState<Record<string, Profile>>({});
   const [showComposer, setShowComposer] = useState(false);
+  const [composerMode, setComposerMode] = useState<"text" | "image" | "video">("text");
   const [viewingUserId, setViewingUserId] = useState<string | null>(user ?? null);
 
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -281,9 +288,36 @@ function StatusPage() {
         )}
       </section>
 
+      {/* ─── WhatsApp-style floating action buttons ─── */}
+      {me && !showComposer && !viewingUserId && (
+        <FloatButton.Group
+          shape="circle"
+          style={{ insetInlineEnd: 20, insetBlockEnd: 88 }}
+        >
+          <FloatButton
+            icon={<CameraOutlined />}
+            tooltip="Camera status"
+            style={{ backgroundColor: FAB_ORANGE_DARK, color: "#fff" }}
+            onClick={() => { setComposerMode("image"); setShowComposer(true); }}
+          />
+          <FloatButton
+            icon={<EditOutlined />}
+            tooltip="Text status"
+            type="primary"
+            style={{ backgroundColor: FAB_ORANGE, color: "#fff" }}
+            onClick={() => { setComposerMode("text"); setShowComposer(true); }}
+          />
+        </FloatButton.Group>
+      )}
+
       {/* ─── Modals ─── */}
       {showComposer && me && (
-        <StatusComposer meId={me.id} onClose={() => setShowComposer(false)} onPosted={() => {}} />
+        <StatusComposer
+          meId={me.id}
+          initialMode={composerMode}
+          onClose={() => setShowComposer(false)}
+          onPosted={() => {}}
+        />
       )}
 
       {viewingUserId && me && (
