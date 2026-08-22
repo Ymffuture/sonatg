@@ -27,7 +27,7 @@ import { pushBackLayer } from "@/hooks/useBackStack";
 import { FaSquareThreads } from "react-icons/fa6";
 import { IoFootstepsOutline } from "react-icons/io5" ;
 import Lottie from "lottie-react";
-import EmptyChatState from "./EmptyChatState";
+import {EmptyChatState} from "./EmptyChatState";
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
