@@ -26,6 +26,8 @@ import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import { pushBackLayer } from "@/hooks/useBackStack";
 import { FaSquareThreads } from "react-icons/fa6";
 import { IoFootstepsOutline } from "react-icons/io5" ;
+import Lottie from "lottie-react";
+import emptyChatsAnimation from "@/assets/lottie/empty-chats.json";
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -2437,8 +2439,9 @@ useEffect(() => {
       );
     })
   )}
-  {!loadingChats && filtered.length === 0 && <div className="p-6 text-center text-sm text-[#8C8C8C]">No chats yet. Tap + to start one.</div>}
-</AnimatePresence>
+  {!loadingChats && filtered.length === 0 && <div className="h-28 w-28 -mb-2">
+        <Lottie animationData={emptyChatsAnimation} loop autoplay className="h-full w-full" />
+      </div>} 
 </div>
             {/* Floating New-Chat FAB */}
             <button
