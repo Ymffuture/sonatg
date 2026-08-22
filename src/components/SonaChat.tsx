@@ -2440,7 +2440,7 @@ useEffect(() => {
     })
   )}
   {!loadingChats && filtered.length === 0 && ( <div className="h-28 w-28 -mb-2">
-        <Lottie animationData={emptyChatsAnimation} loop autoplay className="h-full w-full" />
+        Loading... 
       </div>)} 
                </AnimatePresence>
 </div>
