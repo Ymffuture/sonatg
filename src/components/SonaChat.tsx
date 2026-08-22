@@ -183,6 +183,9 @@ function fmtChatTimestamp(iso: string): string {
 // remembering what you were mid-typing. Scoped per chat id in
 // localStorage; failures (private browsing, storage disabled, quota) are
 // swallowed since a draft is a nice-to-have, never worth crashing over.
+
+const hasStatus = !ai && otherId && usersWithStatus.has(otherId);
+
 const draftKey = (chatId: string) => `sona:draft:${chatId}`;
 
 function saveDraftToStorage(chatId: string, text: string) {
