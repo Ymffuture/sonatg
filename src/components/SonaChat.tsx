@@ -2248,7 +2248,7 @@ useEffect(() => {
               <div data-tour="status-bar" className="px-3 pb-3">
                 <button
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-                  className="group absolute bottom-4 right-5 z-30 grid h-[64px] w-[64px] place-items-center rounded-2xl
+                  className="group absolute bottom-[48px] right-5 z-30 grid h-[64px] w-[64px] place-items-center rounded-2xl
     /* Glass base */
     bg-white/20 dark:bg-white/10
     backdrop-blur-xl
