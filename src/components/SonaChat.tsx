@@ -1890,7 +1890,7 @@ useEffect(() => {
                 {[...Array(3).keys()].map((i) => (
                   <div
                     key={i}
-                    style={{ animationDelay: `${i * 0.1}s` }}
+                    style={{ animationDelay: `${i * 0.61}s` }}
                     className="h-8 w-8 rounded-full bg-[silver]/10 animate-pulse"
                   />
                 ))}
@@ -1907,7 +1907,7 @@ useEffect(() => {
               {[...Array(6).keys()].map((i) => (
                 <div
                   key={i}
-                  style={{ animationDelay: `${i * 0.06}s` }}
+                  style={{ animationDelay: `${i * 0.8}s` }}
                   className={`h-8 rounded-full bg-[#E07A5F]/10 animate-pulse shrink-0 ${
                     i === 0 ? "w-11" : i === 1 ? "w-20" : i === 4 ? "w-24" : "w-[72px]"
                   }`}
@@ -1928,7 +1928,7 @@ useEffect(() => {
               {[...Array(10).keys()].map((i) => (
                 <div
                   key={i}
-                  style={{ animationDelay: `${i * 0.05}s` }}
+                  style={{ animationDelay: `${i * 0.5}s` }}
                   className="flex items-center gap-3 p-3 rounded-xl"
                 >
                   {/* Avatar */}
