@@ -13,7 +13,15 @@ import { IoCameraOutline } from "react-icons/io5";
 import { CiTimer } from "react-icons/ci";
 import { fetchActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 import { notifyOfflineMessage } from "@/lib/notifications.functions";
-import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
+
+// import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
+
+import Dropdown from "antd/es/dropdown";
+import Watermark from "antd/es/watermark";
+import Modal from "antd/es/modal";
+import Input from "antd/es/input";
+import antMessage from "antd/es/message";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { IoMdTimer } from "react-icons/io";
 import { Link, useNavigate } from "@tanstack/react-router";
