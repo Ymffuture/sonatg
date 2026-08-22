@@ -64,18 +64,8 @@ function EmptyChatState({ onStartChat }: { onStartChat: () => void }) {
 
       <h3 className="text-xl font-bold text-[#2D3436] dark:text-[#E8E8E8] mb-2">No chats yet</h3>
       <p className="text-sm text-[#8C8C8C] max-w-[240px] leading-relaxed">
-        Tap the <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E07A5F]/15 text-[#E07A5F] text-xs font-bold mx-0.5">+</span> button to start a new conversation
+        Tap the <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E07A5F]/15 text-[#E07A5F] text-[16px] font-bold mx-0.5">+</span> button to start a new conversation
       </p>
-
-      <button
-        onClick={onStartChat}
-        className="mt-6 flex items-center gap-2 text-xs text-[#E07A5F] font-medium opacity-70 hover:opacity-100 transition"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        Start chatting
-      </button>
     </div>
   );
 }
