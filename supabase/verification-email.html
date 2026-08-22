@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Verify your Sona account</title>
+<!--[if mso]>
+<noscript>
+  <xml>
+    <o:OfficeDocumentSettings>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+  </xml>
+</noscript>
+<style>
+  table { border-collapse: collapse; }
+  td, th, p, span { font-family: Arial, sans-serif !important; }
+</style>
+<![endif]-->
+<style>
+  @media only screen and (max-width: 600px) {
+    .sona-container { width: 100% !important; }
+    .sona-px { padding-left: 20px !important; padding-right: 20px !important; }
+    .sona-py { padding-top: 24px !important; padding-bottom: 24px !important; }
+    .sona-h1 { font-size: 21px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    .sona-bg { background-color: #17140f !important; }
+    .sona-card { background-color: #211d17 !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF6EF; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+  <!-- Preheader -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; opacity:0;">
+    Confirm your email to finish creating your Sona account.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="sona-bg" style="background-color:#FAF6EF;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="sona-container" style="width:600px; max-width:600px;">
+
+          <!-- Top bar -->
+          <tr>
+            <td style="padding-bottom: 18px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" valign="middle">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="width:34px; height:34px; border-radius:9px; text-align:center; vertical-align:middle;"></td>
+                        <td style="padding-left:9px; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:15px; font-weight:700; height:30px; width:70px">
+                          <a href="https://sonatg.vercel.app/s-logo.png"><img src="https://sonatg.vercel.app/s-logo.png" style="height:65px; width:151px" /></a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" valign="middle" style="font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:12.5px; color:#9aa0a6;">
+                    Verify your email
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td class="sona-card" style="background-color:#ffffff; border-radius:20px; box-shadow: 0 2px 10px rgba(45,52,54,0.06); overflow:hidden;">
+
+              <!-- Accent header strip -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="height:6px; line-height:6px; font-size:0; background:linear-gradient(90deg,#E07A5F,#F4A261); background-color:#E07A5F;">&nbsp;</td>
+                </tr>
+              </table>
+
+              <!-- Hero -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding: 40px 40px 30px 40px;" class="sona-px sona-py">
+
+                    <!-- Big circular icon badge (checkmark / envelope) -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
+                      <tr>
+                        <td style="width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,#E07A5F,#F4A261); text-align:center; vertical-align:middle;">
+                          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; margin:19px auto;">
+                            <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="#ffffff" stroke-width="1.6" fill="none"/>
+                            <path d="M22 6L12 13L2 6" stroke="#ffffff" stroke-width="1.6" fill="none"/>
+                          </svg>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <h1 class="sona-h1" style="margin:0 0 8px 0; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:23px; line-height:1.3; font-weight:700; color:#2D3436;">
+                      Confirm your email
+                    </h1>
+                    <p style="margin:0 0 26px 0; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:14.5px; line-height:1.6; color:#9aa0a6;">
+                      Hi {{to_name}}, tap the button below to verify {{to_email}} and finish creating your Sona account.
+                    </p>
+
+                    <!-- CTA button -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="border-radius:999px; background-color:#E07A5F;">
+                          <a href="{{verification_link}}" target="_blank"
+                             style="display:block; padding:15px 30px; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:15.5px; font-weight:700; color:#ffffff; text-decoration:none; border-radius:999px; text-align:center;">
+                            Verify email address
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:22px 0 0 0; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:12.5px; line-height:1.6; color:#b3b0a8;">
+                      Or paste this link into your browser:<br>
+                      <a href="{{verification_link}}" style="color:#E07A5F; word-break:break-all;">{{verification_link}}</a>
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="padding:0 40px;" class="sona-px"><div style="border-top:1px solid #F0EBE3; font-size:0; line-height:0;">&nbsp;</div></td></tr>
+              </table>
+
+              <!-- Section label -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding: 26px 40px 12px 40px;" class="sona-px">
+                    <p style="margin:0; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:11px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#b3b0a8;">
+                      Security
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Info row card -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding: 0 40px 34px 40px;" class="sona-px">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #F0EBE3; border-radius:14px;">
+                      <tr>
+                        <td style="padding:16px 18px;">
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td valign="top" style="width:38px;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                  <tr>
+                                    <td style="width:34px; height:34px; border-radius:50%; background-color:#FDEEE8; text-align:center; vertical-align:middle;">
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; margin:9px auto;">
+                                        <path d="M12 2L4 6V11C4 16 7.5 20.5 12 22C16.5 20.5 20 16 20 11V6L12 2Z" fill="#E07A5F"/>
+                                      </svg>
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                              <td valign="middle" style="padding-left:12px; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:13.5px; line-height:1.55; color:#2D3436;">
+                                This link expires in {{expiry_hours}} hours. If you didn't create a Sona account, you can safely ignore this email.
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer inside card -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding: 0 40px 32px 40px;" class="sona-px">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr><td style="border-top:1px solid #F0EBE3; font-size:0; line-height:0;">&nbsp;</td></tr>
+                    </table>
+                    <p style="margin:18px 0 0 0; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:12px; line-height:1.6; color:#9aa0a6;">
+                      You're getting this because {{to_email}} was used to sign up for Sona.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Outer footer -->
+          <tr>
+            <td align="center" style="padding: 26px 20px 10px 20px;">
+              <p style="margin:0; font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size:12px; line-height:1.7; color:#b3b0a8;">
+                Sona — a calmer place to chat.<br>
+                <a href="{{app_url}}" style="color:#b3b0a8; text-decoration:underline;">Open Sona</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
