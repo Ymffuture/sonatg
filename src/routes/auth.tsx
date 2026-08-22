@@ -9,7 +9,7 @@ import {
   Sparkles, Shield, Zap, CheckCircle2,
 } from "lucide-react";
 
-type AuthMethod = "email" | "google" | "twitter" | "facebook";
+type AuthMethod = "email" | "google" | "facebook";
 const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
@@ -47,14 +47,6 @@ function GoogleIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function XIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-
 function FacebookIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -70,7 +62,7 @@ function BrandLogo({ className = "" }: { className?: string }) {
   if (!imgError) {
     return (
       <img
-        src="/logo.png"
+        src="/s-logo.png"
         alt="Sona"
         className={`object-contain ${className}`}
         onError={() => setImgError(true)}
@@ -101,7 +93,7 @@ function AuthPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem(LAST_USED_KEY);
-    if (saved === "email" || saved === "google" || saved === "twitter" || saved === "facebook") {
+    if (saved === "email" || saved === "google" || saved === "facebook") {
       setLastUsed(saved);
     }
   }, []);
@@ -181,7 +173,7 @@ function AuthPage() {
     }
   };
 
-  const oauth = async (provider: "google" | "twitter" | "facebook") => {
+  const oauth = async (provider: "google" | "facebook") => {
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -436,20 +428,6 @@ function AuthPage() {
                 <span className="flex-1 text-left">Continue with Google</span>
                 {lastUsed === "google" && <LastUsed />}
                 <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#4285F4] transition-all duration-300 group-hover:w-full" />
-              </button>
-
-              {/* X / Twitter */}
-              <button
-                onClick={() => oauth("twitter")}
-                disabled={loading}
-                className="group relative w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-black/20 dark:hover:border-white/20 hover:shadow-md hover:shadow-black/5 dark:hover:shadow-white/5 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
-                  <XIcon className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
-                </div>
-                <span className="flex-1 text-left">Continue with X</span>
-                {lastUsed === "twitter" && <LastUsed />}
-                <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#2D3436] dark:bg-white transition-all duration-300 group-hover:w-full" />
               </button>
 
               {/* Facebook */}
