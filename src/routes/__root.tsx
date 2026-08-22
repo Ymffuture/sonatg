@@ -8,9 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { LuSearchX, LuAlertTriangle } from "react-icons/lu";
-
-import appCss from "../styles.css?url";
+import { LuSearchX, LuTriangleAlert } from "react-icons/lu"; from "../styles.css?url";
 import { reportError } from "../lib/error-reporting";
 import { ConfirmProvider } from "@/hooks/useConfirmDialog";
 import { SoundsProvider } from "@/hooks/useSounds";
