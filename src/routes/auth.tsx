@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { Alert } from "antd";
+import { Alert, notification } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
@@ -125,7 +125,7 @@ function AuthPage() {
           return;
         }
 
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -135,13 +135,47 @@ function AuthPage() {
         });
         if (error) throw error;
         localStorage.setItem(LAST_USED_KEY, "email");
+
+        // signUp succeeds without an error even if the email is already
+        // registered (Supabase returns a "fake" user with no identities
+        // to avoid leaking which emails exist). Detect that case so we
+        // don't tell an existing user "check your email" when nothing
+        // was actually sent.
+        const alreadyRegistered =
+          data.user && data.user.identities && data.user.identities.length === 0;
+
+        if (alreadyRegistered) {
+          setErrorMsg("An account with this email already exists. Try signing in instead.");
+          notification.error({
+            message: "Account already exists",
+            description: "Try signing in instead, or use 'Forgot password?' if you don't remember it.",
+            placement: "topRight",
+          });
+        } else if (!data.session) {
+          // No session yet means email confirmation is required.
+          notification.success({
+            message: "Verification email sent",
+            description: `We sent a confirmation link to ${email}. Check your inbox (and spam folder) to finish creating your account.`,
+            placement: "topRight",
+            duration: 6,
+          });
+          setErrorMsg(null);
+        }
+        // If data.session is present, email confirmation is disabled on
+        // the Supabase project and onAuthStateChange will redirect us.
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         localStorage.setItem(LAST_USED_KEY, "email");
       }
     } catch (err) {
-      setErrorMsg((err as Error).message);
+      const msg = (err as Error).message;
+      setErrorMsg(msg);
+      notification.error({
+        message: mode === "signup" ? "Couldn't create account" : "Couldn't sign in",
+        description: msg,
+        placement: "topRight",
+      });
     } finally {
       setLoading(false);
     }

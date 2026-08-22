@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 import { LuSearchX, LuTriangleAlert } from "react-icons/lu";
 import appCss from "../styles.css?url";
 import { reportError } from "../lib/error-reporting";
+import { App as AntApp } from "antd";
 import { ConfirmProvider } from "@/hooks/useConfirmDialog";
 import { SoundsProvider } from "@/hooks/useSounds";
 
@@ -44,7 +45,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="flex flex-col items-center text-center">
-        <LuAlertTriangle className="mb-6 h-16 w-16 text-amber-500" />
+        <LuTriangleAlert className="mb-6 h-16 w-16 text-amber-500" />
         <h1 className="mb-2 text-2xl font-semibold text-foreground">
           This page didn't load
         </h1>
@@ -176,11 +177,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfirmProvider>
-        <SoundsProvider>
-          <Outlet />
-        </SoundsProvider>
-      </ConfirmProvider>
+      <AntApp>
+        <ConfirmProvider>
+          <SoundsProvider>
+            <Outlet />
+          </SoundsProvider>
+        </ConfirmProvider>
+      </AntApp>
     </QueryClientProvider>
   );
 }
