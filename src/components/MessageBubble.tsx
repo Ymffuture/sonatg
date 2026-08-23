@@ -4,7 +4,7 @@ import {
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
-  FileText, Plus, ListChecks,
+  FileText, Plus, ListChecks, CircleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PollCard } from "@/features/classroom";
@@ -1319,6 +1319,7 @@ export function Bubble({
   const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
   const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
+  const [justCopied, setJustCopied] = useState(false);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
@@ -1330,7 +1331,10 @@ export function Bubble({
   }, 600);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(bodyText).then(() => notify.success({ message: "Copied to clipboard" }));
+    navigator.clipboard.writeText(bodyText).then(() => {
+      setJustCopied(true);
+      setTimeout(() => setJustCopied(false), 1500);
+    });
   };
 
   const getReactorNames = (emoji: string) => {
@@ -1689,7 +1693,19 @@ const tailClass = !grouped && mine
 )}
 
               <div className="flex items-center gap-1 translate-y-0.5">
-                
+                <AnimatePresence>
+                  {justCopied && (
+                    <motion.span
+                      initial={{ opacity: 0, x: 4 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 4 }}
+                      transition={{ duration: 0.15 }}
+                      className={`text-[10px] font-medium ${mine ? "text-[#151c1c]/70" : "text-[#8C8C8C]"}`}
+                    >
+                      Copied
+                    </motion.span>
+                  )}
+                </AnimatePresence>
                 {msg.edited_at && <span className="text-[10px] !text-[#8C8C8C] italic opacity-70">edited</span>}
                 <span className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
                 {mine && (msg._pending ? <Clock className="h-3 w-3 text-[#8C8C8C] " /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
@@ -1745,6 +1761,7 @@ export function VoicePlayer({
   const [hasPlayed, setHasPlayed] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [transcribeError, setTranscribeError] = useState<string | null>(null);
   const transcribeFn = useServerFn(transcribeVoiceMessage);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bars = useMemo(() => {
@@ -1776,12 +1793,13 @@ export function VoicePlayer({
     if (transcript) { setShowTranscript((v) => !v); return; }
     if (!messageId || transcribing) return;
     setTranscribing(true);
+    setTranscribeError(null);
     try {
       const result = (await transcribeFn({ data: { messageId } })) as { transcript: string };
       onTranscribed?.(messageId, result.transcript);
       setShowTranscript(true);
     } catch (err) {
-      notify.error({ message: "Couldn't transcribe", description: (err as Error).message });
+      setTranscribeError((err as Error).message || "Transcription failed");
     } finally {
       setTranscribing(false);
     }
@@ -1829,7 +1847,7 @@ export function VoicePlayer({
           <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
           <span
             className={`absolute -bottom-0.5 -right-0.3 grid h-4 w-4 place-items-center rounded-full ring-2 ${
-              mine ? "bg-[#1E1E1E] text-blue-400 ring-[#1E1E1E]" : "bg-white text-[#1E1E1E] ring-white dark:ring-[#2A2A2A]"
+              mine ? "bg-[#1E1E1E] text-blue-400 ring-[#1E1E1E]" : "bg-white text-[#151c1c] ring-white dark:ring-[#2A2A2A]"
             }`}
           >
             <Mic className="h-2.5 w-2.5" />
@@ -1838,20 +1856,27 @@ export function VoicePlayer({
       </div>
 
       <div className="mt-1 flex items-center justify-between pl-12 pr-1">
-        <button
-          onClick={handleTranscribeClick}
-          disabled={transcribing}
-          className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-white/80" : "text-[#1E1E1E]"} hover:underline disabled:no-underline disabled:opacity-70`}
-        >
-          {transcribing && <Loader2 className="h-3 w-3 animate-spin" />}
-          {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
-        </button>
-        <span className={`text-[10px] tabular-nums ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleTranscribeClick}
+            disabled={transcribing}
+            className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-white/80" : "text-[#151c1c]"} hover:underline disabled:no-underline disabled:opacity-70`}
+          >
+            {transcribing && <Loader2 className="h-3 w-3 animate-spin" />}
+            {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
+          </button>
+          {transcribeError && (
+            <Tooltip title={transcribeError}>
+              <CircleAlert className={`h-3.5 w-3.5 shrink-0 ${mine ? "text-white/90" : "text-[#151c1c]"}`} />
+            </Tooltip>
+          )}
+        </div>
+        <span className={`text-[10px] tabular-nums ${mine ? "text-white/70" : "text-[#151c1c]"}`}>
           {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
         </span>
       </div>
       {showTranscript && transcript && (
-        <p className={`mt-1.5 pl-12 pr-1 text-[12.5px] leading-snug italic ${mine ? "text-white/90" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+        <p className={`mt-1.5 pl-12 pr-1 text-[12.5px] leading-snug italic ${mine ? "text-white/90" : "text-[#151c1c] dark:text-[#E8E8E8]"}`}>
           "{transcript}"
         </p>
       )}
