@@ -1463,7 +1463,7 @@ const tailClass = !grouped && mine
             } ${
               mine
                 ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] dark:text-[#fff]"
-                : "bg-white dark:bg-[#2A2A2A] text-[#1E1E1E] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+                : "bg-white dark:bg-[#2A2A2A] text-[#151c1c] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             } ${
               isHighlighted
                 ? "!border-2 !border-[#E8E8E8] animate-pulse ring-2 ring-[#1E1E1E]"
@@ -1799,7 +1799,8 @@ export function VoicePlayer({
       onTranscribed?.(messageId, result.transcript);
       setShowTranscript(true);
     } catch (err) {
-      setTranscribeError((err as Error).message || "Transcription failed");
+      console.error(err);
+      setTranscribeError("Transcription failed");
     } finally {
       setTranscribing(false);
     }
@@ -1866,7 +1867,7 @@ export function VoicePlayer({
             {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
           </button>
           {transcribeError && (
-            <Tooltip title={transcribeError}>
+            <Tooltip title="Transcription failed">
               <CircleAlert className={`h-3.5 w-3.5 shrink-0 ${mine ? "text-white/90" : "text-[#151c1c]"}`} />
             </Tooltip>
           )}
