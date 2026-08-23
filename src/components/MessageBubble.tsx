@@ -994,7 +994,7 @@ export function MediaViewer({
             <p className="truncate text-sm font-semibold text-white/90">
               {current.name || (current.kind === "pdf" ? "Document" : "Photo")}
             </p>
-            <p className="text-[11px] text-white/40">
+            <p suppressHydrationWarning className="text-[11px] text-white/40">
               {index + 1} of {items.length}
               {current.size && ` · ${formatBytes(current.size)}`}
               {current.date && ` · ${fmtTime(current.date)}`}
@@ -1125,7 +1125,7 @@ export function MediaViewer({
               <div className="flex justify-between"><span className="text-white/40">Name</span><span className="truncate max-w-[120px]">{current.name || "—"}</span></div>
               <div className="flex justify-between"><span className="text-white/40">Type</span><span className="capitalize">{current.kind}</span></div>
               {current.size && <div className="flex justify-between"><span className="text-white/40">Size</span><span>{formatBytes(current.size)}</span></div>}
-              {current.date && <div className="flex justify-between"><span className="text-white/40">Date</span><span>{fmtTime(current.date)}</span></div>}
+              {current.date && <div className="flex justify-between"><span className="text-white/40">Date</span><span suppressHydrationWarning>{fmtTime(current.date)}</span></div>}
               <div className="flex justify-between"><span className="text-white/40">URL</span><button onClick={copyLink} className="text-[#E07A5F] hover:underline">Copy</button></div>
             </div>
           </div>
@@ -1388,7 +1388,7 @@ const tailClass = !grouped && mine
         >
           <Icon className="h-3.5 w-3.5" />
           <span>{label}</span>
-          <span className="opacity-60 select-none">· {fmtTime(msg.created_at)}</span>
+          <span suppressHydrationWarning className="opacity-60 select-none">· {fmtTime(msg.created_at)}</span>
         </div>
       </div>
     );
@@ -1707,7 +1707,7 @@ const tailClass = !grouped && mine
                   )}
                 </AnimatePresence>
                 {msg.edited_at && <span className="text-[10px] !text-[#8C8C8C] italic opacity-70">edited</span>}
-                <span className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
+                <span suppressHydrationWarning className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
                 {mine && (msg._pending ? <Clock className="h-3 w-3 text-[#8C8C8C] " /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
               </div>
             </div>
