@@ -87,6 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "keywords", content: "messaging, chat, private, encrypted, voice calls, video calls, AI chat" },
       { name: "author", content: "Sona" },
       {name:"google-site-verification", content:"xXWElQQdEb1YSMqAy524N-B58KqSZqsf5zc0O8fWg3A"}, 
+      { name: "google-adsense-account", content: "ca-pub-2722864790738174" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Sona" },
@@ -99,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Private messaging, voice & video calls, and AI-powered conversations — all in one beautiful place." },
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "en_US" },
-      { property: "og:url", content: "https://sona.chat" },
+      { property: "og:url", content: "https://sonatg.vercel.app" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@sona_app" },
       { name: "twitter:title", content: "Sona — Talk Gold" },
@@ -133,6 +134,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2722864790738174"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>
         {children}
