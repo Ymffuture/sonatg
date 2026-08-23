@@ -1344,7 +1344,7 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[#eeffde] text-[#1E1E1E] " : "bg-white"; // your colors
+const bubbleBase = mine ? "bg-[#eeffde] text-[#151c1c] " : "bg-white"; // your colors
 
 const bubbleRadius = mine
   ? grouped
@@ -1690,9 +1690,9 @@ const tailClass = !grouped && mine
 
               <div className="flex items-center gap-1 translate-y-0.5">
                 
-                {msg.edited_at && <span className="text-[10px] italic opacity-70">edited</span>}
-                <span className="text-[10.5px] tabular-nums">{fmtTime(msg.created_at)}</span>
-                {mine && (msg._pending ? <Clock className="h-3 w-3 text-white/60" /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
+                {msg.edited_at && <span className="text-[10px] !text-[#8C8C8C] italic opacity-70">edited</span>}
+                <span className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
+                {mine && (msg._pending ? <Clock className="h-3 w-3 text-[#8C8C8C] " /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
               </div>
             </div>
           </div>
