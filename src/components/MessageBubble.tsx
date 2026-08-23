@@ -1812,18 +1812,18 @@ export function VoicePlayer({
 
   return (
     <div className="min-w-[260px] py-0.5">
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center !text-[#8C8C8C] gap-2.5">
         <button
           onClick={toggle}
           className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition active:scale-95 ${
-            mine ? "bg-white/20 text-white hover:bg-white/25" : "bg-[#E07A5F]/10 text-[#E07A5F] hover:bg-[#E07A5F]/15"
+            mine ? "dark:text-white hover:bg-white/25 !text-[#8C8C8C]" : "bg-[#E07A5F]/10 text-[#E07A5F] hover:bg-[#E07A5F]/15"
           }`}
         >
           {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
         </button>
 
         {!hasPlayed && (
-          <span className={`h-2 w-2 shrink-0 rounded-full ${mine ? "bg-white" : "bg-[#4FA6E0]"}`} />
+          <span className={`h-2 w-2 shrink-0 rounded-full ${mine ? "bg-[#1E90FF] " : "bg-[#4FA6E0]"}`} />
         )}
 
         <button
@@ -1856,7 +1856,7 @@ export function VoicePlayer({
         </div>
       </div>
 
-      <div className="mt-1 flex items-center justify-between pl-12 pr-1">
+      <div className="mt-1 !text-[#8C8C8C] flex items-center justify-between pl-12 pr-1">
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleTranscribeClick}
@@ -1868,16 +1868,16 @@ export function VoicePlayer({
           </button>
           {transcribeError && (
             <Tooltip title="Transcription failed">
-              <CircleAlert className={`h-3.5 w-3.5 shrink-0 ${mine ? "text-white/90" : "text-[#151c1c]"}`} />
+              <CircleAlert className={`h-3.5 w-3.5 shrink-0 ${mine ? "text-[#151c1c] " : "text-[#8C8C8C ]"}`} />
             </Tooltip>
           )}
         </div>
-        <span className={`text-[10px] tabular-nums ${mine ? "text-white/70" : "text-[#151c1c]"}`}>
+        <span className={`text-[10px] tabular-nums ${mine ? "text-[#151c1c] " : "text-[#151c1c]"}`}>
           {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
         </span>
       </div>
       {showTranscript && transcript && (
-        <p className={`mt-1.5 pl-12 pr-1 text-[12.5px] leading-snug italic ${mine ? "text-white/90" : "text-[#151c1c] dark:text-[#E8E8E8]"}`}>
+        <p className={`mt-1.5 pl-12 pr-1 text-[12.5px] leading-snug italic ${mine ? "text-[#8C8C8C] " : "text-[#151c1c] dark:text-[#E8E8E8]"}`}>
           "{transcript}"
         </p>
       )}
