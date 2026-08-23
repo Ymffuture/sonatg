@@ -3,6 +3,8 @@ Allow: /
 Allow: /blog
 Allow: /blog/
 Allow: /learn
+Allow: /help
+Allow: /faq
 Allow: /privacy
 Allow: /terms
 Disallow: /auth
