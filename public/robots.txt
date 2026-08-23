@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /learn
+Allow: /privacy
+Allow: /terms
+Disallow: /auth
+Disallow: /forgot-password
+
+Sitemap: https://sona.chat/sitemap.xml
