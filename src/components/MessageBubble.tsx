@@ -1598,11 +1598,11 @@ const tailClass = !grouped && mine
                   <span className={`block truncate text-sm font-medium ${mine ? "dark:text-white text-gray-600" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
                     {msg.file_name || "File"}
                   </span>
-                  <span className={`block text-xs ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+                  <span className={`block text-xs ${mine ? "text-[#1E90FF]" : "text-[#8C8C8C]"}`}>
                     {msg.file_size ? formatBytes(msg.file_size) : ""}
                   </span>
                 </span>
-                <Download className={`h-4 w-4 shrink-0 ${mine ? "text-white/80" : "text-[#8C8C8C]"}`} />
+                <Download className={`h-4 w-4 shrink-0 ${mine ? "text-[#F4A261] " : "text-[#8C8C8C]"}`} />
               </button>
             )}
 
@@ -1829,7 +1829,7 @@ export function VoicePlayer({
           <Avatar url={avatarUrl} name={avatarName ?? "?"} size={36} />
           <span
             className={`absolute -bottom-0.5 -right-0.3 grid h-4 w-4 place-items-center rounded-full ring-2 ${
-              mine ? "bg-[#1E1E1E] text-blue-600 ring-[#1E1E1E]" : "bg-white text-[#1E1E1E] ring-white dark:ring-[#2A2A2A]"
+              mine ? "bg-[#1E1E1E] text-blue-400 ring-[#1E1E1E]" : "bg-white text-[#1E1E1E] ring-white dark:ring-[#2A2A2A]"
             }`}
           >
             <Mic className="h-2.5 w-2.5" />
