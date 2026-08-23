@@ -128,11 +128,6 @@ function AuthPage() {
         if (error) throw error;
         localStorage.setItem(LAST_USED_KEY, "email");
 
-        // signUp succeeds without an error even if the email is already
-        // registered (Supabase returns a "fake" user with no identities
-        // to avoid leaking which emails exist). Detect that case so we
-        // don't tell an existing user "check your email" when nothing
-        // was actually sent.
         const alreadyRegistered =
           data.user && data.user.identities && data.user.identities.length === 0;
 
@@ -144,7 +139,6 @@ function AuthPage() {
             placement: "topRight",
           });
         } else if (!data.session) {
-          // No session yet means email confirmation is required.
           notification.success({
             message: "Verification email sent",
             description: `We sent a confirmation link to ${email}. Check your inbox (and spam folder) to finish creating your account.`,
@@ -153,8 +147,6 @@ function AuthPage() {
           });
           setErrorMsg(null);
         }
-        // If data.session is present, email confirmation is disabled on
-        // the Supabase project and onAuthStateChange will redirect us.
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -191,7 +183,7 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-dvh relative flex items-center justify-center overflow-hidden bg-[#F0EBE3] dark:bg-[#1A1A1A] p-4">
+    <div className="min-h-dvh relative flex flex-col items-center justify-center overflow-hidden bg-[#F0EBE3] dark:bg-[#1A1A1A] p-4">
       {/* Ambient background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-[#E07A5F]/15 blur-[100px] animate-pulse" />
@@ -233,54 +225,11 @@ function AuthPage() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative w-full max-w-5xl rounded-[2rem] bg-white/60 dark:bg-[#242424]/60 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-2xl overflow-hidden">
-        <div className="grid lg:grid-cols-5 min-h-[640px]">
+        <div className="flex flex-col min-h-[640px]">
           
-          {/* Left panel — Branding */}
-          <div className="hidden lg:flex lg:col-span-2 flex-col justify-between p-10 bg-gradient-to-br from-[#E07A5F] to-[#C45D43] text-white relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-              <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full border border-white/10" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full border border-white/10" />
-            </div>
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-8">
-                <BrandLogo className="h-10 w-auto brightness-0 invert" />
-              </div>
-
-              <h2 className="text-4xl font-bold leading-[1.1] mb-4">
-                Connect with<br />
-                people who<br />
-                matter.
-              </h2>
-              <p className="text-white/80 text-sm leading-relaxed max-w-[260px]">
-                Join thousands of conversations. Chat smart, stay private, and express yourself freely with Sona.
-              </p>
-            </div>
-
-            <div className="relative z-10 space-y-3">
-              {[
-                { icon: MessageCircle, label: "Smart Messaging", desc: "AI-powered conversations" },
-                { icon: Shield, label: "Private & Secure", desc: "Encrypted by default" },
-                { icon: Zap, label: "Lightning Fast", desc: "Real-time sync across devices" },
-              ].map((feature) => (
-                <div key={feature.label} className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-3 transition hover:bg-white/15">
-                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                    <feature.icon className="h-4 w-4" />
-                  </div>
-                  <div className="text-sm">
-                    <div className="font-semibold">{feature.label}</div>
-                    <div className="text-white/70 text-xs">{feature.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right panel — Form */}
-          <div className="lg:col-span-3 flex flex-col justify-center p-6 sm:p-10 lg:p-12">
-            <div className="lg:hidden flex items-center gap-3 mb-8">
+          {/* Top panel — Form */}
+          <div className="flex flex-col justify-center p-6 sm:p-10 lg:py-12 lg:px-24 xl:px-32">
+            <div className="flex items-center gap-3 mb-8">
               <BrandLogo className="h-10 w-auto" />
             </div>
 
@@ -465,12 +414,47 @@ function AuthPage() {
               </span>
             </div>
           </div>
+
+          {/* Bottom panel — Branding */}
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 p-8 lg:p-10 bg-gradient-to-br from-[#E07A5F] to-[#C45D43] text-white relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+              <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+              <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full border border-white/10" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full border border-white/10" />
+            </div>
+
+            <div className="relative z-10 text-center lg:text-left">
+              <h2 className="text-3xl lg:text-4xl font-bold leading-[1.1] mb-3">
+                Connect with<br className="hidden lg:block" /> people who<br className="hidden lg:block" /> matter.
+              </h2>
+              <p className="text-white/80 text-sm leading-relaxed max-w-[320px] mx-auto lg:mx-0">
+                Join thousands of conversations. Chat smart, stay private, and express yourself freely with Sona.
+              </p>
+            </div>
+
+            <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              {[
+                { icon: MessageCircle, label: "Smart Messaging", desc: "AI-powered conversations" },
+                { icon: Shield, label: "Private & Secure", desc: "Encrypted by default" },
+                { icon: Zap, label: "Lightning Fast", desc: "Real-time sync across devices" },
+              ].map((feature) => (
+                <div key={feature.label} className="flex-1 min-w-[180px] flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-3 transition hover:bg-white/15">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <feature.icon className="h-4 w-4" />
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-semibold">{feature.label}</div>
+                    <div className="text-white/70 text-xs">{feature.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </motion.div>
 
-      {/* Public content footer — always visible (not hidden on mobile), gives
-          crawlers and visitors real text content plus links into the rest
-          of the public site, instead of a bare login form. */}
+      {/* Public content footer */}
       <div className="relative z-10 mt-10 w-full max-w-3xl text-center">
         <p className="mx-auto max-w-xl text-sm leading-6 text-[#5b5b5b] dark:text-[#a8a8a8]">
           Sona is a private messaging app with real-time chat, voice and video calls, and an
