@@ -468,6 +468,26 @@ function AuthPage() {
         </div>
       </motion.div>
 
+      {/* Public content footer — always visible (not hidden on mobile), gives
+          crawlers and visitors real text content plus links into the rest
+          of the public site, instead of a bare login form. */}
+      <div className="relative z-10 mt-10 w-full max-w-3xl text-center">
+        <p className="mx-auto max-w-xl text-sm leading-6 text-[#5b5b5b] dark:text-[#a8a8a8]">
+          Sona is a private messaging app with real-time chat, voice and video calls, and an
+          AI assistant you can bring into any conversation with an @sona mention. Messages are
+          protected by database-level access control by default, and Sona Pro adds fully
+          encrypted, hidden chats for conversations where privacy matters most.
+        </p>
+        <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-[#8C8C8C]">
+          <Link to="/blog" className="hover:text-[#E07A5F] hover:underline">Blog</Link>
+          <Link to="/help" className="hover:text-[#E07A5F] hover:underline">Help Center</Link>
+          <Link to="/faq" className="hover:text-[#E07A5F] hover:underline">FAQ</Link>
+          <Link to="/learn" className="hover:text-[#E07A5F] hover:underline">How Sona works</Link>
+          <Link to="/privacy" className="hover:text-[#E07A5F] hover:underline">Privacy</Link>
+          <Link to="/terms" className="hover:text-[#E07A5F] hover:underline">Terms</Link>
+        </nav>
+      </div>
+
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
