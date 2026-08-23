@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Clock, MessageCircle } from "lucide-react";
 import { getPublishedPost, fmtBlogDate } from "@/lib/blog.functions";
+import { AdSlot } from "@/components/AdSlot";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
@@ -64,15 +65,12 @@ function BlogPostPage() {
       </div>
 
       {/*
-        Ad slot: place your AdSense unit here, below the article content.
-        <ins className="adsbygoogle" style={{ display: "block" }}
-             data-ad-client="ca-pub-XXXXXXXXXXXXXXX"
-             data-ad-slot="XXXXXXXXXX"
-             data-ad-format="auto"
-             data-full-width-responsive="true" />
+        Once approved, create a real "Display ad" unit in your AdSense
+        dashboard and swap the slot id below for the one it gives you.
+        Auto ads (script in __root.tsx) already work without this.
       */}
-      <div className="my-10 rounded-2xl border border-dashed border-black/10 p-6 text-center text-xs text-[#8C8C8C] dark:border-white/10">
-        Ad slot — placed after the article content
+      <div className="my-10">
+        <AdSlot slot="1234567890" />
       </div>
 
       <div className="py-6 text-center">
