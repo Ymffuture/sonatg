@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
-  ShieldAlert, Upload, Activity, Megaphone, X,
+  ShieldAlert, Upload, Activity, Megaphone, X, Newspaper,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, par
 import type { ModerationQueueRow, DashboardStats } from "@/features/admin";
 import { fetchActiveAnnouncement, postAnnouncement, clearActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 import { notifyAppUpdateSubscribers } from "@/lib/notifications.functions";
+import { AdminBlogManager } from "@/features/admin-blog";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -56,7 +57,7 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "announcements">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "announcements" | "blog">("dashboard");
   const [announcement, setAnnouncement] = useState<AppAnnouncement | null>(null);
   const [announcementDraft, setAnnouncementDraft] = useState("");
   const [notifyOnPost, setNotifyOnPost] = useState(false);
@@ -366,6 +367,7 @@ function AdminPage() {
           ["reports", "Reports", Flag],
           ["moderation", "Moderation", ShieldAlert],
           ["announcements", "Announcements", Megaphone],
+          ["blog", "Blog", Newspaper],
           ["orgs", "Organizations", Building2],
           ["invites", "Invites", Mail],
         ] as const).map(([k, label, Icon]) => (
@@ -624,6 +626,8 @@ function AdminPage() {
             </ul>
           </section>
         )}
+
+        {tab === "blog" && <AdminBlogManager />}
 
         {tab === "invites" && (
           <section>
