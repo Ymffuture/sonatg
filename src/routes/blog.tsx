@@ -16,6 +16,16 @@ export const Route = createFileRoute("/blog")({
         content: "Guides on privacy, group chats, and AI — from the team building Sona.",
       },
     ],
+    // AdSense loader is scoped to this content layout and everything nested
+    // under it (/blog and /blog/$slug) — it must never load on the private
+    // chat app or auth screens, which is why it's not in __root.tsx.
+    scripts: [
+      {
+        async: true,
+        src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2722864790738174",
+        crossOrigin: "anonymous",
+      },
+    ],
   }),
   component: BlogLayout,
 });
