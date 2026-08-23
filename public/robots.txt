@@ -10,4 +10,4 @@ Allow: /terms
 Disallow: /auth
 Disallow: /forgot-password
 
-Sitemap: https://sona.chat/sitemap.xml
+Sitemap: https://sonatg.vercel.app/sitemap.xml
