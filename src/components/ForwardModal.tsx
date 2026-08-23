@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Forward } from "lucide-react";
 import {
   CloseOutlined,
   SearchOutlined,
   CheckOutlined,
-  ForwardOutlined,
   RobotOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
@@ -16,7 +16,7 @@ import {
   Spin,
   Tooltip,
   Badge,
-  message,
+  message as toast,
 } from "antd";
 import { supabase } from "@/integrations/supabase/client";
 import type { MessageRow } from "@/lib/db";
@@ -68,11 +68,12 @@ export function ForwardModal({
       }));
       const { error } = await supabase.from("messages").insert(inserts);
       if (error) throw error;
-      message.success(`Forwarded to ${selected.size} chat${selected.size === 1 ? "" : "s"}`);
+      toast.success(`Forwarded to ${selected.size} chat${selected.size === 1 ? "" : "s"}`);
+      setSelected(new Set());
       onForwarded();
       onClose();
     } catch (e) {
-      message.error((e as Error).message || "Couldn't forward message");
+      toast.error((e as Error).message || "Couldn't forward message");
     } finally {
       setSending(false);
     }
@@ -105,7 +106,7 @@ export function ForwardModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#E07A5F]/10">
           <h3 className="flex items-center gap-2 text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-            <ForwardOutlined className="text-[#E07A5F]" /> Forward to…
+            <Forward className="h-4 w-4 text-[#E07A5F]" /> Forward to…
           </h3>
           <Tooltip title="Close" placement="bottom">
             <button
@@ -248,7 +249,7 @@ export function ForwardModal({
             loading={sending}
             disabled={selected.size === 0}
             onClick={forward}
-            icon={<ForwardOutlined />}
+            icon={<Forward className="h-4 w-4" />}
             style={{
               backgroundColor: "#E07A5F",
               borderColor: "#E07A5F",
