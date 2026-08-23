@@ -2119,6 +2119,15 @@ useEffect(() => {
             Blog
           </Link>
 
+          <Link
+            to="/help"
+            onClick={() => setShowHeaderMenu(false)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+          >
+            <HelpCircle className="h-4 w-4 shrink-0" />
+            Help Center
+          </Link>
+
           <AdminLink onNavigate={() => setShowHeaderMenu(false)} />
 
           <button
