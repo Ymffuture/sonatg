@@ -1587,7 +1587,7 @@ const tailClass = !grouped && mine
                 }}
                 className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
                   mine
-                    ? "border-white/20 dark:bg-white text-[#8C8C8C] dark:text-[#2D3436] hover:bg-white/15"
+                    ? "border-white/20 dark:bg-white/5 text-[#8C8C8C] dark:text-[#2D3436] hover:bg-white/15"
                     : "border-[#E07A5F]/15 bg-[#F5F0E8] dark:bg-[#3A3A3A] hover:bg-[#EFE6D8] dark:hover:bg-[#454545]"
                 }`}
               >
