@@ -175,7 +175,7 @@ export function ProfileViewModal({
                 {profile.is_pro && (
                   <Tooltip title="Verified Pro member">
                     <span className="inline-flex items-center justify-center">
-                      <CheckCircleFilled style={{ color: "#8B5CF6", fontSize: 18 }} />
+                      <CheckCircleFilled style={{ color: "#e07a5f", fontSize: 18 }} />
                     </span>
                   </Tooltip>
                 )}
