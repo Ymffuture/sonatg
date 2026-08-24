@@ -28,6 +28,10 @@ export type Profile = {
   bio?: string | null;
   last_seen?: string | null;
   created_at?: string;
+  facebook_url?: string | null;
+  x_url?: string | null;
+  instagram_url?: string | null;
+  threads_url?: string | null;
 };
 
 export type MessageRow = {
