@@ -90,9 +90,9 @@ export function ProfileViewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <Watermark
-          content={profile.display_name} 
+          content={profile.is_pro ? profile.display_name :""} 
           font={{ color: "#8c8c8c" , fontSize: 8}}
-          gap={[300, 200]}
+          gap={[400, 200]}
           rotate={-22}
           className="h-full"
         >
