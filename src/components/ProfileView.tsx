@@ -146,18 +146,8 @@ export function ProfileViewModal({
                   </div>
                 </Badge>
 
-                {/* Purple verified badge for Pro members */}
-                {profile.is_pro && (
-                  <Tooltip title="Verified Pro member">
-                    <div className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-[#1a1a1a] shadow-md">
-                      <CheckCircleFilled style={{ color: "#8B5CF6", fontSize: 20 }} />
-                    </div>
-                  </Tooltip>
-                )}
-
-                {/* Floating badges */}
+                {/* AI badge stays on avatar */}
                 <AnimatePresence>
-                  
                   {profile.is_ai && (
                     <motion.div
                       initial={{ scale: 0, rotate: 20 }}
@@ -175,9 +165,21 @@ export function ProfileViewModal({
                 </AnimatePresence>
               </motion.div>
 
-              <Title level={4} className="!mt-4 !mb-0 !text-[#2D3436] dark:!text-[#E8E8E8]">
-                {profile.display_name}
-              </Title>
+              {/* Name row with verified badge inline */}
+              <div className="flex items-center justify-center gap-1.5 mt-4">
+                <Title level={4} className="!m-0 !text-[#2D3436] dark:!text-[#E8E8E8]">
+                  {profile.display_name}
+                </Title>
+
+                {/* Verified badge next to name */}
+                {profile.is_pro && (
+                  <Tooltip title="Verified Pro member">
+                    <span className="inline-flex items-center justify-center">
+                      <CheckCircleFilled style={{ color: "#8B5CF6", fontSize: 18 }} />
+                    </span>
+                  </Tooltip>
+                )}
+              </div>
 
               {/* Presence */}
               {!isSelf && !profile.is_ai && (online !== undefined || lastSeen !== undefined) && (
@@ -233,7 +235,7 @@ export function ProfileViewModal({
               )}
             </AnimatePresence>
 
-            {/* Info Grid — WhatsApp-style icon cards */}
+            {/* Info Grid */}
             <div className="mt-5 grid grid-cols-3 gap-2.5">
               {joined && (
                 <Tooltip title={`Member since ${joined}`} placement="top">
@@ -344,7 +346,7 @@ export function ProfileViewModal({
               )}
             </Space>
 
-            {/* Footer — Swiftmeta branding */}
+            {/* Footer */}
             <div className="mt-6 flex flex-col items-center gap-1 text-center">
               <div className="flex items-center gap-1.5 opacity-60">
                 <SafetyCertificateOutlined className="text-[#E07A5F] text-xs" />
