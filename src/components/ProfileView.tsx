@@ -41,7 +41,7 @@ import {
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
 import SoundSettings from "./SoundSettings";
-
+import { MdVerified } from "react-icons/md";
 const { Text, Title } = Typography;
 
 const MOD_META: Record<string, { label: string; color: string; note: string }> = {
@@ -166,24 +166,7 @@ export function ProfileViewModal({
                     />
                   </div>
                 </Badge>
-
-                {/* AI badge stays on avatar */}
-                <AnimatePresence>
-                  {profile.is_ai && (
-                    <motion.div
-                      initial={{ scale: 0, rotate: 20 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                      className="absolute -top-2 -right-2"
-                    >
-                      <Tooltip title="AI Assistant">
-                        <Tag color="#E07A5F" className="!rounded-full !border-0 !px-2 !py-0.5 !text-[10px] !font-bold flex items-center gap-1 shadow-md">
-                          <RobotOutlined className="text-blue-600" /> AI
-                        </Tag>
-                      </Tooltip>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                
               </motion.div>
 
               {/* Name row with verified badge inline */}
@@ -196,7 +179,7 @@ export function ProfileViewModal({
                 {profile.is_pro && (
                   <Tooltip title="Verified Account">
                     <span className="inline-flex items-center justify-center">
-                      <CheckCircleFilled style={{ color: "#1877F2", fontSize: 18 }} />
+  {!profile.is_ai ? <CheckCircleFilled style={{ color: "#1877F2", fontSize: 18 }} /> : <MdVerified style={{ color: "#1877F2", fontSize: 18 }} />} 
                     </span>
                   </Tooltip>
                 )}
