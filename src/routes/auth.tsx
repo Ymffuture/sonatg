@@ -358,13 +358,13 @@ function AuthPage() {
 
             {mode === "signin" && (
               <div className="mt-3 text-sm text-center">
-                <button
-                  onClick={() => navigate({ to: "/forgot-password" })}
-                  className="text-[#E07A5F] hover:text-[#C45D43] dashed dashed-offset-2 transition"
-                >
-                  Forgot password?
-                </button>
-              </div>
+  <button
+    onClick={() => navigate({ to: "/forgot-password" })}
+    className="text-[#E07A5F] hover:text-[#C45D43] underline decoration-dashed underline-offset-2 transition"
+  >
+    Forgot password?
+  </button>
+</div>
             )}
 
             <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-widest text-[#8C8C8C] font-medium">
