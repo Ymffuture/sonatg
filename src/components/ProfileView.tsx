@@ -19,9 +19,6 @@ import {
   SafetyCertificateOutlined,
   InfoCircleOutlined,
   CheckCircleFilled,
-  FacebookOutlined,
-  TwitterOutlined,
-  InstagramOutlined,
   ShareAltOutlined,
 } from "@ant-design/icons";
 import {
@@ -38,6 +35,7 @@ import {
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
 import { MdVerified } from "react-icons/md";
+import { FaFacebookF, FaXTwitter, FaInstagram, FaThreads } from "react-icons/fa6";
 const { Text, Title } = Typography;
 
 const MOD_META: Record<string, { label: string; color: string; note: string }> = {
@@ -45,15 +43,6 @@ const MOD_META: Record<string, { label: string; color: string; note: string }> =
   suspend: { label: "Suspended", color: "#E07A5F", note: "Messaging and other features are disabled." },
   ban: { label: "Banned", color: "#EF4444", note: "This account is banned from Sona." },
 };
-
-/* ─── Threads icon (not in Ant Design) ─── */
-function ThreadsIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.284-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.781 3.632 2.695 6.54 2.717 2.623-.02 4.613-.94 5.931-2.737 1.018-1.382 1.576-3.312 1.696-5.537H12.25v-2.09h9.535c.1.617.157 1.258.157 1.918 0 2.76-.724 5.216-2.115 7.3-1.8 2.669-4.55 4.018-8.17 4.046z" />
-    </svg>
-  );
-}
 
 export function ProfileViewModal({
   profile, isSelf, onClose, onMessage, onEdit, moderation, onReport,
@@ -218,9 +207,9 @@ export function ProfileViewModal({
                         href={socials.facebook}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-9 w-9 rounded-full bg-[#1877F2]/10 flex items-center justify-center text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all duration-200 hover:scale-110"
+                        className="h-9 w-9 rounded-full bg-[#1E1E1E]/10 dark:bg-white/10 flex items-center justify-center text-[#1E1E1E] dark:text-[#F5F5F5] hover:bg-[#1E1E1E] hover:text-white dark:hover:bg-[#F5F5F5] dark:hover:text-[#1E1E1E] transition-all duration-200 hover:scale-110"
                       >
-                        <FacebookOutlined className="!text-[15px]" />
+                        <FaFacebookF className="text-[15px]" />
                       </a>
                     </Tooltip>
                   )}
@@ -230,9 +219,9 @@ export function ProfileViewModal({
                         href={socials.x}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-9 w-9 rounded-full bg-[#0f1419]/10 dark:bg-white/10 flex items-center justify-center text-[#0f1419] dark:text-white hover:bg-[#0f1419] hover:text-white dark:hover:bg-white dark:hover:text-[#0f1419] transition-all duration-200 hover:scale-110"
+                        className="h-9 w-9 rounded-full bg-[#1E1E1E]/10 dark:bg-white/10 flex items-center justify-center text-[#1E1E1E] dark:text-[#F5F5F5] hover:bg-[#1E1E1E] hover:text-white dark:hover:bg-[#F5F5F5] dark:hover:text-[#1E1E1E] transition-all duration-200 hover:scale-110"
                       >
-                        <TwitterOutlined className="!text-[15px]" />
+                        <FaXTwitter className="text-[15px]" />
                       </a>
                     </Tooltip>
                   )}
@@ -242,9 +231,9 @@ export function ProfileViewModal({
                         href={socials.instagram}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-9 w-9 rounded-full bg-gradient-to-br from-[#833AB4]/10 via-[#E1306C]/10 to-[#F77737]/10 flex items-center justify-center text-[#E1306C] hover:from-[#833AB4] hover:via-[#E1306C] hover:to-[#F77737] hover:text-white transition-all duration-200 hover:scale-110"
+                        className="h-9 w-9 rounded-full bg-[#1E1E1E]/10 dark:bg-white/10 flex items-center justify-center text-[#1E1E1E] dark:text-[#F5F5F5] hover:bg-[#1E1E1E] hover:text-white dark:hover:bg-[#F5F5F5] dark:hover:text-[#1E1E1E] transition-all duration-200 hover:scale-110"
                       >
-                        <InstagramOutlined className="!text-[15px]" />
+                        <FaInstagram className="text-[15px]" />
                       </a>
                     </Tooltip>
                   )}
@@ -254,9 +243,9 @@ export function ProfileViewModal({
                         href={socials.threads}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-9 w-9 rounded-full bg-[#0f1419]/10 dark:bg-white/10 flex items-center justify-center text-[#0f1419] dark:text-white hover:bg-[#0f1419] hover:text-white dark:hover:bg-white dark:hover:text-[#0f1419] transition-all duration-200 hover:scale-110"
+                        className="h-9 w-9 rounded-full bg-[#1E1E1E]/10 dark:bg-white/10 flex items-center justify-center text-[#1E1E1E] dark:text-[#F5F5F5] hover:bg-[#1E1E1E] hover:text-white dark:hover:bg-[#F5F5F5] dark:hover:text-[#1E1E1E] transition-all duration-200 hover:scale-110"
                       >
-                        <ThreadsIcon className="h-[15px] w-[15px]" />
+                        <FaThreads className="text-[15px]" />
                       </a>
                     </Tooltip>
                   )}
@@ -417,7 +406,7 @@ export function ProfileViewModal({
             {/* Footer */}
             <div className="mt-6 flex flex-col items-center gap-1 text-center">
               <div className="flex items-center gap-1.5 opacity-60">
-                <SafetyCertificateOutlined className="text-[#E07A5F] text-xs" />
+                <SafetyCertificateOutlined className="text-[#E07A5E] text-xs" />
                 <Text className="!text-[10px] !text-[#8C8C8C] tracking-wide uppercase font-medium">
                   End-to-end encrypted
                 </Text>
