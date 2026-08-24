@@ -28,7 +28,8 @@ import { FaSquareThreads } from "react-icons/fa6";
 import { IoFootstepsOutline } from "react-icons/io5" ;
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
-import Purple from "./Purple" ;
+import { PurpleBadge } from "./PurpleBadge";
+
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -2019,7 +2020,7 @@ useEffect(() => {
       Sona
     </span>
     <span className="text-[9px] font-black tracking-tighter text-[#E07A5F]">
-      {me.is_pro && <Purple />} 
+      {me.is_pro && <PurpleBadge />} 
     </span>
   </div>
 </div>
