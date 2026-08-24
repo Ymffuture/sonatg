@@ -2017,8 +2017,29 @@ useEffect(() => {
     <span className="text-[26px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#2D3436] to-[#5a5a5a] dark:from-white dark:to-[#b0b0b0]">
       Sona
     </span>
-    <span className="text-[7px] font-black tracking-tighter text-[#E07A5F]">
-      ©
+    <span className="text-[9px] font-black tracking-tighter text-[#E07A5F]">
+      {me.is_pro && (<span ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 12" width="44" height="12" style="background: transparent;">
+  <defs>
+    <linearGradient id="pg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9333EA"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+  </defs>
+  <text 
+    x="50%" 
+    y="55%" 
+    dominant-baseline="middle" 
+    text-anchor="middle" 
+    font-family="'Brush Script MT','Segoe Script','Apple Chancery',cursive" 
+    font-size="8" 
+    font-style="italic" 
+    fill="url(#pg)" 
+    stroke="#581C87" 
+    stroke-width="0.4"
+  >
+    Purple
+  </text>
+</svg>) } </span>
     </span>
   </div>
 </div>
