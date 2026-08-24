@@ -157,20 +157,7 @@ export function ProfileViewModal({
 
                 {/* Floating badges */}
                 <AnimatePresence>
-                  {profile.is_pro && (
-                    <motion.div
-                      initial={{ scale: 0, rotate: -20 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                      className="absolute -top-2 -left-2"
-                    >
-                      <Tooltip title="Pro Member">
-                        <Tag color="#E07A5F" className="!rounded-full !border-0 !px-2 !py-0.5 !text-[10px] !font-bold flex items-center gap-1 shadow-md">
-                          <CrownOutlined /> PRO
-                        </Tag>
-                      </Tooltip>
-                    </motion.div>
-                  )}
+                  
                   {profile.is_ai && (
                     <motion.div
                       initial={{ scale: 0, rotate: 20 }}
@@ -180,7 +167,7 @@ export function ProfileViewModal({
                     >
                       <Tooltip title="AI Assistant">
                         <Tag color="#E07A5F" className="!rounded-full !border-0 !px-2 !py-0.5 !text-[10px] !font-bold flex items-center gap-1 shadow-md">
-                          <RobotOutlined /> AI
+                          <RobotOutlined className="text-blue-600" /> AI
                         </Tag>
                       </Tooltip>
                     </motion.div>
