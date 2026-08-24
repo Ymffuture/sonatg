@@ -28,7 +28,7 @@ import { FaSquareThreads } from "react-icons/fa6";
 import { IoFootstepsOutline } from "react-icons/io5" ;
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
-import {Purple} from "./Purple" ;
+import Purple from "./Purple" ;
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
