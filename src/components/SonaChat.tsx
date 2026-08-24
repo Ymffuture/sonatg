@@ -2015,11 +2015,11 @@ useEffect(() => {
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-2 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0 select-none cursor-default">
-  <div className="leading-none min-w-0 flex items-baseline gap-[2px]">
+  <div className="leading-none min-w-0 flex items-baseline gap-1">
     <span className="text-[26px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#2D3436] to-[#5a5a5a] dark:from-white dark:to-[#b0b0b0]">
       Sona
     </span>
-    <span className="text-[9px] font-black tracking-tighter text-[#E07A5F]">
+    <span className="text-[12px] tracking-tighter">
       {me.is_pro && <PurpleBadge />} 
     </span>
   </div>
