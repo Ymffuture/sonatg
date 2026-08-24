@@ -3306,6 +3306,31 @@ useEffect(() => {
               ? () => { const fn = iBlockedThem ? unblockOther : blockOther; setViewingProfile(null); fn(); }
               : undefined
           }
+          hasStatus={!viewingProfile.is_ai && usersWithStatus.has(viewingProfile.id)}
+          socials={{
+            facebook: viewingProfile.facebook_url ?? undefined,
+            x: viewingProfile.x_url ?? undefined,
+            instagram: viewingProfile.instagram_url ?? undefined,
+            threads: viewingProfile.threads_url ?? undefined,
+          }}
+          onShareContact={async () => {
+            const shareUrl = `${window.location.origin}/u/${viewingProfile.id}`;
+            const shareData = {
+              title: viewingProfile.display_name,
+              text: `Chat with ${viewingProfile.display_name} on Sona`,
+              url: shareUrl,
+            };
+            try {
+              if (navigator.share) {
+                await navigator.share(shareData);
+              } else {
+                await navigator.clipboard.writeText(shareUrl);
+                antMessage.success("Contact link copied");
+              }
+            } catch {
+              // user dismissed the native share sheet — nothing to do
+            }
+          }}
         />
       )}
 

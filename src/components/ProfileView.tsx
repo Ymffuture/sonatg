@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CloseOutlined,
@@ -19,11 +18,11 @@ import {
   ExclamationCircleOutlined,
   SafetyCertificateOutlined,
   InfoCircleOutlined,
-  SoundOutlined,
   CheckCircleFilled,
   FacebookOutlined,
   TwitterOutlined,
   InstagramOutlined,
+  ShareAltOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -34,13 +33,10 @@ import {
   Image,
   Watermark,
   Typography,
-  Space,
   Alert,
-  Modal,
 } from "antd";
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
-import SoundSettings from "./SoundSettings";
 import { MdVerified } from "react-icons/md";
 const { Text, Title } = Typography;
 
@@ -62,7 +58,7 @@ function ThreadsIcon({ className = "h-4 w-4" }: { className?: string }) {
 export function ProfileViewModal({
   profile, isSelf, onClose, onMessage, onEdit, moderation, onReport,
   online, lastSeen, onOpenMedia, isBlocked, onToggleBlock, hasStatus,
-  socials,
+  socials, onShareContact,
 }: {
   profile: Profile;
   isSelf: boolean;
@@ -83,6 +79,7 @@ export function ProfileViewModal({
     instagram?: string;
     threads?: string;
   };
+  onShareContact?: () => void;
 }) {
   const joined = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })
@@ -90,8 +87,6 @@ export function ProfileViewModal({
   const mod = moderation && MOD_META[moderation.action]
     ? { ...MOD_META[moderation.action]!, ...moderation }
     : null;
-
-  const [soundSettingsOpen, setSoundSettingsOpen] = useState(false);
 
   const initial = profile.display_name?.charAt(0).toUpperCase() ?? "?";
   const fallbackSvg = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -175,11 +170,13 @@ export function ProfileViewModal({
                   {profile.display_name}
                 </Title>
 
-                {/* Verified badge next to name */}
-                {profile.is_pro && (
-                  <Tooltip title="Verified Account">
+                {/* Verified badge next to name — AI is always verified; humans need Pro */}
+                {(profile.is_ai || profile.is_pro) && (
+                  <Tooltip title={profile.is_ai ? "Verified AI Assistant" : "Verified Pro Account"}>
                     <span className="inline-flex items-center justify-center">
-  {!profile.is_ai ? <CheckCircleFilled style={{ color: "#1877F2", fontSize: 18 }} /> : <MdVerified style={{ color: "#1877F2", fontSize: 18 }} />} 
+                      {profile.is_ai
+                        ? <MdVerified style={{ color: "#1877F2", fontSize: 18 }} />
+                        : <CheckCircleFilled style={{ color: "#8B5CF6", fontSize: 18 }} />}
                     </span>
                   </Tooltip>
                 )}
@@ -339,49 +336,58 @@ export function ProfileViewModal({
             <Divider className="!my-5 !border-[#E07A5F]/10" />
 
             {/* Actions */}
-            <Space direction="vertical" className="!w-full" size={10}>
+            <div className="grid grid-cols-2 gap-2.5">
               {isSelf ? (
                 <>
                   <Button
                     type="primary"
-                    block
                     size="large"
                     icon={<EditOutlined />}
                     onClick={onEdit}
                     style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 999, height: 44 }}
-                    className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity"
+                    className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2"
                   >
                     Edit profile
                   </Button>
-                  <Button
-                    block
-                    size="large"
-                    icon={<SoundOutlined />}
-                    onClick={() => setSoundSettingsOpen(true)}
-                    style={{ borderRadius: 999, height: 44 }}
-                    className="!font-semibold !bg-[#F5F0E8] dark:!bg-[#2A2A2A] !text-[#2D3436] dark:!text-[#E8E8E8] hover:!bg-[#EFE6D8] dark:hover:!bg-[#333] !border-0 !shadow-sm"
-                  >
-                    Sound settings
-                  </Button>
+                  {onShareContact && (
+                    <Button
+                      size="large"
+                      icon={<ShareAltOutlined />}
+                      onClick={onShareContact}
+                      style={{ borderRadius: 999, height: 44 }}
+                      className="!font-semibold !bg-[#F5F0E8] dark:!bg-[#2A2A2A] !text-[#2D3436] dark:!text-[#E8E8E8] hover:!bg-[#EFE6D8] dark:hover:!bg-[#333] !border-0 !shadow-sm col-span-2"
+                    >
+                      Share my contact
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
                   {!profile.is_ai && onMessage && (
                     <Button
                       type="primary"
-                      block
                       size="large"
                       icon={<MessageOutlined />}
                       onClick={onMessage}
                       style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 50, height: 44 }}
-                      className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity"
+                      className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2"
                     >
                       Message
                     </Button>
                   )}
+                  {onShareContact && (
+                    <Button
+                      size="large"
+                      icon={<ShareAltOutlined />}
+                      onClick={onShareContact}
+                      style={{ borderRadius: 50, height: 44 }}
+                      className="!font-semibold !bg-[#F5F0E8] dark:!bg-[#2A2A2A] !text-[#2D3436] dark:!text-[#E8E8E8] hover:!bg-[#EFE6D8] dark:hover:!bg-[#333] !border-0 !shadow-sm"
+                    >
+                      Share
+                    </Button>
+                  )}
                   {onToggleBlock && (
                     <Button
-                      block
                       size="large"
                       icon={isBlocked ? <UnlockOutlined /> : <BlockOutlined />}
                       onClick={onToggleBlock}
@@ -393,21 +399,20 @@ export function ProfileViewModal({
                   )}
                   {onReport && (
                     <Button
-                      block
                       size="large"
                       icon={<FlagOutlined />}
                       onClick={onReport}
                       danger
                       ghost
                       style={{ borderRadius: 50, height: 44 }}
-                      className="!font-semibold !border-red-400/40 hover:!border-red-500 hover:!text-red-500"
+                      className="!font-semibold !border-red-400/40 hover:!border-red-500 hover:!text-red-500 col-span-2"
                     >
                       Report
                     </Button>
                   )}
                 </>
               )}
-            </Space>
+            </div>
 
             {/* Footer */}
             <div className="mt-6 flex flex-col items-center gap-1 text-center">
@@ -424,28 +429,6 @@ export function ProfileViewModal({
           </div>
         </Watermark>
       </motion.div>
-
-      {isSelf && (
-        <Modal
-          title={
-            <span className="flex items-center gap-2 text-[#2D3436] dark:text-[#E8E8E8]">
-              <SoundOutlined style={{ color: "#E07A5F" }} /> Sound settings
-            </span>
-          }
-          open={soundSettingsOpen}
-          onCancel={(e) => {
-            e.stopPropagation();
-            setSoundSettingsOpen(false);
-          }}
-          footer={null}
-          centered
-          destroyOnClose
-          className="[&_.ant-modal-content]:!rounded-3xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <SoundSettings />
-        </Modal>
-      )}
     </div>
   );
 }

@@ -796,6 +796,10 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
   const [bio, setBio] = useState(me.bio ?? "");
+  const [facebookUrl, setFacebookUrl] = useState(me.facebook_url ?? "");
+  const [xUrl, setXUrl] = useState(me.x_url ?? "");
+  const [instagramUrl, setInstagramUrl] = useState(me.instagram_url ?? "");
+  const [threadsUrl, setThreadsUrl] = useState(me.threads_url ?? "");
   const [busy, setBusy] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(me.avatar_url ?? "");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -850,7 +854,14 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const save = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.from("profiles").update({ display_name: name.trim() || "Friend", bio: bio.trim() || null }).eq("id", me.id).select().single();
+      const { data, error } = await supabase.from("profiles").update({
+        display_name: name.trim() || "Friend",
+        bio: bio.trim() || null,
+        facebook_url: facebookUrl.trim() || null,
+        x_url: xUrl.trim() || null,
+        instagram_url: instagramUrl.trim() || null,
+        threads_url: threadsUrl.trim() || null,
+      }).eq("id", me.id).select().single();
       if (error) throw error;
       onSaved(data as Profile);
       notify.success({ message: "Saved", description: "Your profile details have been updated." });
@@ -974,6 +985,23 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                 rows={2}
                 className="mt-1 w-full resize-none rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm"
               />
+            </div>
+            <div>
+              <label className="text-xs text-[#8C8C8C]">Social links (optional)</label>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                <input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)}
+                  placeholder="Facebook URL"
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                <input value={xUrl} onChange={(e) => setXUrl(e.target.value)}
+                  placeholder="X (Twitter) URL"
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                <input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)}
+                  placeholder="Instagram URL"
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                <input value={threadsUrl} onChange={(e) => setThreadsUrl(e.target.value)}
+                  placeholder="Threads URL"
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+              </div>
             </div>
             <p className="text-xs text-[#8C8C8C]">Signed in as {me.email}</p>
           </div>
