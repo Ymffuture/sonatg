@@ -14,7 +14,7 @@ const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
   return (
-    <span className="ml-auto rounded-full bg-[#E07A5F]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#E07A5F]">
+    <span className="ml-auto rounded-full bg-[#E07A5F]/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#E07A5F]">
       Last used
     </span>
   );
@@ -360,7 +360,7 @@ function AuthPage() {
               <div className="mt-3 text-sm text-center">
                 <button
                   onClick={() => navigate({ to: "/forgot-password" })}
-                  className="text-[#E07A5F] hover:text-[#C45D43] underline underline-offset-2 transition"
+                  className="text-[#E07A5F] hover:text-[#C45D43] dashed dashed-offset-2 transition"
                 >
                   Forgot password?
                 </button>
@@ -369,7 +369,7 @@ function AuthPage() {
 
             <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-widest text-[#8C8C8C] font-medium">
               <div className="h-px flex-1 bg-[#E07A5F]/10" />
-              or continue with
+              OR
               <div className="h-px flex-1 bg-[#E07A5F]/10" />
             </div>
 
