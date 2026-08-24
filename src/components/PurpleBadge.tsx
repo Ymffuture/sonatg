@@ -21,11 +21,11 @@ export function PurpleBadge({ className = "" }: { className?: string }) {
         dominantBaseline="middle"
         textAnchor="middle"
         fontFamily="'Brush Script MT','Segoe Script','Apple Chancery',cursive"
-        fontSize="8"
+        fontSize="16"
         fontStyle="italic"
         fill="url(#pg)"
         stroke="#581C87"
-        strokeWidth="0.4"
+        strokeWidth="0.5"
       >
         Purple
       </text>
