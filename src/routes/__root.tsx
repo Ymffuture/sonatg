@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=0.8, maximum-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=0.9, maximum-scale=1, viewport-fit=cover" },
       { title: "Sona — Talk Gold" },
       { name: "theme-color", content: "#1E1E1E", media: "(prefers-color-scheme: light)" },
       { name: "theme-color", content: "#1E1E1E", media: "(prefers-color-scheme: dark)" },
