@@ -6,10 +6,10 @@ import { Alert, notification } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
-  Sparkles, Shield, Zap, CheckCircle2,
+  Sparkles, Shield, Zap, CheckCircle2, ChevronDown,
 } from "lucide-react";
 
-type AuthMethod = "email" | "google" | "facebook";
+type AuthMethod = "email" | "google" | "facebook" | "github";
 const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
@@ -55,6 +55,14 @@ function FacebookIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+function GitHubIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.29 1.19-3.09-.12-.29-.51-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11.05 11.05 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.24 2.77.12 3.06.74.8 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14 0 1.54-.01 2.79-.01 3.17 0 .31.21.67.8.56A10.51 10.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" />
+    </svg>
+  );
+}
+
 /* ─── Logo Component with PNG fallback ─── */
 function BrandLogo({ className = "" }: { className?: string }) {
   const [imgError, setImgError] = useState(false);
@@ -89,12 +97,14 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [lastUsed, setLastUsed] = useState<AuthMethod | null>(null);
+  const [showMoreMethods, setShowMoreMethods] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(LAST_USED_KEY);
-    if (saved === "email" || saved === "google" || saved === "facebook") {
+    if (saved === "email" || saved === "google" || saved === "facebook" || saved === "github") {
       setLastUsed(saved);
+      if (saved === "github") setShowMoreMethods(true);
     }
   }, []);
 
@@ -165,7 +175,7 @@ function AuthPage() {
     }
   };
 
-  const oauth = async (provider: "google" | "facebook") => {
+  const oauth = async (provider: "google" | "facebook" | "github") => {
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -393,6 +403,41 @@ function AuthPage() {
                 <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#1877F2] transition-all duration-300 group-hover:w-full" />
               </button>
             </div>
+
+            {/* ─── More login options (collapsed by default) ─── */}
+            <button
+              type="button"
+              onClick={() => setShowMoreMethods((v) => !v)}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-medium text-[#8C8C8C] transition hover:text-[#E07A5F]"
+            >
+              {showMoreMethods ? "Fewer options" : "More login options"}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${showMoreMethods ? "rotate-180" : ""}`} />
+            </button>
+
+            <AnimatePresence initial={false}>
+              {showMoreMethods && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <button
+                    onClick={() => oauth("github")}
+                    disabled={loading}
+                    className="group relative mt-1 w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-black/30 hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
+                      <GitHubIcon className="h-5 w-5 text-[#181717] dark:text-white" />
+                    </div>
+                    <span className="flex-1 text-left">Continue with GitHub</span>
+                    {lastUsed === "github" && <LastUsed />}
+                    <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#181717] dark:bg-white transition-all duration-300 group-hover:w-full" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <p className="mt-8 text-center text-sm text-[#8C8C8C]">
               {mode === "signin" ? "New to Sona?" : "Already have an account?"} {" "}
