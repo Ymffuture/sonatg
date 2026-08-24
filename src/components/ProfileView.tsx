@@ -21,6 +21,9 @@ import {
   InfoCircleOutlined,
   SoundOutlined,
   CheckCircleFilled,
+  FacebookOutlined,
+  TwitterOutlined,
+  InstagramOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -47,9 +50,19 @@ const MOD_META: Record<string, { label: string; color: string; note: string }> =
   ban: { label: "Banned", color: "#EF4444", note: "This account is banned from Sona." },
 };
 
+/* ─── Threads icon (not in Ant Design) ─── */
+function ThreadsIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.284-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.781 3.632 2.695 6.54 2.717 2.623-.02 4.613-.94 5.931-2.737 1.018-1.382 1.576-3.312 1.696-5.537H12.25v-2.09h9.535c.1.617.157 1.258.157 1.918 0 2.76-.724 5.216-2.115 7.3-1.8 2.669-4.55 4.018-8.17 4.046z" />
+    </svg>
+  );
+}
+
 export function ProfileViewModal({
   profile, isSelf, onClose, onMessage, onEdit, moderation, onReport,
   online, lastSeen, onOpenMedia, isBlocked, onToggleBlock, hasStatus,
+  socials,
 }: {
   profile: Profile;
   isSelf: boolean;
@@ -64,6 +77,12 @@ export function ProfileViewModal({
   isBlocked?: boolean;
   onToggleBlock?: () => void;
   hasStatus?: boolean;
+  socials?: {
+    facebook?: string;
+    x?: string;
+    instagram?: string;
+    threads?: string;
+  };
 }) {
   const joined = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })
@@ -79,6 +98,8 @@ export function ProfileViewModal({
     `<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112"><rect width="112" height="112" fill="%23E07A5F"/><text x="56" y="56" dominant-baseline="central" text-anchor="middle" fill="white" font-size="40" font-weight="bold" font-family="system-ui">${initial}</text></svg>`
   )}`;
 
+  const hasSocials = socials && (socials.facebook || socials.x || socials.instagram || socials.threads);
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
       <motion.div
@@ -90,9 +111,9 @@ export function ProfileViewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <Watermark
-          content={profile.is_pro ? profile.display_name :""} 
-          font={{ color: "#8c8c8c" , fontSize: 8}}
-          gap={[400, 200]}
+          content={profile.is_pro ? profile.display_name : ""}
+          font={{ color: "#8c8c8c", fontSize: 8 }}
+          gap={[300, 240]}
           rotate={-22}
           className="h-full"
         >
@@ -173,9 +194,9 @@ export function ProfileViewModal({
 
                 {/* Verified badge next to name */}
                 {profile.is_pro && (
-                  <Tooltip title="Verified Pro member">
+                  <Tooltip title="Verified Account">
                     <span className="inline-flex items-center justify-center">
-                      <CheckCircleFilled style={{ color: "#e07a5f", fontSize: 18 }} />
+                      <CheckCircleFilled style={{ color: "#1877F2", fontSize: 18 }} />
                     </span>
                   </Tooltip>
                 )}
@@ -201,6 +222,65 @@ export function ProfileViewModal({
                   <InfoCircleOutlined className="mr-1 text-[#E07A5F] text-xs" />
                   {profile.bio}
                 </Text>
+              )}
+
+              {/* ─── Social Media Links ─── */}
+              {hasSocials && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="flex items-center justify-center gap-2.5 mt-3"
+                >
+                  {socials?.facebook && (
+                    <Tooltip title="Facebook">
+                      <a
+                        href={socials.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-9 w-9 rounded-full bg-[#1877F2]/10 flex items-center justify-center text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-all duration-200 hover:scale-110"
+                      >
+                        <FacebookOutlined className="!text-[15px]" />
+                      </a>
+                    </Tooltip>
+                  )}
+                  {socials?.x && (
+                    <Tooltip title="X">
+                      <a
+                        href={socials.x}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-9 w-9 rounded-full bg-[#0f1419]/10 dark:bg-white/10 flex items-center justify-center text-[#0f1419] dark:text-white hover:bg-[#0f1419] hover:text-white dark:hover:bg-white dark:hover:text-[#0f1419] transition-all duration-200 hover:scale-110"
+                      >
+                        <TwitterOutlined className="!text-[15px]" />
+                      </a>
+                    </Tooltip>
+                  )}
+                  {socials?.instagram && (
+                    <Tooltip title="Instagram">
+                      <a
+                        href={socials.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-9 w-9 rounded-full bg-gradient-to-br from-[#833AB4]/10 via-[#E1306C]/10 to-[#F77737]/10 flex items-center justify-center text-[#E1306C] hover:from-[#833AB4] hover:via-[#E1306C] hover:to-[#F77737] hover:text-white transition-all duration-200 hover:scale-110"
+                      >
+                        <InstagramOutlined className="!text-[15px]" />
+                      </a>
+                    </Tooltip>
+                  )}
+                  {socials?.threads && (
+                    <Tooltip title="Threads">
+                      <a
+                        href={socials.threads}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-9 w-9 rounded-full bg-[#0f1419]/10 dark:bg-white/10 flex items-center justify-center text-[#0f1419] dark:text-white hover:bg-[#0f1419] hover:text-white dark:hover:bg-white dark:hover:text-[#0f1419] transition-all duration-200 hover:scale-110"
+                      >
+                        <ThreadsIcon className="h-[15px] w-[15px]" />
+                      </a>
+                    </Tooltip>
+                  )}
+                </motion.div>
               )}
             </div>
 
@@ -235,14 +315,14 @@ export function ProfileViewModal({
               )}
             </AnimatePresence>
 
-            {/* Info Grid */}
-            <div className="mt-5 grid grid-cols-3 gap-2.5">
+            {/* ─── Smart 4-Column Info Grid ─── */}
+            <div className="mt-5 grid grid-cols-4 gap-2.5">
               {joined && (
                 <Tooltip title={`Member since ${joined}`} placement="top">
-                  <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333] cursor-default">
-                    <CalendarOutlined className="text-xl text-[#E07A5F]" />
-                    <Text className="!text-[10px] !text-[#8C8C8C] uppercase tracking-wider font-medium">Joined</Text>
-                    <Text className="!text-xs !font-bold !text-[#2D3436] dark:!text-[#E8E8E8]">{joined}</Text>
+                  <div className="flex flex-col items-center gap-1 rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333] cursor-default">
+                    <CalendarOutlined className="text-lg text-[#E07A5F]" />
+                    <Text className="!text-[9px] !text-[#8C8C8C] uppercase tracking-wider font-medium">Joined</Text>
+                    <Text className="!text-[11px] !font-bold !text-[#2D3436] dark:!text-[#E8E8E8]">{joined}</Text>
                   </div>
                 </Tooltip>
               )}
@@ -251,22 +331,22 @@ export function ProfileViewModal({
                 <Tooltip title="View shared photos, videos & files" placement="top">
                   <button
                     onClick={onOpenMedia}
-                    className="flex flex-col items-center gap-1.5 rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333] col-span-2"
+                    className="flex flex-col items-center gap-1 rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333] col-span-3"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
-                        <PictureOutlined className="text-[#E07A5F]" />
+                      <div className="h-7 w-7 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
+                        <PictureOutlined className="text-[#E07A5F] text-sm" />
                       </div>
-                      <div className="h-8 w-8 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
-                        <LinkOutlined className="text-[#E07A5F]" />
+                      <div className="h-7 w-7 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
+                        <LinkOutlined className="text-[#E07A5F] text-sm" />
                       </div>
-                      <div className="h-8 w-8 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
-                        <FileTextOutlined className="text-[#E07A5F]" />
+                      <div className="h-7 w-7 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
+                        <FileTextOutlined className="text-[#E07A5F] text-sm" />
                       </div>
                     </div>
-                    <Text className="!text-[10px] !text-[#8C8C8C] uppercase tracking-wider font-medium">Media & Docs</Text>
-                    <Text className="!text-xs !font-bold !text-[#2D3436] dark:!text-[#E8E8E8] flex items-center gap-1">
-                      View all <RightOutlined className="!text-[10px]" />
+                    <Text className="!text-[9px] !text-[#8C8C8C] uppercase tracking-wider font-medium">Media & Docs</Text>
+                    <Text className="!text-[11px] !font-bold !text-[#2D3436] dark:!text-[#E8E8E8] flex items-center gap-1">
+                      View all <RightOutlined className="!text-[9px]" />
                     </Text>
                   </button>
                 </Tooltip>
