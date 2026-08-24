@@ -2350,8 +2350,8 @@ useEffect(() => {
               const hasStatus = !ai && otherId && usersWithStatus.has(otherId);
               return (
                 <div
-                  className={`rounded-full ${hasStatus?  "ring-4 ring-[#25D366]" :""} `} 
-                  style={hasStatus ? { padding: 2, background: "transparent", cursor: "pointer" } : undefined}
+                  className={`rounded-full ${hasStatus?  "ring-2 ring-[#25D366]" :""} `} 
+                  style={hasStatus ? { padding: 3, background: "transparent", cursor: "pointer" } : undefined}
                   onClick={hasStatus ? (e) => {
                     e.stopPropagation();
                     navigate({ to: "/status", search: { user: otherId! } });
