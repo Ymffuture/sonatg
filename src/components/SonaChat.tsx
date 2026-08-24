@@ -2039,7 +2039,7 @@ useEffect(() => {
   >
     Purple
   </text>
-</svg>) } </span>
+</svg></span>)} 
     </span>
   </div>
 </div>
