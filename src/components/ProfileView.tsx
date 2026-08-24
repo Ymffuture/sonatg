@@ -20,6 +20,7 @@ import {
   SafetyCertificateOutlined,
   InfoCircleOutlined,
   SoundOutlined,
+  CheckCircleFilled,
 } from "@ant-design/icons";
 import {
   Button,
@@ -48,7 +49,7 @@ const MOD_META: Record<string, { label: string; color: string; note: string }> =
 
 export function ProfileViewModal({
   profile, isSelf, onClose, onMessage, onEdit, moderation, onReport,
-  online, lastSeen, onOpenMedia, isBlocked, onToggleBlock,
+  online, lastSeen, onOpenMedia, isBlocked, onToggleBlock, hasStatus,
 }: {
   profile: Profile;
   isSelf: boolean;
@@ -62,6 +63,7 @@ export function ProfileViewModal({
   onOpenMedia?: () => void;
   isBlocked?: boolean;
   onToggleBlock?: () => void;
+  hasStatus?: boolean;
 }) {
   const joined = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })
@@ -122,7 +124,11 @@ export function ProfileViewModal({
                   offset={[-6, 94]}
                   style={{ width: 14, height: 14, minWidth: 14 }}
                 >
-                  <div className="rounded-full overflow-hidden ring-[3px] ring-[#E07A5F]/15 shadow-2xl">
+                  <div
+                    className={`rounded-full overflow-hidden shadow-2xl ${
+                      hasStatus ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-[#1a1a1a]" : "ring-[3px] ring-[#E07A5F]/15"
+                    }`}
+                  >
                     <Image
                       src={profile.avatar_url || fallbackSvg}
                       width={112}
@@ -139,6 +145,15 @@ export function ProfileViewModal({
                     />
                   </div>
                 </Badge>
+
+                {/* Purple verified badge for Pro members */}
+                {profile.is_pro && (
+                  <Tooltip title="Verified Pro member">
+                    <div className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-[#1a1a1a] shadow-md">
+                      <CheckCircleFilled style={{ color: "#8B5CF6", fontSize: 20 }} />
+                    </div>
+                  </Tooltip>
+                )}
 
                 {/* Floating badges */}
                 <AnimatePresence>
