@@ -110,7 +110,7 @@ function PublicProfilePage() {
           )}
           {!profile.is_ai && profile.is_pro && (
             <span className="mt-1 inline-block rounded-full bg-[#8B5CF6]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#8B5CF6]">
-              PRO
+              Purple
             </span>
           )}
 
