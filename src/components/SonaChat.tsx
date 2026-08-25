@@ -2226,9 +2226,9 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro? " bg-[#E07A5F] ":"bg-purple" } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
-                      ? "bg-[#E07A5F] dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
+                      ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
                   }`}
                 >
@@ -2352,7 +2352,7 @@ useEffect(() => {
               const hasStatus = !ai && otherId && usersWithStatus.has(otherId);
               return (
                 <div
-                  className={`rounded-full ${hasStatus?  "ring-2 ring-[#25D366]" :""} `} 
+                  className={`rounded-full ${hasStatus?  `ring-2 ${!me.is_pro ? "ring-[#25D366]" :"ring-purple "} ` :""} `} 
                   style={hasStatus ? { padding: 3, background: "transparent", cursor: "pointer" } : undefined}
                   onClick={hasStatus ? (e) => {
                     e.stopPropagation();
