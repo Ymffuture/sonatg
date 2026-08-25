@@ -9,5 +9,6 @@ Allow: /privacy
 Allow: /terms
 Disallow: /auth
 Disallow: /forgot-password
+Disallow: /u/
 
 Sitemap: https://sonatg.vercel.app/sitemap.xml
