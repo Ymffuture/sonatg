@@ -1211,13 +1211,13 @@ return (
     target="_blank"
     rel="noopener noreferrer"
     className={`
-      group mb-4 p-2 block max-w-[320px] overflow-hidden rounded-2xl border
+      group mb-4 p-2 block max-w-[340px] overflow-hidden rounded-2xl border
       transition-all duration-200 ease-out
       hover:-translate-y-0.5 hover:shadow-lg
       active:scale-[0.99] active:shadow-md
       ${
         mine
-          ? "border-white/15 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:bg-white/[0.12]"
+          ? "border-white/15 bg-slate-950 dark:bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:bg-white/[0.12]"
           : "border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-[#E07A5F]/20 dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
       }
     `}
@@ -1228,12 +1228,12 @@ return (
         <img
           src={preview.image}
           alt=""
-          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          className="h-full w-full object-cover rounded-xl transition-transform duration-500 ease-out group-hover:scale-105"
           loading="lazy"
         />
         <div
           className={`absolute inset-0 bg-gradient-to-t ${
-            mine ? "from-black/30" : "from-black/10 dark:from-black/20"
+            mine ? "from-black" : "from-black/10 dark:from-black/20"
           } to-transparent`}
         />
         {/* External link badge */}
@@ -1247,7 +1247,7 @@ return (
     <div className="px-3.5 py-2.5">
       {/* Site name with favicon placeholder */}
       {preview.siteName && (
-        <div className={`mb-1 flex items-center gap-1.5 ${mine ? "text-white/50" : "text-[#8C8C8C]"}`}>
+        <div className={`mb-1 flex items-center gap-1.5 ${mine ? "dark:text-white/50 text-[#8C8C8C] " : "text-[#8C8C8C]"}`}>
           <Globe className="h-3 w-3 shrink-0 opacity-60" />
           <p className="truncate text-[11px] font-medium uppercase tracking-wider">
             {preview.siteName}
@@ -1261,7 +1261,7 @@ return (
           className={`
             text-[13px] font-semibold leading-snug line-clamp-2
             transition-colors duration-200
-            ${mine ? "text-white" : "text-[#1a1a1a] dark:text-[#F0EBE3] group-hover:text-[#E07A5F]"}
+            ${mine ? "text-[#8C8C8C] dark:text-white " : "text-[#1a1a1a] dark:text-[#F0EBE3] group-hover:text-[#E07A5F]"}
           `}
         >
           {preview.title}
@@ -1270,7 +1270,7 @@ return (
 
       {/* Description */}
       {preview.description && (
-        <p className={`mt-1 text-[12px] leading-relaxed line-clamp-2 ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
+        <p className={`mt-1 text-[12px] leading-relaxed line-clamp-2 ${mine ? "dark:text-white/60 text-[#1E1E1E] " : "text-[#8C8C8C]"}`}>
           {preview.description}
         </p>
       )}
@@ -1278,7 +1278,7 @@ return (
       {/* URL pill */}
       <div className={`mt-2 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
         mine
-          ? "bg-white/10 text-white/40"
+          ? " dark:bg-white/10 dark:text-white/40 bg-slate-950 text-[#8C8C8C] "
           : "bg-[#F5F0E8] text-[#8C8C8C] dark:bg-white/5"
       }`}>
         <span className="truncate">{new URL(preview.url).hostname.replace(/^www\./, "")}</span>
