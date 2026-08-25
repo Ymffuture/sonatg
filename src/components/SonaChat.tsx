@@ -2106,7 +2106,7 @@ useEffect(() => {
           <Link
             to="/learn"
             onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
             <IoFootstepsOutline className="h-4 w-4 shrink-0" />
             How to use SonaTG
@@ -2115,7 +2115,7 @@ useEffect(() => {
           <Link
             to="/blog"
             onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
             <Newspaper className="h-4 w-4 shrink-0" />
             Blog
@@ -2124,7 +2124,7 @@ useEffect(() => {
           <Link
             to="/help"
             onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
             <HelpCircle className="h-4 w-4 shrink-0" />
             Help Center
@@ -2375,8 +2375,8 @@ useEffect(() => {
             {selectMode && (
               <div
                 onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}
-                className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
-                style={{ backgroundColor: isSelected ? "#D97757" : "#8C8C8C" }}
+                className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
+                style={{ backgroundColor: isSelected ? "#fff" : "#8C8C8C" }}
               >
                 {isSelected && <Check className={`h-3.8 w-3.8 ${ me.is_pro ? "text-[#8B5CF6]" :"text-white" } `} strokeWidth={4} />}
               </div>
@@ -2437,13 +2437,13 @@ useEffect(() => {
                     </button>
                   </div>
                 )}
-                <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "#D97757" } : undefined}>
+                <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color:me.is_pro ? "#8B5CF6" :"#D97757" } : undefined}>
                   {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
                 {!ai && c.unread > 0 && !selectMode && (
                   <span
-                    className="grid h-5 min-w-[20px] place-items-center rounded-full text-white text-[10px] font-bold px-1"
-                    style={{ backgroundColor: "#D97757" }}
+                    className={`grid h-5 min-w-[20px] place-items-center rounded-full text-white text-[10px] font-bold px-1`} 
+                    style={{ backgroundColor:me.is_pro ? "#8B5CF6" :"#D97757" }}
                   >
                     {c.unread > 99 ? "99+" : c.unread}
                   </span>
@@ -2474,7 +2474,7 @@ useEffect(() => {
                   );
                 })()}
               </div>
-              {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F] shrink-0" />}
+              {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F]/5 shrink-0" />}
             </div>
           </div>
         </motion.div>
