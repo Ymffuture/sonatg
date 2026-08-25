@@ -601,19 +601,19 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         <div className="px-5 pb-3 flex gap-2">
           <button
             onClick={() => setMode("direct")}
-            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "direct" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
+            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "direct" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
           >
             Direct message
           </button>
           <button
             onClick={() => setMode("group")}
-            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "group" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
+            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "group" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
           >
             New group
           </button>
           <button
             onClick={() => setMode("class")}
-            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "class" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
+            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "class" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
           >
             Join with code
           </button>
@@ -1115,7 +1115,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
         {tab === "subscription" && (
           <div className="space-y-3 text-sm">
             <div className="rounded-2xl border border-[#E07A5F]/20 bg-gradient-to-br from-[#E07A5F]/20 to-[#F4A261]/10 p-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Crown className="h-4 w-4 text-[#E07A5F]" /> Sona Pro</div>
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Crown className="h-4 w-4 text-[#E07A5F]" /> Sona purple</div>
               <ul className="mt-2 space-y-1.5 text-xs text-[#2D3436] dark:text-[#E8E8E8]">
                 <li className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-[#E07A5F]" /> Unlimited AI chat summaries</li>
                 <li className="flex items-center gap-1.5"><ImageIcon className="h-3 w-3 text-[#E07A5F]" /> Vision — Sona reads your images</li>
@@ -1123,7 +1123,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                 <li className="flex items-center gap-1.5"><Palette className="h-3 w-3 text-[#E07A5F]" /> Premium themes</li>
               </ul>
               {me.is_pro ? (
-                <div className="mt-3 text-xs text-[#E07A5F] font-semibold flex items-center gap-1"><Zap className="h-3 w-3" /> You're a Pro member</div>
+                <div className="mt-3 text-xs text-[#E07A5F] font-semibold flex items-center gap-1"><Zap className="h-3 w-3" /> You're on purple</div>
               ) : (
                 <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-lg flex items-center justify-center gap-2">
                   {busy ? <><Spin size="small" /> Processing…</> : "Upgrade to Pro"}
