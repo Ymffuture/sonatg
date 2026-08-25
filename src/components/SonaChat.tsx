@@ -2016,7 +2016,7 @@ useEffect(() => {
             <div className="flex items-center justify-between gap-2 px-2 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0 select-none cursor-default">
   <div className="leading-none min-w-0 flex items-baseline gap-0">
-    <span className="text-[26px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#2D3436] to-[#5a5a5a] dark:from-white dark:to-[#b0b0b0]">
+    <span className={`text-[26px] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-[#2D3436] ${me.is_pro ? "to-[#8B5CF6]" :"to-[#5a5a5a]" } dark:from-white dark:to-[#b0b0b0]`}>
       Sona
     </span>
     <span className="text-[12px] tracking-tighter">
@@ -2226,7 +2226,7 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 ${!me.is_pro? " bg-[#E07A5F] ":"bg-purple" } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
                       ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
@@ -2271,7 +2271,7 @@ useEffect(() => {
                 <button
                   title="Status &amp; Update news " 
                   onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-                  className="group absolute bottom-[12%] right-5 z-30 grid h-[50px] w-[50px] place-items-center rounded-2xl
+                  className="group absolute bottom-[12%] right-5 z-30 grid h-[60px] w-[60px] place-items-center rounded-2xl
     /* Glass base */
     bg-white/20 dark:bg-white/10
     backdrop-blur-xl
@@ -2378,7 +2378,7 @@ useEffect(() => {
                 className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
                 style={{ backgroundColor: isSelected ? "#D97757" : "#8C8C8C" }}
               >
-                {isSelected && <Check className="h-3.8 w-3.8 text-white" strokeWidth={3} />}
+                {isSelected && <Check className={`h-3.8 w-3.8 ${ me.is_pro ? "text-[#8B5CF6]" :"text-white" } `} strokeWidth={4} />}
               </div>
             )}
           </div>
@@ -2494,7 +2494,7 @@ useEffect(() => {
     setShowNewChat(true);
   }}
   aria-label="New chat"
-  className="group absolute bottom-8 right-5 z-30 grid h-[50px] w-[50px] place-items-center rounded-2xl
+  className="group absolute bottom-8 right-5 z-30 grid h-[60px] w-[60px] place-items-center rounded-2xl
     /* Glass base */
     bg-white/20 dark:bg-white/10
     backdrop-blur-xl
