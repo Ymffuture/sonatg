@@ -4,7 +4,7 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users, UserX,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Image as ImageIcon, Palette, Zap, MessageSquare, Radio, Copy, KeyRound, Mail,
+  Radio, Copy, KeyRound, Mail,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +34,6 @@ import {
   MdCloudUpload,
   MdZap,
 } from "react-icons/md";
-import { Sparkles } from "lucide-react"; 
 
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
