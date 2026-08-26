@@ -16,7 +16,7 @@ import { useConfirm } from "@/hooks/useConfirmDialog";
 import {
   CHAT_CATEGORIES, type Profile, type ChatCategory,
 } from "@/lib/db";
-import { type ChatWithMeta, explainSupabaseError, usernameFromEmail } from "@/utils/utils";
+import { type ChatWithMeta, explainSupabaseError, usernameFromEmail, isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
 import { Avatar } from "./Avatar";
 import { Spin, Skeleton, Tooltip, notification } from "antd";
 import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
@@ -808,6 +808,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
   const [bio, setBio] = useState(me.bio ?? "");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [facebookUrl, setFacebookUrl] = useState(me.facebook_url ?? "");
   const [xUrl, setXUrl] = useState(me.x_url ?? "");
   const [instagramUrl, setInstagramUrl] = useState(me.instagram_url ?? "");
@@ -822,6 +823,13 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
 
   useEffect(() => {
     fetchMyNotificationPreferences(me.id).then(setEmailPrefs).catch(() => {});
+  }, [me.id]);
+
+  useEffect(() => {
+    let alive = true;
+    supabase.from("user_roles").select("role").eq("user_id", me.id).eq("role", "admin").maybeSingle()
+      .then(({ data }) => { if (alive) setIsAdmin(!!data); });
+    return () => { alive = false; };
   }, [me.id]);
 
   const toggleEmailPref = async (key: "notify_app_updates" | "notify_offline_messages") => {
@@ -866,8 +874,17 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const save = async () => {
     setBusy(true);
     try {
+      let finalName = name.trim() || "Friend";
+      if (isReservedSonaName(finalName) && !isAdmin) {
+        finalName = fallbackNameFromEmail(me.email);
+        setName(finalName);
+        notify.error({
+          message: "\"Sona\" is a reserved name",
+          description: `Only the admin can use that name — we've set yours to "${finalName}" instead.`,
+        });
+      }
       const { data, error } = await supabase.from("profiles").update({
-        display_name: name.trim() || "Friend",
+        display_name: finalName,
         bio: bio.trim() || null,
         facebook_url: facebookUrl.trim() || null,
         x_url: xUrl.trim() || null,
