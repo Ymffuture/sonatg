@@ -1245,7 +1245,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                 Processing…
               </span>
             ) : (
-              "Upgrade to Pro"
+              "Upgrade to Purple"
             )}
           </button>
         )}
