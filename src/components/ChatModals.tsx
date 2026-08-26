@@ -23,7 +23,7 @@ import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/c
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
 import SoundSettings from "./SoundSettings";
-
+import { MdDiamond } from "react-icons/md";
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
   "!bg-white/70 dark:!bg-[#c3fafa]/70 !backdrop-blur-xl !rounded-xl !border !border-white/40 dark:!border-white/10 !shadow-xl " +
@@ -132,7 +132,7 @@ export function MemberListModal({
                     </Tooltip>
                   )}
                 </div>
-                <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Owner" : "participant"}</span>
+                <span className="text-xs text-[#8C8C8C]">{role === "admin" ? "Admin" : "participant"}</span>
                 {m.bio && <p className="mt-0.5 truncate text-xs text-[#8C8C8C]/80 italic">{m.bio}</p>}
               </div>
               {isAdmin && m.id !== meId && onRemoveMember && (
@@ -925,8 +925,8 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
             <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Settings</h3>
             {me.is_pro && (
               <Tooltip title="Pro Member">
-                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#E07A5F]/20 px-2 py-0.5 text-[10px] font-semibold text-[#E07A5F] border border-[#E07A5F]/20 cursor-default">
-                  <Crown className="h-3 w-3" /> Pro
+                <span className="ml-auto inline-flex items-center gap-1 text-[#2D3436] rounded-full bg-[#8B5CF6]/20 px-2 py-0.5 text-[10px] font-semibold border border-[#8B5CF6]/20 cursor-default">
+                  <MdDiamond className="h-3 text-[#8B5CF6] w-3" /> Purple
                 </span>
               </Tooltip>
             )}
@@ -1114,18 +1114,18 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
 
         {tab === "subscription" && (
           <div className="space-y-3 text-sm">
-            <div className="rounded-2xl border border-[#E07A5F]/20 bg-gradient-to-br from-[#E07A5F]/20 to-[#F4A261]/10 p-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Crown className="h-4 w-4 text-[#E07A5F]" /> Sona purple</div>
+            <div className="rounded-2xl border border-[#8B5CF6]/20 bg-gradient-to-br from-[#8B5CF6]/20 to-[#F4A261]/10 p-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Crown className="h-4 w-4 text-[#8B5CF6]" /> Sona purple</div>
               <ul className="mt-2 space-y-1.5 text-xs text-[#2D3436] dark:text-[#E8E8E8]">
-                <li className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-[#E07A5F]" /> Unlimited AI chat summaries</li>
-                <li className="flex items-center gap-1.5"><ImageIcon className="h-3 w-3 text-[#E07A5F]" /> Vision — Sona reads your images</li>
-                <li className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-[#E07A5F]" /> Unlimited hidden encrypted chats</li>
-                <li className="flex items-center gap-1.5"><Palette className="h-3 w-3 text-[#E07A5F]" /> Premium themes</li>
+                <li className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-[#8B5CF6]" /> Unlimited AI chat summaries</li>
+                <li className="flex items-center gap-1.5"><ImageIcon className="h-3 w-3 text-[#8B5CF6]" /> Vision — Sona reads your images</li>
+                <li className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-[#8B5CF6]" /> Unlimited hidden encrypted chats</li>
+                <li className="flex items-center gap-1.5"><Palette className="h-3 w-3 text-[#8B5CF6]" /> Premium themes</li>
               </ul>
               {me.is_pro ? (
-                <div className="mt-3 text-xs text-[#E07A5F] font-semibold flex items-center gap-1"><Zap className="h-3 w-3" /> You're on purple</div>
+                <div className="mt-3 text-xs text-[#8B5CF6] font-semibold flex items-center gap-1"><Zap className="h-3 w-3" /> You're on purple</div>
               ) : (
-                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-lg flex items-center justify-center gap-2">
+                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#8B5CF6] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-lg flex items-center justify-center gap-2">
                   {busy ? <><Spin size="small" /> Processing…</> : "Upgrade to Pro"}
                 </button>
               )}
