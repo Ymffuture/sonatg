@@ -8,6 +8,7 @@ import {
   Mail, Lock, User, ArrowRight, MessageCircle,
   Sparkles, Shield, Zap, CheckCircle2, ChevronDown,
 } from "lucide-react";
+import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
 
 type AuthMethod = "email" | "google" | "facebook" | "github";
 const LAST_USED_KEY = "sona-last-auth-method";
@@ -127,12 +128,21 @@ function AuthPage() {
           return;
         }
 
+        const chosenName = isReservedSonaName(name) ? fallbackNameFromEmail(email) : (name || email.split("@")[0]);
+        if (isReservedSonaName(name)) {
+          notification.info({
+            message: "\"Sona\" is a reserved name",
+            description: `We've set your display name to "${chosenName}" instead — you can change it later from Settings.`,
+            placement: "top",
+          });
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: name || email.split("@")[0] },
+            data: { display_name: chosenName },
           },
         });
         if (error) throw error;
