@@ -32,8 +32,9 @@ import {
   MdPhone,
   MdFileDownload,
   MdCloudUpload,
-  MdZap,
+  
 } from "react-icons/md";
+import {Zap} from "lucide-react" ;
 
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
@@ -1223,7 +1224,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
             className="relative z-10 mt-4 flex items-center gap-2 text-xs font-semibold text-[#8B5CF6]"
             style={{ transform: "translateZ(30px)" }}
           >
-            <MdZap className="h-3.5 w-3.5 drop-shadow" />
+            <Zap className="h-3.5 w-3.5 drop-shadow" />
             <span>You’re on Purple</span>
           </div>
         ) : (
