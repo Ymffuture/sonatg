@@ -23,7 +23,19 @@ import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/c
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
 import SoundSettings from "./SoundSettings";
-import { MdDiamond } from "react-icons/md";
+
+import {
+  MdDiamond,
+  MdLock,
+  MdPalette,
+  MdVideoCall,
+  MdPhone,
+  MdFileDownload,
+  MdCloudUpload,
+  MdZap,
+} from "react-icons/md";
+import { Sparkles } from "lucide-react"; 
+
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
   "!bg-white/70 dark:!bg-[#c3fafa]/70 !backdrop-blur-xl !rounded-xl !border !border-white/40 dark:!border-white/10 !shadow-xl " +
@@ -1112,26 +1124,135 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
           </div>
         )}
 
-        {tab === "subscription" && (
-          <div className="space-y-3 text-sm">
-            <div className="rounded-2xl border border-[#8B5CF6]/20 bg-gradient-to-br from-[#8B5CF6]/20 to-[#F4A261]/10 p-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Crown className="h-4 w-4 text-[#8B5CF6]" /> Sona purple</div>
-              <ul className="mt-2 space-y-1.5 text-xs text-[#2D3436] dark:text-[#E8E8E8]">
-                <li className="flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-[#8B5CF6]" /> Unlimited AI chat summaries</li>
-                <li className="flex items-center gap-1.5"><ImageIcon className="h-3 w-3 text-[#8B5CF6]" /> Vision — Sona reads your images</li>
-                <li className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-[#8B5CF6]" /> Unlimited hidden encrypted chats</li>
-                <li className="flex items-center gap-1.5"><Palette className="h-3 w-3 text-[#8B5CF6]" /> Premium themes</li>
-              </ul>
-              {me.is_pro ? (
-                <div className="mt-3 text-xs text-[#8B5CF6] font-semibold flex items-center gap-1"><Zap className="h-3 w-3" /> You're on purple</div>
-              ) : (
-                <button disabled={busy} onClick={upgrade} className="mt-3 w-full rounded-xl bg-[#8B5CF6] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-lg flex items-center justify-center gap-2">
-                  {busy ? <><Spin size="small" /> Processing…</> : "Upgrade to Pro"}
-                </button>
-              )}
-            </div>
+
+{tab === "subscription" && (
+  <div className="space-y-4 text-sm">
+    {/* 3D tilt card wrapper */}
+    <div
+      className="relative group"
+      style={{ perspective: "1000px" }}
+      onMouseMove={(e) => {
+        const card = e.currentTarget.querySelector("[data-tilt-surface]");
+        if (!card) return;
+        const rect = card.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        const rotateX = y * -10; // tilt intensity
+        const rotateY = x * 10;
+        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      }}
+      onMouseLeave={(e) => {
+        const card = e.currentTarget.querySelector("[data-tilt-surface]");
+        if (!card) return;
+        card.style.transform = "rotateX(0deg) rotateY(0deg)";
+      }}
+    >
+      {/* Tilt surface */}
+      <div
+        data-tilt-surface
+        className="relative overflow-hidden rounded-3xl border border-[#8B5CF6]/30 bg-gradient-to-br from-[#8B5CF6]/30 via-[#8B5CF6]/10 to-[#F4A261]/10 p-5 shadow-2xl backdrop-blur-md transition-transform duration-200 ease-out"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: "rotateX(0deg) rotateY(0deg)",
+        }}
+      >
+        {/* 3D glow layer */}
+        <div
+          className="pointer-events-none absolute -inset-10 opacity-40 blur-2xl"
+          style={{
+            background:
+              "radial-gradient(600px circle at 20% 10%, rgba(139,92,246,0.35), transparent 40%), radial-gradient(500px circle at 90% 80%, rgba(244,162,97,0.35), transparent 40%)",
+            transform: "translateZ(-20px)",
+          }}
+        />
+
+        {/* Header */}
+        <div
+          className="relative z-10 flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"
+          style={{ transform: "translateZ(25px)" }}
+        >
+          <MdDiamond className="h-5 w-5 text-[#8B5CF6] drop-shadow" />
+          <span className="tracking-wide">Sona Purple</span>
+        </div>
+
+        {/* Feature list */}
+        <ul
+          className="relative z-10 mt-3 space-y-2.5 text-xs text-[#2D3436] dark:text-[#E8E8E8]"
+          style={{ transform: "translateZ(20px)" }}
+        >
+          <li className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-[#8B5CF6] drop-shadow" />
+            <span>Unlimited AI chat summaries</span>
+          </li>
+
+          {/* Removed: Vision — Sona reads your images */}
+
+          <li className="flex items-center gap-2">
+            <MdLock className="h-3.5 w-3.5 text-[#8B5CF6] drop-shadow" />
+            <span>Unlimited hidden encrypted chats</span>
+          </li>
+
+          <li className="flex items-center gap-2">
+            <MdPalette className="h-3.5 w-3.5 text-[#8B5CF6] drop-shadow" />
+            <span>Premium themes & custom chat backgrounds</span>
+          </li>
+
+          <li className="flex items-center gap-2">
+            <MdVideoCall className="h-3.5 w-3.5 text-[#8B5CF6] drop-shadow" />
+            <span>HD video calls with spatial audio</span>
+          </li>
+
+          <li className="flex items-center gap-2">
+            <MdPhone className="h-3.5 w-3.5 text-[#8B5CF6] drop-shadow" />
+            <span>Crystal-clear voice calls</span>
+          </li>
+
+          <li className="flex items-center gap-2">
+            <MdFileDownload className="h-3.5 w-3.5 text-[#8B5CF6] drop-shadow" />
+            <span>Export chat messages (JSON / PDF)</span>
+          </li>
+
+          <li className="flex items-center gap-2">
+            <MdCloudUpload className="h-3.5 w-3.5 text-[#8B5CF6] drop-shadow" />
+            <span>Unlimited media uploads (photos, videos, files)</span>
+          </li>
+        </ul>
+
+        {/* Status / CTA */}
+        {me.is_pro ? (
+          <div
+            className="relative z-10 mt-4 flex items-center gap-2 text-xs font-semibold text-[#8B5CF6]"
+            style={{ transform: "translateZ(30px)" }}
+          >
+            <MdZap className="h-3.5 w-3.5 drop-shadow" />
+            <span>You’re on Purple</span>
           </div>
+        ) : (
+          <button
+            disabled={busy}
+            onClick={upgrade}
+            className="relative z-10 mt-4 w-full rounded-2xl bg-[#8B5CF6] px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition
+                       hover:-translate-y-0.5 hover:bg-[#D4694F] hover:shadow-xl disabled:opacity-60"
+            style={{
+              transform: "translateZ(35px)",
+              boxShadow:
+                "0 10px 25px -5px rgba(139,92,246,0.45), 0 8px 10px -6px rgba(139,92,246,0.35)",
+            }}
+          >
+            {busy ? (
+              <span className="flex items-center justify-center gap-2">
+                <Spin size="small" />
+                Processing…
+              </span>
+            ) : (
+              "Upgrade to Pro"
+            )}
+          </button>
         )}
+      </div>
+    </div>
+  </div>
+)}
 
         </div>
 
