@@ -150,6 +150,20 @@ export function usernameFromEmail(displayName?: string | null, email?: string | 
   return `${namePart.slice(-3)}_${emailSuffix(email)}`;
 }
 
+// "Sona" is reserved for the admin account and the built-in Sona AI system
+// profile — everyone else who tries to set it gets a username derived from
+// their email instead. Mirrors the server-side trigger in
+// enforce_reserved_display_name() so the UI never shows a value the
+// database is about to silently overwrite.
+export function isReservedSonaName(name?: string | null): boolean {
+  return !!name && name.trim().toLowerCase() === "sona";
+}
+
+export function fallbackNameFromEmail(email?: string | null): string {
+  const local = (email ?? "").split("@")[0]?.trim();
+  return local || "Friend";
+}
+
 // Downloads a file to the user's device, WhatsApp-style. Fetching as a blob
 // (rather than a plain <a href download>) is necessary because the URL is a
 // cross-origin Supabase Storage signed URL — browsers ignore the `download`
