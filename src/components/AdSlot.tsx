@@ -34,6 +34,7 @@ export function AdSlot({
       window.adsbygoogle.push({});
       pushed.current = true;
     } catch {
+      return <p className="text-red-300" >blocked by an ad blocker</p>
       // AdSense script not loaded yet (e.g. blocked by an ad blocker) — fail silently.
     }
   }, []);
