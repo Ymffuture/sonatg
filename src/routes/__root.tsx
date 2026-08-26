@@ -105,11 +105,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@sona_app" },
       { name: "twitter:title", content: "Sona — Talk Gold" },
       { name: "twitter:description", content: "Private messaging, voice & video calls, and AI-powered conversations." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/c2848763-a982-4e16-b7b5-e800f59cee97" },
+      { property: "og:image", content: "https://sonatg.vercel.app/sonatg-logo.png" },
       { property: "og:image:alt", content: "Sona — Talk Gold. A modern chat experience." },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/c2848763-a982-4e16-b7b5-e800f59cee97" },
+      { name: "twitter:image", content: "https://sonatg.vercel.app/favicon.png" },
       { name: "twitter:image:alt", content: "Sona — Talk Gold. A modern chat experience." },
     ],
     links: [
