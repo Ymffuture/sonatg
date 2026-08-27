@@ -298,7 +298,7 @@ function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted
       );
     }
     default:
-      return <span>…</span>;
+      return (<span className="flex gap-2 items-center "> <Ban className="h-4 text-red-600/10 w-4 shrink-0"/>This message was deleted</span>) ;
   }
 }
 
