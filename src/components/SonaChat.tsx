@@ -2303,7 +2303,7 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 ${!me.is_pro? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro ? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
                       ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
@@ -2314,24 +2314,24 @@ useEffect(() => {
               ))}
 
               {customFolders.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setActiveFolder(f.id)}
-                  onDoubleClick={() => openRenameFolderModal(f.id, f.name)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    openRenameFolderModal(f.id, f.name);
-                  }}
-                  title="Tap to filter · double-tap or right-click to rename"
-                  className={`shrink-0 ${!me.is_pro? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
-                    activeFolder === f.key
-                      ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
-                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
-                  }`}
-                >
-                  {f.name}
-                </button>
-              ))}
+  <button
+    key={f.id}
+    onClick={() => setActiveFolder(f.id)}
+    onDoubleClick={() => openRenameFolderModal(f.id, f.name)}
+    onContextMenu={(e) => {
+      e.preventDefault();
+      openRenameFolderModal(f.id, f.name);
+    }}
+    title="Tap to filter · double-tap or right-click to rename"
+    className={`shrink-0 ${!me.is_pro ? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+      activeFolder === f.id  // ✅ Changed from f.key to f.id
+        ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
+        : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
+    }`}
+  >
+    {f.name}
+  </button>
+))}
 
               <button
                 onClick={openCreateFolderModal}
