@@ -36,6 +36,8 @@ import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
 import { MdVerified } from "react-icons/md";
 import { FaFacebookF, FaXTwitter, FaInstagram, FaThreads } from "react-icons/fa6";
+import { LuMessageSquareText } from "react-icons/lu";
+
 const { Text, Title } = Typography;
 
 const MOD_META: Record<string, { label: string; color: string; note: string }> = {
@@ -356,11 +358,10 @@ export function ProfileViewModal({
                     <Button
                       type="primary"
                       size="large"
-                      icon={<MessageOutlined />}
+                      icon={<LuMessageSquareText />}
                       onClick={onMessage}
                       style={{ backgroundColor:profile.is_pro ? "" :"#E07A5F", borderColor:profile.is_pro ? "" :"#E07A5F", borderRadius: 50, height: 44 }}
-                      className={`!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2 ${profile.is_pro ? "bg-gradient-to-br from-violet-700 via-violet-500 to-fuchsia-500" :"" } `} 
-                    
+                      className={`!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2 ${profile.is_pro ? "bg-gradient-to-br from-violet-700 via-violet-400 to-fuchsia-400" :"" } `}  
                     >
                       Message
                     </Button>
