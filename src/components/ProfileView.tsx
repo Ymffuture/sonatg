@@ -358,8 +358,9 @@ export function ProfileViewModal({
                       size="large"
                       icon={<MessageOutlined />}
                       onClick={onMessage}
-                      style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 50, height: 44 }}
-                      className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2"
+                      style={{ backgroundColor:!profile.is_pro? "" :"#E07A5F", borderColor:!profile.is_pro ? "" :"#E07A5F", borderRadius: 50, height: 44 }}
+                      className={`!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2 ${ profile.is_pro ? bg-gradient-to-br from-violet-700 via-violet-500 to-fuchsia-500:"" } `} 
+                    
                     >
                       Message
                     </Button>
