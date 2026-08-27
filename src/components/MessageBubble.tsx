@@ -1368,6 +1368,24 @@ const tailClass = !grouped && mine
   : "";
 
   
+  // Deleted messages render as a muted, non-interactive placeholder —
+  // content is already cleared server-side (soft delete), no reactions,
+  // no context menu, no read receipts.
+  if (msg.deleted_at) {
+    return (
+      <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-1`}>
+        <div
+          className={`flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] ${
+            mine ? "bg-[#eeffde]/50 dark:bg-white/5" : "bg-white/60 dark:bg-white/5"
+          }`}
+        >
+          <CircleAlert className="h-3.5 w-3.5 shrink-0 opacity-70" />
+          This message was deleted
+        </div>
+      </div>
+    );
+  }
+
   // Call-ended log entries render as a centered pill, WhatsApp-style,
   // instead of the normal left/right chat bubble.
   if (msg.kind === "call") {

@@ -211,6 +211,10 @@ function clearDraftFromStorage(chatId: string) {
 function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
   if (!msg) return null; // ← add this guard
 
+  if (msg.deleted_at) {
+    return <span className="italic opacity-70">Message was deleted</span>;
+  }
+
   if (msg.is_encrypted) {
     return (
       <span className="inline-flex items-center gap-1 opacity-70">
@@ -448,6 +452,7 @@ function SonaChatInner() {
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [unreadSnapshot, setUnreadSnapshot] = useState(0);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
   const [reads, setReads] = useState<MessageReadRow[]>([]);
@@ -896,6 +901,12 @@ function SonaChatInner() {
         }
         if (!notYetDue) loadChats();
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (p) => {
+        const m = p.new as MessageRow;
+        if (m.chat_id === activeId) {
+          setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, ...m } : x));
+        }
+      })
 
       .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, (p) => {
         if (p.eventType === "INSERT") {
@@ -1059,6 +1070,16 @@ function SonaChatInner() {
     chan.send({ type: "broadcast", event: "recording", payload: { user_id: me.id, recording } });
   }, [me]);
 
+  // Snapshot the unread count the instant a chat is opened — must run
+  // before the auto-mark-as-read effect below flips it back to 0, so the
+  // in-thread "N unread messages" divider has something to show.
+  useEffect(() => {
+    if (!activeId) { setUnreadSnapshot(0); return; }
+    const c = chats.find((x) => x.id === activeId);
+    setUnreadSnapshot(c?.unread ?? 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
   // Auto-mark unread messages as read
   useEffect(() => {
     if (!me || !activeId || messages.length === 0) return;
@@ -1081,6 +1102,16 @@ function SonaChatInner() {
   }, [activeId, messages.length]);
 
   const active = chats.find((c) => c.id === activeId);
+
+  // The message id the "N unread messages" divider renders before —
+  // the Nth-from-last message authored by someone else, where N is the
+  // snapshot captured when this chat was opened.
+  const unreadDividerId = useMemo(() => {
+    if (unreadSnapshot <= 0 || !me) return null;
+    const fromOthers = messages.filter((m) => m.sender_id !== me.id);
+    if (fromOthers.length < unreadSnapshot) return null;
+    return fromOthers[fromOthers.length - unreadSnapshot].id;
+  }, [messages, unreadSnapshot, me]);
 
   useEffect(() => {
     if (!me || !activeId || !active?.is_group) { setBroadcastLocked(false); return; }
@@ -1658,9 +1689,15 @@ function SonaChatInner() {
   const deleteMessage = async (messageId: string) => {
     if (!me) return;
     if (!(await confirm({ title: "Delete this message for everyone?", confirmText: "Delete", danger: true }))) return;
-    const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me.id);
+    const { error } = await supabase
+      .from("messages")
+      .update({ deleted_at: new Date().toISOString(), body: null, media_url: null, file_name: null, file_size: null, duration_ms: null })
+      .eq("id", messageId)
+      .eq("sender_id", me.id);
     if (error) { toast.error(error.message); return; }
-    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    setMessages((prev) => prev.map((m) => m.id === messageId
+      ? { ...m, deleted_at: new Date().toISOString(), body: null, media_url: null, file_name: null, file_size: null, duration_ms: null }
+      : m));
   };
 
   const blockOther = async () => {
@@ -2615,17 +2652,26 @@ useEffect(() => {
     <span className="inline-flex items-center gap-1.5">   
       Ask Anything... 
     </span>
-  ) : active.is_group ? (
-    <div className="relative flex overflow-hidden w-full">
-      <div className="whitespace-nowrap animate-marquee flex items-center gap-1">
-        
-        
-        <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
-        <span className="opacity-50">•</span>
-        <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
-      </div>
-    </div>
-  ) : (() => {
+  ) : active.is_group ? (() => {
+      const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
+      return (
+        <div className="flex flex-col overflow-hidden w-full">
+          {onlineCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-500 mb-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {onlineCount} online
+            </span>
+          )}
+          <div className="relative flex overflow-hidden w-full">
+            <div className="whitespace-nowrap animate-marquee flex items-center gap-1">
+              <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
+              <span className="opacity-50">•</span>
+              <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
+            </div>
+          </div>
+        </div>
+      );
+    })() : (() => {
       const otherId = active.memberIds.find((id) => id !== me.id);
       const other = otherId ? profilesById[otherId] : undefined;
       const online = otherId ? onlineIds.has(otherId) : false;
@@ -2873,6 +2919,15 @@ useEffect(() => {
         <span className="rounded bg-[#F4A261]/20 px-3 py-1 text-[11px] font-medium text-[#8C8C8C] backdrop-blur border border-[#E07A5F]/20">
           {fmtDateLabel(m.created_at)}
         </span>
+      </div>
+    )}
+    {m.id === unreadDividerId && (
+      <div className="my-3 flex items-center gap-2">
+        <div className="h-px flex-1 bg-[#E07A5F]/30" />
+        <span className="shrink-0 rounded-full bg-[#E07A5F] px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
+          {unreadSnapshot} unread {unreadSnapshot === 1 ? "message" : "messages"}
+        </span>
+        <div className="h-px flex-1 bg-[#E07A5F]/30" />
       </div>
     )}
     <motion.div
