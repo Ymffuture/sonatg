@@ -2325,8 +2325,8 @@ useEffect(() => {
                   title="Tap to filter · double-tap or right-click to rename"
                   className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.id
-                      ? "bg-[#E07A5F] dark:bg-[#1E1E1E] text-white"
-                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
+                      ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
                   }`}
                 >
                   {f.name}
@@ -2455,7 +2455,7 @@ useEffect(() => {
                 className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
                 style={{ backgroundColor: isSelected ? "#fff" : "#8C8C8C" }}
               >
-                {isSelected && <Check className={`h-3.8 w-3.8 ${ me.is_pro ? "text-[#8B5CF6]" :"text-white" } `} strokeWidth={4} />}
+                {isSelected && <Check className={`h-3.8 w-3.8 ${ me.is_pro ? "text-[#8B5CF6]" :"text-white" } `} strokeWidth={2} />}
               </div>
             )}
           </div>
@@ -2548,7 +2548,7 @@ useEffect(() => {
                         <MessagePreview msg={last} />
                       </span>
                       {last && !last.deleted_at && c.lastMessageReaction && (
-                        <span className="shrink-0 text-xs" title="Reacted">{c.lastMessageReaction}</span>
+                        <span className="shrink-0 text-xs" title="Reacted">{last.deleted_at ? "" :c.lastMessageReaction}</span>
                       )}
                     </>
                   );
@@ -2693,7 +2693,7 @@ useEffect(() => {
     <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
   ) : isAIChat(active) ? (
     <span className="inline-flex items-center gap-1.5">   
-      Ask Anything... 
+      By Sona AI
     </span>
   ) : active.is_group ? (() => {
       const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
