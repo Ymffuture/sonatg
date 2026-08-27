@@ -1290,13 +1290,15 @@ return (
 } 
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
-  overrideBody, onDelete, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
+  overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread,allImages, onForward, isHighlighted,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
   onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean; isGroup: boolean;
   overrideBody?: string; onDelete: () => void;
+  /** Permanently removes an already-deleted message's row (no more placeholder). */
+  onRemove?: () => void;
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: React.ReactNode;
   /** Called when the user taps the quoted reply preview — scrolls to and highlights the original message. */
@@ -1368,20 +1370,39 @@ const tailClass = !grouped && mine
   : "";
 
   
-  // Deleted messages render as a muted, non-interactive placeholder —
-  // content is already cleared server-side (soft delete), no reactions,
-  // no context menu, no read receipts.
+  // Deleted messages render as a muted placeholder — content is already
+  // cleared server-side (soft delete). Sender can still long-press to
+  // permanently remove the row (hard delete), since there's no content
+  // left to edit, copy, or react to.
   if (msg.deleted_at) {
     return (
       <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-1`}>
         <div
-          className={`flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] ${
-            mine ? "bg-[#eeffde]/50 dark:bg-white/5" : "bg-white/60 dark:bg-white/5"
+          ref={bubbleRef}
+          {...(mine ? longPress : {})}
+          className={`relative flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] select-none ${
+            mine ? "bg-[#eeffde]/50 dark:bg-white/5 cursor-pointer" : "bg-white/60 dark:bg-white/5"
           }`}
         >
           <CircleAlert className="h-3.5 w-3.5 shrink-0 opacity-70" />
           This message was deleted
         </div>
+        {mine && contextMenu.open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setContextMenu({ open: false, x: 0, y: 0 })} />
+            <div
+              className="fixed z-50 -translate-x-1/2 -translate-y-full rounded-xl border border-[#E07A5F]/15 bg-white dark:bg-[#242424] shadow-xl overflow-hidden"
+              style={{ left: contextMenu.x, top: contextMenu.y - 8 }}
+            >
+              <button
+                onClick={() => { setContextMenu({ open: false, x: 0, y: 0 }); onRemove?.(); }}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition whitespace-nowrap"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </button>
+            </div>
+          </>
+        )}
       </div>
     );
   }

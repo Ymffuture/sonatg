@@ -726,6 +726,25 @@ function SonaChatInner() {
       }
     });
 
+    // One small batched query so every chat's row can show a reaction
+    // badge on its last message, not just whichever chat happens to be
+    // open (the `reactions` state is scoped to the active chat only).
+    const lastMsgIds = Object.values(lastByChat).map((m) => m.id);
+    const lastReactionByChat: Record<string, string> = {};
+    if (lastMsgIds.length) {
+      const { data: lastRx } = await supabase
+        .from("reactions")
+        .select("message_id, emoji")
+        .in("message_id", lastMsgIds);
+      const byMsgId: Record<string, string> = {};
+      (lastRx ?? []).forEach((r: { message_id: string; emoji: string }) => {
+        if (!byMsgId[r.message_id]) byMsgId[r.message_id] = r.emoji;
+      });
+      Object.entries(lastByChat).forEach(([chatId, m]) => {
+        if (byMsgId[m.id]) lastReactionByChat[chatId] = byMsgId[m.id];
+      });
+    }
+
     const memsByChat: Record<string, string[]> = {};
     const rolesByChat: Record<string, Record<string, ChatMemberRole>> = {};
     const pinnedByChat: Record<string, { isPinned: boolean; pinnedAt: string | null }> = {};
@@ -745,6 +764,7 @@ function SonaChatInner() {
         memberRoles: rolesByChat[chat.id] ?? {},
         isPinned: pinnedByChat[chat.id]?.isPinned ?? false,
         lastMessage: lastByChat[chat.id],
+        lastMessageReaction: lastReactionByChat[chat.id],
         unread: unreadByChat[chat.id] ?? 0,
       };
     });
@@ -906,6 +926,9 @@ function SonaChatInner() {
         if (m.chat_id === activeId) {
           setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, ...m } : x));
         }
+        // Keep the chat-list preview in sync too — this fires for every
+        // participant, not just the person who made the edit/delete.
+        loadChats();
       })
 
       .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, (p) => {
@@ -917,6 +940,7 @@ function SonaChatInner() {
           const r = p.old as ReactionRow;
           setReactions((prev) => prev.filter((x) => x.id !== r.id));
         }
+        loadChats();
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reads" }, (p) => {
         const r = p.new as MessageReadRow;
@@ -1684,6 +1708,7 @@ function SonaChatInner() {
     if (existing) await supabase.from("reactions").delete().eq("id", existing.id);
     else await supabase.from("reactions").insert({ message_id: messageId, user_id: me.id, emoji });
     setReactingOn(null);
+    loadChats();
   };
 
   const deleteMessage = async (messageId: string) => {
@@ -1698,6 +1723,21 @@ function SonaChatInner() {
     setMessages((prev) => prev.map((m) => m.id === messageId
       ? { ...m, deleted_at: new Date().toISOString(), body: null, media_url: null, file_name: null, file_size: null, duration_ms: null }
       : m));
+    // The chat list's last-message preview is a separate query result
+    // (loadChats), not derived from `messages` — without this it kept
+    // showing the pre-deletion content until the next full reload.
+    loadChats();
+  };
+
+  // Permanently removes an already-soft-deleted message's row — separate
+  // from deleteMessage() above, which only clears content and leaves the
+  // "This message was deleted" placeholder in place for everyone.
+  const hardDeleteMessage = async (messageId: string) => {
+    if (!me) return;
+    const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me.id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    loadChats();
   };
 
   const blockOther = async () => {
@@ -2507,6 +2547,9 @@ useEffect(() => {
                       <span className="truncate">
                         <MessagePreview msg={last} />
                       </span>
+                      {last && !last.deleted_at && c.lastMessageReaction && (
+                        <span className="shrink-0 text-xs" title="Reacted">{c.lastMessageReaction}</span>
+                      )}
                     </>
                   );
                 })()}
@@ -2958,6 +3001,7 @@ useEffect(() => {
       grouped={!!groupWithPrev}
       overrideBody={overrideBody}
       onDelete={() => deleteMessage(m.id)}
+      onRemove={() => hardDeleteMessage(m.id)}
       onReply={() => startReply(m)}
       onEdit={() => startEdit(m)}
       parentName={parentName}
