@@ -47,6 +47,7 @@ export type MessageRow = {
   is_encrypted?: boolean;
   reply_to_id?: string | null;
   edited_at?: string | null;
+  deleted_at?: string | null;
   file_name?: string | null;
   file_size?: number | null;
   expires_at?: string | null;
