@@ -198,6 +198,7 @@ export function GroupSettingsModal({
   onUpdated: () => void; onDelete: () => void;
 }) {
   const [title, setTitle] = useState(chat.title ?? "");
+  const [description, setDescription] = useState(chat.description ?? "");
   const [category, setCategory] = useState<ChatCategory>(chat.category ?? "general");
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -281,7 +282,7 @@ export function GroupSettingsModal({
         const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
         avatar_url = signed?.signedUrl ?? avatar_url;
       }
-      const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url, category }).eq("id", chat.id);
+      const { error } = await supabase.from("chats").update({ title: title.trim() || chat.title, avatar_url, category, description: description.trim() || null }).eq("id", chat.id);
       if (error) throw error;
       notify.success({ message: "Group updated", description: "Your changes to the group name, photo, or settings have been saved for everyone." });
       onUpdated();
@@ -347,6 +348,21 @@ export function GroupSettingsModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="mt-1 w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-[#8C8C8C]">Description</label>
+            <span className="text-[10px] text-[#8C8C8C]">{description.length}/250</span>
+          </div>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value.slice(0, 250))}
+            placeholder="What's this group about?"
+            rows={2}
+            className="mt-1 w-full resize-none rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
           />
         </div>
 

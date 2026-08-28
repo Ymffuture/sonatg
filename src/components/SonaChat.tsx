@@ -30,7 +30,6 @@ import { IoFootstepsOutline } from "react-icons/io5" ;
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import { PurpleBadge } from "./PurpleBadge";
-import { PiPathBold } from "react-icons/pi";
 
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
@@ -558,6 +557,7 @@ function SonaChatInner() {
     }
   };
   const [showMsgSearch, setShowMsgSearch] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
   const [showDisappearingMenu, setShowDisappearingMenu] = useState(false);
   const [scheduledMessages, setScheduledMessages] = useState<MessageRow[]>([]);
   const [showScheduledList, setShowScheduledList] = useState(false);
@@ -1937,7 +1937,7 @@ function SonaChatInner() {
   }, [messages, msgSearchQuery, decrypted]);
 
   useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
-  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); }, [activeId]);
+  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); }, [activeId]);
   useEffect(() => {
     if (!showMsgSearch || msgSearchMatches.length === 0) return;
     const target = msgSearchMatches[Math.min(msgSearchIndex, msgSearchMatches.length - 1)];
@@ -2175,7 +2175,7 @@ useEffect(() => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -6 }}
         transition={{ duration: 0.14, ease: "easeOut" }}
-        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#242424] !dark:text-white shadow-xl z-50 overflow-hidden origin-top-right"
+        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-xl z-50 overflow-hidden origin-top-right"
       >
         <div className="py-1">
           {canInstall && (
@@ -2202,7 +2202,7 @@ useEffect(() => {
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
             <IoFootstepsOutline className="h-4 w-4 shrink-0" />
-            Manual for Sona
+            How to use SonaTG
           </Link>
 
           <Link
@@ -2229,7 +2229,7 @@ useEffect(() => {
             onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <PiPathBold className="h-4 w-4 shrink-0" />
+            <HelpCircle className="h-4 w-4 shrink-0" />
             Replay tour
           </button>
 
@@ -2912,6 +2912,33 @@ useEffect(() => {
                     </button>
                   </Dropdown>
                 </header>
+
+                {active.is_group && active.description && (
+                  <div className="border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E]">
+                    <button
+                      onClick={() => setDescOpen((v) => !v)}
+                      className="flex w-full items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#8C8C8C] hover:text-[#E07A5F] transition"
+                    >
+                      Description
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${descOpen ? "rotate-180" : "-rotate-90"}`} />
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {descOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <p className="whitespace-pre-wrap break-words px-4 pb-3 text-sm leading-6 text-[#2D3436] dark:text-[#E8E8E8]">
+                            {active.description}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
 
                 {showMsgSearch && (
                   <div className="flex items-center gap-2 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] px-4 py-2">
