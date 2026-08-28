@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import {
   GraduationCap, Users, Briefcase, LifeBuoy, PartyPopper, Tag,
   Gamepad2, Heart, Music, Plane, Newspaper,
@@ -9,6 +11,14 @@ import {
   type ChatRow, type MessageRow, type Profile, type MessageReadRow,
   type ChatCategory, type ChatMemberRole,
 } from "@/lib/db";
+
+// Merges Tailwind class strings, letting later classes win over earlier
+// conflicting ones (e.g. cn("p-2", condition && "p-4") -> "p-4"). Used by
+// the shadcn/ui primitives under src/components/ui (dropdown-menu, etc).
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 
 // ─── Shared types ────────────────────────────────────────────────
 export type ChatWithMeta = ChatRow & {
