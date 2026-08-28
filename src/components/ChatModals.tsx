@@ -1205,7 +1205,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
           style={{ transform: "translateZ(25px)" }}
         >
           <MdDiamond className="h-5 w-5 text-[#8B5CF6] drop-shadow" />
-          <span className="tracking-wide">Sona Purple</span>
+          <span className="tracking-wide dark:text-[#8B5CF6] ">Sona Purple</span>
         </div>
 
         {/* Feature list */}
