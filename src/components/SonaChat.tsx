@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-  Search, MoreVertical, ArrowLeft, Moon,Radio, Sun,
+  Search, MoreVertical, ArrowLeft, Moon, Sun,
   Plus, X, LogOut, Trash2,
   MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
-  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Eraser, Megaphone,
+  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Eraser, Megaphone, Radio,
 } from "lucide-react";
 import { LuCircleFadingPlus } from "react-icons/lu";
 import { IoCameraOutline } from "react-icons/io5";
@@ -820,6 +820,20 @@ function SonaChatInner() {
     })();
   }, [activeId, messages, decrypted, needsUnlock]);
 
+  // Belt-and-suspenders: hide a message from the currently-open chat the
+  // instant its own expires_at passes, rather than waiting on the next
+  // pg_cron cleanup tick + realtime DELETE round trip. Purely cosmetic —
+  // cleanup_expired_messages() (scheduled every minute) still does the
+  // real deletion so it disappears for the other side too.
+  useEffect(() => {
+    if (!messages.some((m) => m.expires_at)) return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      setMessages((prev) => prev.filter((m) => !m.expires_at || new Date(m.expires_at).getTime() > now));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [messages]);
+
   // Load messages + reactions + read receipts for active chat
   useEffect(() => {
     if (!activeId) return;
@@ -932,6 +946,15 @@ function SonaChatInner() {
         }
         // Keep the chat-list preview in sync too — this fires for every
         // participant, not just the person who made the edit/delete.
+        loadChats();
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (p) => {
+        // Fires for both sides when cleanup_expired_messages() (or a
+        // manual delete) removes a row — without this, a chat that's
+        // already open just keeps showing the message until the next
+        // full reload, even though it's gone server-side.
+        const m = p.old as MessageRow;
+        setMessages((prev) => prev.filter((x) => x.id !== m.id));
         loadChats();
       })
 
