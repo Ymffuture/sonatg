@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
 
-type AuthMethod = "email" | "google" | "facebook" | "github";
+type AuthMethod = "email" | "google" | "facebook" | "github" | "spotify";
 const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
@@ -64,6 +64,15 @@ function GitHubIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+function SpotifyIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="#1ED760">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.521 17.34c-.216.36-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.081-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.66.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.48.12-1.021-.12-1.141-.6-.12-.48.12-1.02.6-1.14 4.32-1.32 9.719-.66 13.439 1.62.361.181.54.78.301 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.6.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.301.421-1.021.599-1.561.3z" />
+    </svg>
+  );
+}
+
+
 /* ─── Logo Component with PNG fallback ─── */
 function BrandLogo({ className = "" }: { className?: string }) {
   const [imgError, setImgError] = useState(false);
@@ -103,9 +112,9 @@ function AuthPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem(LAST_USED_KEY);
-    if (saved === "email" || saved === "google" || saved === "facebook" || saved === "github") {
+    if (saved === "email" || saved === "google" || saved === "facebook" || saved === "github" || saved === "spotify") {
       setLastUsed(saved);
-      if (saved === "github") setShowMoreMethods(true);
+      if (saved === "github" || saved === "spotify") setShowMoreMethods(true);
     }
   }, []);
 
@@ -185,7 +194,7 @@ function AuthPage() {
     }
   };
 
-  const oauth = async (provider: "google" | "facebook" | "github") => {
+  const oauth = async (provider: "google" | "facebook" | "github" | "spotify") => {
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -444,6 +453,19 @@ function AuthPage() {
                     <span className="flex-1 text-left">Continue with GitHub</span>
                     {lastUsed === "github" && <LastUsed />}
                     <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#181717] dark:bg-white transition-all duration-300 group-hover:w-full" />
+                  </button>
+
+                  <button
+                    onClick={() => oauth("spotify")}
+                    disabled={loading}
+                    className="group relative mt-2 w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#1ED760]/40 hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
+                      <SpotifyIcon className="h-5 w-5" />
+                    </div>
+                    <span className="flex-1 text-left">Continue with Spotify</span>
+                    {lastUsed === "spotify" && <LastUsed />}
+                    <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#1ED760] transition-all duration-300 group-hover:w-full" />
                   </button>
                 </motion.div>
               )}
