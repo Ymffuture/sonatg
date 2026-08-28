@@ -2708,16 +2708,15 @@ useEffect(() => {
     <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
   ) : isAIChat(active) ? (
     <span className="inline-flex items-center gap-1.5">   
-      Ask Anything... 
+      By Sona AI
     </span>
   ) : active.is_group ? (() => {
       const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
       return (
         <div className="flex flex-col overflow-hidden w-full">
           {onlineCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-500 mb-0.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              {onlineCount} online
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 mb-0.5">
+              {onlineCount} Online
             </span>
           )}
           <div className="relative flex overflow-hidden w-full">
