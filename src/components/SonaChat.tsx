@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-  Search, MoreVertical, ArrowLeft, Moon, Sun,
-  Plus, X, LogOut, Trash2,
-  MessageSquarePlus, Settings,PhoneMissed, Shield, Sparkles, Lock, Unlock,
+  Search, MoreVertical, ArrowLeft,
+  Plus, X, Trash2,
+  MessageSquarePlus, Settings, PhoneMissed, Shield, Sparkles, Lock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
-  Share2, BadgeCheck, FileText, DoorOpen, Download, Image as ImageIcon,
+  Share2, BadgeCheck, FileText, DoorOpen, Download,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
-  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Eraser, Megaphone, Radio,
+  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Megaphone, Radio,
 } from "lucide-react";
 import { LuCircleFadingPlus } from "react-icons/lu";
 import { IoCameraOutline } from "react-icons/io5";
@@ -14,9 +14,18 @@ import { CiTimer } from "react-icons/ci";
 import { fetchActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 import { notifyOfflineMessage } from "@/lib/notifications.functions";
 import { buildTranscript, exportChatAsJSON, exportChatAsPDF } from "@/lib/export-chat";
-import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
+import { Watermark, Modal, Input, message as antMessage } from "antd";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
-import { IoMdTimer } from "react-icons/io";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -26,11 +35,9 @@ import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import { pushBackLayer } from "@/hooks/useBackStack";
 import { FaSquareThreads } from "react-icons/fa6";
-import { IoFootstepsOutline } from "react-icons/io5" ;
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import { PurpleBadge } from "./PurpleBadge";
-import { PiPath } from "react-icons/pi";
 import {MdDiamond} from "react-icons/md";
 
 /* Shows an "Admin console" entry only for accounts with the admin role. */
@@ -2208,7 +2215,6 @@ useEffect(() => {
               onClick={() => { promptInstall(); setShowHeaderMenu(false); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
             >
-              <Download className="h-4 w-4 shrink-0" />
               Install app
             </button>
           )}
@@ -2217,7 +2223,6 @@ useEffect(() => {
             onClick={() => { toggle(); setShowHeaderMenu(false); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            {theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
             {theme === "dark" ? "Light mode" : "Dark mode"}
           </button>
 
@@ -2226,7 +2231,6 @@ useEffect(() => {
             onClick={() => setShowHeaderMenu(false)}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <IoFootstepsOutline className="h-4 w-4 shrink-0" />
             Manual for Sona
           </Link>
 
@@ -2235,7 +2239,6 @@ useEffect(() => {
             onClick={() => setShowHeaderMenu(false)}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <Newspaper className="h-4 w-4 shrink-0" />
             Blog
           </Link>
 
@@ -2244,7 +2247,6 @@ useEffect(() => {
             onClick={() => setShowHeaderMenu(false)}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <HelpCircle className="h-4 w-4 shrink-0" />
             Help Center
           </Link>
 
@@ -2254,7 +2256,6 @@ useEffect(() => {
             onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <PiPath className="h-4 w-4 shrink-0" />
             Replay tour
           </button>
 
@@ -2262,18 +2263,7 @@ useEffect(() => {
             onClick={() => { setShowSettings(true); setShowHeaderMenu(false); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <Settings className="h-4 w-4 shrink-0" />
             Settings
-          </button>
-
-          <div className="my-1 border-t border-slate-200 dark:border-slate-700" />
-
-          <button
-            onClick={() => { signOut(); setShowHeaderMenu(false); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            Sign out
           </button>
         </div>
       </motion.div>
@@ -2801,141 +2791,119 @@ useEffect(() => {
                     </div>
                   )}
 
-                  <Dropdown
-                    trigger={["click"]}
-                    placement="bottomRight"
-                    menu={{
-                      items: [
-                        {
-                          key: "search",
-                          label: "Search" ,
-                          icon: <Search className="h-4 w-4" />,
-                        },
-                        ...(!isAIChat(active)
-                          ? [{
-                              key: "summarize",
-                              disabled: isSummarized,
-                              label: (
-                                <span className={`flex w-full items-center ${isSummarized ? "animate-pulse" : ""} `}>
-                                  {isSummarized ? "Summarizing..." : "Summarize "}
-                                  {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
-                                </span>
-                              ),
-                              icon: <Sparkles className={`h-4 w-4 text-[#1E1E1E] ${isSummarized ? "animate-spin text-green-600" : ""} `} />,
-                            }]
-                          : []),
-                        ...(!isAIChat(active)
-                          ? [
-                              {
-                                key: "disappearing",
-                                label: "Disappearing messages",
-                                icon: <IoMdTimer className="h-4 w-4" />,
-                                children: DISAPPEARING_OPTIONS.map((opt) => ({
-                                  key: `disappearing-${opt.label}`,
-                                  label: (
-                                    <span className="flex w-full items-center justify-between">
-                                      {opt.label}
-                                      {(active.disappearing_seconds ?? null) === opt.seconds && (
-                                        <Check className="h-3.5 w-3.5 text-[#E07A5F]" />
-                                      )}
-                                    </span>
-                                  ),
-                                  onClick: () => setDisappearing(opt.seconds),
-                                })),
-                              },
-                            ]
-                          : []),
-                        ...(!isAIChat(active)
-                          ? [{
-                              key: "scheduled",
-                              label: "Scheduled messages",
-                              icon: <Clock className="h-4 w-4" />,
-                            }]
-                          : []),
-                        {
-                          key: "media-gallery",
-                          label: "Media, links, and docs",
-                          icon: <ImageIcon className="h-4 w-4" />,
-                        },
-                        ...(!isAIChat(active)
-                          ? [{
-                              key: "export",
-                              label: (
-                                <span className="flex w-full items-center">
-                                  Export chat
-                                  {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
-                                </span>
-                              ),
-                              icon: <Download className="h-4 w-4" />,
-                              children: [
-                                { key: "export-json", label: "Export as JSON", onClick: () => exportChat("json") },
-                                { key: "export-pdf", label: "Export as PDF", onClick: () => exportChat("pdf") },
-                              ],
-                            }]
-                          : []),
-                        {
-                          key: "clear",
-                          label: "Clear chat",
-                          icon: <Eraser className="h-4 w-4" />,
-                          onClick: clearChat,
-                        },
-                        ...(!isAIChat(active)
-                          ? [{
-                              key: "hide",
-                              label: (
-                                <span className="flex w-full items-center">
-                                  {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
-                                  {!me.is_pro && !active.is_hidden && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
-                                </span>
-                              ),
-                              icon: active.is_hidden ? <Unlock className="h-4 w-4" /> : <Shield className="h-4 w-4" />,
-                              onClick: toggleHideChat,
-                            }]
-                          : []),
-                        ...(active.is_hidden && isUnlocked(active.id)
-                          ? [{ key: "lock", label: "Lock now", icon: <Lock className="h-4 w-4" />, onClick: relock }]
-                          : []),
-                        ...(!isAIChat(active) && !active.is_group
-                          ? [
-                              {
-                                key: "report",
-                                label: "Report",
-                                icon: <AlertTriangle className="h-4 w-4" />,
-                                onClick: () => {
-                                  const p = activeOtherId ? profilesById[activeOtherId] : undefined;
-                                  if (p) setReportTarget(p);
-                                },
-                              },
-                              iBlockedThem
-                                ? { key: "unblock", label: "Unblock", icon: <Ban className="h-4 w-4" />, onClick: unblockOther }
-                                : { key: "block", label: "Block", icon: <Ban className="h-4 w-4" />, danger: true, onClick: blockOther },
-                            ]
-                          : []),
-                        // Groups don't have one "other user" — surface the member list so
-                        // the person can pick exactly who they want to report or block.
-                        ...(!isAIChat(active) && active.is_group
-                          ? [
-                              {
-                                key: "report-member",
-                                label: "Report a member",
-                                icon: <AlertTriangle className="h-4 w-4" />,
-                                onClick: () => setShowMemberList(true),
-                              },
-                            ]
-                          : []),
-                      ],
-                      onClick: ({ key }) => {
-                        if (key === "search") setShowMsgSearch((s) => !s);
-                        if (key === "summarize") runSummary();
-                        if (key === "scheduled") openScheduledList();
-                        if (key === "media-gallery") setShowMediaGallery(true);
-                      },
-                    }}
-                  >
-                    <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
-                      <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#fff]" />
-                    </button>
-                  </Dropdown>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
+                        <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#fff]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuItem onClick={() => setShowMsgSearch((s) => !s)}>
+                        Search
+                      </DropdownMenuItem>
+
+                      {!isAIChat(active) && (
+                        <DropdownMenuItem disabled={isSummarized} onClick={runSummary}>
+                          <span className={`flex w-full items-center ${isSummarized ? "animate-pulse" : ""}`}>
+                            {isSummarized ? "Summarizing..." : "Summarize"}
+                            {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {!isAIChat(active) && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>Disappearing messages</DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                              {DISAPPEARING_OPTIONS.map((opt) => (
+                                <DropdownMenuItem key={opt.label} onClick={() => setDisappearing(opt.seconds)}>
+                                  <span className="flex w-full items-center justify-between">
+                                    {opt.label}
+                                    {(active.disappearing_seconds ?? null) === opt.seconds && (
+                                      <Check className="h-3.5 w-3.5 text-[#E07A5F]" />
+                                    )}
+                                  </span>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                      )}
+
+                      {!isAIChat(active) && (
+                        <DropdownMenuItem onClick={openScheduledList}>
+                          Scheduled messages
+                        </DropdownMenuItem>
+                      )}
+
+                      <DropdownMenuItem onClick={() => setShowMediaGallery(true)}>
+                        Media, links, and docs
+                      </DropdownMenuItem>
+
+                      {!isAIChat(active) && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <span className="flex w-full items-center">
+                              Export chat
+                              {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                            </span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => exportChat("json")}>Export as JSON</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => exportChat("pdf")}>Export as PDF</DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                      )}
+
+                      <DropdownMenuItem onClick={clearChat}>
+                        Clear chat
+                      </DropdownMenuItem>
+
+                      {!isAIChat(active) && (
+                        <DropdownMenuItem onClick={toggleHideChat}>
+                          <span className="flex w-full items-center">
+                            {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
+                            {!me.is_pro && !active.is_hidden && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {active.is_hidden && isUnlocked(active.id) && (
+                        <DropdownMenuItem onClick={relock}>Lock now</DropdownMenuItem>
+                      )}
+
+                      {!isAIChat(active) && !active.is_group && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const p = activeOtherId ? profilesById[activeOtherId] : undefined;
+                              if (p) setReportTarget(p);
+                            }}
+                          >
+                            Report
+                          </DropdownMenuItem>
+                          {iBlockedThem ? (
+                            <DropdownMenuItem onClick={unblockOther}>Unblock</DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={blockOther} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
+                              Block
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
+
+                      {/* Groups don't have one "other user" — surface the member list so
+                          the person can pick exactly who they want to report or block. */}
+                      {!isAIChat(active) && active.is_group && (
+                        <DropdownMenuItem onClick={() => setShowMemberList(true)}>
+                          Report a member
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </header>
 
                 {active.is_group && active.description && (
