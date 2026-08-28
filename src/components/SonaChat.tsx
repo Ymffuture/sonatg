@@ -30,6 +30,7 @@ import { IoFootstepsOutline } from "react-icons/io5" ;
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import { PurpleBadge } from "./PurpleBadge";
+import { PiPath } from "react-icons/pi";
 
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
@@ -2229,7 +2230,7 @@ useEffect(() => {
             onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <HelpCircle className="h-4 w-4 shrink-0" />
+            <PiPath className="h-4 w-4 shrink-0" />
             Replay tour
           </button>
 
