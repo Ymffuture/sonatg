@@ -31,6 +31,7 @@ import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import { PurpleBadge } from "./PurpleBadge";
 import { PiPath } from "react-icons/pi";
+import {MdDiamond} from "react-icons/md";
 
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
@@ -2794,7 +2795,7 @@ useEffect(() => {
                               label: (
                                 <span className={`flex w-full items-center ${isSummarized ? "animate-pulse" : ""} `}>
                                   {isSummarized ? "Summarizing..." : "Summarize "}
-                                  {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                                  {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
                                 </span>
                               ),
                               icon: <Sparkles className={`h-4 w-4 text-[#1E1E1E] ${isSummarized ? "animate-spin text-green-600" : ""} `} />,
@@ -2839,7 +2840,7 @@ useEffect(() => {
                               label: (
                                 <span className="flex w-full items-center">
                                   Export chat
-                                  {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                                  {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
                                 </span>
                               ),
                               icon: <Download className="h-4 w-4" />,
@@ -2861,7 +2862,7 @@ useEffect(() => {
                               label: (
                                 <span className="flex w-full items-center">
                                   {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
-                                  {!me.is_pro && !active.is_hidden && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                                  {!me.is_pro && !active.is_hidden && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
                                 </span>
                               ),
                               icon: active.is_hidden ? <Unlock className="h-4 w-4" /> : <Shield className="h-4 w-4" />,
