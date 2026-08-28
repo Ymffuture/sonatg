@@ -13,6 +13,7 @@ import { IoCameraOutline } from "react-icons/io5";
 import { CiTimer } from "react-icons/ci";
 import { fetchActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 import { notifyOfflineMessage } from "@/lib/notifications.functions";
+import { buildTranscript, exportChatAsJSON, exportChatAsPDF } from "@/lib/export-chat";
 import { Dropdown, Watermark, Modal, Input, message as antMessage } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import { IoMdTimer } from "react-icons/io";
@@ -1818,6 +1819,20 @@ function SonaChatInner() {
     loadChats();
   };
 
+  const exportChat = (format: "json" | "pdf") => {
+    if (!active || !me) return;
+    if (!requirePro("Export chat")) return;
+    setShowHeaderMenu(false);
+    try {
+      const entries = buildTranscript(messages, profilesById, me.id, decrypted);
+      if (format === "json") exportChatAsJSON(active, entries);
+      else exportChatAsPDF(active, entries);
+      antMessage.success(format === "json" ? "Chat exported as JSON" : "Opening print dialog — choose \"Save as PDF\"");
+    } catch (e) {
+      antMessage.error((e as Error).message || "Couldn't export chat");
+    }
+  };
+
   const clearChat = async () => {
     if (!active || !me) return;
     setShowHeaderMenu(false);
@@ -2303,7 +2318,7 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 ${!me.is_pro ? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
                       ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
@@ -2314,24 +2329,24 @@ useEffect(() => {
               ))}
 
               {customFolders.map((f) => (
-  <button
-    key={f.id}
-    onClick={() => setActiveFolder(f.id)}
-    onDoubleClick={() => openRenameFolderModal(f.id, f.name)}
-    onContextMenu={(e) => {
-      e.preventDefault();
-      openRenameFolderModal(f.id, f.name);
-    }}
-    title="Tap to filter · double-tap or right-click to rename"
-    className={`shrink-0 ${!me.is_pro ? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
-      activeFolder === f.id  // ✅ Changed from f.key to f.id
-        ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
-        : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
-    }`}
-  >
-    {f.name}
-  </button>
-))}
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFolder(f.id)}
+                  onDoubleClick={() => openRenameFolderModal(f.id, f.name)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    openRenameFolderModal(f.id, f.name);
+                  }}
+                  title="Tap to filter · double-tap or right-click to rename"
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    activeFolder === f.id
+                      ? "bg-[#E07A5F] dark:bg-[#1E1E1E] text-white"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
+                  }`}
+                >
+                  {f.name}
+                </button>
+              ))}
 
               <button
                 onClick={openCreateFolderModal}
@@ -2455,7 +2470,7 @@ useEffect(() => {
                 className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
                 style={{ backgroundColor: isSelected ? "#fff" : "#8C8C8C" }}
               >
-                {isSelected && <Check className={`h-3.8 w-3.8 ${ me.is_pro ? "text-[#8B5CF6]" :"text-white" } `} strokeWidth={2} />}
+                {isSelected && <Check className={`h-3.8 w-3.8 ${ me.is_pro ? "text-[#8B5CF6]" :"text-white" } `} strokeWidth={4} />}
               </div>
             )}
           </div>
@@ -2548,7 +2563,7 @@ useEffect(() => {
                         <MessagePreview msg={last} />
                       </span>
                       {last && !last.deleted_at && c.lastMessageReaction && (
-                        <span className="shrink-0 text-xs" title="Reacted">{last.deleted_at ? "" :c.lastMessageReaction}</span>
+                        <span className="shrink-0 text-xs" title="Reacted">{c.lastMessageReaction}</span>
                       )}
                     </>
                   );
@@ -2693,7 +2708,7 @@ useEffect(() => {
     <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
   ) : isAIChat(active) ? (
     <span className="inline-flex items-center gap-1.5">   
-      By Sona AI
+      Ask Anything... 
     </span>
   ) : active.is_group ? (() => {
       const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
@@ -2817,6 +2832,22 @@ useEffect(() => {
                           label: "Media, links, and docs",
                           icon: <ImageIcon className="h-4 w-4" />,
                         },
+                        ...(!isAIChat(active)
+                          ? [{
+                              key: "export",
+                              label: (
+                                <span className="flex w-full items-center">
+                                  Export chat
+                                  {!me.is_pro && <Crown className="ml-auto h-3 w-3 text-[#E07A5F]" />}
+                                </span>
+                              ),
+                              icon: <Download className="h-4 w-4" />,
+                              children: [
+                                { key: "export-json", label: "Export as JSON", onClick: () => exportChat("json") },
+                                { key: "export-pdf", label: "Export as PDF", onClick: () => exportChat("pdf") },
+                              ],
+                            }]
+                          : []),
                         {
                           key: "clear",
                           label: "Clear chat",
