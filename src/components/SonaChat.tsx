@@ -2177,7 +2177,7 @@ useEffect(() => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -6 }}
         transition={{ duration: 0.14, ease: "easeOut" }}
-        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-xl z-50 overflow-hidden origin-top-right"
+        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white !dark:text-[#fff] dark:bg-[#242424] shadow-xl z-50 overflow-hidden origin-top-right"
       >
         <div className="py-1">
           {canInstall && (
@@ -2204,7 +2204,7 @@ useEffect(() => {
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
             <IoFootstepsOutline className="h-4 w-4 shrink-0" />
-            How to use SonaTG
+            Manual for Sona
           </Link>
 
           <Link
