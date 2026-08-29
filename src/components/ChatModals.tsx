@@ -837,7 +837,11 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const [notif, setNotif] = useState<NotificationPermission>(typeof Notification !== "undefined" ? Notification.permission : "default");
   const [emailPrefs, setEmailPrefs] = useState<NotificationPreferences | null>(null);
   const [emailPrefsBusy, setEmailPrefsBusy] = useState(false);
-  const sonaTheme = useSonaTheme(!!me.is_pro);
+  const sonaTheme = useSonaTheme(!!me.is_pro, me.theme_id, async (id) => {
+    onSaved({ ...me, theme_id: id });
+    const { error } = await supabase.from("profiles").update({ theme_id: id }).eq("id", me.id);
+    if (error) notify.error({ message: "Couldn't sync theme", description: "It's applied here, but may not follow you to other devices." });
+  });
 
   useEffect(() => {
     fetchMyNotificationPreferences(me.id).then(setEmailPrefs).catch(() => {});

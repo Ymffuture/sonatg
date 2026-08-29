@@ -460,7 +460,13 @@ function SonaChatInner() {
   const askSummary = useServerFn(summarizeChat);
   const [isSummarized, setIsSummarized] =useState(false) ;
   const [me, setMe] = useState<Profile | null>(null);
-  const sonaTheme = useSonaTheme(!!me?.is_pro);
+  const sonaTheme = useSonaTheme(!!me?.is_pro, me?.theme_id, (id) => {
+    if (!me) return;
+    setMe((prev) => (prev ? { ...prev, theme_id: id } : prev));
+    supabase.from("profiles").update({ theme_id: id }).eq("id", me.id).then(({ error }) => {
+      if (error) toast.error("Couldn't sync theme to your account");
+    });
+  });
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
