@@ -37,7 +37,7 @@ import { fmtLastSeen } from "@/lib/db";
 import { MdVerified } from "react-icons/md";
 import { FaFacebookF, FaXTwitter, FaInstagram, FaThreads } from "react-icons/fa6";
 import { LuMessageSquareText } from "react-icons/lu";
-
+import { VscVerifiedFilled } from "react-icons/vsc";
 const { Text, Title } = Typography;
 
 const MOD_META: Record<string, { label: string; color: string; note: string }> = {
@@ -167,7 +167,11 @@ export function ProfileViewModal({
                     <span className="inline-flex items-center justify-center">
                       {profile.is_ai
                         ? <MdVerified style={{ color: "#1877F2", fontSize: 18 }} />
-                        : <CheckCircleFilled style={{ color: "#8B5CF6", fontSize: 18 }} />}
+                        : <VscVerifiedFilled
+                      className="h-[15px] w-[15px] shadow-lg shrink-0 text-blue-500"
+                      aria-label="Verified Sona AI"
+                      title="Verified purple account"
+                    />} 
                     </span>
                   </Tooltip>
                 )}
