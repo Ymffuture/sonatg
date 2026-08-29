@@ -1350,7 +1350,7 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[#eeffde] text-[#151c1c] " : "bg-white"; // your colors
+const bubbleBase = mine ? "bg-[var(--sona-bubble-mine,#eeffde)] text-[#151c1c] " : "bg-white";
 
 const bubbleRadius = mine
   ? grouped

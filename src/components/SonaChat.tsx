@@ -25,6 +25,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { useSonaTheme } from "@/hooks/useSonaTheme";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -459,6 +460,7 @@ function SonaChatInner() {
   const askSummary = useServerFn(summarizeChat);
   const [isSummarized, setIsSummarized] =useState(false) ;
   const [me, setMe] = useState<Profile | null>(null);
+  const sonaTheme = useSonaTheme(!!me?.is_pro);
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -638,6 +640,7 @@ function SonaChatInner() {
   // Chat selection for bulk delete
   const [selectMode, setSelectMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
+  const [chatLongPressMenu, setChatLongPressMenu] = useState<{ chatId: string; x: number; y: number } | null>(null);
 
   // Which user IDs currently have an active (non-expired) status — drives
   // the status ring shown around chat-list avatars.
@@ -2109,7 +2112,10 @@ useEffect(() => {
 
   
   return (
-    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] hide-scrollbar dark:text-[#E8E8E8]">
+    <div
+      className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] hide-scrollbar dark:text-[#E8E8E8]"
+      style={sonaTheme.style}
+    >
       <Watermark
           content="" 
           font={{ color: "#e1f6fc" , fontSize: 8}}
@@ -2446,14 +2452,27 @@ useEffect(() => {
             }
           }}
           onContextMenu={(e) => {
+            // Long-press (and desktop right-click) opens a small WhatsApp-style
+            // popup with Pin/Unpin instead of immediately dropping into
+            // multi-select — matching what a long-press on a chat does in
+            // WhatsApp, rather than Gmail-style bulk selection.
             e.preventDefault();
-            if (!selectMode) {
-              setSelectMode(true);
-              setSelectedChatIds(new Set([c.id]));
-            }
+            if (selectMode) return;
+            setChatLongPressMenu({ chatId: c.id, x: e.clientX, y: e.clientY });
           }}
-          className={`group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors cursor-pointer hover:bg-[#F4A261]/10 ${isActive ? "" : ""} border-l border-[#1E1E1E]/10`}
-          style={isSelected ? { backgroundColor: "rgba(217, 119, 87, 0.10)" } : undefined}>
+          className={`group relative flex w-full items-center gap-3 px-3 py-3 mx-1 my-0.5 text-left transition-colors cursor-pointer rounded-xl ${
+            isSelected ? "" : "hover:bg-[#F4A261]/10"
+          }`}
+          style={isSelected ? { backgroundColor: "var(--sona-accent-soft, rgba(217, 119, 87, 0.10))" } : undefined}>
+          {isSelected && (
+            <motion.div
+              layoutId={`chat-select-bar-${c.id}`}
+              initial={{ scaleY: 0 }}
+              animate={{ scaleY: 1 }}
+              className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full"
+              style={{ backgroundColor: "var(--sona-accent, #E07A5F)" }}
+            />
+          )}
           <div className="relative shrink-0">
             {(() => {
               const otherId = c.memberIds.find((id) => id !== me.id);
@@ -2483,10 +2502,14 @@ useEffect(() => {
             {selectMode && (
               <div
                 onClick={(e) => { e.stopPropagation(); toggleChatSelection(c.id); }}
-                className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E]"
-                style={{ backgroundColor: isSelected ? "#fff" : "#8C8C8C" }}
+                className="absolute -bottom-0.5 -right-0.5 grid h-[18px] w-[18px] place-items-center rounded-full ring-2 ring-white dark:ring-[#1E1E1E] transition-transform duration-150"
+                style={{
+                  backgroundColor: isSelected ? "var(--sona-accent, #8B5CF6)" : "transparent",
+                  border: isSelected ? "none" : "2px solid #8C8C8C",
+                  transform: isSelected ? "scale(1.05)" : "scale(1)",
+                }}
               >
-                {isSelected && <Check className={`h-3.8 w-3.8 ${ me.is_pro ? "text-[#8B5CF6]" :"text-white" } `} strokeWidth={4} />}
+                {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={4} />}
               </div>
             )}
           </div>
@@ -2541,17 +2564,17 @@ useEffect(() => {
                       aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
                       title={c.isPinned ? "Unpin chat" : "Pin chat"}
                     >
-                      <Pin className={`h-3 w-3 ${c.isPinned ? "fill-[#E07A5F] text-[#E07A5F]" : "text-[#8C8C8C]"}`} />
+                      <Pin className="h-3 w-3" style={c.isPinned ? { fill: "var(--sona-accent, #E07A5F)", color: "var(--sona-accent, #E07A5F)" } : undefined} />
                     </button>
                   </div>
                 )}
-                <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color:me.is_pro ? "#8B5CF6" :"#D97757" } : undefined}>
+                <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "var(--sona-accent, #D97757)" } : undefined}>
                   {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
                 {!ai && c.unread > 0 && !selectMode && (
                   <span
                     className={`grid h-5 min-w-[20px] place-items-center rounded-full text-white text-[10px] font-bold px-1`} 
-                    style={{ backgroundColor:me.is_pro ? "#8B5CF6" :"#D97757" }}
+                    style={{ backgroundColor: "var(--sona-accent, #D97757)" }}
                   >
                     {c.unread > 99 ? "99+" : c.unread}
                   </span>
@@ -2597,6 +2620,64 @@ useEffect(() => {
       </div>)} 
                </AnimatePresence>
 </div>
+
+            {/* Long-press popup — WhatsApp-style Pin/Unpin */}
+            <AnimatePresence>
+              {chatLongPressMenu && (() => {
+                const chat = chats.find((c) => c.id === chatLongPressMenu.chatId);
+                if (!chat) return null;
+                const menuWidth = 200;
+                const menuHeight = 96;
+                const x = Math.min(Math.max(chatLongPressMenu.x - menuWidth / 2, 12), window.innerWidth - menuWidth - 12);
+                const y = Math.min(chatLongPressMenu.y + 8, window.innerHeight - menuHeight - 12);
+                return (
+                  <>
+                    <motion.div
+                      key="long-press-backdrop"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-40"
+                      onClick={() => setChatLongPressMenu(null)}
+                    />
+                    <motion.div
+                      key="long-press-menu"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.12 }}
+                      style={{ left: x, top: y, width: menuWidth }}
+                      className="fixed z-50 overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-1.5 shadow-2xl"
+                    >
+                      <button
+                        onClick={(e) => {
+                          togglePin(e, chat);
+                          setChatLongPressMenu(null);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+                      >
+                        <Pin
+                          className="h-4 w-4 shrink-0"
+                          style={chat.isPinned ? { fill: "var(--sona-accent, #E07A5F)", color: "var(--sona-accent, #E07A5F)" } : undefined}
+                        />
+                        {chat.isPinned ? "Unpin chat" : "Pin chat"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectMode(true);
+                          setSelectedChatIds(new Set([chat.id]));
+                          setChatLongPressMenu(null);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+                      >
+                        <CheckSquare className="h-4 w-4 shrink-0" />
+                        Select
+                      </button>
+                    </motion.div>
+                  </>
+                );
+              })()}
+            </AnimatePresence>
             {/* Floating New-Chat FAB */}
             <button
   data-tour="new-chat-fab"
