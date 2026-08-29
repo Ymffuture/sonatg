@@ -292,6 +292,7 @@ export type Database = {
           is_ai: boolean
           is_pro: boolean
           last_seen: string | null
+          theme_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -303,6 +304,7 @@ export type Database = {
           is_ai?: boolean
           is_pro?: boolean
           last_seen?: string | null
+          theme_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -314,6 +316,7 @@ export type Database = {
           is_ai?: boolean
           is_pro?: boolean
           last_seen?: string | null
+          theme_id?: string | null
         }
         Relationships: []
       }
