@@ -3,23 +3,43 @@ import { THEME_PRESETS, getThemePreset, defaultThemeIdForPlan, type ThemeId } fr
 
 const STORAGE_KEY = "sona-chat-theme";
 
+function isThemeId(v: string | null | undefined): v is ThemeId {
+  return !!v && THEME_PRESETS.some((t) => t.id === v);
+}
+
 /**
  * Resolves the active chat accent theme for the current plan and exposes
  * it both as a preset object and as a ready-to-spread CSS custom
  * property style object, so any component can do:
  *
- *   const { style } = useSonaTheme(me.is_pro);
+ *   const { style } = useSonaTheme(me.is_pro, me.theme_id, saveThemeId);
  *   <div style={style}> ... var(--sona-accent) ... </div>
  *
+ * `profileThemeId` (from profiles.theme_id) is the source of truth once
+ * it loads — localStorage is only used for the instant first paint
+ * before that arrives, and as an offline fallback. `onPersist` is called
+ * whenever the person picks a new theme, so callers can write it back to
+ * Supabase and have it follow them across devices.
+ *
  * Free accounts are silently clamped to a free preset even if a pro
- * theme id is sitting in localStorage (e.g. after a downgrade).
+ * theme id is stored (e.g. after a downgrade).
  */
-export function useSonaTheme(isPro: boolean) {
+export function useSonaTheme(
+  isPro: boolean,
+  profileThemeId?: string | null,
+  onPersist?: (id: ThemeId) => void
+) {
   const [themeId, setThemeIdState] = useState<ThemeId>(() => {
     if (typeof window === "undefined") return defaultThemeIdForPlan(isPro);
-    const saved = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
-    return saved ?? defaultThemeIdForPlan(isPro);
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return isThemeId(saved) ? saved : defaultThemeIdForPlan(isPro);
   });
+
+  // Once the profile's saved theme arrives from Supabase, it wins over
+  // whatever was cached locally (e.g. this is a new device/browser).
+  useEffect(() => {
+    if (isThemeId(profileThemeId)) setThemeIdState(profileThemeId);
+  }, [profileThemeId]);
 
   const preset = useMemo(() => {
     const p = getThemePreset(themeId);
@@ -36,6 +56,7 @@ export function useSonaTheme(isPro: boolean) {
     const target = getThemePreset(id);
     if (target.pro && !isPro) return; // ignore attempts to select a locked theme
     setThemeIdState(id);
+    onPersist?.(id);
   };
 
   const style = {
