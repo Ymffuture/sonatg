@@ -23,7 +23,7 @@ import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/c
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
 import SoundSettings from "./SoundSettings";
-
+import { VscVerifiedFilled } from "react-icons/vsc";
 import {
   MdDiamond,
   MdLock,
@@ -746,12 +746,16 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                   <div className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</div>
                   {u.is_ai && (
                     <Tooltip title="AI Assistant">
-                      <Sparkles className="h-3 w-3 text-[#E07A5F]" />
+                      <VscVerifiedFilled
+          className="h-4 w-4 text-blue-500 shrink-0 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]"
+          aria-label="Verified Sona AI"
+          title="Verified"
+        />
                     </Tooltip>
                   )}
                   {u.is_pro && (
                     <Tooltip title="Pro Member">
-                      <Crown className="h-3 w-3 text-[#E07A5F]" />
+                      <MdDiamond className="h-5 w-5 text-[#8B5CF6] drop-shadow" />
                     </Tooltip>
                   )}
                 </div>
