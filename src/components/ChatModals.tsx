@@ -4,7 +4,7 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users, UserX,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Radio, Copy, KeyRound, Mail,
+  Radio, Copy, KeyRound, Mail, Check,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,13 +17,14 @@ import {
   CHAT_CATEGORIES, type Profile, type ChatCategory,
 } from "@/lib/db";
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail, isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
+import { useSonaTheme } from "@/hooks/useSonaTheme";
 import { Avatar } from "./Avatar";
 import { Spin, Skeleton, Tooltip, notification } from "antd";
 import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
 import SoundSettings from "./SoundSettings";
-import { VscVerifiedFilled } from "react-icons/vsc";
+
 import {
   MdDiamond,
   MdLock,
@@ -746,16 +747,12 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                   <div className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</div>
                   {u.is_ai && (
                     <Tooltip title="AI Assistant">
-                      <VscVerifiedFilled
-          className="h-4 w-4 text-blue-500 shrink-0 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]"
-          aria-label="Verified Sona AI"
-          title="Verified"
-        />
+                      <Sparkles className="h-3 w-3 text-[#E07A5F]" />
                     </Tooltip>
                   )}
                   {u.is_pro && (
                     <Tooltip title="Pro Member">
-                      <MdDiamond className="h-5 w-5 text-[#8B5CF6] drop-shadow" />
+                      <Crown className="h-3 w-3 text-[#E07A5F]" />
                     </Tooltip>
                   )}
                 </div>
@@ -825,7 +822,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
 /* ─── Settings ─── */
 export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
   useBackToClose(onClose);
-  const [tab, setTab] = useState<"profile" | "advanced" | "subscription">("profile");
+  const [tab, setTab] = useState<"profile" | "advanced" | "theme" | "subscription">("profile");
   const [name, setName] = useState(me.display_name ?? "");
   const [bio, setBio] = useState(me.bio ?? "");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -840,6 +837,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const [notif, setNotif] = useState<NotificationPermission>(typeof Notification !== "undefined" ? Notification.permission : "default");
   const [emailPrefs, setEmailPrefs] = useState<NotificationPreferences | null>(null);
   const [emailPrefsBusy, setEmailPrefsBusy] = useState(false);
+  const sonaTheme = useSonaTheme(!!me.is_pro);
 
   useEffect(() => {
     fetchMyNotificationPreferences(me.id).then(setEmailPrefs).catch(() => {});
@@ -981,7 +979,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
             )}
           </div>
           <div className="mb-2 flex gap-1 rounded-xl bg-white/50 dark:bg-white/5 p-1 text-xs border border-white/20 dark:border-white/10 backdrop-blur-sm">
-            {(["profile", "advanced", "subscription"] as const).map((t) => (
+            {(["profile", "advanced", "theme", "subscription"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 rounded-lg px-2 py-1.5 capitalize transition ${tab === t ? "bg-white/80 dark:bg-white/10 font-semibold shadow text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10" : "text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-[#E8E8E8]"}`}>
                 {t}
@@ -1161,6 +1159,65 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
           </div>
         )}
 
+        {tab === "theme" && (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
+              <div className="font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Chat theme</div>
+              <p className="mt-1 text-xs text-[#8C8C8C]">
+                Pick an accent color for pins, selection highlights, and your message bubbles.
+                {!me.is_pro && " Unlock the rest with Sona Pro."}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {sonaTheme.presets.map((preset) => {
+                  const locked = preset.pro && !me.is_pro;
+                  const active = sonaTheme.themeId === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => sonaTheme.setThemeId(preset.id)}
+                      className={`group relative flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition ${
+                        active
+                          ? "border-transparent ring-2"
+                          : "border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20"
+                      } ${locked ? "cursor-not-allowed opacity-60" : ""}`}
+                      style={active ? { ["--tw-ring-color" as string]: preset.accent } : undefined}
+                    >
+                      <div
+                        className="flex h-10 w-full items-center justify-between rounded-lg px-2"
+                        style={{ background: preset.bg, border: "1px solid rgba(0,0,0,0.06)" }}
+                      >
+                        <span className="h-5 w-5 rounded-full shadow-sm" style={{ backgroundColor: preset.accent }} />
+                        {active && (
+                          <span className="grid h-5 w-5 place-items-center rounded-full" style={{ backgroundColor: preset.accent }}>
+                            <Check className="h-3 w-3 text-white" strokeWidth={4} />
+                          </span>
+                        )}
+                        {locked && (
+                          <span className="grid h-5 w-5 place-items-center rounded-full bg-black/30">
+                            <Lock className="h-3 w-3 text-white" />
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-[#2D3436] dark:text-[#E8E8E8]">{preset.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {!me.is_pro && (
+                <button
+                  onClick={() => setTab("subscription")}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#8B5CF6]/10 py-2 text-xs font-semibold text-[#8B5CF6] hover:bg-[#8B5CF6]/15 transition"
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  Unlock all themes with Pro
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
 
 {tab === "subscription" && (
   <div className="space-y-4 text-sm">
@@ -1209,7 +1266,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
           style={{ transform: "translateZ(25px)" }}
         >
           <MdDiamond className="h-5 w-5 text-[#8B5CF6] drop-shadow" />
-          <span className="tracking-wide dark:text-[#8B5CF6] ">Sona Purple</span>
+          <span className="tracking-wide">Sona Purple</span>
         </div>
 
         {/* Feature list */}
