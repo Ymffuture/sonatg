@@ -32,6 +32,7 @@ export type Profile = {
   x_url?: string | null;
   instagram_url?: string | null;
   threads_url?: string | null;
+  theme_id?: string | null;
 };
 
 export type MessageRow = {
