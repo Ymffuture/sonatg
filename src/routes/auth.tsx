@@ -6,7 +6,7 @@ import { Alert, notification } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
-  Sparkles, Shield, Zap, CheckCircle2, ChevronDown,
+  Sparkles, Shield, Zap, CheckCircle2, ChevronDown, Loader2,
 } from "lucide-react";
 import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
 
@@ -109,12 +109,28 @@ function AuthPage() {
   const [lastUsed, setLastUsed] = useState<AuthMethod | null>(null);
   const [showMoreMethods, setShowMoreMethods] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "facebook" | "github" | "spotify" | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(LAST_USED_KEY);
     if (saved === "email" || saved === "google" || saved === "facebook" || saved === "github" || saved === "spotify") {
       setLastUsed(saved);
       if (saved === "github" || saved === "spotify") setShowMoreMethods(true);
+    }
+  }, []);
+
+  // Picks up the friendly error message the /auth/callback route hands
+  // off when an OAuth provider rejects the sign-in (e.g. Spotify's
+  // "unverified email" error), and clears it from the URL so it doesn't
+  // reappear on refresh.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get("authError");
+    if (authError) {
+      setErrorMsg(authError);
+      params.delete("authError");
+      const rest = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`);
     }
   }, []);
 
@@ -196,6 +212,7 @@ function AuthPage() {
 
   const oauth = async (provider: "google" | "facebook" | "github" | "spotify") => {
     setLoading(true);
+    setOauthLoading(provider);
     setErrorMsg(null);
     try {
       localStorage.setItem(LAST_USED_KEY, provider);
@@ -206,6 +223,7 @@ function AuthPage() {
       if (error) throw error;
     } catch (err) {
       setErrorMsg((err as Error).message);
+      setOauthLoading(null);
     } finally {
       setLoading(false);
     }
@@ -397,13 +415,13 @@ function AuthPage() {
               {/* Google */}
               <button
                 onClick={() => oauth("google")}
-                disabled={loading}
+                disabled={loading || !!oauthLoading}
                 className="group relative w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#4285F4]/30 hover:shadow-md hover:shadow-[#4285F4]/10 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
-                  <GoogleIcon className="h-5 w-5" />
+                  {oauthLoading === "google" ? <Loader2 className="h-5 w-5 animate-spin text-[#4285F4]" /> : <GoogleIcon className="h-5 w-5" />}
                 </div>
-                <span className="flex-1 text-left">Continue with Google</span>
+                <span className="flex-1 text-left">{oauthLoading === "google" ? "Redirecting to Google…" : "Continue with Google"}</span>
                 {lastUsed === "google" && <LastUsed />}
                 <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#4285F4] transition-all duration-300 group-hover:w-full" />
               </button>
@@ -411,13 +429,13 @@ function AuthPage() {
               {/* Facebook */}
               <button
                 onClick={() => oauth("facebook")}
-                disabled={loading}
+                disabled={loading || !!oauthLoading}
                 className="group relative w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#1877F2]/30 hover:shadow-md hover:shadow-[#1877F2]/10 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
-                  <FacebookIcon className="h-5 w-5 text-[#1877F2]" />
+                  {oauthLoading === "facebook" ? <Loader2 className="h-5 w-5 animate-spin text-[#1877F2]" /> : <FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
                 </div>
-                <span className="flex-1 text-left">Continue with Facebook</span>
+                <span className="flex-1 text-left">{oauthLoading === "facebook" ? "Redirecting to Facebook…" : "Continue with Facebook"}</span>
                 {lastUsed === "facebook" && <LastUsed />}
                 <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#1877F2] transition-all duration-300 group-hover:w-full" />
               </button>
@@ -444,26 +462,26 @@ function AuthPage() {
                 >
                   <button
                     onClick={() => oauth("github")}
-                    disabled={loading}
+                    disabled={loading || !!oauthLoading}
                     className="group relative mt-1 w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-black/30 hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
-                      <GitHubIcon className="h-5 w-5 text-[#181717] dark:text-white" />
+                      {oauthLoading === "github" ? <Loader2 className="h-5 w-5 animate-spin text-[#181717] dark:text-white" /> : <GitHubIcon className="h-5 w-5 text-[#181717] dark:text-white" />}
                     </div>
-                    <span className="flex-1 text-left">Continue with GitHub</span>
+                    <span className="flex-1 text-left">{oauthLoading === "github" ? "Redirecting to GitHub…" : "Continue with GitHub"}</span>
                     {lastUsed === "github" && <LastUsed />}
                     <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#181717] dark:bg-white transition-all duration-300 group-hover:w-full" />
                   </button>
 
                   <button
                     onClick={() => oauth("spotify")}
-                    disabled={loading}
+                    disabled={loading || !!oauthLoading}
                     className="group relative mt-2 w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#1ED760]/40 hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
-                      <SpotifyIcon className="h-5 w-5" />
+                      {oauthLoading === "spotify" ? <Loader2 className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
                     </div>
-                    <span className="flex-1 text-left">Continue with Spotify</span>
+                    <span className="flex-1 text-left">{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
                     {lastUsed === "spotify" && <LastUsed />}
                     <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#1ED760] transition-all duration-300 group-hover:w-full" />
                   </button>
