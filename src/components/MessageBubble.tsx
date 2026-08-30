@@ -1489,7 +1489,7 @@ const tailClass = !grouped && mine
         <div className="relative max-w-[82%] sm:max-w-[75%]">
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
-              mine ? "-left-9" : "-right-9"
+              mine ? "-left-7" : "-right-7"
             } opacity-0 group-hover:opacity-100 ${actionsOpen ? "opacity-100" : ""}`}
           >
             <button
@@ -1531,8 +1531,8 @@ const tailClass = !grouped && mine
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
-                ? "dark:bg-[#0B132B] dark:text-[#fff]"
-                : "dark:bg-[#2A2A2A] text-[#151c1c] dark:text-[#E8E8E8] "
+                ? "dark:bg-[#0B1215] dark:text-[#FFFCF4]"
+                : "dark:bg-[#0D1717] text-[#151c1c] dark:text-[#FFFCF4] "
             } ${
               isHighlighted
                 ? "!border-2 !border-[#E8E8E8] animate-pulse ring-2 ring-[#1E1E1E]"
