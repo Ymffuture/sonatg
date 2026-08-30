@@ -542,8 +542,8 @@ export function renderMarkdown(text: string, mine: boolean) {
         return <hr key={key} className="my-3 border-t opacity-30" />;
       case "codeblock":
         return (
-          <pre key={key} className="my-2 overflow-x-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 text-xs font-mono border border-[#E07A5F]/10">
-            {block.lang && <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#E07A5F] opacity-70">{block.lang}</div>}
+          <pre key={key} className="my-2 overflow-x-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 text-xs font-mono border border-[var(--sona-accent,#E07A5F)]/10">
+            {block.lang && <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--sona-accent,#E07A5F)] opacity-70">{block.lang}</div>}
             <code>{block.content}</code>
           </pre>
         );
@@ -634,51 +634,6 @@ function flattenInlineToText(tokens: InlineToken[]): string {
     .join("");
 }
 
-/* Email pill: tap opens the mail client as usual; long-press (or
-   right-click on desktop) reveals the actual address inline and copies
-   it to the clipboard, without also triggering the mailto navigation. */
-function EmailAutolink({ href }: { href: string }) {
-  const email = href.replace(/^mailto:/i, "");
-  const [revealed, setRevealed] = useState(false);
-  const suppressClickRef = useRef(false);
-
-  const handleReveal = useCallback(() => {
-    suppressClickRef.current = true;
-    setRevealed(true);
-    navigator.clipboard?.writeText(email).catch(() => {});
-    toast.info(email, { description: "Email address copied" });
-  }, [email]);
-
-  const longPress = useLongPress(handleReveal, 800);
-
-  return (
-    <a
-      href={href}
-      title={email}
-      {...longPress}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (suppressClickRef.current) {
-          e.preventDefault();
-          suppressClickRef.current = false;
-        }
-        longPress.onMouseUp(e);
-      }}
-      className="inline-flex max-w-full select-none items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-3 py-1.5 text-sm font-medium text-[#8B5CF6] transition hover:bg-[#8B5CF6] hover:text-white active:scale-95"
-    >
-      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none">
-        <path
-          d="M3 6.5C3 5.67 3.67 5 4.5 5h15c.83 0 1.5.67 1.5 1.5v11c0 .83-.67 1.5-1.5 1.5h-15C3.67 19 3 18.33 3 17.5v-11Z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        />
-        <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
-      </svg>
-      <span className="truncate">{revealed ? email : "Email"}</span>
-    </a>
-  );
-}
-
 function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.ReactNode[] {
   return tokens.map((token, i) => {
     const key = `${keyPrefix}-${i}`;
@@ -699,7 +654,24 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
         return <img key={key} src={token.src} alt={token.alt} title={token.title} className="inline-block max-h-48 rounded" />;
       case "autolink":
   if (token.kind === "email") {
-    return <EmailAutolink key={key} href={token.href} />;
+    return (
+      <a
+        key={key}
+        href={token.href}
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex items-center gap-1.5 rounded-full bg-[#FFFCF4 ] px-3 py-1.5 text-sm font-medium text-[#8B5CF6] transition hover:bg-[#8B5CF6] hover:text-white"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+          <path
+            d="M3 6.5C3 5.67 3.67 5 4.5 5h15c.83 0 1.5.67 1.5 1.5v11c0 .83-.67 1.5-1.5 1.5h-15C3.67 19 3 18.33 3 17.5v-11Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+        EMAIL SENT
+      </a>
+    );
   }
   return (
     <a
@@ -728,10 +700,10 @@ function TableRenderer({
   mine: boolean;
 }) {
   return (
-    <div className="my-2 overflow-x-auto rounded-lg border border-[#E07A5F]/20 dark:border-[#E07A5F]/15">
+    <div className="my-2 overflow-x-auto rounded-lg border border-[var(--sona-accent,#E07A5F)]/20 dark:border-[var(--sona-accent,#E07A5F)]/15">
       <table className="w-[130%] border-collapse text-left text-[13px]">
         <thead>
-          <tr className={mine ? "bg-black/15" : "bg-[#E07A5F]/8 dark:bg-[#E07A5F]/15"}>
+          <tr className={mine ? "bg-black/15" : "bg-[var(--sona-accent,#E07A5F)]/8 dark:bg-[var(--sona-accent,#E07A5F)]/15"}>
             {header.map((h, i) => (
               <th key={i} className="border-b px-3 py-2 font-semibold">
                 {h}
@@ -756,7 +728,7 @@ function TableRenderer({
 }
 
 /* ─── Long Press Hook ─── */
-function useLongPress(callback: () => void, ms = 2000) {
+function useLongPress(callback: () => void, ms = 500) {
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startY = useRef(0);
@@ -855,7 +827,7 @@ function MessageContextMenu({
         {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
         <MenuItem icon={<FaRegThumbsUp className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
         {mine && isText && <MenuItem icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => { onEdit(); onClose(); }} />}
-        <div className="my-1 border-t border-[#E07A5F]/10" />
+        <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
         {mine && <MenuItem icon={<Trash2 className="h-4 w-4 text-red-500" />} label="Delete" danger onClick={() => { onDelete(); onClose(); }} />}
       </div>
     </div>
@@ -866,7 +838,7 @@ function MenuItem({ icon, label, danger, onClick }: { icon: React.ReactNode; lab
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-[#E07A5F]/5 ${
+      className={`flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-[var(--sona-accent,#E07A5F)]/5 ${
         danger ? "text-red-500" : "text-[#2D3436] dark:text-[#E8E8E8]"
       }`}
     >
@@ -1042,7 +1014,7 @@ export function MediaViewer({
           {/* File icon */}
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10">
             {current.kind === "image" ? (
-              <ImageIcon className="h-4 w-4 text-[#E07A5F]" />
+              <ImageIcon className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
             ) : (
               <FileText className="h-4 w-4 text-[#4FA6E0]" />
             )}
@@ -1184,7 +1156,7 @@ export function MediaViewer({
               <div className="flex justify-between"><span className="text-white/40">Type</span><span className="capitalize">{current.kind}</span></div>
               {current.size && <div className="flex justify-between"><span className="text-white/40">Size</span><span>{formatBytes(current.size)}</span></div>}
               {current.date && <div className="flex justify-between"><span className="text-white/40">Date</span><span suppressHydrationWarning>{fmtTime(current.date)}</span></div>}
-              <div className="flex justify-between"><span className="text-white/40">URL</span><button onClick={copyLink} className="text-[#E07A5F] hover:underline">Copy</button></div>
+              <div className="flex justify-between"><span className="text-white/40">URL</span><button onClick={copyLink} className="text-[var(--sona-accent,#E07A5F)] hover:underline">Copy</button></div>
             </div>
           </div>
         )}
@@ -1202,7 +1174,7 @@ export function MediaViewer({
               onClick={() => { setIndex(i); resetZoom(); setLoading(true); }}
               className={`relative shrink-0 overflow-hidden rounded-xl transition-all ${
                 i === index
-                  ? "ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-black/50 scale-105"
+                  ? "ring-2 ring-[var(--sona-accent,#E07A5F)] ring-offset-2 ring-offset-black/50 scale-105"
                   : "opacity-50 hover:opacity-80"
               }`}
             >
@@ -1276,7 +1248,7 @@ return (
       ${
         mine
           ? "border-white/15 bg-slate-950 dark:bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:bg-white/[0.12]"
-          : "border-[#E07A5F]/10 bg-white dark:bg-[#242424] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-[#E07A5F]/20 dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+          : "border-[var(--sona-accent,#E07A5F)]/10 bg-white dark:bg-[#242424] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-[var(--sona-accent,#E07A5F)]/20 dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
       }
     `}
   >
@@ -1319,7 +1291,7 @@ return (
           className={`
             text-[13px] font-semibold leading-snug line-clamp-2
             transition-colors duration-200
-            ${mine ? "text-[#8C8C8C] dark:text-white " : "text-[#1a1a1a] dark:text-[#F0EBE3] group-hover:text-[#E07A5F]"}
+            ${mine ? "text-[#8C8C8C] dark:text-white " : "text-[#1a1a1a] dark:text-[#F0EBE3] group-hover:text-[var(--sona-accent,#E07A5F)]"}
           `}
         >
           {preview.title}
@@ -1388,7 +1360,7 @@ export function Bubble({
       const rect = bubbleRef.current.getBoundingClientRect();
       setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
     }
-  }, 800);
+  }, 600);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(bodyText).then(() => {
@@ -1408,7 +1380,7 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[#6B352A] text-[#FFFCF4] " : "bg-[#FFFCF4] ";
+const bubbleBase = mine ? "bg-[var(--sona-bubble-mine,#6B352A)] text-[#FFFCF4] " : "bg-[#FFFCF4] ";
 
 const bubbleRadius = mine
   ? grouped
@@ -1449,7 +1421,7 @@ const tailClass = !grouped && mine
           <>
             <div className="fixed inset-0 z-40" onClick={() => setContextMenu({ open: false, x: 0, y: 0 })} />
             <div
-              className="fixed z-50 -translate-x-1/2 -translate-y-full rounded-xl border border-[#E07A5F]/15 bg-white dark:bg-[#242424] shadow-xl overflow-hidden"
+              className="fixed z-50 -translate-x-1/2 -translate-y-full rounded-xl border border-[var(--sona-accent,#E07A5F)]/15 bg-white dark:bg-[#242424] shadow-xl overflow-hidden"
               style={{ left: contextMenu.x, top: contextMenu.y - 8 }}
             >
               <button
@@ -1480,7 +1452,7 @@ const tailClass = !grouped && mine
           className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium ${
             missed
               ? "border-red-500/25 bg-red-500/10 text-red-500"
-              : "border-[#E07A5F]/20 bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8]"
+              : "border-[var(--sona-accent,#E07A5F)]/20 bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8]"
           }`}
         >
           <Icon className="h-3.5 w-3.5" />
@@ -1522,7 +1494,7 @@ const tailClass = !grouped && mine
           >
             <button
               onClick={(e) => { e.stopPropagation(); onReply(); }}
-              className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition"
+              className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
               aria-label="Reply"
             >
               <Reply className="h-3.5 w-3.5" />
@@ -1530,7 +1502,7 @@ const tailClass = !grouped && mine
             {!mine && (
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenPicker(); }}
-                className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition"
+                className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
                 aria-label="React"
               >
                 <SmilePlus className="h-3.5 w-3.5" />
@@ -1544,7 +1516,7 @@ const tailClass = !grouped && mine
                   setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
                 }
               }}
-              className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition"
+              className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
               aria-label="More"
             >
               <MoreVertical className="h-3.5 w-3.5" />
@@ -1586,7 +1558,7 @@ const tailClass = !grouped && mine
             )}
 
             {msg.is_forwarded && (
-              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-[#FFB7A5] dark:text-white" : "text-[#8C8C8C]"}`}>
+              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600 dark:text-white" : "text-[#8C8C8C]"}`}>
                 <Forward className="h-3 w-3" /> Forwarded
               </div>
             )}
@@ -1598,11 +1570,11 @@ const tailClass = !grouped && mine
                 onClick={(e) => { if (onJumpToParent) { e.stopPropagation(); onJumpToParent(); } }}
                 onKeyDown={(e) => { if (onJumpToParent && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onJumpToParent(); } }}
                 title={onJumpToParent ? "Jump to original message" : undefined}
-                className={`mb-1.5 rounded-lg border-l-[1px] border-[#E07A5F] px-2 py-1.5 text-[11px] ${
+                className={`mb-1.5 rounded-lg border-l-[1px] border-[var(--sona-accent,#E07A5F)] px-2 py-1.5 text-[11px] ${
                   mine ? "bg-black/10" : "bg-[#2D3436]/10 dark:bg-white/5"
                 } ${onJumpToParent ? "cursor-pointer hover:brightness-95 active:brightness-90 transition" : ""}`}
               >
-                <div className="font-semibold italic text-[#E07A5F] text-[11px]">{parentName}</div>
+                <div className="font-semibold italic text-[var(--sona-accent,#E07A5F)] text-[11px]">{parentName}</div>
                 {/* Fade-out on the right edge instead of a hard "…" cutoff —
                     reads more naturally for a preview snippet, and doesn't
                     clip a clickable link mid-URL. */}
@@ -1684,22 +1656,22 @@ const tailClass = !grouped && mine
                 }}
                 className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
                   mine
-                    ? "border-white/20 dark:bg-white/5 text-[#FFFCF4] dark:text-[#2D3436] hover:bg-white/15"
-                    : "border-[#E07A5F]/15 bg-[#F5F0E8] dark:bg-[#3A3A3A] hover:bg-[#EFE6D8] dark:hover:bg-[#454545]"
+                    ? "border-white/20 dark:bg-white/5 text-[#8C8C8C] dark:text-[#2D3436] hover:bg-white/15"
+                    : "border-[var(--sona-accent,#E07A5F)]/15 bg-[#F5F0E8] dark:bg-[#3A3A3A] hover:bg-[#EFE6D8] dark:hover:bg-[#454545]"
                 }`}
               >
                 <span
                   className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${
-                    mine ? "bg-white/20 dark:text-white !text-[#FFFCF4] " : "bg-[#E07A5F]/10 text-[#E07A5F]"
+                    mine ? "bg-white/20 dark:text-white !text-gray-600" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)]"
                   }`}
                 >
                   <FileIcon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-sm font-medium ${mine ? "dark:text-white text-[#FFFCF4]" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+                  <span className={`block truncate text-sm font-medium ${mine ? "dark:text-white text-gray-600" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
                     {msg.file_name || "File"}
                   </span>
-                  <span className={`block text-xs ${mine ? "text-[#FFB7A5]" : "text-[#8C8C8C]"}`}>
+                  <span className={`block text-xs ${mine ? "text-[#1E90FF]" : "text-[#8C8C8C]"}`}>
                     {msg.file_size ? formatBytes(msg.file_size) : ""}
                   </span>
                 </span>
@@ -1904,8 +1876,8 @@ export function VoicePlayer({
   };
 
   const secs = Math.round(durationMs / 1000);
-  const filledColor = mine ? "bg-white" : "bg-[#E07A5F]";
-  const mutedColor = mine ? "bg-white/30" : "bg-[#E07A5F]/25";
+  const filledColor = mine ? "bg-white" : "bg-[var(--sona-accent,#E07A5F)]";
+  const mutedColor = mine ? "bg-white/30" : "bg-[var(--sona-accent,#E07A5F)]/25";
 
   return (
     <div className="min-w-[260px] py-0.5">
@@ -1913,7 +1885,7 @@ export function VoicePlayer({
         <button
           onClick={toggle}
           className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition active:scale-95 ${
-            mine ? "dark:text-white hover:bg-white/25 !text-[#8C8C8C]" : "bg-[#E07A5F]/10 text-[#E07A5F] hover:bg-[#E07A5F]/15"
+            mine ? "dark:text-white hover:bg-white/25 !text-[#8C8C8C]" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)] hover:bg-[var(--sona-accent,#E07A5F)]/15"
           }`}
         >
           {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
@@ -2141,21 +2113,21 @@ export function Composer({
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowEmoji(false)} />
           <div
-            className="relative z-40 mx-auto mb-2 max-w-3xl overflow-hidden rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] shadow-2xl"
+            className="relative z-40 mx-auto mb-2 max-w-3xl overflow-hidden rounded-2xl border border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] shadow-2xl"
             style={{
               // Re-theme emoji-picker-react's own CSS variables to match
               // the app's warm accent color instead of its default blue.
-              ["--epr-highlight-color" as string]: "#E07A5F",
-              ["--epr-category-icon-active-color" as string]: "#E07A5F",
+              ["--epr-highlight-color" as string]: "var(--sona-accent,#E07A5F)",
+              ["--epr-category-icon-active-color" as string]: "var(--sona-accent,#E07A5F)",
               ["--epr-picker-border-color" as string]: "transparent",
             } as React.CSSProperties}
           >
-            <div className="flex items-center justify-between border-b border-[#E07A5F]/10 px-3 py-1.5">
+            <div className="flex items-center justify-between border-b border-[var(--sona-accent,#E07A5F)]/10 px-3 py-1.5">
               <span className="text-xs font-semibold text-[#8C8C8C]">Emoji</span>
               <button
                 onClick={() => setShowEmoji(false)}
                 aria-label="Close emoji picker"
-                className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[#E07A5F]/10 transition"
+                className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -2186,7 +2158,7 @@ export function Composer({
             <span className="text-xs text-red-500 font-medium">Slide to cancel</span>
           </div>
 
-          <div className="flex flex-1 items-center gap-3 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-5 py-3.5 border border-[#E07A5F]/10 relative overflow-hidden">
+          <div className="flex flex-1 items-center gap-3 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-5 py-3.5 border border-[var(--sona-accent,#E07A5F)]/10 relative overflow-hidden">
             <span className="h-3 w-3 animate-pulse rounded-full bg-red-500 shrink-0" />
             <span className="text-sm text-[#2D3436] dark:text-[#E8E8E8] font-medium shrink-0">
               {String(Math.floor(elapsed / 60)).padStart(1, "0")}:{String(elapsed % 60).padStart(2, "0")}
@@ -2211,7 +2183,7 @@ export function Composer({
               }`}
             >
               <Lock className="h-4 w-4 text-red-400" />
-              <span className="text-[8px] text-[#E07A5F] font-medium">Slide Up</span>
+              <span className="text-[8px] text-[var(--sona-accent,#E07A5F)] font-medium">Slide Up</span>
             </div>
           </div>
         </div>
@@ -2226,7 +2198,7 @@ export function Composer({
             <X className="h-5 w-5" />
           </button>
 
-          <div className="flex flex-1 items-center gap-3 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-5 py-3.5 border border-[#E07A5F]/10">
+          <div className="flex flex-1 items-center gap-3 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-5 py-3.5 border border-[var(--sona-accent,#E07A5F)]/10">
             <span className="h-3 w-3 rounded-full bg-red-500 shrink-0" />
             <span className="text-sm text-[#2D3436] dark:text-[#E8E8E8] font-medium">
               {String(Math.floor(elapsed / 60)).padStart(1, "0")}:{String(elapsed % 60).padStart(2, "0")}
@@ -2257,14 +2229,14 @@ export function Composer({
 
       {!recording && (
         <div className="mx-auto flex max-w-3xl items-end gap-2">
-          <div className="flex flex-1 items-end gap-1.5 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5 border border-[#E07A5F]/10">
+          <div className="flex flex-1 items-end gap-1.5 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5 border border-[var(--sona-accent,#E07A5F)]/10">
             <div className="relative shrink-0 mb-0.5">
               <motion.button
                 onClick={() => setShowAttachMenu((s) => !s)}
                 animate={{ rotate: showAttachMenu ? 45 : 0 }}
                 transition={{ type: "spring", stiffness: 400, damping: 24 }}
                 className={`grid h-10 w-10 place-items-center rounded-full transition-colors ${
-                  showAttachMenu ? "bg-[#E07A5F]/15 text-[#E07A5F]" : "text-[#8C8C8C] hover:bg-[#E07A5F]/10"
+                  showAttachMenu ? "bg-[var(--sona-accent,#E07A5F)]/15 text-[var(--sona-accent,#E07A5F)]" : "text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10"
                 }`}
                 aria-label={showAttachMenu ? "Close attachment menu" : "Add attachment"}
                 aria-expanded={showAttachMenu}
@@ -2281,7 +2253,7 @@ export function Composer({
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 8 }}
                       transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                      className="absolute bottom-full left-0 z-40 mb-3 flex items-center gap-1 rounded-2xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] p-1.5 shadow-xl origin-bottom-left"
+                      className="absolute bottom-full left-0 z-40 mb-3 flex items-center gap-1 rounded-2xl border border-[var(--sona-accent,#E07A5F)]/10 bg-white dark:bg-[#2A2A2A] p-1.5 shadow-xl origin-bottom-left"
                     >
                       {[
                         { key: "emoji", label: "Emoji", icon: <RiEmojiStickerLine className="h-5 w-5" />, onClick: () => { setShowEmoji((s) => !s); setShowAttachMenu(false); } },
@@ -2317,7 +2289,7 @@ export function Composer({
                           disabled={item.key === "video" && videoUploadPct != null}
                           aria-label={item.label}
                           title={item.label}
-                          className="grid h-11 w-11 place-items-center rounded-xl text-[#8C8C8C] hover:bg-[#E07A5F]/10 hover:text-[#E07A5F] transition disabled:opacity-50"
+                          className="grid h-11 w-11 place-items-center rounded-xl text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition disabled:opacity-50"
                         >
                           {item.icon}
                         </motion.button>
@@ -2338,7 +2310,7 @@ export function Composer({
             />
 
             {videoUploadPct != null && (
-              <span className="mb-1 shrink-0 rounded-full bg-[#E07A5F]/10 px-2 py-1 text-[10px] font-semibold text-[#E07A5F]">
+              <span className="mb-1 shrink-0 rounded-full bg-[var(--sona-accent,#E07A5F)]/10 px-2 py-1 text-[10px] font-semibold text-[var(--sona-accent,#E07A5F)]">
                 {videoUploadPct}%
               </span>
             )}
@@ -2377,7 +2349,7 @@ export function Composer({
                   aria-label="Schedule message"
                   title="Schedule for later"
                   className={`grid h-10 w-10 place-items-center rounded-full transition disabled:opacity-40 ${
-                    showScheduler ? "bg-[#E07A5F]/15 text-[#E07A5F]" : "text-[#8C8C8C] hover:bg-[#E07A5F]/10"
+                    showScheduler ? "bg-[var(--sona-accent,#E07A5F)]/15 text-[var(--sona-accent,#E07A5F)]" : "text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10"
                   }`}
                 >
                   <LuCalendarClock className="h-5 w-5" />
@@ -2385,14 +2357,14 @@ export function Composer({
                 {showScheduler && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setShowScheduler(false)} />
-                    <div className="absolute bottom-full right-0 z-40 mb-3 w-64 rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] p-3 shadow-xl">
+                    <div className="absolute bottom-full right-0 z-40 mb-3 w-64 rounded-xl border border-[var(--sona-accent,#E07A5F)]/10 bg-white dark:bg-[#2A2A2A] p-3 shadow-xl">
                       <p className="mb-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Send later</p>
                       <input
                         type="datetime-local"
                         value={scheduleValue}
                         min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
                         onChange={(e) => setScheduleValue(e.target.value)}
-                        className="w-full rounded-lg border border-[#E07A5F]/20 bg-transparent px-2 py-1.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] outline-none"
+                        className="w-full rounded-lg border border-[var(--sona-accent,#E07A5F)]/20 bg-transparent px-2 py-1.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] outline-none"
                       />
                       <button
                         onClick={() => {
@@ -2404,7 +2376,7 @@ export function Composer({
                           setScheduleValue("");
                         }}
                         disabled={!scheduleValue}
-                        className="mt-2 w-full rounded-lg bg-[#E07A5F] py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 transition"
+                        className="mt-2 w-full rounded-lg bg-[var(--sona-accent,#E07A5F)] py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 transition"
                       >
                         Schedule
                       </button>

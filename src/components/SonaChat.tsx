@@ -371,10 +371,10 @@ function ThreadPanel({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 380, damping: 38 }}
-        className="flex h-full w-full max-w-sm flex-col border-l border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#242424] shadow-2xl"
+        className="flex h-full w-full max-w-sm flex-col border-l border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#242424] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#E07A5F]/10 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--sona-accent,#E07A5F)]/10 px-4 py-3">
           <h3 className="text-sm flex gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><FaSquareThreads className="text-[purple]" /> Threads</h3>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close thread">
             <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
@@ -383,7 +383,7 @@ function ThreadPanel({
 
         <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
           {root && (
-            <div className="mb-3 rounded-xl border border-[#E07A5F]/15 bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3">
+            <div className="mb-3 rounded-xl border border-[var(--sona-accent,#E07A5F)]/15 bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3">
               <div className="flex items-center gap-2">
                 <Avatar url={profiles[root.sender_id]?.avatar_url} name={nameOf(root.sender_id)} size={24} />
                 <span className="text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{nameOf(root.sender_id)}</span>
@@ -420,7 +420,7 @@ function ThreadPanel({
           </div>
         </div>
 
-        <div className="border-t border-[#E07A5F]/10 p-3">
+        <div className="border-t border-[var(--sona-accent,#E07A5F)]/10 p-3">
           <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2">
             <input
               value={text}
@@ -432,7 +432,7 @@ function ThreadPanel({
             <button
               onClick={send}
               disabled={!text.trim() || sending}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#E07A5F] text-white disabled:opacity-40 transition"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--sona-accent,#E07A5F)] text-white disabled:opacity-40 transition"
               aria-label="Send reply"
             >
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -928,7 +928,7 @@ function SonaChatInner() {
       msg.body ? `"${msg.body.length > 40 ? msg.body.slice(0, 40) + "…" : msg.body}"` : "your message";
 
     toast.custom(() => (
-      <div className="flex items-center gap-3 rounded-2xl border border-[#E07A5F]/20 bg-white/90 dark:bg-[#242424]/90 backdrop-blur-xl px-3.5 py-3 shadow-xl w-[320px]">
+      <div className="flex items-center gap-3 rounded-2xl border border-[var(--sona-accent,#E07A5F)]/20 bg-white/90 dark:bg-[#242424]/90 backdrop-blur-xl px-3.5 py-3 shadow-xl w-[320px]">
         <Avatar url={reactor!.avatar_url} name={reactor!.display_name} size={38} />
         <div className="min-w-0 flex-1">
           <p className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">
@@ -2016,15 +2016,15 @@ useEffect(() => {
     return(
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
-        <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
+        <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[var(--sona-accent,#E07A5F)]/20 dark:bg-[#242424] dark:border-[var(--sona-accent,#E07A5F)]/10">
           
           {/* ─── Sidebar ─── */}
-          <aside className="relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]">
+          <aside className="relative h-full w-full flex-col border-r border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]">
             
             {/* Nav bar */}
             <div className="flex items-center justify-between gap-2 px-4 py-3">
-              <div className="h-7 w-24 rounded-lg bg-[#E07A5F]/15 animate-pulse" />
-              <div className="flex items-center gap-1.5 rounded-full border border-[#E07A5F]/10 bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5">
+              <div className="h-7 w-24 rounded-lg bg-[var(--sona-accent,#E07A5F)]/15 animate-pulse" />
+              <div className="flex items-center gap-1.5 rounded-full border border-[var(--sona-accent,#E07A5F)]/10 bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5">
                 {[...Array(3).keys()].map((i) => (
                   <div
                     key={i}
@@ -2037,7 +2037,7 @@ useEffect(() => {
 
             {/* Search */}
             <div className="px-3 pb-2 pt-1">
-              <div className="h-11 w-full rounded-full bg-[#E07A5F]/10 animate-pulse" />
+              <div className="h-11 w-full rounded-full bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse" />
             </div>
 
             {/* Filter pills */}
@@ -2046,7 +2046,7 @@ useEffect(() => {
                 <div
                   key={i}
                   style={{ animationDelay: `${i * 0.8}s` }}
-                  className={`h-8 rounded-full bg-[#E07A5F]/10 animate-pulse shrink-0 ${
+                  className={`h-8 rounded-full bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse shrink-0 ${
                     i === 0 ? "w-11" : i === 1 ? "w-20" : i === 4 ? "w-24" : "w-[72px]"
                   }`}
                 />
@@ -2055,9 +2055,9 @@ useEffect(() => {
 
             {/* Status banner */}
             <div className="mx-3 mb-2">
-              <div className="flex items-center gap-3 h-12 w-full rounded-2xl bg-[#E07A5F]/8 animate-pulse px-4">
-                <div className="h-5 w-5 rounded-full bg-[#E07A5F]/15 animate-pulse" />
-                <div className="h-3.5 w-36 rounded bg-[#E07A5F]/15 animate-pulse" />
+              <div className="flex items-center gap-3 h-12 w-full rounded-2xl bg-[var(--sona-accent,#E07A5F)]/8 animate-pulse px-4">
+                <div className="h-5 w-5 rounded-full bg-[var(--sona-accent,#E07A5F)]/15 animate-pulse" />
+                <div className="h-3.5 w-36 rounded bg-[var(--sona-accent,#E07A5F)]/15 animate-pulse" />
               </div>
             </div>
 
@@ -2081,14 +2081,14 @@ useEffect(() => {
                   <div className="flex-1 min-w-0 space-y-2.5">
                     {/* Name + time */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="h-3.5 w-32 rounded bg-[#E07A5F]/20 animate-pulse" />
-                      <div className="h-3 w-9 rounded bg-[#E07A5F]/10 animate-pulse shrink-0" />
+                      <div className="h-3.5 w-32 rounded bg-[var(--sona-accent,#E07A5F)]/20 animate-pulse" />
+                      <div className="h-3 w-9 rounded bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse shrink-0" />
                     </div>
                     {/* Preview + badge */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="h-2.5 w-[70%] rounded bg-[#E07A5F]/10 animate-pulse" />
+                      <div className="h-2.5 w-[70%] rounded bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse" />
                       {i % 2 === 0 && (
-                        <div className="h-5 w-5 rounded-full bg-[#E07A5F]/25 animate-pulse shrink-0" />
+                        <div className="h-5 w-5 rounded-full bg-[var(--sona-accent,#E07A5F)]/25 animate-pulse shrink-0" />
                       )}
                     </div>
                   </div>
@@ -2098,15 +2098,15 @@ useEffect(() => {
 
             {/* FAB */}
             <div className="absolute bottom-6 right-4">
-              <div className="h-14 w-14 rounded-2xl bg-[#E07A5F]/20 animate-pulse shadow-xl" />
+              <div className="h-14 w-14 rounded-2xl bg-[var(--sona-accent,#E07A5F)]/20 animate-pulse shadow-xl" />
             </div>
           </aside>
 
           {/* ─── Main area (empty) ─── */}
           <section className="hidden md:flex h-full flex-1 flex-col bg-[#F0EBE3] dark:bg-[#1A1A1A] items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-[#E07A5F]/20 animate-pulse" />
-              <div className="h-3 w-28 rounded bg-[#E07A5F]/10 animate-pulse" />
+              <div className="h-16 w-16 rounded-2xl bg-[var(--sona-accent,#E07A5F)]/20 animate-pulse" />
+              <div className="h-3 w-28 rounded bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse" />
             </div>
           </section>
         </div>
@@ -2146,9 +2146,9 @@ useEffect(() => {
       )}
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
         
-        <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[#E07A5F]/20 dark:bg-[#242424] dark:border-[#E07A5F]/10">
+        <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[var(--sona-accent,#E07A5F)]/20 dark:bg-[#242424] dark:border-[var(--sona-accent,#E07A5F)]/10">
           {/* Sidebar */}
-          <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
+          <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-2 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0 select-none cursor-default">
@@ -2219,7 +2219,7 @@ useEffect(() => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -6 }}
         transition={{ duration: 0.14, ease: "easeOut" }}
-        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#E07A5F]/10 bg-white !dark:text-[#fff] dark:bg-[#242424] shadow-xl z-50 overflow-hidden origin-top-right"
+        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[var(--sona-accent,#E07A5F)]/10 bg-white !dark:text-[#fff] dark:bg-[#242424] shadow-xl z-50 overflow-hidden origin-top-right"
       >
         <div className="py-1">
           {canInstall && (
@@ -2287,19 +2287,19 @@ useEffect(() => {
 
             {/* Selection mode bar */}
             {selectMode && (
-              <div className="flex items-center justify-between gap-2 px-4 py-2 bg-[transparent] border-b border-[#E07A5F]/10">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#E07A5F]">
+              <div className="flex items-center justify-between gap-2 px-4 py-2 bg-[transparent] border-b border-[var(--sona-accent,#E07A5F)]/10">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--sona-accent,#E07A5F)]">
                   <CheckSquare className="h-4 w-4" />
                   {selectedChatIds.size} selected
                 </div>
                 <div className="flex items-center gap-3">
                   {  loadingChats ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 py-2">
-                  <Loader2 className="h-3 w-3 animate-spin text-[#E07A5F]" />
+                  <Loader2 className="h-3 w-3 animate-spin text-[var(--sona-accent,#E07A5F)]" />
                   
                 </div>) :(<>
                   <button onClick={() => setAssigningFolders(true)} disabled={selectedChatIds.size === 0}
-                    className="flex items-center gap-1 rounded bg-[#E07A5F] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-[#c96548] transition">
+                    className="flex items-center gap-1 rounded bg-[var(--sona-accent,#E07A5F)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-[#c96548] transition">
                     <FolderCog className="h-3.5 w-3.5" /> Folder
                   </button>
                   <button onClick={deleteSelectedChats} disabled={selectedChatIds.size === 0}
@@ -2315,7 +2315,7 @@ useEffect(() => {
             )}
 
             <div className="px-3 py-2 pb-3 pt-3">
-              <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-4 py-3 border border-[#E07A5F]/10">
+              <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-4 py-3 border border-[var(--sona-accent,#E07A5F)]/10">
                 <Search className="h-8 w-8 text-[#8C8C8C]" />
                 <input data-tour="search-chats" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask Sona AI or Search"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
@@ -2323,13 +2323,13 @@ useEffect(() => {
             </div>
 
             {announcement && !announcementDismissed && (
-              <div className="mx-3 mb-3 flex items-start gap-2 rounded-2xl bg-[#E07A5F]/10 border border-[#E07A5F]/20 px-3.5 py-2.5">
-                <Megaphone className="h-4 w-4 shrink-0 mt-0.5 text-[#E07A5F]" />
+              <div className="mx-3 mb-3 flex items-start gap-2 rounded-2xl bg-[var(--sona-accent,#E07A5F)]/10 border border-[var(--sona-accent,#E07A5F)]/20 px-3.5 py-2.5">
+                <Megaphone className="h-4 w-4 shrink-0 mt-0.5 text-[var(--sona-accent,#E07A5F)]" />
                 <p className="flex-1 text-xs leading-snug text-[#2D3436] dark:text-[#E8E8E8]">{announcement.message}</p>
                 <button
                   onClick={() => setAnnouncementDismissed(true)}
                   aria-label="Dismiss announcement"
-                  className="shrink-0 grid h-5 w-5 place-items-center rounded-full hover:bg-[#E07A5F]/15 text-[#8C8C8C]"
+                  className="shrink-0 grid h-5 w-5 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/15 text-[#8C8C8C]"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -2346,7 +2346,7 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 ${!me.is_pro ? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
                       ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
@@ -2366,7 +2366,7 @@ useEffect(() => {
                     openRenameFolderModal(f.id, f.name);
                   }}
                   title="Tap to filter · double-tap or right-click to rename"
-                  className={`shrink-0 rounded-full ${!me.is_pro ? " bg-[#E07A5F] ":"bg-[#8B5CF6] " } px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 rounded-full ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] ":"bg-[#8B5CF6] " } px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.id
                       ? "dark:bg-[#1E1E1E] text-white"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] hover:bg-[#F4A261]/20"
@@ -2400,8 +2400,8 @@ useEffect(() => {
     shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_8px_rgba(224,122,95,0.15),0_12px_24px_rgba(224,122,95,0.25),inset_0_1px_0_rgba(255,255,255,0.4)]
     dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(224,122,95,0.2),0_16px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]
     /* Inner glow */
-    before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-[#E07A5F]/30 before:to-[#F4A261]/10 before:opacity-100
-    dark:before:from-[#E07A5F]/20 dark:before:to-transparent
+    before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-[var(--sona-accent,#E07A5F)]/30 before:to-[#F4A261]/10 before:opacity-100
+    dark:before:from-[var(--sona-accent,#E07A5F)]/20 dark:before:to-transparent
     /* Top highlight rim */
     after:absolute after:inset-0 after:rounded-2xl after:border after:border-t-white/50 after:border-b-transparent after:border-x-transparent
     dark:after:border-t-white/20
@@ -2412,7 +2412,7 @@ useEffect(() => {
     active:translate-y-0.5 active:scale-[0.96] active:shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_6px_rgba(224,122,95,0.15),inset_0_2px_4px_rgba(0,0,0,0.1)]
     dark:active:shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(0,0,0,0.3)]"
 >
-                  <LuCircleFadingPlus className={`h-10 text-[#1E1E1E] dark:text-[#E07A5F] opacity-80 w-10 `} />
+                  <LuCircleFadingPlus className={`h-10 text-[#1E1E1E] dark:text-[var(--sona-accent,#E07A5F)] opacity-80 w-10 `} />
                 </button>
               </div>
             )}
@@ -2422,9 +2422,9 @@ useEffect(() => {
              {query.trim() && (
                <button
                  onClick={askSonaAIFromSearch}
-                 className="mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-2xl bg-gradient-to-r from-[#E07A5F]/10 to-[#F4A261]/10 border border-[#E07A5F]/20 px-4 py-3 text-left transition hover:from-[#E07A5F]/15 hover:to-[#F4A261]/15"
+                 className="mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-2xl bg-gradient-to-r from-[var(--sona-accent,#E07A5F)]/10 to-[#F4A261]/10 border border-[var(--sona-accent,#E07A5F)]/20 px-4 py-3 text-left transition hover:from-[var(--sona-accent,#E07A5F)]/15 hover:to-[#F4A261]/15"
                >
-                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#E07A5F] to-[#F4A261] text-white">
+                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--sona-accent,#E07A5F)] to-[#F4A261] text-white">
                    <Sparkles className="h-4.5 w-4.5" />
                  </div>
                  <div className="min-w-0 flex-1">
@@ -2535,7 +2535,7 @@ useEffect(() => {
                   )}
                 </span>
                 {c.is_group && c.category && c.category !== "general" && (
-                  <span className="shrink-0 text-[#E07A5F]" title={categoryMeta[c.category].label}>
+                  <span className="shrink-0 text-[var(--sona-accent,#E07A5F)]" title={categoryMeta[c.category].label}>
                     <CategoryIcon category={c.category} />
                   </span>
                 )}
@@ -2559,7 +2559,7 @@ useEffect(() => {
                         aria-label="Report user"
                         title="Report user"
                       >
-                        <Flag className="h-3 w-3 text-[#8C8C8C] hover:text-[#E07A5F]" />
+                        <Flag className="h-3 w-3 text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)]" />
                       </button>
                     )}
                     <button
@@ -2593,13 +2593,13 @@ useEffect(() => {
                   const act = listActivity[c.id];
                   if (act?.recording.length) {
                     return (
-                      <span className="inline-flex items-center gap-1 truncate text-[#E07A5F]">
+                      <span className="inline-flex items-center gap-1 truncate text-[var(--sona-accent,#E07A5F)]">
                         <IoMdMic className="h-3.5 w-3.5 shrink-0 animate-pulse" /> recording audio…
                       </span>
                     );
                   }
                   if (act?.typing.length) {
-                    return <span className="truncate animate-pulse text-[#E07A5F]">typing…</span>;
+                    return <span className="truncate animate-pulse text-[var(--sona-accent,#E07A5F)]">typing…</span>;
                   }
                   return (
                     <>
@@ -2614,7 +2614,7 @@ useEffect(() => {
                   );
                 })()}
               </div>
-              {c.is_hidden && <Lock className="h-3 w-3 text-[#E07A5F]/5 shrink-0" />}
+              {c.is_hidden && <Lock className="h-3 w-3 text-[var(--sona-accent,#E07A5F)]/5 shrink-0" />}
             </div>
           </div>
         </motion.div>
@@ -2653,7 +2653,7 @@ useEffect(() => {
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.12 }}
                       style={{ left: x, top: y, width: menuWidth }}
-                      className="fixed z-50 overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-1.5 shadow-2xl"
+                      className="fixed z-50 overflow-hidden rounded-xl border border-[var(--sona-accent,#E07A5F)]/10 bg-white dark:bg-[#2A2A2A] py-1.5 shadow-2xl"
                     >
                       <button
                         onClick={(e) => {
@@ -2701,8 +2701,8 @@ useEffect(() => {
     shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_8px_rgba(224,122,95,0.15),0_12px_24px_rgba(224,122,95,0.25),inset_0_1px_0_rgba(255,255,255,0.4)]
     dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(224,122,95,0.2),0_16px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]
     /* Inner glow */
-    before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-[#E07A5F]/30 before:to-[#F4A261]/10 before:opacity-100
-    dark:before:from-[#E07A5F]/20 dark:before:to-transparent
+    before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-[var(--sona-accent,#E07A5F)]/30 before:to-[#F4A261]/10 before:opacity-100
+    dark:before:from-[var(--sona-accent,#E07A5F)]/20 dark:before:to-transparent
     /* Top highlight rim */
     after:absolute after:inset-0 after:rounded-2xl after:border after:border-t-white/50 after:border-b-transparent after:border-x-transparent
     dark:after:border-t-white/20
@@ -2788,12 +2788,12 @@ useEffect(() => {
     </div>
   );
 })()}
-                      {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[#E07A5F]" />}
+                      {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" />}
                       {active.memberRoles[me.id] === "admin" && active.is_group && (
                         <span title="Admin" className="inline-flex"><BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" /></span>
                       )}
                       {active.is_group && active.category && active.category !== "general" && (
-                        <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium text-[#E07A5F] text-transparent bg-clip-text bg-gradient-to-r from-[#E07A5F]/10 to-[#E07A5F]" >
+                        <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium text-[var(--sona-accent,#E07A5F)] text-transparent bg-clip-text bg-gradient-to-r from-[var(--sona-accent,#E07A5F)]/10 to-[var(--sona-accent,#E07A5F)]" >
                            {categoryMeta[active.category].label}
                         </span>
                       )}
@@ -2803,12 +2803,12 @@ useEffect(() => {
   className="truncate text-xs text-[#8C8C8C] text-left w-full overflow-hidden"
 >
   {recordingNames.length > 0 ? (
-    <span className="inline-flex items-center gap-1 text-[#E07A5F]">
+    <span className="inline-flex items-center gap-1 text-[var(--sona-accent,#E07A5F)]">
       <IoMdMic className="h-3.5 w-3.5 animate-pulse text-green-600" />
       {recordingNames.join(", ")} recording audio…
     </span>
   ) : typingNames.length > 0 ? (
-    <span className="text-[#E07A5F]">{typingNames.join(", ")} typing…</span>
+    <span className="text-[var(--sona-accent,#E07A5F)]">{typingNames.join(", ")} typing…</span>
   ) : isAIChat(active) ? (
     <span className="inline-flex items-center gap-1.5">   
       By Sona AI
@@ -2908,7 +2908,7 @@ useEffect(() => {
                                   <span className="flex w-full items-center justify-between">
                                     {opt.label}
                                     {(active.disappearing_seconds ?? null) === opt.seconds && (
-                                      <Check className="h-3.5 w-3.5 text-[#E07A5F]" />
+                                      <Check className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" />
                                     )}
                                   </span>
                                 </DropdownMenuItem>
@@ -2994,10 +2994,10 @@ useEffect(() => {
                 </header>
 
                 {active.is_group && active.description && (
-                  <div className="border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E]">
+                  <div className="border-b border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E]">
                     <button
                       onClick={() => setDescOpen((v) => !v)}
-                      className="flex w-full items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#8C8C8C] hover:text-[#E07A5F] transition"
+                      className="flex w-full items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)] transition"
                     >
                       Description
                       <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${descOpen ? "rotate-180" : "-rotate-90"}`} />
@@ -3021,7 +3021,7 @@ useEffect(() => {
                 )}
 
                 {showMsgSearch && (
-                  <div className="flex items-center gap-2 border-b border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] px-4 py-2">
+                  <div className="flex items-center gap-2 border-b border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] px-4 py-2">
                     <Search className="h-4 w-4 shrink-0 text-[#8C8C8C]" />
                     <input
                       autoFocus
@@ -3069,7 +3069,7 @@ useEffect(() => {
 
                 <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
                   <div className="mx-auto flex max-w-3xl flex-col gap-0.5">
-                    <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[#E07A5F]/10">
+                    <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[var(--sona-accent,#E07A5F)]/10">
                       {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
                     </div>
                     <AnimatePresence initial={false}>
@@ -3097,18 +3097,18 @@ useEffect(() => {
     <div key={m.id} className="contents">
     {showDateSeparator && (
       <div className="my-3 flex justify-center">
-        <span className="rounded bg-[#F4A261]/20 px-3 py-1 text-[11px] font-medium text-[#8C8C8C] backdrop-blur border border-[#E07A5F]/20">
+        <span className="rounded bg-[#F4A261]/20 px-3 py-1 text-[11px] font-medium text-[#8C8C8C] backdrop-blur border border-[var(--sona-accent,#E07A5F)]/20">
           {fmtDateLabel(m.created_at)}
         </span>
       </div>
     )}
     {m.id === unreadDividerId && (
       <div className="my-3 flex items-center gap-2">
-        <div className="h-px flex-1 bg-[#E07A5F]/30" />
-        <span className="shrink-0 rounded-full bg-[#E07A5F] px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
+        <div className="h-px flex-1 bg-[var(--sona-accent,#E07A5F)]/30" />
+        <span className="shrink-0 rounded-full bg-[var(--sona-accent,#E07A5F)] px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
           {unreadSnapshot} unread {unreadSnapshot === 1 ? "message" : "messages"}
         </span>
-        <div className="h-px flex-1 bg-[#E07A5F]/30" />
+        <div className="h-px flex-1 bg-[var(--sona-accent,#E07A5F)]/30" />
       </div>
     )}
     <motion.div
@@ -3120,7 +3120,7 @@ useEffect(() => {
       ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
       className={
         isCurrentMatch
-          ? "rounded-2xl ring-2 ring-[#E07A5F] ring-offset-2 ring-offset-transparent transition-all"
+          ? "rounded-2xl ring-2 ring-[var(--sona-accent,#E07A5F)] ring-offset-2 ring-offset-transparent transition-all"
           : ""
       }
     >
@@ -3164,10 +3164,10 @@ useEffect(() => {
 
                     {typingNames.length > 0 && (
                       <div className="flex items-end gap-2 mt-3">
-                        <div className="rounded-2xl rounded-bl-md bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm px-3 py-2.5 flex items-center gap-1 border border-[#E07A5F]/10">
-                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[#E07A5F] inline-block animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="rounded-2xl rounded-bl-md bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm px-3 py-2.5 flex items-center gap-1 border border-[var(--sona-accent,#E07A5F)]/10">
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] inline-block animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] inline-block animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] inline-block animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                       </div>
                     )}
@@ -3184,7 +3184,7 @@ useEffect(() => {
                         return d + prefix + '@sona ';
                       });
                     }}
-                    className="absolute bottom-24 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#E07A5F] to-[#F4A261] text-white shadow-xl hover:scale-110 transition-all duration-200 border-2 border-white dark:border-[#2A2A2A]"
+                    className="absolute bottom-24 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[var(--sona-accent,#E07A5F)] to-[#F4A261] text-white shadow-xl hover:scale-110 transition-all duration-200 border-2 border-white dark:border-[#2A2A2A]"
                     title="Ask Sona AI"
                   >
                     <Sparkles className="h-6 w-6" />
@@ -3192,10 +3192,10 @@ useEffect(() => {
                 )}
 */} 
                 {(replyTo || editing) && (
-  <div className="border-t border-[#E07A5F]/10 chat-pattern dark:bg-[#242424] px-3 py-2 md:px-6">
+  <div className="border-t border-[var(--sona-accent,#E07A5F)]/10 chat-pattern dark:bg-[#242424] px-3 py-2 md:px-6">
     <div className="mx-auto flex max-w-3xl items-center gap-2">
-      <div className="flex-1 min-w-0 rounded-lg border-l-[3px] border-[#E07A5F] bg-[#F5F0E8]/60 dark:bg-[#2A2A2A]/60 px-3 py-1.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#E07A5F]">
+      <div className="flex-1 min-w-0 rounded-lg border-l-[3px] border-[var(--sona-accent,#E07A5F)] bg-[#F5F0E8]/60 dark:bg-[#2A2A2A]/60 px-3 py-1.5">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--sona-accent,#E07A5F)]">
           {editing ? (
             <>
               <Pencil className="h-3 w-3" />
@@ -3235,7 +3235,7 @@ useEffect(() => {
                               <img
                                 src={pendingImageUrls[i]}
                                 alt=""
-                                className={`h-20 w-20 rounded-lg object-cover border border-[#E07A5F]/20 bg-black/5 transition-opacity ${sending ? "opacity-50" : ""}`}
+                                className={`h-20 w-20 rounded-lg object-cover border border-[var(--sona-accent,#E07A5F)]/20 bg-black/5 transition-opacity ${sending ? "opacity-50" : ""}`}
                               />
                               {sending && (
                                 <div className="absolute inset-0 grid place-items-center rounded-lg bg-black/20">
@@ -3260,11 +3260,11 @@ useEffect(() => {
                       {pendingDocs.length > 0 && (
                         <div className="space-y-1.5">
                           {pendingDocs.map((f, i) => (
-                            <div key={i} className={`flex items-center gap-2 rounded-lg border border-[#E07A5F]/20 bg-white dark:bg-[#2A2A2A] px-3 py-2 transition-opacity ${sending ? "opacity-60" : ""}`}>
+                            <div key={i} className={`flex items-center gap-2 rounded-lg border border-[var(--sona-accent,#E07A5F)]/20 bg-white dark:bg-[#2A2A2A] px-3 py-2 transition-opacity ${sending ? "opacity-60" : ""}`}>
                               {sending ? (
-                                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[#E07A5F]" />
+                                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[var(--sona-accent,#E07A5F)]" />
                               ) : (
-                                <FileText className="h-5 w-5 text-[#E07A5F] shrink-0" />
+                                <FileText className="h-5 w-5 text-[var(--sona-accent,#E07A5F)] shrink-0" />
                               )}
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">{f.name}</p>
@@ -3287,17 +3287,17 @@ useEffect(() => {
                 )}
 
                 {composerNotice ? (
-                  <div className="border-t border-[#E07A5F]/10 bg-[#FFFDF9] px-4 py-5 text-center dark:bg-[#242424]">
+                  <div className="border-t border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] px-4 py-5 text-center dark:bg-[#242424]">
                     <p className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl bg-[#F5F0E8] px-4 py-3 text-sm font-medium text-[#8C8C8C] dark:bg-[#2A2A2A]">
                       {broadcastLocked && !accountRestricted && !iBlockedThem && !theyBlockedMe ? (
-                        <Radio className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+                        <Radio className="h-4 w-4 shrink-0 text-[var(--sona-accent,#E07A5F)]" />
                       ) : (
-                        <Ban className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+                        <Ban className="h-4 w-4 shrink-0 text-[var(--sona-accent,#E07A5F)]" />
                       )}
                       {composerNotice}
                     </p>
                     {iBlockedThem && !accountRestricted && (
-                      <button onClick={unblockOther} className="mt-3 rounded-full bg-[#E07A5F] px-5 py-2 text-xs font-semibold text-white">
+                      <button onClick={unblockOther} className="mt-3 rounded-full bg-[var(--sona-accent,#E07A5F)] px-5 py-2 text-xs font-semibold text-white">
                         Unblock
                       </button>
                     )}
@@ -3412,7 +3412,7 @@ useEffect(() => {
         <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setAssigningFolders(false)}>
           <div className="w-full max-w-sm rounded-2xl bg-[#FFFDF9] p-5 shadow-xl dark:bg-[#242424]" onClick={(e) => e.stopPropagation()}>
             <h3 className="flex items-center gap-2 text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-              <FolderCog className="h-4 w-4 text-[#E07A5F]" /> Add to folder
+              <FolderCog className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Add to folder
             </h3>
             <p className="mt-1 text-xs text-[#8C8C8C]">{selectedChatIds.size} chat{selectedChatIds.size === 1 ? "" : "s"} selected</p>
 
@@ -3437,7 +3437,7 @@ useEffect(() => {
                     className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-[#F5F0E8] dark:hover:bg-[#2A2A2A] dark:text-[#E8E8E8]"
                   >
                     {f.name}
-                    {allIn && <Check className="h-4 w-4 text-[#E07A5F]" />}
+                    {allIn && <Check className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />}
                   </button>
                 );
               })}
@@ -3447,7 +3447,7 @@ useEffect(() => {
               <button onClick={openCreateFolderModal} className="flex items-center gap-1 rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
                 <FolderPlus className="h-3.5 w-3.5" /> New folder
               </button>
-              <button onClick={() => { setAssigningFolders(false); exitSelectMode(); }} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">
+              <button onClick={() => { setAssigningFolders(false); exitSelectMode(); }} className="rounded-xl bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-sm font-semibold text-white">
                 Done
               </button>
             </div>
@@ -3478,7 +3478,7 @@ useEffect(() => {
           <button key="cancel" onClick={() => setFolderModal(null)} className="rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
             Cancel
           </button>,
-          <button key="save" onClick={submitFolderModal} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">
+          <button key="save" onClick={submitFolderModal} className="rounded-xl bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-sm font-semibold text-white">
             {folderModal?.mode === "create" ? "Create" : "Save"}
           </button>,
         ]}
@@ -3497,7 +3497,7 @@ useEffect(() => {
         <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setReportTarget(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-[#FFFDF9] p-5 shadow-xl dark:bg-[#242424]" onClick={(e) => e.stopPropagation()}>
             <h3 className="flex items-center gap-2 text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-              <AlertTriangle className="h-4 w-4 text-[#E07A5F]" /> Report {reportTarget.display_name}
+              <AlertTriangle className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Report {reportTarget.display_name}
             </h3>
             <p className="mt-1 text-xs text-[#8C8C8C]">Reports are reviewed by Sona administrators.</p>
             <select
@@ -3518,7 +3518,7 @@ useEffect(() => {
             />
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setReportTarget(null)} className="rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">Cancel</button>
-              <button onClick={submitReport} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white">Send report</button>
+              <button onClick={submitReport} className="rounded-xl bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-sm font-semibold text-white">Send report</button>
             </div>
           </div>
         </div>
@@ -3648,10 +3648,10 @@ useEffect(() => {
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl border border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-4 w-4 text-[#E07A5F]" />
+              <Sparkles className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
               <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Chat summary</h3>
             </div>
             <p className="whitespace-pre-wrap text-sm text-[#8C8C8C]">{summary}</p>
@@ -3668,7 +3668,7 @@ useEffect(() => {
                   a.remove();
                   URL.revokeObjectURL(url);
                 }}
-                className="flex items-center gap-1.5 rounded-xl bg-[#E07A5F] px-3 py-2 text-sm font-medium text-white hover:opacity-90 transition"
+                className="flex items-center gap-1.5 rounded-xl bg-[var(--sona-accent,#E07A5F)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 transition"
               >
                 <Download className="h-4 w-4" /> Download
               </button>
@@ -3688,10 +3688,10 @@ useEffect(() => {
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 10 }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            className="w-full max-w-md rounded-2xl border border-[#E07A5F]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl border border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Clock className="h-4 w-4 text-[#E07A5F]" />
+              <Clock className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
               <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Scheduled messages</h3>
             </div>
             {scheduledMessages.length === 0 ? (
@@ -3699,7 +3699,7 @@ useEffect(() => {
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {scheduledMessages.map((m) => (
-                  <div key={m.id} className="flex items-start gap-2 rounded-xl border border-[#E07A5F]/10 bg-white/60 dark:bg-white/5 p-3">
+                  <div key={m.id} className="flex items-start gap-2 rounded-xl border border-[var(--sona-accent,#E07A5F)]/10 bg-white/60 dark:bg-white/5 p-3">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">{m.body || "(attachment)"}</p>
                       <p className="text-xs text-[#8C8C8C]">{m.scheduled_at && new Date(m.scheduled_at).toLocaleString()}</p>
