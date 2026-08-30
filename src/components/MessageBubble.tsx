@@ -1380,7 +1380,7 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[var(--sona-bubble-mine,#eeffde)] text-[#151c1c] " : "bg-white";
+const bubbleBase = mine ? "bg-[#6B352A] text-[#151c1c] " : "bg-[#FFFCF4] ";
 
 const bubbleRadius = mine
   ? grouped
@@ -1531,8 +1531,8 @@ const tailClass = !grouped && mine
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
-                ? "bg-[#6B352A] dark:bg-[#0B132B] dark:text-[#fff]"
-                : "bg-white dark:bg-[#2A2A2A] text-[#151c1c] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
+                ? "dark:bg-[#0B132B] dark:text-[#fff]"
+                : "dark:bg-[#2A2A2A] text-[#151c1c] dark:text-[#E8E8E8] "
             } ${
               isHighlighted
                 ? "!border-2 !border-[#E8E8E8] animate-pulse ring-2 ring-[#1E1E1E]"
