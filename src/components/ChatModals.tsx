@@ -25,6 +25,7 @@ import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type N
 import type { ClassRow } from "@/features/classroom";
 import SoundSettings from "./SoundSettings";
 
+import { VscVerifiedFilled } from "react-icons/vsc";
 import {
   MdDiamond,
   MdLock,
