@@ -649,7 +649,7 @@ function EmailAutolink({ href }: { href: string }) {
     toast.info(email, { description: "Email address copied" });
   }, [email]);
 
-  const longPress = useLongPress(handleReveal, 500);
+  const longPress = useLongPress(handleReveal, 800);
 
   return (
     <a
