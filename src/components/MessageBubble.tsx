@@ -756,7 +756,7 @@ function TableRenderer({
 }
 
 /* ─── Long Press Hook ─── */
-function useLongPress(callback: () => void, ms = 1000) {
+function useLongPress(callback: () => void, ms = 2000) {
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startY = useRef(0);
@@ -1690,16 +1690,16 @@ const tailClass = !grouped && mine
               >
                 <span
                   className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${
-                    mine ? "bg-white/20 dark:text-white !text-gray-400" : "bg-[#E07A5F]/10 text-[#E07A5F]"
+                    mine ? "bg-white/20 dark:text-white !text-[#FFFCF4] " : "bg-[#E07A5F]/10 text-[#E07A5F]"
                   }`}
                 >
                   <FileIcon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-sm font-medium ${mine ? "dark:text-white text-gray-600" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+                  <span className={`block truncate text-sm font-medium ${mine ? "dark:text-white text-[#FFFCF4]" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
                     {msg.file_name || "File"}
                   </span>
-                  <span className={`block text-xs ${mine ? "text-[#1E90FF]" : "text-[#8C8C8C]"}`}>
+                  <span className={`block text-xs ${mine ? "text-[#0B1315]" : "text-[#8C8C8C]"}`}>
                     {msg.file_size ? formatBytes(msg.file_size) : ""}
                   </span>
                 </span>
