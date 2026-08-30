@@ -756,7 +756,7 @@ function TableRenderer({
 }
 
 /* ─── Long Press Hook ─── */
-function useLongPress(callback: () => void, ms = 500) {
+function useLongPress(callback: () => void, ms = 1000) {
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startY = useRef(0);
