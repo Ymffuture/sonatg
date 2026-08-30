@@ -659,7 +659,7 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
         key={key}
         href={token.href}
         onClick={(e) => e.stopPropagation()}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-3 py-1.5 text-sm font-medium text-[#8B5CF6] transition hover:bg-[#8B5CF6] hover:text-white"
+        className="inline-flex items-center gap-1.5 rounded-full bg-[#FFFCF4 ] px-3 py-1.5 text-sm font-medium text-[#8B5CF6] transition hover:bg-[#8B5CF6] hover:text-white"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
           <path
@@ -669,7 +669,7 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
           />
           <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
         </svg>
-        Email
+        EMAIL SENT
       </a>
     );
   }
@@ -1380,7 +1380,7 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[#6B352A] text-[#151c1c] " : "bg-[#FFFCF4] ";
+const bubbleBase = mine ? "bg-[#6B352A] text-[#FFFCF4] " : "bg-[#FFFCF4] ";
 
 const bubbleRadius = mine
   ? grouped
