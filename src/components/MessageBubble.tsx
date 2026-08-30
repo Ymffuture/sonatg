@@ -108,7 +108,7 @@ type InlineToken =
   | { type: "code"; content: string }
   | { type: "link"; children: InlineToken[]; href: string }
   | { type: "image"; alt: string; src: string; title?: string }
-  | { type: "autolink"; href: string }
+  | { type: "autolink"; href: string; kind: "url" | "email" }
   | { type: "br" };
 
 const URL_REGEX = /\bhttps?:\/\/[^\s<>()]+[^\s<>().,;:!?]/i;
@@ -244,18 +244,18 @@ function parseInline(text: string): InlineToken[] {
     }
 
     const remaining = text.slice(i);
-    const url = remaining.match(URL_REGEX)?.[0];
-    const email = remaining.match(EMAIL_REGEX)?.[0];
-    if (url && (!email || url.length <= email.length)) {
-      tokens.push({ type: "autolink", href: url });
-      i += url.length;
-      continue;
-    }
-    if (email) {
-      tokens.push({ type: "autolink", href: `mailto:${email}` });
-      i += email.length;
-      continue;
-    }
+const url = remaining.match(URL_REGEX)?.[0];
+const email = remaining.match(EMAIL_REGEX)?.[0];
+if (url && (!email || url.length <= email.length)) {
+  tokens.push({ type: "autolink", href: url, kind: "url" });
+  i += url.length;
+  continue;
+}
+if (email) {
+  tokens.push({ type: "autolink", href: `mailto:${email}`, kind: "email" });
+  i += email.length;
+  continue;
+}
 
     if (text[i] === "\n") {
       tokens.push({ type: "br" });
@@ -653,7 +653,37 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
       case "image":
         return <img key={key} src={token.src} alt={token.alt} title={token.title} className="inline-block max-h-48 rounded" />;
       case "autolink":
-        return <a key={key} href={token.href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 break-all">{token.href}</a>;
+  if (token.kind === "email") {
+    return (
+      
+        key={key}
+        href={token.href}
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-3 py-1.5 text-sm font-medium text-[#8B5CF6] transition hover:bg-[#8B5CF6] hover:text-white"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+          <path
+            d="M3 6.5C3 5.67 3.67 5 4.5 5h15c.83 0 1.5.67 1.5 1.5v11c0 .83-.67 1.5-1.5 1.5h-15C3.67 19 3 18.33 3 17.5v-11Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+        Email
+      </a>
+    );
+  }
+  return (
+    
+      key={key}
+      href={token.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline underline-offset-2 break-all"
+    >
+      {token.href}
+    </a>
+  );
       case "br":
         return <br key={key} />;
     }
