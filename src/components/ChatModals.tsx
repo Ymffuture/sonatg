@@ -748,12 +748,16 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                   <div className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</div>
                   {u.is_ai && (
                     <Tooltip title="AI Assistant">
-                      <Sparkles className="h-3 w-3 text-[#E07A5F]" />
+                      <VscVerifiedFilled
+          className="h-4 w-4 text-blue-500 shrink-0 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]"
+          aria-label="Verified Sona AI"
+          title="Verified"
+        />
                     </Tooltip>
                   )}
                   {u.is_pro && (
-                    <Tooltip title="Pro Member">
-                      <Crown className="h-3 w-3 text-[#E07A5F]" />
+                    <Tooltip title="verified purple">
+                      <MdDiamond className="h-5 w-5 text-[#8B5CF6] drop-shadow" />
                     </Tooltip>
                   )}
                 </div>
@@ -976,14 +980,14 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
             <Settings className="h-4 w-4 text-[#E07A5F]" />
             <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Settings</h3>
             {me.is_pro && (
-              <Tooltip title="Pro Member">
-                <span className="ml-auto inline-flex items-center gap-1 text-[#2D3436] rounded-full bg-[#8B5CF6]/20 px-2 py-0.5 text-[10px] font-semibold border border-[#8B5CF6]/20 cursor-default">
+              <Tooltip title="Purple account">
+                <span className="ml-auto inline-flex items-center gap-1 text-[#FFFCF4] rounded-full bg-[#8B5CF6]/20 px-2 py-0.5 text-[10px] font-semibold border border-[#8B5CF6]/20 cursor-default">
                   <MdDiamond className="h-3 text-[#8B5CF6] w-3" /> Purple
                 </span>
               </Tooltip>
             )}
           </div>
-          <div className="mb-2 flex gap-1 rounded-xl bg-white/50 dark:bg-white/5 p-1 text-xs border border-white/20 dark:border-white/10 backdrop-blur-sm">
+          <div className="mb-2 flex gap-1 rounded-xl bg-white/50 dark:bg-white/5 p-1 text-xs scale-95 border border-white/20 dark:border-white/10 backdrop-blur-sm">
             {(["profile", "advanced", "theme", "subscription"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 rounded-lg px-2 py-1.5 capitalize transition ${tab === t ? "bg-white/80 dark:bg-white/10 font-semibold shadow text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10" : "text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-[#E8E8E8]"}`}>
