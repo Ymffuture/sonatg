@@ -655,7 +655,7 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
       case "autolink":
   if (token.kind === "email") {
     return (
-      
+      <a
         key={key}
         href={token.href}
         onClick={(e) => e.stopPropagation()}
@@ -674,7 +674,7 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
     );
   }
   return (
-    
+    <a
       key={key}
       href={token.href}
       target="_blank"
