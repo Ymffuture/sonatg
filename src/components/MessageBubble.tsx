@@ -634,6 +634,51 @@ function flattenInlineToText(tokens: InlineToken[]): string {
     .join("");
 }
 
+/* Email pill: tap opens the mail client as usual; long-press (or
+   right-click on desktop) reveals the actual address inline and copies
+   it to the clipboard, without also triggering the mailto navigation. */
+function EmailAutolink({ href }: { href: string }) {
+  const email = href.replace(/^mailto:/i, "");
+  const [revealed, setRevealed] = useState(false);
+  const suppressClickRef = useRef(false);
+
+  const handleReveal = useCallback(() => {
+    suppressClickRef.current = true;
+    setRevealed(true);
+    navigator.clipboard?.writeText(email).catch(() => {});
+    toast.info(email, { description: "Email address copied" });
+  }, [email]);
+
+  const longPress = useLongPress(handleReveal, 500);
+
+  return (
+    <a
+      href={href}
+      title={email}
+      {...longPress}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (suppressClickRef.current) {
+          e.preventDefault();
+          suppressClickRef.current = false;
+        }
+        longPress.onMouseUp(e);
+      }}
+      className="inline-flex max-w-full select-none items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-3 py-1.5 text-sm font-medium text-[#8B5CF6] transition hover:bg-[#8B5CF6] hover:text-white active:scale-95"
+    >
+      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none">
+        <path
+          d="M3 6.5C3 5.67 3.67 5 4.5 5h15c.83 0 1.5.67 1.5 1.5v11c0 .83-.67 1.5-1.5 1.5h-15C3.67 19 3 18.33 3 17.5v-11Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
+      </svg>
+      <span className="truncate">{revealed ? email : "Email"}</span>
+    </a>
+  );
+}
+
 function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.ReactNode[] {
   return tokens.map((token, i) => {
     const key = `${keyPrefix}-${i}`;
@@ -654,24 +699,7 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
         return <img key={key} src={token.src} alt={token.alt} title={token.title} className="inline-block max-h-48 rounded" />;
       case "autolink":
   if (token.kind === "email") {
-    return (
-      <a
-        key={key}
-        href={token.href}
-        onClick={(e) => e.stopPropagation()}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[#FFFCF4 ] px-3 py-1.5 text-sm font-medium text-[#8B5CF6] transition hover:bg-[#8B5CF6] hover:text-white"
-      >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-          <path
-            d="M3 6.5C3 5.67 3.67 5 4.5 5h15c.83 0 1.5.67 1.5 1.5v11c0 .83-.67 1.5-1.5 1.5h-15C3.67 19 3 18.33 3 17.5v-11Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
-        </svg>
-        EMAIL SENT
-      </a>
-    );
+    return <EmailAutolink key={key} href={token.href} />;
   }
   return (
     <a
