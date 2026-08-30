@@ -3459,6 +3459,7 @@ useEffect(() => {
         open={!!folderModal}
         title={folderModal?.mode === "create" ? "New folder" : "Rename folder"}
         onCancel={() => setFolderModal(null)}
+        rootClassName="dark:[&_.ant-modal-content]:!bg-[#2A2A2A] dark:[&_.ant-modal-header]:!bg-[#2A2A2A] dark:[&_.ant-modal-title]:!text-[#E8E8E8]"
         footer={[
           ...(folderModal?.mode === "rename" && folderModal.id
             ? [
