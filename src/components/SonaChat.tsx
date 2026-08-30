@@ -2241,7 +2241,7 @@ useEffect(() => {
           <Link
             to="/learn"
             onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
             Manual for Sona
           </Link>
@@ -2249,7 +2249,7 @@ useEffect(() => {
           <Link
             to="/blog"
             onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
             Blog
           </Link>
@@ -2257,7 +2257,7 @@ useEffect(() => {
           <Link
             to="/help"
             onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] !dark:text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
           >
             Help Center
           </Link>
