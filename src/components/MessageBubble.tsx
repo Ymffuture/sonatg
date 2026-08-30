@@ -1586,7 +1586,7 @@ const tailClass = !grouped && mine
             )}
 
             {msg.is_forwarded && (
-              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600 dark:text-white" : "text-[#8C8C8C]"}`}>
+              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-[#FFB7A5] dark:text-white" : "text-[#8C8C8C]"}`}>
                 <Forward className="h-3 w-3" /> Forwarded
               </div>
             )}
@@ -1699,7 +1699,7 @@ const tailClass = !grouped && mine
                   <span className={`block truncate text-sm font-medium ${mine ? "dark:text-white text-[#FFFCF4]" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
                     {msg.file_name || "File"}
                   </span>
-                  <span className={`block text-xs ${mine ? "text-[#0B1315]" : "text-[#8C8C8C]"}`}>
+                  <span className={`block text-xs ${mine ? "text-[#FFB7A5]" : "text-[#8C8C8C]"}`}>
                     {msg.file_size ? formatBytes(msg.file_size) : ""}
                   </span>
                 </span>
