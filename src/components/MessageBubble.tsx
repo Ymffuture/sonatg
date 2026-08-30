@@ -1531,7 +1531,7 @@ const tailClass = !grouped && mine
               msg._pending ? "opacity-60" : "opacity-100"
             } ${
               mine
-                ? "bg-[#1E1E1E] dark:bg-[#1E1E1E] dark:text-[#fff]"
+                ? "bg-[#1E1E1E] dark:bg-[#0B132B] dark:text-[#fff]"
                 : "bg-white dark:bg-[#2A2A2A] text-[#151c1c] dark:text-[#E8E8E8] border border-[#E07A5F]/10"
             } ${
               isHighlighted
