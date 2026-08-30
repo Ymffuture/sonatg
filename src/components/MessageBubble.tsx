@@ -1388,7 +1388,7 @@ export function Bubble({
       const rect = bubbleRef.current.getBoundingClientRect();
       setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
     }
-  }, 600);
+  }, 800);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(bodyText).then(() => {
