@@ -50,7 +50,7 @@ const notify = {
       message,
       description,
       placement: "top",
-      className: `${MILKY_CLASS} [&_.ant-notification-notice-icon]:!text-[#E07A5F]`,
+      className: `${MILKY_CLASS} [&_.ant-notification-notice-icon]:!text-[var(--sona-accent,#E07A5F)]`,
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
     notification.error({
@@ -111,13 +111,13 @@ export function MemberListModal({
   return (
     <GlassSheet onClose={onClose}>
       <div className="pt-2.5 pb-1 flex justify-center">
-        <div className="h-1.5 w-10 rounded-full bg-[#E07A5F]/40" />
+        <div className="h-1.5 w-10 rounded-full bg-[var(--sona-accent,#E07A5F)]/40" />
       </div>
       <div className="px-5 pt-2 pb-3 flex items-center justify-between">
         <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
           {chat.title || "Group"} · {chat.members.length} {chat.members.length === 1 ? "participant" : "participants"}
         </h3>
-        <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#E07A5F]/10 transition" aria-label="Close">
+        <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10 transition" aria-label="Close">
           <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
         </button>
       </div>
@@ -176,7 +176,7 @@ export function MemberListModal({
         {isAdmin && (
           <button
             onClick={onOpenSettings}
-            className="w-full flex items-center justify-center gap-2 rounded-full bg-[#E07A5F] py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-lg"
+            className="w-full flex items-center justify-center gap-2 rounded-full bg-[var(--sona-accent,#E07A5F)] py-2.5 text-sm font-semibold text-white hover:opacity-90 transition shadow-lg"
           >
             <Settings className="h-4 w-4" /> Group settings
           </button>
@@ -322,11 +322,11 @@ export function GroupSettingsModal({
   return (
     <GlassSheet onClose={onClose} maxHeight="85vh">
       <div className="pt-2.5 pb-1 flex justify-center">
-        <div className="h-1.5 w-10 rounded-full bg-[#E07A5F]/40" />
+        <div className="h-1.5 w-10 rounded-full bg-[var(--sona-accent,#E07A5F)]/40" />
       </div>
       <div className="px-5 pt-2 pb-3 flex items-center justify-between">
         <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Group settings</h3>
-        <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#E07A5F]/10 transition" aria-label="Close">
+        <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10 transition" aria-label="Close">
           <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
         </button>
       </div>
@@ -336,7 +336,7 @@ export function GroupSettingsModal({
         <div className="flex justify-center">
           <label className="relative cursor-pointer">
             <Avatar url={avatarPreview ?? chat.avatar_url} name={chat.title ?? "Group"} size={84} />
-            <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-[#E07A5F] text-white ring-2 ring-white/50 dark:ring-[#2A2A2A]">
+            <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-[var(--sona-accent,#E07A5F)] text-white ring-2 ring-white/50 dark:ring-[#2A2A2A]">
               <Camera className="h-3.5 w-3.5" />
             </span>
             <input type="file" accept="image/*" className="hidden" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} />
@@ -349,7 +349,7 @@ export function GroupSettingsModal({
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
+            className="mt-1 w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30"
           />
         </div>
 
@@ -364,7 +364,7 @@ export function GroupSettingsModal({
             onChange={(e) => setDescription(e.target.value.slice(0, 250))}
             placeholder="What's this group about?"
             rows={2}
-            className="mt-1 w-full resize-none rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
+            className="mt-1 w-full resize-none rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30"
           />
         </div>
 
@@ -378,7 +378,7 @@ export function GroupSettingsModal({
                 onClick={() => setCategory(cat.value)}
                 className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition border ${
                   category === cat.value
-                    ? "bg-[#E07A5F] text-white border-[#E07A5F] shadow-md"
+                    ? "bg-[var(--sona-accent,#E07A5F)] text-white border-[var(--sona-accent,#E07A5F)] shadow-md"
                     : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border-white/30 dark:border-white/10 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-white/10"
                 }`}
               >
@@ -397,8 +397,8 @@ export function GroupSettingsModal({
             onClick={() => setAddOpen((v) => !v)}
             className="w-full flex items-center gap-2 rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-white/10 transition"
           >
-            <UserPlus className="h-4 w-4 text-[#E07A5F]" /> Add participants
-            {addSelected.size > 0 && <span className="ml-auto text-xs text-[#E07A5F]">{addSelected.size} selected</span>}
+            <UserPlus className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Add participants
+            {addSelected.size > 0 && <span className="ml-auto text-xs text-[var(--sona-accent,#E07A5F)]">{addSelected.size} selected</span>}
           </button>
           {addOpen && (
             <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md">
@@ -412,18 +412,18 @@ export function GroupSettingsModal({
                     if (next.has(u.id)) next.delete(u.id); else next.add(u.id);
                     return next;
                   })}
-                  className="flex w-full items-center gap-3 border-b border-white/10 dark:border-white/5 p-2.5 last:border-0 hover:bg-[#E07A5F]/10 transition"
+                  className="flex w-full items-center gap-3 border-b border-white/10 dark:border-white/5 p-2.5 last:border-0 hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
                 >
                   <Avatar url={u.avatar_url} name={u.display_name} size={32} />
                   <span className="flex-1 truncate text-sm text-left text-[#2D3436] dark:text-[#E8E8E8]">{u.display_name}</span>
-                  {addSelected.has(u.id) ? <CheckSquare className="h-4 w-4 text-[#E07A5F]" /> : <Square className="h-4 w-4 text-[#8C8C8C]" />}
+                  {addSelected.has(u.id) ? <CheckSquare className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> : <Square className="h-4 w-4 text-[#8C8C8C]" />}
                 </button>
               ))}
               {candidates.length > 0 && (
                 <button
                   onClick={addMembers}
                   disabled={addBusy || addSelected.size === 0}
-                  className="w-full py-2 text-sm font-semibold text-white bg-[#E07A5F] disabled:opacity-50 hover:bg-[#D4694F] transition flex items-center justify-center gap-2"
+                  className="w-full py-2 text-sm font-semibold text-white bg-[var(--sona-accent,#E07A5F)] disabled:opacity-50 hover:bg-[#D4694F] transition flex items-center justify-center gap-2"
                 >
                   {addBusy ? <><Spin size="small" /> Adding…</> : "Add selected"}
                 </button>
@@ -435,7 +435,7 @@ export function GroupSettingsModal({
         {/* Classroom mode */}
         <div className="rounded-xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-white/5 p-3 backdrop-blur-sm space-y-3">
           <p className="flex items-center gap-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-            <GraduationCap className="h-3.5 w-3.5 text-[#E07A5F]" /> Classroom
+            <GraduationCap className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" /> Classroom
           </p>
 
           <button
@@ -443,7 +443,7 @@ export function GroupSettingsModal({
             disabled={classroomBusy}
             className="w-full flex items-center gap-2 rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 disabled:opacity-60"
           >
-            <Radio className="h-4 w-4 text-[#E07A5F]" />
+            <Radio className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
             <span className="flex-1 text-left">
               Broadcast-only
               <span className="block text-[11px] font-normal text-[#8C8C8C]">Only you can post — others can read but not reply</span>
@@ -455,12 +455,12 @@ export function GroupSettingsModal({
 
           {classInfo ? (
             <div className="flex items-center gap-2 rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 border border-white/30 dark:border-white/10">
-              <KeyRound className="h-4 w-4 shrink-0 text-[#E07A5F]" />
+              <KeyRound className="h-4 w-4 shrink-0 text-[var(--sona-accent,#E07A5F)]" />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] text-[#8C8C8C]">Join code</p>
                 <p className="font-mono text-sm font-semibold tracking-wider text-[#2D3436] dark:text-[#E8E8E8]">{classInfo.join_code}</p>
               </div>
-              <button onClick={copyClassCode} aria-label="Copy join code" className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-[#E07A5F]/10">
+              <button onClick={copyClassCode} aria-label="Copy join code" className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10">
                 <Copy className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
               </button>
             </div>
@@ -468,7 +468,7 @@ export function GroupSettingsModal({
             <button
               onClick={generateClassCode}
               disabled={classroomBusy}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#E07A5F]/10 px-3 py-2.5 text-sm font-semibold text-[#E07A5F] disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--sona-accent,#E07A5F)]/10 px-3 py-2.5 text-sm font-semibold text-[var(--sona-accent,#E07A5F)] disabled:opacity-60"
             >
               {classroomBusy ? <Spin size="small" /> : <KeyRound className="h-4 w-4" />}
               Generate join code
@@ -491,7 +491,7 @@ export function GroupSettingsModal({
         <button
           onClick={save}
           disabled={saving}
-          className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-60 transition flex items-center justify-center gap-2"
+          className="w-full rounded-full bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-60 transition flex items-center justify-center gap-2"
         >
           {saving ? <><Spin size="small" /> Saving…</> : "Save changes"}
         </button>
@@ -613,16 +613,16 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pt-2.5 pb-1 flex justify-center">
-          <div className="h-1.5 w-10 rounded-full bg-[#E07A5F]/40" />
+          <div className="h-1.5 w-10 rounded-full bg-[var(--sona-accent,#E07A5F)]/40" />
         </div>
         <div className="px-5 pt-2 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-[#E07A5F]" />
+            <Users className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
             <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
               {mode === "direct" ? "Choose a friend" : mode === "group" ? "New group" : "Join a class"}
             </h3>
           </div>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#E07A5F]/10 transition" aria-label="Close">
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10 transition" aria-label="Close">
             <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
           </button>
         </div>
@@ -631,19 +631,19 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         <div className="px-5 pb-3 flex gap-2">
           <button
             onClick={() => setMode("direct")}
-            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "direct" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
+            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "direct" ? "bg-[var(--sona-accent,#E07A5F)] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
           >
             Direct message
           </button>
           <button
             onClick={() => setMode("group")}
-            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "group" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
+            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "group" ? "bg-[var(--sona-accent,#E07A5F)] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
           >
             New group
           </button>
           <button
             onClick={() => setMode("class")}
-            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "class" ? "bg-[#E07A5F] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
+            className={`flex-1 rounded-full px-3 py-2 text-[8px] font-medium transition ${mode === "class" ? "bg-[var(--sona-accent,#E07A5F)] text-white shadow-lg" : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm"}`}
           >
             Join with code
           </button>
@@ -656,7 +656,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               value={classCode}
               onChange={(e) => setClassCode(e.target.value.toUpperCase())}
               placeholder="XXXX-XXXX"
-              className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm font-mono tracking-wider outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm font-mono tracking-wider outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30"
             />
             <button
               onClick={async () => {
@@ -674,7 +674,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                 }
               }}
               disabled={joiningClass || !classCode.trim()}
-              className="w-full flex items-center justify-center gap-2 rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-60 transition"
+              className="w-full flex items-center justify-center gap-2 rounded-full bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-60 transition"
             >
               {joiningClass ? <><Spin size="small" /> Joining…</> : "Join class"}
             </button>
@@ -687,7 +687,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               value={groupTitle}
               onChange={(e) => setGroupTitle(e.target.value)}
               placeholder="Group name (e.g. Grade 11 Study Group)"
-              className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[#E07A5F]/30"
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C] border border-white/30 dark:border-white/10 backdrop-blur-sm focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30"
             />
             <div className="flex flex-wrap gap-1.5">
               {CHAT_CATEGORIES.map((cat) => (
@@ -696,7 +696,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                   onClick={() => setCategory(cat.value)}
                   className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition border ${
                     category === cat.value
-                      ? "bg-[#E07A5F] text-white border-[#E07A5F] shadow-md"
+                      ? "bg-[var(--sona-accent,#E07A5F)] text-white border-[var(--sona-accent,#E07A5F)] shadow-md"
                       : "bg-white/50 dark:bg-white/5 text-[#8C8C8C] border-white/30 dark:border-white/10 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-white/10"
                   }`}
                 >
@@ -740,7 +740,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               key={u.id}
               disabled={mode === "direct" && busyId === u.id}
               onClick={() => (mode === "direct" ? startWith(u) : toggleSelected(u.id))}
-              className="flex w-full items-center gap-3 border-b border-white/10 dark:border-white/5 p-3 text-left last:border-0 hover:bg-[#E07A5F]/10 disabled:opacity-60 rounded-xl transition"
+              className="flex w-full items-center gap-3 border-b border-white/10 dark:border-white/5 p-3 text-left last:border-0 hover:bg-[var(--sona-accent,#E07A5F)]/10 disabled:opacity-60 rounded-xl transition"
             >
               <Avatar url={u.avatar_url} name={u.display_name} size={42} ai={u.is_ai} />
               <div className="min-w-0 flex-1">
@@ -764,9 +764,9 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                 <div className="truncate text-xs text-[#8C8C8C]">{usernameFromEmail(u.display_name, u.email)}</div>
               </div>
               {mode === "direct" ? (
-                busyId === u.id ? <Spin size="small" /> : <Plus className="h-4 w-4 text-[#E07A5F]" />
+                busyId === u.id ? <Spin size="small" /> : <Plus className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
               ) : selectedIds.has(u.id) ? (
-                <CheckSquare className="h-5 w-5 text-[#E07A5F]" />
+                <CheckSquare className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
               ) : (
                 <Square className="h-5 w-5 text-[#8C8C8C]" />
               )}
@@ -780,7 +780,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
             <button
               onClick={createGroup}
               disabled={creatingGroup}
-              className="w-full rounded-full bg-[#E07A5F] py-3 text-sm font-semibold text-white items-center shadow-lg transition hover:opacity-90 disabled:opacity-60 flex justify-center gap-2"
+              className="w-full rounded-full bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white items-center shadow-lg transition hover:opacity-90 disabled:opacity-60 flex justify-center gap-2"
             >
               {creatingGroup ? (<span className="flex items-center gap-2"><Spin size="small" /> Creating…</span>) : "Create group"}
             </button>
@@ -806,13 +806,13 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                   navigator.clipboard.writeText(groupError.raw);
                   notify.success({ message: "Error copied to clipboard", description: "Paste it wherever you need — e.g. when reporting the issue." });
                 }}
-                className="flex-1 rounded-full border border-[#E07A5F]/30 py-2 text-sm font-medium text-[#E07A5F] hover:bg-[#E07A5F]/10 transition"
+                className="flex-1 rounded-full border border-[var(--sona-accent,#E07A5F)]/30 py-2 text-sm font-medium text-[var(--sona-accent,#E07A5F)] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
               >
                 Copy error
               </button>
               <button
                 onClick={() => setGroupError(null)}
-                className="flex-1 rounded-full bg-[#E07A5F] py-2 text-sm font-semibold text-white hover:bg-[#D4694F] transition"
+                className="flex-1 rounded-full bg-[var(--sona-accent,#E07A5F)] py-2 text-sm font-semibold text-white hover:bg-[#D4694F] transition"
               >
                 Got it
               </button>
@@ -977,7 +977,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       >
         <div className="shrink-0 px-5 pt-5">
           <div className="flex items-center gap-2 mb-4">
-            <Settings className="h-4 w-4 text-[#E07A5F]" />
+            <Settings className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
             <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Settings</h3>
             {me.is_pro && (
               <Tooltip title="Purple account">
@@ -1008,7 +1008,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                   onClick={pickAvatar}
                   disabled={uploadingAvatar}
                   aria-label="Change profile picture"
-                  className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-[#E07A5F] text-white shadow-md hover:bg-[#D4694F] disabled:opacity-60 transition"
+                  className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-[var(--sona-accent,#E07A5F)] text-white shadow-md hover:bg-[#D4694F] disabled:opacity-60 transition"
                 >
                   {uploadingAvatar ? <Spin size="small" /> : <Pencil className="h-3.5 w-3.5" />}
                 </button>
@@ -1020,14 +1020,14 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ""; }}
                 />
               </div>
-              <button onClick={pickAvatar} disabled={uploadingAvatar} className="text-xs font-medium text-[#E07A5F] hover:underline disabled:opacity-60">
+              <button onClick={pickAvatar} disabled={uploadingAvatar} className="text-xs font-medium text-[var(--sona-accent,#E07A5F)] hover:underline disabled:opacity-60">
                 {uploadingAvatar ? "Uploading…" : "Change photo"}
               </button>
             </div>
             <div>
               <label className="text-xs text-[#8C8C8C]">Display name</label>
               <input value={name} onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                className="mt-1 w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
             </div>
             <div>
               <div className="flex items-center justify-between">
@@ -1039,7 +1039,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                 onChange={(e) => setBio(e.target.value.slice(0, 140))}
                 placeholder="Add a short bio…"
                 rows={2}
-                className="mt-1 w-full resize-none rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm"
+                className="mt-1 w-full resize-none rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm"
               />
             </div>
             <div>
@@ -1047,16 +1047,16 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
               <div className="mt-1 grid grid-cols-2 gap-2">
                 <input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)}
                   placeholder="Facebook URL"
-                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
                 <input value={xUrl} onChange={(e) => setXUrl(e.target.value)}
                   placeholder="X (Twitter) URL"
-                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
                 <input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)}
                   placeholder="Instagram URL"
-                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
                 <input value={threadsUrl} onChange={(e) => setThreadsUrl(e.target.value)}
                   placeholder="Threads URL"
-                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+                  className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
               </div>
             </div>
             <p className="text-xs text-[#8C8C8C]">Signed in as {me.email}</p>
@@ -1066,14 +1066,14 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
         {tab === "advanced" && (
           <div className="space-y-3 text-sm">
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Bell className="h-4 w-4 text-[#E07A5F]" /> Push notifications</div>
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Bell className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Push notifications</div>
               <p className="mt-1 text-xs text-[#8C8C8C]">Status: {notif}</p>
               {notif !== "granted" && (
-                <button onClick={askNotif} className="mt-2 rounded-lg bg-white/50 dark:bg-white/5 px-3 py-1.5 text-xs hover:bg-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8] border border-white/20 dark:border-white/10 transition">Enable</button>
+                <button onClick={askNotif} className="mt-2 rounded-lg bg-white/50 dark:bg-white/5 px-3 py-1.5 text-xs hover:bg-[var(--sona-accent,#E07A5F)]/10 text-[#2D3436] dark:text-[#E8E8E8] border border-white/20 dark:border-white/10 transition">Enable</button>
               )}
             </div>
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Mail className="h-4 w-4 text-[#E07A5F]" /> Email notifications</div>
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Mail className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Email notifications</div>
               <p className="mt-1 text-xs text-[#8C8C8C]">Sent to {me.email || "your account email"} — separate from the in-app push notifications above.</p>
               <div className="mt-3 space-y-2">
                 <label className="flex items-center justify-between gap-3">
@@ -1086,7 +1086,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                     checked={emailPrefs?.notify_offline_messages ?? true}
                     disabled={!emailPrefs || emailPrefsBusy}
                     onChange={() => toggleEmailPref("notify_offline_messages")}
-                    className="h-4 w-4 shrink-0 accent-[#E07A5F]"
+                    className="h-4 w-4 shrink-0 accent-[var(--sona-accent,#E07A5F)]"
                   />
                 </label>
                 <label className="flex items-center justify-between gap-3">
@@ -1099,19 +1099,19 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                     checked={emailPrefs?.notify_app_updates ?? true}
                     disabled={!emailPrefs || emailPrefsBusy}
                     onChange={() => toggleEmailPref("notify_app_updates")}
-                    className="h-4 w-4 shrink-0 accent-[#E07A5F]"
+                    className="h-4 w-4 shrink-0 accent-[var(--sona-accent,#E07A5F)]"
                   />
                 </label>
               </div>
             </div>
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Music className="h-4 w-4 text-[#E07A5F]" /> Sounds</div>
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Music className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Sounds</div>
               <div className="mt-3">
                 <SoundSettings />
               </div>
             </div>
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Shield className="h-4 w-4 text-[#E07A5F]" /> Security</div>
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Shield className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Security</div>
               <ul className="mt-1 space-y-1 text-xs text-[#8C8C8C]">
                 <li className="flex items-center gap-1.5"><Lock className="h-3 w-3" /> End-to-end AES-GCM encryption for hidden chats</li>
                 <li className="flex items-center gap-1.5"><Shield className="h-3 w-3" /> Passcodes never leave your device</li>
@@ -1119,7 +1119,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
               </ul>
             </div>
             <div className="rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 p-3 backdrop-blur-sm">
-              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Lock className="h-4 w-4 text-[#E07A5F]" /> Hidden chats</div>
+              <div className="flex items-center gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><Lock className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Hidden chats</div>
               <p className="mt-1 text-xs text-[#8C8C8C]">Toggle "Hide & encrypt" from the chat menu to store messages encrypted at rest.</p>
             </div>
 
@@ -1362,9 +1362,9 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
         <div className="shrink-0 flex items-center justify-between gap-2 border-t border-white/20 dark:border-white/10 px-5 py-4">
           <button onClick={signOut} className="rounded-xl px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-1 transition"><LogOut className="h-3.5 w-3.5" /> Sign out</button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8] transition">Close</button>
+            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 text-[#2D3436] dark:text-[#E8E8E8] transition">Close</button>
             {tab === "profile" && (
-              <button disabled={busy} onClick={save} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-md flex items-center gap-2">
+              <button disabled={busy} onClick={save} className="rounded-xl bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-[#D4694F] transition shadow-md flex items-center gap-2">
                 {busy ? <><Spin size="small" /> Saving…</> : "Save"}
               </button>
             )}
@@ -1388,17 +1388,17 @@ export function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; 
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 backdrop-blur-sm p-4" onClick={onCancel}>
       <div className="w-full max-w-sm rounded-2xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-3">
-          <Lock className="h-4 w-4 text-[#E07A5F]" />
+          <Lock className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
           <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Unlock hidden chat</h3>
         </div>
         <p className="text-xs text-[#8C8C8C] mb-3">Enter your passcode to decrypt messages. It never leaves your device.</p>
         <input type="password" value={pass} onChange={(e) => setPass(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           placeholder="Passcode"
-          className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
+          className="w-full rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/30 text-[#2D3436] dark:text-[#E8E8E8] border border-white/30 dark:border-white/10 backdrop-blur-sm" />
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm hover:bg-[#E07A5F]/10 text-[#2D3436] dark:text-[#E8E8E8] transition">Cancel</button>
-          <button onClick={submit} className="rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#D4694F] transition shadow-md">Unlock</button>
+          <button onClick={onCancel} className="rounded-xl px-3 py-2 text-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 text-[#2D3436] dark:text-[#E8E8E8] transition">Cancel</button>
+          <button onClick={submit} className="rounded-xl bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-sm font-semibold text-white hover:bg-[#D4694F] transition shadow-md">Unlock</button>
         </div>
       </div>
     </div>

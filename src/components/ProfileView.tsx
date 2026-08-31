@@ -114,7 +114,7 @@ export function ProfileViewModal({
                   shape="circle"
                   icon={<CloseOutlined className="text-[#2D3436] dark:text-[#E8E8E8]" />}
                   onClick={onClose}
-                  className="hover:!bg-[#E07A5F]/10"
+                  className="hover:!bg-[var(--sona-accent,#E07A5F)]/10"
                 />
               </Tooltip>
             </div>
@@ -135,7 +135,7 @@ export function ProfileViewModal({
                 >
                   <div
                     className={`rounded-full overflow-hidden shadow-2xl ${
-                      hasStatus ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-[#1a1a1a]" : "ring-[3px] ring-[#E07A5F]/15"
+                      hasStatus ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-[#1a1a1a]" : "ring-[3px] ring-[var(--sona-accent,#E07A5F)]/15"
                     }`}
                   >
                     <Image
@@ -196,7 +196,7 @@ export function ProfileViewModal({
 
               {profile.bio && (
                 <Text className="!mt-3 !text-sm !text-[#5C5C5C] dark:!text-[#B8B8B8] !leading-relaxed block max-w-[260px]">
-                  <InfoCircleOutlined className="mr-1 text-[#E07A5F] text-xs" />
+                  <InfoCircleOutlined className="mr-1 text-[var(--sona-accent,#E07A5F)] text-xs" />
                   {profile.bio}
                 </Text>
               )}
@@ -271,12 +271,12 @@ export function ProfileViewModal({
                   className="overflow-hidden"
                 >
                   <Alert
-                    message={mod.label}
+                    message={<span className="!text-[#2D3436] dark:!text-[#F0EBE3] font-semibold">{mod.label}</span>}
                     description={
                       <div>
-                        <Text className="!text-xs !text-[#5C5C5C] dark:!text-[#B8B8B8] block">{mod.reason || mod.note}</Text>
+                        <Text className="!text-xs !text-[#3A3A3A] dark:!text-[#D8D8D8] block">{mod.reason || mod.note}</Text>
                         {mod.expires_at && (
-                          <Text className="!text-[11px] !text-[#8C8C8C] block mt-1">
+                          <Text className="!text-[11px] !text-[#5C5C5C] dark:!text-[#B8B8B8] block mt-1">
                             Until {new Date(mod.expires_at).toLocaleDateString()}
                           </Text>
                         )}
@@ -284,9 +284,9 @@ export function ProfileViewModal({
                     }
                     type="warning"
                     showIcon
-                    icon={<ExclamationCircleOutlined />}
+                    icon={<ExclamationCircleOutlined style={{ color: mod.color }} />}
                     className="!rounded-xl !border-[1.5px]"
-                    style={{ backgroundColor: `${mod.color}12`, borderColor: `${mod.color}45` }}
+                    style={{ backgroundColor: `${mod.color}1F`, borderColor: `${mod.color}55` }}
                   />
                 </motion.div>
               )}
@@ -297,7 +297,7 @@ export function ProfileViewModal({
               {joined && (
                 <Tooltip title={`Member since ${joined}`} placement="top">
                   <div className="flex flex-col items-center gap-1 rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333] cursor-default">
-                    <CalendarOutlined className="text-lg text-[#E07A5F]" />
+                    <CalendarOutlined className="text-lg text-[var(--sona-accent,#E07A5F)]" />
                     <Text className="!text-[9px] !text-[#8C8C8C] uppercase tracking-wider font-medium">Joined</Text>
                     <Text className="!text-[11px] !font-bold !text-[#2D3436] dark:!text-[#E8E8E8]">{joined}</Text>
                   </div>
@@ -311,14 +311,14 @@ export function ProfileViewModal({
                     className="flex flex-col items-center gap-1 rounded-2xl bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3 transition hover:bg-[#EFE6D8] dark:hover:bg-[#333] col-span-3"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
-                        <PictureOutlined className="text-[#E07A5F] text-sm" />
+                      <div className="h-7 w-7 rounded-lg bg-[var(--sona-accent,#E07A5F)]/10 flex items-center justify-center">
+                        <PictureOutlined className="text-[var(--sona-accent,#E07A5F)] text-sm" />
                       </div>
-                      <div className="h-7 w-7 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
-                        <LinkOutlined className="text-[#E07A5F] text-sm" />
+                      <div className="h-7 w-7 rounded-lg bg-[var(--sona-accent,#E07A5F)]/10 flex items-center justify-center">
+                        <LinkOutlined className="text-[var(--sona-accent,#E07A5F)] text-sm" />
                       </div>
-                      <div className="h-7 w-7 rounded-lg bg-[#E07A5F]/10 flex items-center justify-center">
-                        <FileTextOutlined className="text-[#E07A5F] text-sm" />
+                      <div className="h-7 w-7 rounded-lg bg-[var(--sona-accent,#E07A5F)]/10 flex items-center justify-center">
+                        <FileTextOutlined className="text-[var(--sona-accent,#E07A5F)] text-sm" />
                       </div>
                     </div>
                     <Text className="!text-[9px] !text-[#8C8C8C] uppercase tracking-wider font-medium">Media & Docs</Text>
@@ -330,7 +330,7 @@ export function ProfileViewModal({
               )}
             </div>
 
-            <Divider className="!my-5 !border-[#E07A5F]/10" />
+            <Divider className="!my-5 !border-[var(--sona-accent,#E07A5F)]/10" />
 
             {/* Actions */}
             <div className="grid grid-cols-2 gap-2.5">
@@ -341,7 +341,7 @@ export function ProfileViewModal({
                     size="large"
                     icon={<EditOutlined />}
                     onClick={onEdit}
-                    style={{ backgroundColor: "#E07A5F", borderColor: "#E07A5F", borderRadius: 999, height: 44 }}
+                    style={{ backgroundColor: "var(--sona-accent,#E07A5F)", borderColor: "var(--sona-accent,#E07A5F)", borderRadius: 999, height: 44 }}
                     className="!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2"
                   >
                     Edit profile
@@ -370,7 +370,7 @@ export function ProfileViewModal({
                           icon={<LuMessageSquareText />}
                           onClick={messageDisabled ? undefined : onMessage}
                           disabled={messageDisabled}
-                          style={{ backgroundColor:profile.is_pro ? "" :"#E07A5F", borderColor:profile.is_pro ? "" :"#E07A5F", borderRadius: 50, height: 44 }}
+                          style={{ backgroundColor:profile.is_pro ? "" :"var(--sona-accent,#E07A5F)", borderColor:profile.is_pro ? "" :"var(--sona-accent,#E07A5F)", borderRadius: 50, height: 44 }}
                           className={`!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity ${profile.is_pro && !messageDisabled ? "bg-gradient-to-br from-violet-700 via-violet-400 to-fuchsia-400" :"" } `}
                         >
                           Message
@@ -426,7 +426,7 @@ export function ProfileViewModal({
                 </Text>
               </div>
               <Text className="!text-[10px] !text-[#8C8C8C]/70 tracking-wide">
-                Powered by <span className="font-semibold text-[#E07A5F]/80">Swiftmeta</span>
+                Powered by <span className="font-semibold text-[var(--sona-accent,#E07A5F)]/80">Swiftmeta</span>
               </Text>
             </div>
           </div>
