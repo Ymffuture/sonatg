@@ -49,7 +49,7 @@ const MOD_META: Record<string, { label: string; color: string; note: string }> =
 export function ProfileViewModal({
   profile, isSelf, onClose, onMessage, onEdit, moderation, onReport,
   online, lastSeen, onOpenMedia, isBlocked, onToggleBlock, hasStatus,
-  socials, onShareContact,
+  socials, onShareContact, messageDisabled, messageDisabledReason,
 }: {
   profile: Profile;
   isSelf: boolean;
@@ -64,6 +64,8 @@ export function ProfileViewModal({
   isBlocked?: boolean;
   onToggleBlock?: () => void;
   hasStatus?: boolean;
+  messageDisabled?: boolean;
+  messageDisabledReason?: string;
   socials?: {
     facebook?: string;
     x?: string;
@@ -359,16 +361,22 @@ export function ProfileViewModal({
               ) : (
                 <>
                   {!profile.is_ai && onMessage && (
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<LuMessageSquareText />}
-                      onClick={onMessage}
-                      style={{ backgroundColor:profile.is_pro ? "" :"#E07A5F", borderColor:profile.is_pro ? "" :"#E07A5F", borderRadius: 50, height: 44 }}
-                      className={`!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity col-span-2 ${profile.is_pro ? "bg-gradient-to-br from-violet-700 via-violet-400 to-fuchsia-400" :"" } `}  
-                    >
-                      Message
-                    </Button>
+                    <Tooltip title={messageDisabled ? messageDisabledReason : undefined}>
+                      <span className="col-span-2 block">
+                        <Button
+                          type="primary"
+                          size="large"
+                          block
+                          icon={<LuMessageSquareText />}
+                          onClick={messageDisabled ? undefined : onMessage}
+                          disabled={messageDisabled}
+                          style={{ backgroundColor:profile.is_pro ? "" :"#E07A5F", borderColor:profile.is_pro ? "" :"#E07A5F", borderRadius: 50, height: 44 }}
+                          className={`!font-semibold !shadow-lg hover:!opacity-90 !transition-opacity ${profile.is_pro && !messageDisabled ? "bg-gradient-to-br from-violet-700 via-violet-400 to-fuchsia-400" :"" } `}
+                        >
+                          Message
+                        </Button>
+                      </span>
+                    </Tooltip>
                   )}
                   {onShareContact && (
                     <Button

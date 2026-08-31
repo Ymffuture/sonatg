@@ -629,6 +629,7 @@ function SonaChatInner() {
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [blockedByIds, setBlockedByIds] = useState<Set<string>>(new Set());
   const [myModeration, setMyModeration] = useState<{ action: string; reason: string | null; expires_at: string | null } | null>(null);
+  const [otherModeration, setOtherModeration] = useState<{ action: string; reason: string | null; expires_at: string | null } | null>(null);
   const [reportTarget, setReportTarget] = useState<Profile | null>(null);
   const [reportReason, setReportReason] = useState("Harassment or bullying");
   const [reportDetails, setReportDetails] = useState("");
@@ -812,6 +813,23 @@ function SonaChatInner() {
     })();
   }, [me]);
 
+
+  // When opening someone else's profile, look up their ban/suspension status
+  // (separately from myModeration, which only ever covers the signed-in user)
+  // so the profile modal can show the exact reason and disable messaging.
+  useEffect(() => {
+    if (!viewingProfile || !me || viewingProfile.id === me.id) { setOtherModeration(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("user_moderation").select("action, reason, expires_at, is_active")
+        .eq("user_id", viewingProfile.id).eq("is_active", true).order("created_at", { ascending: false }).limit(1);
+      if (cancelled) return;
+      if (error) { console.error("[moderation] failed to load profile status:", error.message); setOtherModeration(null); return; }
+      const m = (data ?? [])[0] as { action: string; reason: string | null; expires_at: string | null } | undefined;
+      setOtherModeration(m && m.action !== "clear" ? m : null);
+    })();
+    return () => { cancelled = true; };
+  }, [viewingProfile, me]);
 
   // Prompt to unlock when opening a hidden chat
   useEffect(() => {
@@ -1200,9 +1218,9 @@ function SonaChatInner() {
         ? "Your account is banned — you can't send messages."
         : `Your account is suspended${myModeration?.expires_at ? ` until ${new Date(myModeration.expires_at).toLocaleDateString()}` : ""} — you can't send messages.`)
     : iBlockedThem
-      ? "You blocked this person. Messages won't go through in either direction until you unblock them."
+      ? "You can't send messages to this person. You blocked them — unblock to resume the conversation."
       : theyBlockedMe
-        ? "You can't message this person right now."
+        ? "You can't send messages to this person."
         : broadcastLocked
           ? "Only admins can send messages to this group."
           : null;
@@ -3531,7 +3549,15 @@ useEffect(() => {
           onClose={() => setViewingProfile(null)}
           onMessage={() => messageProfile(viewingProfile)}
           onEdit={() => { setViewingProfile(null); setShowSettings(true); }}
-          moderation={viewingProfile.id === me.id ? myModeration : null}
+          moderation={viewingProfile.id === me.id ? myModeration : otherModeration}
+          messageDisabled={viewingProfile.id !== me.id && (otherModeration?.action === "ban" || otherModeration?.action === "suspend")}
+          messageDisabledReason={
+            otherModeration?.action === "ban"
+              ? "This account is banned — you can't message them."
+              : otherModeration?.action === "suspend"
+                ? "This account is suspended — you can't message them."
+                : undefined
+          }
           onReport={viewingProfile.id !== me.id && !viewingProfile.is_ai ? () => { setViewingProfile(null); setReportTarget(viewingProfile); } : undefined}
           online={onlineIds.has(viewingProfile.id)}
           lastSeen={viewingProfile.last_seen ?? null}
