@@ -2582,7 +2582,7 @@ useEffect(() => {
                         <Flag className="h-3 w-3 text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)]" />
                       </button>
                     )}
-                    {/*
+                    
                     <button
                       onClick={(e) => togglePin(e, c)}
                       className={`grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${
@@ -2593,7 +2593,7 @@ useEffect(() => {
                     >
                       <Pin className="h-3 w-3" style={c.isPinned ? { fill: "var(--sona-accent, #E07A5F)", color: "var(--sona-accent, #E07A5F)" } : undefined} />
                     </button>
-                    */} 
+                    
                   </div>
                 )}
 
