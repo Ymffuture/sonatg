@@ -2562,6 +2562,8 @@ useEffect(() => {
                 )}
               </span>
               <div className="flex shrink-0 flex-col items-end gap-1">
+                {/*
+                
                 {!selectMode && (
                   <div className="flex items-center gap-1">
                     {!ai && !c.is_group && (
@@ -2594,6 +2596,9 @@ useEffect(() => {
                     */} 
                   </div>
                 )}
+
+                */} 
+              
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "var(--sona-accent, #D97757)" } : undefined}>
                   {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
