@@ -2562,43 +2562,7 @@ useEffect(() => {
                 )}
               </span>
               <div className="flex shrink-0 flex-col items-end gap-1">
-                {/*
                 
-                {!selectMode && (
-                  <div className="flex items-center gap-1">
-                    {!ai && !c.is_group && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const otherId = c.memberIds.find((id) => id !== me.id);
-                          const p = otherId ? profilesById[otherId] : undefined;
-                          if (p) setReportTarget(p);
-                          else antMessage.error("Couldn't find that user's profile to report.");
-                        }}
-                        className="grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full opacity-40 hover:opacity-100 hover:bg-[#F4A261]/20 md:opacity-0 md:group-hover:opacity-100 transition"
-                        aria-label="Report user"
-                        title="Report user"
-                      >
-                        <Flag className="h-3 w-3 text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)]" />
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={(e) => togglePin(e, c)}
-                      className={`grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${
-                        c.isPinned ? "" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
-                      }`}
-                      aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
-                      title={c.isPinned ? "Unpin chat" : "Pin chat"}
-                    >
-                      <Pin className="h-3 w-3" style={c.isPinned ? { fill: "var(--sona-accent, #E07A5F)", color: "var(--sona-accent, #E07A5F)" } : undefined} />
-                    </button>
-                    
-                  </div>
-                )}
-
-                */} 
-              
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "var(--sona-accent, #D97757)" } : undefined}>
                   {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
@@ -2784,8 +2748,8 @@ useEffect(() => {
         className={`
           truncate text-sm tracking-tight
           ${isLong 
-            ? "text-[10px]" 
-            : "text-[15px]"
+            ? "text-[12px]" 
+            : "text-[16px]"
           }
           ${isAIChat(active)
             ? ""
