@@ -787,6 +787,13 @@ function MessageContextMenu({
   onEnterSelect?: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
+  // "primary" = Reply/Forward/Copy/React, always visible first — the ones
+  // used on nearly every message. "more" = Edit/Pin/Save/Select/Delete,
+  // tucked behind a "More" row. Tapping "More" swaps the panel's own
+  // content in place rather than opening a second, separate popover next
+  // to it — there is only ever one menu box on screen, so it can never
+  // overlap or clip the way a nested flyout can on a narrow phone screen.
+  const [view, setView] = useState<"primary" | "more">("primary");
 
   useEffect(() => {
     if (!open) return;
@@ -804,14 +811,27 @@ function MessageContextMenu({
     };
   }, [open, onClose]);
 
+  // Every time this menu closes (this message's or by opening a different
+  // message's), reset back to the primary view so it never reopens stuck
+  // on "More" from last time.
+  useEffect(() => { if (!open) setView("primary"); }, [open]);
+
   if (!open) return null;
 
+  // Clamp on both sides of each axis: the upper bound keeps the menu from
+  // running off the right/bottom of the screen (the only case handled
+  // before), the lower bound (12px margin) keeps it from running off the
+  // left/top for a message near the very edge of a narrow phone screen.
+  const menuWidth = 208; // w-52
+  const menuHeight = 320;
   const style: React.CSSProperties = {
     position: "fixed",
-    left: Math.min(x, window.innerWidth - 220),
-    top: Math.min(y, window.innerHeight - 280),
+    left: Math.min(Math.max(x, 12), window.innerWidth - menuWidth - 12),
+    top: Math.min(Math.max(y, 12), window.innerHeight - menuHeight - 12),
     zIndex: 100,
   };
+
+  const hasMore = (mine && isText) || !!onTogglePin || !!onToggleBookmark || !!onEnterSelect || mine;
 
   return (
     <div
@@ -831,38 +851,59 @@ function MessageContextMenu({
         ))}
       </div>
 
-      <div className="py-1">
-        <MenuItem icon={<CornerUpLeft className="h-4 w-4" />} label="Reply" onClick={() => { onReply(); onClose(); }} />
-        <MenuItem icon={<Forward className="h-4 w-4" />} label="Forward" onClick={() => { onForward(); onClose(); }} />
-        {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
-        <MenuItem icon={<FaRegThumbsUp className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
-        {mine && isText && <MenuItem icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => { onEdit(); onClose(); }} />}
-        <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
-        {onTogglePin && (
-          <MenuItem
-            icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-            label={isPinned ? "Unpin" : "Pin"}
-            onClick={() => { onTogglePin(); onClose(); }}
-          />
-        )}
-        {onToggleBookmark && (
-          <MenuItem
-            icon={isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-            label={isBookmarked ? "Remove from Saved" : "Save message"}
-            onClick={() => { onToggleBookmark(); onClose(); }}
-          />
-        )}
-        {onEnterSelect && (
-          <MenuItem icon={<CheckSquare className="h-4 w-4" />} label="Select" onClick={() => { onEnterSelect(); onClose(); }} />
-        )}
-        <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
-        {mine && <MenuItem icon={<Trash2 className="h-4 w-4 text-red-500" />} label="Delete" danger onClick={() => { onDelete(); onClose(); }} />}
-      </div>
+      {view === "primary" ? (
+        <div className="py-1">
+          <MenuItem icon={<CornerUpLeft className="h-4 w-4" />} label="Reply" onClick={() => { onReply(); onClose(); }} />
+          <MenuItem icon={<Forward className="h-4 w-4" />} label="Forward" onClick={() => { onForward(); onClose(); }} />
+          {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
+          <MenuItem icon={<FaRegThumbsUp className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
+          {hasMore && (
+            <>
+              <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
+              <MenuItem
+                icon={<MoreHorizontal className="h-4 w-4" />}
+                label="More"
+                trailing={<ChevronRight className="h-4 w-4 opacity-50" />}
+                onClick={() => setView("more")}
+              />
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="py-1">
+          <MenuItem icon={<ChevronLeft className="h-4 w-4" />} label="Back" onClick={() => setView("primary")} />
+          <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
+          {mine && isText && <MenuItem icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => { onEdit(); onClose(); }} />}
+          {onTogglePin && (
+            <MenuItem
+              icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              label={isPinned ? "Unpin" : "Pin"}
+              onClick={() => { onTogglePin(); onClose(); }}
+            />
+          )}
+          {onToggleBookmark && (
+            <MenuItem
+              icon={isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+              label={isBookmarked ? "Remove from Saved" : "Save message"}
+              onClick={() => { onToggleBookmark(); onClose(); }}
+            />
+          )}
+          {onEnterSelect && (
+            <MenuItem icon={<CheckSquare className="h-4 w-4" />} label="Select" onClick={() => { onEnterSelect(); onClose(); }} />
+          )}
+          {mine && (
+            <>
+              <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
+              <MenuItem icon={<Trash2 className="h-4 w-4 text-red-500" />} label="Delete" danger onClick={() => { onDelete(); onClose(); }} />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function MenuItem({ icon, label, danger, onClick }: { icon: React.ReactNode; label: string; danger?: boolean; onClick: () => void }) {
+function MenuItem({ icon, label, danger, trailing, onClick }: { icon: React.ReactNode; label: string; danger?: boolean; trailing?: React.ReactNode; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -871,7 +912,8 @@ function MenuItem({ icon, label, danger, onClick }: { icon: React.ReactNode; lab
       }`}
     >
       <span className="opacity-70">{icon}</span>
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {trailing}
     </button>
   );
 }
@@ -1573,9 +1615,9 @@ const tailClass = !grouped && mine
               <Pin className="h-2.5 w-2.5 fill-current" />
             </div>
           )}          <div
-            className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
-              mine ? "-left-7" : "-right-7"
-            } opacity-0 group-hover:opacity-100 ${actionsOpen ? "opacity-100" : ""}`}
+            className={`absolute -top-2 z-10 flex items-center gap-0.5 rounded-full border border-[var(--sona-accent,#E07A5F)]/10 bg-white/95 dark:bg-[#242424]/95 backdrop-blur-sm px-0.5 py-0.5 shadow-md transition-opacity duration-200 ${
+              mine ? "right-1" : "left-1"
+            } opacity-80 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 ${actionsOpen ? "!opacity-100" : ""}`}
           >
             <button
               onClick={(e) => { e.stopPropagation(); onReply(); }}
