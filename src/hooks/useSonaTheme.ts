@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { THEME_PRESETS, getThemePreset, defaultThemeIdForPlan, type ThemeId } from "@/lib/theme-presets";
+import { THEME_PRESETS, getThemePreset, defaultThemeIdForPlan, readableOn, type ThemeId } from "@/lib/theme-presets";
 
 const STORAGE_KEY = "sona-chat-theme";
 
