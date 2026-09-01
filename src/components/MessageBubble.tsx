@@ -55,10 +55,10 @@ const notify = {
       description,
       placement: "top",
       className:
-        "!bg-[#fff] dark:!bg-white !rounded !border-white/10 !shadow-xl " +
-        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
-        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
-        "[&_.ant-notification-notice-icon]:!text-[#1E1E1E]",
+        "!bg-white dark:!bg-[#2A2A2A] !rounded !border !border-[var(--sona-accent,#E07A5F)]/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-[#2D3436] dark:[&_.ant-notification-notice-message]:!text-[#E8E8E8] " +
+        "[&_.ant-notification-notice-description]:!text-[#2D3436]/80 dark:[&_.ant-notification-notice-description]:!text-[#E8E8E8]/80 " +
+        "[&_.ant-notification-notice-icon]:!text-[#22C55E]",
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
     notification.error({
@@ -66,10 +66,10 @@ const notify = {
       description,
       placement: "top",
       className:
-        "!bg-[#fff] dark:!bg-white !rounded !border-white/10 !shadow-xl " +
-        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
-        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
-        "[&_.ant-notification-notice-icon]:!text-red-400 dark:[&_.ant-notification-notice-icon]:!text-red-500",
+        "!bg-white dark:!bg-[#2A2A2A] !rounded !border !border-[var(--sona-accent,#E07A5F)]/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-[#2D3436] dark:[&_.ant-notification-notice-message]:!text-[#E8E8E8] " +
+        "[&_.ant-notification-notice-description]:!text-[#2D3436]/80 dark:[&_.ant-notification-notice-description]:!text-[#E8E8E8]/80 " +
+        "[&_.ant-notification-notice-icon]:!text-red-500",
     }),
   info: ({ message, description }: { message: string; description?: string }) =>
     notification.info({
@@ -77,9 +77,9 @@ const notify = {
       description,
       placement: "top",
       className:
-        "!bg-[#fff] dark:!bg-white !rounded !border-white/10 !shadow-xl " +
-        "[&_.ant-notification-notice-message]:!text-white dark:[&_.ant-notification-notice-message]:!text-[#2D3436] " +
-        "[&_.ant-notification-notice-description]:!text-white/80 dark:[&_.ant-notification-notice-description]:!text-[#2D3436]/80 " +
+        "!bg-white dark:!bg-[#2A2A2A] !rounded !border !border-[var(--sona-accent,#E07A5F)]/10 !shadow-xl " +
+        "[&_.ant-notification-notice-message]:!text-[#2D3436] dark:[&_.ant-notification-notice-message]:!text-[#E8E8E8] " +
+        "[&_.ant-notification-notice-description]:!text-[#2D3436]/80 dark:[&_.ant-notification-notice-description]:!text-[#E8E8E8]/80 " +
         "[&_.ant-notification-notice-icon]:!text-[#4FA6E0]",
     }),
 };
@@ -793,8 +793,15 @@ function MessageContextMenu({
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
     };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -812,7 +819,7 @@ function MessageContextMenu({
       style={style}
       className="w-52 rounded-2xl p-2 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
-      <div className="flex items-center justify-around border-b border-[#1E1E1E]/10 px-2 py-2">
+      <div className="flex items-center justify-around border-b border-[var(--sona-accent,#E07A5F)]/15 px-2 py-2">
         {["❤️", "👎 ", "😂", "😮", "😢", "🙏" ].map((emoji) => (
           <button
             key={emoji}
@@ -1344,6 +1351,7 @@ export function Bubble({
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread,allImages, onForward, isHighlighted,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
+  menuOpen, menuPos, onOpenMenu, onCloseMenu,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -1373,6 +1381,17 @@ export function Bubble({
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  /**
+   * The context/action menu ("More" ⋯ or long-press) is owned by the parent
+   * (SonaChat), keyed by message id, so only ever one bubble's menu can be
+   * open across the whole chat — mirroring how `actionsOpen`/`reactingOn`
+   * already work. This component must never give the menu its own local
+   * useState, or two bubbles can end up with their menus open at once.
+   */
+  menuOpen?: boolean;
+  menuPos?: { x: number; y: number } | null;
+  onOpenMenu?: (x: number, y: number) => void;
+  onCloseMenu?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1380,7 +1399,11 @@ export function Bubble({
   reactions.forEach((r) => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
-  const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  // Derived, not stateful — the single source of truth lives in the parent
+  // (see menuOpen/menuPos props above), so this component can never end up
+  // with a menu that's "open" independently of what the rest of the app
+  // thinks is open.
+  const contextMenu = { open: !!menuOpen, x: menuPos?.x ?? 0, y: menuPos?.y ?? 0 };
   const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
   const [justCopied, setJustCopied] = useState(false);
@@ -1390,7 +1413,7 @@ export function Bubble({
   const longPress = useLongPress(() => {
     if (bubbleRef.current) {
       const rect = bubbleRef.current.getBoundingClientRect();
-      setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
+      onOpenMenu?.(rect.left + rect.width / 2, rect.top);
     }
   }, 600);
 
@@ -1456,13 +1479,13 @@ const tailClass = !grouped && mine
         </div>
         {mine && contextMenu.open && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setContextMenu({ open: false, x: 0, y: 0 })} />
+            <div className="fixed inset-0 z-40" onClick={() => onCloseMenu?.()} />
             <div
               className="fixed z-50 -translate-x-1/2 -translate-y-full rounded-xl border border-[var(--sona-accent,#E07A5F)]/15 bg-white dark:bg-[#242424] shadow-xl overflow-hidden"
               style={{ left: contextMenu.x, top: contextMenu.y - 8 }}
             >
               <button
-                onClick={() => { setContextMenu({ open: false, x: 0, y: 0 }); onRemove?.(); }}
+                onClick={() => { onCloseMenu?.(); onRemove?.(); }}
                 className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition whitespace-nowrap"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Remove
@@ -1575,7 +1598,7 @@ const tailClass = !grouped && mine
                 e.stopPropagation();
                 if (bubbleRef.current) {
                   const rect = bubbleRef.current.getBoundingClientRect();
-                  setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
+                  onOpenMenu?.(rect.left + rect.width / 2, rect.top);
                 }
               }}
               className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
@@ -1858,7 +1881,7 @@ const tailClass = !grouped && mine
         onDelete={() => onDelete()}
         onCopy={handleCopy}
         onForward={() => onForward?.()}
-        onClose={() => setContextMenu({ ...contextMenu, open: false })}
+        onClose={() => onCloseMenu?.()}
         isPinned={isPinned}
         onTogglePin={onTogglePin}
         isBookmarked={isBookmarked}

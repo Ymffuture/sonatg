@@ -643,6 +643,21 @@ function SonaChatInner() {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
 
+  // Single source of truth for the message "More" / long-press context menu
+  // (Reply/Forward/Pin/Save/Delete/...). Keyed by message id and owned here
+  // rather than inside each Bubble instance, so opening one message's menu
+  // always implicitly closes any other — there is never more than one of
+  // these open at once, app-wide, by construction.
+  const [openMessageMenu, setOpenMessageMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const closeMessageMenu = useCallback(() => setOpenMessageMenu(null), []);
+  const openMessageMenuFor = useCallback((id: string, x: number, y: number) => {
+    // Opening a message menu always wins over any other open menu/popover.
+    setShowHeaderMenu(false);
+    setShowDisappearingMenu(false);
+    setChatLongPressMenu(null);
+    setOpenMessageMenu({ id, x, y });
+  }, []);
+
   // Message pinning (shared, lives on the messages row itself) and bookmarks
   // ("Saved Messages" — private, lives in message_bookmarks). bookmarkedIds
   // is scoped to the current chat's loaded messages; loadedBookmarks (below,
@@ -2134,7 +2149,25 @@ function SonaChatInner() {
   }, [messages, msgSearchQuery, decrypted]);
 
   useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
-  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); }, [activeId]);
+  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); closeMessageMenu(); setShowHeaderMenu(false); setChatLongPressMenu(null); setReactingOn(null); }, [activeId]);
+
+  // Single Escape-key handler for every menu/popover in the app (message
+  // context menu, header dropdown, chat long-press menu, reaction picker).
+  // Centralized here rather than duplicated inside each menu component, so
+  // there's exactly one place that defines "Escape closes the active menu".
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      closeMessageMenu();
+      setShowHeaderMenu(false);
+      setShowDisappearingMenu(false);
+      setChatLongPressMenu(null);
+      setReactingOn(null);
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [closeMessageMenu]);
+
   useEffect(() => {
     if (!showMsgSearch || msgSearchMatches.length === 0) return;
     const target = msgSearchMatches[Math.min(msgSearchIndex, msgSearchMatches.length - 1)];
@@ -2378,7 +2411,7 @@ useEffect(() => {
 <div className="relative" ref={headerMenuRef}>
     <button
       data-tour="settings-btn"
-      onClick={() => setShowHeaderMenu((v) => !v)}
+      onClick={() => setShowHeaderMenu((v) => { const next = !v; if (next) closeMessageMenu(); return next; })}
       className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${
         showHeaderMenu ? "bg-white/20" : "hover:bg-white/20"
       } text-gray-600 dark:text-white`}
@@ -2647,6 +2680,7 @@ useEffect(() => {
             // WhatsApp, rather than Gmail-style bulk selection.
             e.preventDefault();
             if (selectMode) return;
+            closeMessageMenu();
             setChatLongPressMenu({ chatId: c.id, x: e.clientX, y: e.clientY });
           }}
           className={`group relative flex w-full items-center gap-3 px-3 py-3 mx-1 my-0.5 text-left transition-colors cursor-pointer rounded-xl ${
@@ -3368,6 +3402,10 @@ useEffect(() => {
       selectMode={msgSelectMode}
       selected={selectedMsgIds.has(m.id)}
       onToggleSelect={() => toggleSelectMessage(m.id)}
+      menuOpen={openMessageMenu?.id === m.id}
+      menuPos={openMessageMenu?.id === m.id ? { x: openMessageMenu.x, y: openMessageMenu.y } : null}
+      onOpenMenu={(x, y) => openMessageMenuFor(m.id, x, y)}
+      onCloseMenu={closeMessageMenu}
     />
     </MessageErrorBoundary>
     </motion.div>
