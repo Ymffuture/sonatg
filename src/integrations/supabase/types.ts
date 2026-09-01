@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_announcements: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          message: string
+          notify_subscribers: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          message: string
+          notify_subscribers?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          message?: string
+          notify_subscribers?: boolean
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -31,6 +58,103 @@ export type Database = {
           created_at?: string
         }
         Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          body: string
+          cover_image_url: string | null
+          created_at: string
+          description: string
+          id: string
+          published: boolean
+          read_mins: number
+          slug: string
+          tag: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          published?: boolean
+          read_mins?: number
+          slug: string
+          tag?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          published?: boolean
+          read_mins?: number
+          slug?: string
+          tag?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      broadcast_posters: {
+        Row: {
+          chat_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_posters_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_clears: {
+        Row: {
+          chat_id: string
+          cleared_before: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          cleared_before?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          cleared_before?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_clears_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_members: {
         Row: {
@@ -73,8 +197,10 @@ export type Database = {
           category: string
           created_at: string
           created_by: string | null
+          description: string | null
           disappearing_seconds: number | null
           id: string
+          is_broadcast: boolean
           is_group: boolean
           is_hidden: boolean
           last_message_at: string
@@ -85,8 +211,10 @@ export type Database = {
           category?: string
           created_at?: string
           created_by?: string | null
+          description?: string | null
           disappearing_seconds?: number | null
           id?: string
+          is_broadcast?: boolean
           is_group?: boolean
           is_hidden?: boolean
           last_message_at?: string
@@ -97,14 +225,97 @@ export type Database = {
           category?: string
           created_at?: string
           created_by?: string | null
+          description?: string | null
           disappearing_seconds?: number | null
           id?: string
+          is_broadcast?: boolean
           is_group?: boolean
           is_hidden?: boolean
           last_message_at?: string
           title?: string | null
         }
         Relationships: []
+      }
+      classes: {
+        Row: {
+          chat_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          join_code: string
+          name: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          join_code: string
+          name: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          join_code?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_bookmarks: {
+        Row: {
+          chat_id: string
+          created_at: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_bookmarks_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_bookmarks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_bookmarks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "visible_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_reads: {
         Row: {
@@ -144,6 +355,7 @@ export type Database = {
           body: string | null
           chat_id: string
           created_at: string
+          deleted_at: string | null
           duration_ms: number | null
           edited_at: string | null
           expires_at: string | null
@@ -151,8 +363,11 @@ export type Database = {
           file_size: number | null
           id: string
           is_encrypted: boolean
+          is_forwarded: boolean
           kind: string
           media_url: string | null
+          pinned_at: string | null
+          pinned_by: string | null
           reply_to_id: string | null
           scheduled_at: string | null
           sender_id: string
@@ -162,6 +377,7 @@ export type Database = {
           body?: string | null
           chat_id: string
           created_at?: string
+          deleted_at?: string | null
           duration_ms?: number | null
           edited_at?: string | null
           expires_at?: string | null
@@ -169,8 +385,11 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_encrypted?: boolean
+          is_forwarded?: boolean
           kind?: string
           media_url?: string | null
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to_id?: string | null
           scheduled_at?: string | null
           sender_id: string
@@ -180,6 +399,7 @@ export type Database = {
           body?: string | null
           chat_id?: string
           created_at?: string
+          deleted_at?: string | null
           duration_ms?: number | null
           edited_at?: string | null
           expires_at?: string | null
@@ -187,8 +407,11 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_encrypted?: boolean
+          is_forwarded?: boolean
           kind?: string
           media_url?: string | null
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to_id?: string | null
           scheduled_at?: string | null
           sender_id?: string
@@ -217,6 +440,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      moderation_flags: {
+        Row: {
+          blocked: boolean
+          body_snapshot: string
+          categories: string[]
+          chat_id: string | null
+          created_at: string
+          id: string
+          message_id: string | null
+          pattern_signals: Json
+          reviewed: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number
+          sender_id: string
+          severity: string
+        }
+        Insert: {
+          blocked?: boolean
+          body_snapshot?: string
+          categories?: string[]
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          pattern_signals?: Json
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          sender_id: string
+          severity?: string
+        }
+        Update: {
+          blocked?: boolean
+          body_snapshot?: string
+          categories?: string[]
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          pattern_signals?: Json
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          sender_id?: string
+          severity?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          notify_app_updates: boolean
+          notify_offline_messages: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          notify_app_updates?: boolean
+          notify_offline_messages?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          notify_app_updates?: boolean
+          notify_offline_messages?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       org_domains: {
         Row: {
@@ -278,6 +573,159 @@ export type Database = {
         }
         Relationships: []
       }
+      org_settings: {
+        Row: {
+          id: string
+          max_doc_bytes: number
+          max_image_bytes: number
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          max_doc_bytes?: number
+          max_image_bytes?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          max_doc_bytes?: number
+          max_image_bytes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      poll_options: {
+        Row: {
+          id: string
+          label: string
+          poll_id: string
+          position: number
+        }
+        Insert: {
+          id?: string
+          label: string
+          poll_id: string
+          position?: number
+        }
+        Update: {
+          id?: string
+          label?: string
+          poll_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          allow_multiple: boolean
+          chat_id: string
+          closes_at: string | null
+          correct_option_index: number | null
+          created_at: string
+          created_by: string
+          id: string
+          is_quiz: boolean
+          message_id: string | null
+          question: string
+          results_visible: boolean
+        }
+        Insert: {
+          allow_multiple?: boolean
+          chat_id: string
+          closes_at?: string | null
+          correct_option_index?: number | null
+          created_at?: string
+          created_by: string
+          id?: string
+          is_quiz?: boolean
+          message_id?: string | null
+          question: string
+          results_visible?: boolean
+        }
+        Update: {
+          allow_multiple?: boolean
+          chat_id?: string
+          closes_at?: string | null
+          correct_option_index?: number | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_quiz?: boolean
+          message_id?: string | null
+          question?: string
+          results_visible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "polls_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "polls_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "polls_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "visible_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -285,10 +733,15 @@ export type Database = {
           created_at: string
           display_name: string
           email: string | null
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           is_ai: boolean
           is_pro: boolean
           last_seen: string | null
+          theme_id: string | null
+          threads_url: string | null
+          x_url: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -296,10 +749,15 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string | null
+          facebook_url?: string | null
           id: string
+          instagram_url?: string | null
           is_ai?: boolean
           is_pro?: boolean
           last_seen?: string | null
+          theme_id?: string | null
+          threads_url?: string | null
+          x_url?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -307,10 +765,15 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           is_ai?: boolean
           is_pro?: boolean
           last_seen?: string | null
+          theme_id?: string | null
+          threads_url?: string | null
+          x_url?: string | null
         }
         Relationships: []
       }
@@ -543,11 +1006,41 @@ export type Database = {
       }
     }
     Views: {
+      admin_dashboard_stats: {
+        Row: {
+          active_users_24h: number | null
+          active_users_7d: number | null
+          messages_24h: number | null
+          messages_7d: number | null
+          total_members: number | null
+          unreviewed_flags: number | null
+          unreviewed_high_severity_flags: number | null
+        }
+        Relationships: []
+      }
+      moderation_queue: {
+        Row: {
+          blocked: boolean | null
+          body_snapshot: string | null
+          categories: string[] | null
+          chat_id: string | null
+          created_at: string | null
+          id: string | null
+          pattern_signals: Json | null
+          reviewed: boolean | null
+          score: number | null
+          sender_display_name: string | null
+          sender_id: string | null
+          severity: string | null
+        }
+        Relationships: []
+      }
       visible_messages: {
         Row: {
           body: string | null
           chat_id: string | null
           created_at: string | null
+          deleted_at: string | null
           duration_ms: number | null
           edited_at: string | null
           expires_at: string | null
@@ -555,8 +1048,11 @@ export type Database = {
           file_size: number | null
           id: string | null
           is_encrypted: boolean | null
+          is_forwarded: boolean | null
           kind: string | null
           media_url: string | null
+          pinned_at: string | null
+          pinned_by: string | null
           reply_to_id: string | null
           scheduled_at: string | null
           sender_id: string | null
@@ -566,6 +1062,7 @@ export type Database = {
           body?: string | null
           chat_id?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           duration_ms?: number | null
           edited_at?: string | null
           expires_at?: string | null
@@ -573,8 +1070,11 @@ export type Database = {
           file_size?: number | null
           id?: string | null
           is_encrypted?: boolean | null
+          is_forwarded?: boolean | null
           kind?: string | null
           media_url?: string | null
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to_id?: string | null
           scheduled_at?: string | null
           sender_id?: string | null
@@ -584,6 +1084,7 @@ export type Database = {
           body?: string | null
           chat_id?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           duration_ms?: number | null
           edited_at?: string | null
           expires_at?: string | null
@@ -591,8 +1092,11 @@ export type Database = {
           file_size?: number | null
           id?: string | null
           is_encrypted?: boolean | null
+          is_forwarded?: boolean | null
           kind?: string | null
           media_url?: string | null
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to_id?: string | null
           scheduled_at?: string | null
           sender_id?: string | null
@@ -624,7 +1128,39 @@ export type Database = {
       }
     }
     Functions: {
+      can_post_in_chat: {
+        Args: { _chat_id: string; _user_id: string }
+        Returns: boolean
+      }
       cleanup_expired_messages: { Args: never; Returns: undefined }
+      compute_dashboard_stats: {
+        Args: never
+        Returns: {
+          active_users_24h: number
+          active_users_7d: number
+          messages_24h: number
+          messages_7d: number
+          total_members: number
+          unreviewed_flags: number
+          unreviewed_high_severity_flags: number
+        }[]
+      }
+      generate_class_join_code: { Args: never; Returns: string }
+      get_public_profile: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          display_name: string
+          facebook_url: string
+          id: string
+          instagram_url: string
+          is_ai: boolean
+          is_pro: boolean
+          threads_url: string
+          x_url: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -636,6 +1172,8 @@ export type Database = {
         Args: { _chat_id: string; _user_id: string }
         Returns: boolean
       }
+      is_user_offline: { Args: { _user_id: string }; Returns: boolean }
+      join_class_by_code: { Args: { _code: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

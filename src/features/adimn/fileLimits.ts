@@ -32,8 +32,7 @@ export async function getOrgFileLimits(): Promise<OrgFileLimits> {
 }
 
 export async function updateOrgFileLimits(limits: Partial<OrgFileLimits>): Promise<void> {
-  const { data: auth } = await supabase.auth.getUser();
-  const patch: Record<string, unknown> = { updated_by: auth.user?.id ?? null, updated_at: new Date().toISOString() };
+  const patch: { max_doc_bytes?: number; max_image_bytes?: number; updated_at: string } = { updated_at: new Date().toISOString() };
   if (limits.maxDocBytes != null) patch.max_doc_bytes = limits.maxDocBytes;
   if (limits.maxImageBytes != null) patch.max_image_bytes = limits.maxImageBytes;
   const { error } = await supabase.from("org_settings").update(patch).eq("id", "default");

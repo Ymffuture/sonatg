@@ -18,6 +18,7 @@ export type ChatWithMeta = ChatRow & {
   lastMessage?: MessageRow;
   unread: number;
   isPinned?: boolean;
+  lastMessageReaction?: string | null;
 };
 
 export type ReadStatus = "sent" | "delivered" | "read";
