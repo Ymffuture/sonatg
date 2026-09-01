@@ -774,7 +774,7 @@ function useLongPress(callback: () => void, ms = 500) {
   };
 }
 
-/* ─── WhatsApp-style Context Menu ─── */
+/* ─── WhatsApp-style Context Menu (compact) ─── */
 function MessageContextMenu({
   open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onForward, onClose,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect,
@@ -799,61 +799,137 @@ function MessageContextMenu({
 
   if (!open) return null;
 
+  // Keep menu on-screen (account for reaction row + compact list height)
+  const menuW = 220;
+  const menuH = 260;
+  const left = Math.min(Math.max(12, x - menuW / 2), window.innerWidth - menuW - 12);
+  const top = Math.min(Math.max(12, y - 8), window.innerHeight - menuH - 12);
+
   const style: React.CSSProperties = {
     position: "fixed",
-    left: Math.min(x, window.innerWidth - 220),
-    top: Math.min(y, window.innerHeight - 280),
+    left,
+    top,
     zIndex: 100,
+    width: menuW,
   };
 
   return (
     <div
       ref={menuRef}
       style={style}
-      className="w-52 rounded-2xl p-2 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="overflow-hidden rounded-2xl border border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#2A2A2A] shadow-2xl animate-in fade-in zoom-in-95 duration-150"
     >
-      <div className="flex items-center justify-around border-b border-[#1E1E1E]/10 px-2 py-2">
-        {["❤️", "👎 ", "😂", "😮", "😢", "🙏" ].map((emoji) => (
+      {/* Reaction strip */}
+      <div className="flex items-center justify-around gap-0.5 border-b border-[var(--sona-accent,#E07A5F)]/10 px-2 py-2">
+        {["❤️", "👍", "😂", "😮", "😢", "🙏"].map((emoji) => (
           <button
             key={emoji}
             onClick={() => { onReact(emoji); onClose(); }}
-            className="text-lg hover:scale-125 transition-transform duration-150"
+            className="grid h-9 w-9 place-items-center rounded-full text-lg transition-transform duration-150 hover:scale-125 hover:bg-[var(--sona-accent,#E07A5F)]/10"
+            aria-label={`React ${emoji}`}
           >
             {emoji}
           </button>
         ))}
       </div>
 
+      {/* Primary actions — compact rows */}
       <div className="py-1">
-        <MenuItem icon={<CornerUpLeft className="h-4 w-4" />} label="Reply" onClick={() => { onReply(); onClose(); }} />
-        <MenuItem icon={<Forward className="h-4 w-4" />} label="Forward" onClick={() => { onForward(); onClose(); }} />
-        {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
-        <MenuItem icon={<FaRegThumbsUp className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
-        {mine && isText && <MenuItem icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => { onEdit(); onClose(); }} />}
-        <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
-        {onTogglePin && (
-          <MenuItem
-            icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-            label={isPinned ? "Unpin" : "Pin"}
-            onClick={() => { onTogglePin(); onClose(); }}
+        <CompactMenuItem
+          icon={<CornerUpLeft className="h-4 w-4" />}
+          label="Reply"
+          onClick={() => { onReply(); onClose(); }}
+        />
+        <CompactMenuItem
+          icon={<Forward className="h-4 w-4" />}
+          label="Forward"
+          onClick={() => { onForward(); onClose(); }}
+        />
+        {isText && (
+          <CompactMenuItem
+            icon={<Copy className="h-4 w-4" />}
+            label="Copy"
+            onClick={() => { onCopy(); onClose(); }}
           />
         )}
-        {onToggleBookmark && (
-          <MenuItem
-            icon={isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-            label={isBookmarked ? "Remove from Saved" : "Save message"}
-            onClick={() => { onToggleBookmark(); onClose(); }}
+        {mine && isText && (
+          <CompactMenuItem
+            icon={<Pencil className="h-4 w-4" />}
+            label="Edit"
+            onClick={() => { onEdit(); onClose(); }}
           />
         )}
-        {onEnterSelect && (
-          <MenuItem icon={<CheckSquare className="h-4 w-4" />} label="Select" onClick={() => { onEnterSelect(); onClose(); }} />
+
+        {/* Secondary: pin / save / select in one tight block */}
+        {(onTogglePin || onToggleBookmark || onEnterSelect) && (
+          <>
+            <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
+            {onTogglePin && (
+              <CompactMenuItem
+                icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                label={isPinned ? "Unpin" : "Pin"}
+                onClick={() => { onTogglePin(); onClose(); }}
+              />
+            )}
+            {onToggleBookmark && (
+              <CompactMenuItem
+                icon={isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                label={isBookmarked ? "Unsave" : "Save"}
+                onClick={() => { onToggleBookmark(); onClose(); }}
+              />
+            )}
+            {onEnterSelect && (
+              <CompactMenuItem
+                icon={<CheckSquare className="h-4 w-4" />}
+                label="Select"
+                onClick={() => { onEnterSelect(); onClose(); }}
+              />
+            )}
+          </>
         )}
-        <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
-        {mine && <MenuItem icon={<Trash2 className="h-4 w-4 text-red-500" />} label="Delete" danger onClick={() => { onDelete(); onClose(); }} />}
+
+        {mine && (
+          <>
+            <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
+            <CompactMenuItem
+              icon={<Trash2 className="h-4 w-4" />}
+              label="Delete"
+              danger
+              onClick={() => { onDelete(); onClose(); }}
+            />
+          </>
+        )}
       </div>
     </div>
   );
 }
+
+function CompactMenuItem({
+  icon,
+  label,
+  danger,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  danger?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 px-3.5 py-2 text-[13px] transition-colors ${
+        danger
+          ? "text-red-500 hover:bg-red-500/10"
+          : "text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[var(--sona-accent,#E07A5F)]/10"
+      }`}
+    >
+      <span className="grid h-5 w-5 shrink-0 place-items-center opacity-70">{icon}</span>
+      <span className="font-medium">{label}</span>
+    </button>
+  );
+}
+            
 
 function MenuItem({ icon, label, danger, onClick }: { icon: React.ReactNode; label: string; danger?: boolean; onClick: () => void }) {
   return (
