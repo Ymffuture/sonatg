@@ -126,7 +126,7 @@ export async function hidePollResults(pollId: string): Promise<void> {
 
 /** Edits the question/settings of a poll. Doesn't touch options — see replacePollOptions(). Creator/admin only. */
 export async function updatePoll(pollId: string, patch: UpdatePollInput): Promise<void> {
-  const update: Record<string, unknown> = {};
+  const update: Partial<PollRow> = {};
   if (patch.question !== undefined) update.question = patch.question;
   if (patch.correctOptionIndex !== undefined) update.correct_option_index = patch.correctOptionIndex;
   if (patch.allowMultiple !== undefined) update.allow_multiple = patch.allowMultiple;

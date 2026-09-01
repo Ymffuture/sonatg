@@ -1236,7 +1236,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       className="relative group"
       style={{ perspective: "1000px" }}
       onMouseMove={(e) => {
-        const card = e.currentTarget.querySelector("[data-tilt-surface]");
+        const card = e.currentTarget.querySelector<HTMLElement>("[data-tilt-surface]");
         if (!card) return;
         const rect = card.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width - 0.5;
@@ -1246,7 +1246,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
         card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
       }}
       onMouseLeave={(e) => {
-        const card = e.currentTarget.querySelector("[data-tilt-surface]");
+        const card = e.currentTarget.querySelector<HTMLElement>("[data-tilt-surface]");
         if (!card) return;
         card.style.transform = "rotateX(0deg) rotateY(0deg)";
       }}

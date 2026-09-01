@@ -26,7 +26,7 @@ export type MessageRow = {
   id: string;
   chat_id: string;
   sender_id: string;
-  kind: "text" | "image" | "video" | "voice" | "file" | "call";
+  kind: "text" | "image" | "video" | "voice" | "file" | "call" | "poll";
   body: string | null;
   media_url: string | null;
   duration_ms: number | null;

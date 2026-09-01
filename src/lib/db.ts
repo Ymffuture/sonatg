@@ -39,7 +39,7 @@ export type MessageRow = {
   id: string;
   chat_id: string;
   sender_id: string;
-  kind: "text" | "image" | "voice" | "file" | "call" | "video";
+  kind: "text" | "image" | "voice" | "file" | "call" | "video" | "poll";
   body: string | null;
   media_url: string | null;
   duration_ms: number | null;

@@ -295,11 +295,11 @@ async function uploadWithProgress(
 /* ─── Composer ────────────────────────────────────────────────── */
 
 export function StatusComposer({
-  meId, onClose, onPosted,
+  meId, onClose, onPosted, initialMode = "text",
 }: {
-  meId: string; onClose: () => void; onPosted: () => void;
+  meId: string; onClose: () => void; onPosted: () => void; initialMode?: "text" | "image" | "video";
 }) {
-  const [mode, setMode] = useState<"text" | "image" | "video">("text");
+  const [mode, setMode] = useState<"text" | "image" | "video">(initialMode);
   const [text, setText] = useState("");
   const [bgColor, setBgColor] = useState(STATUS_TEXT_BACKGROUNDS[0]);
   const [file, setFile] = useState<File | null>(null);

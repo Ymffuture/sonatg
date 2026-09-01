@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Download, Reply,Globe, ExternalLink, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
@@ -111,7 +111,6 @@ type InlineToken =
   | { type: "autolink"; href: string; kind: "url" | "email" }
   | { type: "br" };
 
-const URL_REGEX = /\bhttps?:\/\/[^\s<>()]+[^\s<>().,;:!?]/i;
 const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 
 function normalizeText(text: string) {

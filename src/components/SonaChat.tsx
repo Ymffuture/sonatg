@@ -549,7 +549,7 @@ function SonaChatInner() {
         score: verdict.score,
         blocked: !verdict.allowed,
         categories,
-        pattern_signals: verdict.patternSignals,
+        pattern_signals: JSON.parse(JSON.stringify(verdict.patternSignals)),
       });
       if (error) console.error("[moderation] failed to log flag:", error.message);
     },
@@ -2066,7 +2066,7 @@ function SonaChatInner() {
       setSummary(r.summary);
       toast.success("Summary ready", { id: "sum" });
       setIsSummarized(false) ;
-    } catch (e) { antMessage.error((e as Error).message, { id: "sum" }); }
+    } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
   };
 
   const startCall = (kind: "voice" | "video") => {
@@ -2776,7 +2776,7 @@ useEffect(() => {
     })
   )}
   {!loadingChats && filtered.length === 0 && ( <div className="-mb-2">
-        <EmptyChatState/>
+        <EmptyChatState onStartChat={() => setShowNewChat(true)} />
       </div>)} 
                </AnimatePresence>
 </div>
@@ -3419,7 +3419,7 @@ useEffect(() => {
             <>
               <Reply className="h-3 w-3" />
               <span>
-                {replyTo?.sender_id === me?.id ? "You" : profiles[replyTo?.sender_id]?.display_name ?? "…"}
+                {replyTo?.sender_id === me?.id ? "You" : (replyTo ? profiles[replyTo.sender_id]?.display_name : null) ?? "…"}
               </span>
             </>
           )}

@@ -66,7 +66,7 @@ function safeParseVerdict(raw: string): AIModerationVerdict {
  * merge with `mergeVerdicts` in detectionEngine usage.
  */
 export const classifyMessageForModeration = createServerFn({ method: "POST" })
-  .validator((input: AIModerationInput) => input)
+  .inputValidator((input: AIModerationInput) => input)
   .handler(async ({ data, context }): Promise<AIModerationVerdict> => {
     await requireSupabaseAuth(context);
 
