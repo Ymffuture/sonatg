@@ -3086,20 +3086,29 @@ useEffect(() => {
 
   <DropdownMenuContent align="end" className="w-64">
     {menuView === "root" && (
-      <>
-        <DropdownMenuItem onClick={() => setShowMsgSearch((s) => !s)}>Search</DropdownMenuItem>
-        {!isAIChat(active) && (
-          <DropdownMenuItem disabled={isSummarized} onClick={runSummary}>
-            {isSummarized ? "Summarizing..." : "Summarize"}
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={() => setShowMediaGallery(true)}>Media, links, and docs</DropdownMenuItem>
-        {!isAIChat(active) && <DropdownMenuItem onClick={openScheduledList}>Scheduled messages</DropdownMenuItem>}
-        <DropdownMenuSeparator />
-        {/* replaces DropdownMenuSubTrigger — click swaps the whole content instead of flying out */}
-        <DropdownMenuItem onClick={() => setMenuView("more")}>More</DropdownMenuItem>
-      </>
+  <>
+    <DropdownMenuItem onClick={() => setShowMsgSearch((s) => !s)}>
+      Search
+    </DropdownMenuItem>
+    {!isAIChat(active) && (
+      <DropdownMenuItem>
+        {isSummarized ? "Summarizing..." : "Summarize"}
+      </DropdownMenuItem>
     )}
+    <DropdownMenuItem onClick={() => setShowMediaGallery(true)}>
+      Media, links, and docs
+    </DropdownMenuItem>
+    {!isAIChat(active) && <DropdownMenuItem>Scheduled messages</DropdownMenuItem>}
+    <DropdownMenuItem 
+      onSelect={(e) => {
+        e.preventDefault();
+        setMenuView("more");
+      }}
+    >
+      More
+    </DropdownMenuItem>
+  </>
+)}
 
     {menuView === "more" && (
       <>
