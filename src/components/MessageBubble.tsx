@@ -806,10 +806,18 @@ function MessageContextMenu({
 
   if (!open) return null;
 
+  // Clamp on both sides of each axis: the upper bound keeps the menu from
+  // running off the right/bottom of the screen (the only case that was
+  // handled before), the lower bound (12px margin) keeps it from running
+  // off the left/top — e.g. for a message near the very edge of a narrow
+  // phone screen, where x/y can be small enough that the menu's natural
+  // position would otherwise clip.
+  const menuWidth = 208; // w-52
+  const menuHeight = 280;
   const style: React.CSSProperties = {
     position: "fixed",
-    left: Math.min(x, window.innerWidth - 220),
-    top: Math.min(y, window.innerHeight - 280),
+    left: Math.min(Math.max(x, 12), window.innerWidth - menuWidth - 12),
+    top: Math.min(Math.max(y, 12), window.innerHeight - menuHeight - 12),
     zIndex: 100,
   };
 
@@ -1573,9 +1581,9 @@ const tailClass = !grouped && mine
               <Pin className="h-2.5 w-2.5 fill-current" />
             </div>
           )}          <div
-            className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
-              mine ? "-left-7" : "-right-7"
-            } opacity-0 group-hover:opacity-100 ${actionsOpen ? "opacity-100" : ""}`}
+            className={`absolute -top-2 z-10 flex items-center gap-0.5 rounded-full border border-[var(--sona-accent,#E07A5F)]/10 bg-white/95 dark:bg-[#242424]/95 backdrop-blur-sm px-0.5 py-0.5 shadow-md transition-opacity duration-200 ${
+              mine ? "right-1" : "left-1"
+            } opacity-80 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 ${actionsOpen ? "!opacity-100" : ""}`}
           >
             <button
               onClick={(e) => { e.stopPropagation(); onReply(); }}
