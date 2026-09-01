@@ -151,7 +151,6 @@ export type Database = {
           file_size: number | null
           id: string
           is_encrypted: boolean
-          is_forwarded: boolean
           kind: string
           media_url: string | null
           reply_to_id: string | null
@@ -170,7 +169,6 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_encrypted?: boolean
-          is_forwarded?: boolean
           kind?: string
           media_url?: string | null
           reply_to_id?: string | null
@@ -189,7 +187,6 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_encrypted?: boolean
-          is_forwarded?: boolean
           kind?: string
           media_url?: string | null
           reply_to_id?: string | null
@@ -292,7 +289,6 @@ export type Database = {
           is_ai: boolean
           is_pro: boolean
           last_seen: string | null
-          theme_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -304,7 +300,6 @@ export type Database = {
           is_ai?: boolean
           is_pro?: boolean
           last_seen?: string | null
-          theme_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -316,7 +311,6 @@ export type Database = {
           is_ai?: boolean
           is_pro?: boolean
           last_seen?: string | null
-          theme_id?: string | null
         }
         Relationships: []
       }
@@ -561,7 +555,6 @@ export type Database = {
           file_size: number | null
           id: string | null
           is_encrypted: boolean | null
-          is_forwarded: boolean | null
           kind: string | null
           media_url: string | null
           reply_to_id: string | null
@@ -580,7 +573,6 @@ export type Database = {
           file_size?: number | null
           id?: string | null
           is_encrypted?: boolean | null
-          is_forwarded?: boolean | null
           kind?: string | null
           media_url?: string | null
           reply_to_id?: string | null
@@ -599,7 +591,6 @@ export type Database = {
           file_size?: number | null
           id?: string | null
           is_encrypted?: boolean | null
-          is_forwarded?: boolean | null
           kind?: string | null
           media_url?: string | null
           reply_to_id?: string | null

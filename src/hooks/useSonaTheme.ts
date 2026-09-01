@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { THEME_PRESETS, getThemePreset, defaultThemeIdForPlan, type ThemeId } from "@/lib/theme-presets";
+import { THEME_PRESETS, getThemePreset, defaultThemeIdForPlan, readableOn, type ThemeId } from "@/lib/theme-presets";
 
 const STORAGE_KEY = "sona-chat-theme";
 
@@ -59,11 +59,21 @@ export function useSonaTheme(
     onPersist?.(id);
   };
 
+  // Contrast-aware foregrounds so text stays readable on whichever
+  // accent/bubble color the active preset uses.
+  const bubbleDarkText = readableOn(preset.bg) === "dark";
+  const accentDarkText = readableOn(preset.accent) === "dark";
+
   const style = {
     "--sona-accent": preset.accent,
     "--sona-accent-soft": `color-mix(in srgb, ${preset.accent} 14%, transparent)`,
     "--sona-accent-soft-strong": `color-mix(in srgb, ${preset.accent} 24%, transparent)`,
     "--sona-bubble-mine": preset.bg,
+    "--sona-bubble-mine-fg": bubbleDarkText ? "#1A1A1A" : "#FFFCF4",
+    "--sona-bubble-mine-muted": bubbleDarkText
+      ? "color-mix(in srgb, #1A1A1A 62%, transparent)"
+      : "color-mix(in srgb, #FFFCF4 70%, transparent)",
+    "--sona-on-accent": accentDarkText ? "#1A1A1A" : "#FFFCF4",
   } as React.CSSProperties;
 
   return { theme: preset, themeId: preset.id, setThemeId, style, presets: THEME_PRESETS };

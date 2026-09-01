@@ -21,6 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -3037,6 +3038,10 @@ useEffect(() => {
                         <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#fff]" />
                       </button>
                     </DropdownMenuTrigger>
+                    {/* Primary actions stay on the first level; everything else
+                        lives behind "More" so the menu never grows past a
+                        comfortable WhatsApp-style height. Radix handles the
+                        submenu lifecycle, so only one level is ever active. */}
                     <DropdownMenuContent align="end" className="w-64">
                       <DropdownMenuItem onClick={() => setShowMsgSearch((s) => !s)}>
                         Search
@@ -3051,25 +3056,9 @@ useEffect(() => {
                         </DropdownMenuItem>
                       )}
 
-                      {!isAIChat(active) && (
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>Disappearing messages</DropdownMenuSubTrigger>
-                          <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                              {DISAPPEARING_OPTIONS.map((opt) => (
-                                <DropdownMenuItem key={opt.label} onClick={() => setDisappearing(opt.seconds)}>
-                                  <span className="flex w-full items-center justify-between">
-                                    {opt.label}
-                                    {(active.disappearing_seconds ?? null) === opt.seconds && (
-                                      <Check className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" />
-                                    )}
-                                  </span>
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                      )}
+                      <DropdownMenuItem onClick={() => setShowMediaGallery(true)}>
+                        Media, links, and docs
+                      </DropdownMenuItem>
 
                       {!isAIChat(active) && (
                         <DropdownMenuItem onClick={openScheduledList}>
@@ -3077,71 +3066,97 @@ useEffect(() => {
                         </DropdownMenuItem>
                       )}
 
-                      <DropdownMenuItem onClick={() => setShowMediaGallery(true)}>
-                        Media, links, and docs
-                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
 
-                      {!isAIChat(active) && (
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            <span className="flex w-full items-center">
-                              Export chat
-                              {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
-                            </span>
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                              <DropdownMenuItem onClick={() => exportChat("json")}>Export as JSON</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => exportChat("pdf")}>Export as PDF</DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                          </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                      )}
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>More</DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent className="w-60" sideOffset={6}>
+                            {!isAIChat(active) && (
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Disappearing messages</DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                  <DropdownMenuSubContent sideOffset={6}>
+                                    {DISAPPEARING_OPTIONS.map((opt) => (
+                                      <DropdownMenuItem key={opt.label} onClick={() => setDisappearing(opt.seconds)}>
+                                        <span className="flex w-full items-center justify-between">
+                                          {opt.label}
+                                          {(active.disappearing_seconds ?? null) === opt.seconds && (
+                                            <Check className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" />
+                                          )}
+                                        </span>
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                              </DropdownMenuSub>
+                            )}
 
-                      <DropdownMenuItem onClick={clearChat}>
-                        Clear chat
-                      </DropdownMenuItem>
+                            {!isAIChat(active) && (
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <span className="flex w-full items-center">
+                                    Export chat
+                                    {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                                  </span>
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                  <DropdownMenuSubContent sideOffset={6}>
+                                    <DropdownMenuItem onClick={() => exportChat("json")}>Export as JSON</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => exportChat("pdf")}>Export as PDF</DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                              </DropdownMenuSub>
+                            )}
 
-                      {!isAIChat(active) && (
-                        <DropdownMenuItem onClick={toggleHideChat}>
-                          <span className="flex w-full items-center">
-                            {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
-                            {!me.is_pro && !active.is_hidden && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
-                          </span>
-                        </DropdownMenuItem>
-                      )}
-
-                      {active.is_hidden && isUnlocked(active.id) && (
-                        <DropdownMenuItem onClick={relock}>Lock now</DropdownMenuItem>
-                      )}
-
-                      {!isAIChat(active) && !active.is_group && (
-                        <>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              const p = activeOtherId ? profilesById[activeOtherId] : undefined;
-                              if (p) setReportTarget(p);
-                            }}
-                          >
-                            Report
-                          </DropdownMenuItem>
-                          {iBlockedThem ? (
-                            <DropdownMenuItem onClick={unblockOther}>Unblock</DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem onClick={blockOther} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
-                              Block
+                            <DropdownMenuItem onClick={clearChat}>
+                              Clear chat
                             </DropdownMenuItem>
-                          )}
-                        </>
-                      )}
 
-                      {/* Groups don't have one "other user" — surface the member list so
-                          the person can pick exactly who they want to report or block. */}
-                      {!isAIChat(active) && active.is_group && (
-                        <DropdownMenuItem onClick={() => setShowMemberList(true)}>
-                          Report a member
-                        </DropdownMenuItem>
-                      )}
+                            {!isAIChat(active) && (
+                              <DropdownMenuItem onClick={toggleHideChat}>
+                                <span className="flex w-full items-center">
+                                  {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
+                                  {!me.is_pro && !active.is_hidden && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                                </span>
+                              </DropdownMenuItem>
+                            )}
+
+                            {active.is_hidden && isUnlocked(active.id) && (
+                              <DropdownMenuItem onClick={relock}>Lock now</DropdownMenuItem>
+                            )}
+
+                            {!isAIChat(active) && !active.is_group && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    const p = activeOtherId ? profilesById[activeOtherId] : undefined;
+                                    if (p) setReportTarget(p);
+                                  }}
+                                >
+                                  Report
+                                </DropdownMenuItem>
+                                {iBlockedThem ? (
+                                  <DropdownMenuItem onClick={unblockOther}>Unblock</DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={blockOther} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
+                                    Block
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            )}
+
+                            {/* Groups don't have one "other user" — surface the member list so
+                                the person can pick exactly who they want to report or block. */}
+                            {!isAIChat(active) && active.is_group && (
+                              <DropdownMenuItem onClick={() => setShowMemberList(true)}>
+                                Report a member
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </header>

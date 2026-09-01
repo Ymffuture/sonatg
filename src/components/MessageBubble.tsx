@@ -1413,7 +1413,12 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[var(--sona-bubble-mine,#6B352A)] text-[#FFFCF4] " : "bg-[#FFFCF4] ";
+// Sent bubbles take their background from the active theme preset, so the
+// foreground comes from the contrast-aware token the theme hook publishes
+// (--sona-bubble-mine-fg) instead of a hardcoded near-white.
+const bubbleBase = mine
+  ? "bg-[var(--sona-bubble-mine,#6B352A)] text-[var(--sona-bubble-mine-fg,#FFFCF4)] [&_a]:text-[var(--sona-bubble-mine-fg,#FFFCF4)] [&_a]:underline [&_code]:text-[var(--sona-bubble-mine-fg,#FFFCF4)] "
+  : "bg-[#FFFCF4] ";
 
 const bubbleRadius = mine
   ? grouped
@@ -1764,7 +1769,7 @@ const tailClass = !grouped && mine
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenThread?.(); }}
                 className={`mb-1 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition hover:opacity-80 ${
-                  mine ? "text-zinc-400" : "text-[#2D3436]"
+                  mine ? "text-[var(--sona-bubble-mine-muted,rgba(255,252,244,0.7))] dark:text-white/70" : "text-[#2D3436] dark:text-[#E8E8E8]"
                 }`}
               >
                 <CornerUpLeft className="h-3.5 w-3.5" />
@@ -1774,7 +1779,7 @@ const tailClass = !grouped && mine
 
             <div
               className={`flex items-end justify-end gap-1.5 -mt-1 ${
-                mine ? "text-white/85" : "text-[#8C8C8C]"
+                mine ? "text-[var(--sona-bubble-mine-muted,rgba(255,252,244,0.7))] dark:text-white/70" : "text-[#8C8C8C]"
               }`}
             >
               
