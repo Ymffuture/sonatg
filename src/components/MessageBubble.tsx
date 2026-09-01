@@ -1779,7 +1779,7 @@ const tailClass = !grouped && mine
 
             <div
               className={`flex items-end justify-end gap-1.5 -mt-1 ${
-                mine ? "text-white/85" : "text-[#8C8C8C]"
+                mine ? "text-[var(--sona-bubble-mine-muted,rgba(255,252,244,0.7))] dark:text-white/70" : "text-[#8C8C8C]"
               }`}
             >
               
