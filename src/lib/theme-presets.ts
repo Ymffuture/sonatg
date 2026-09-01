@@ -49,4 +49,18 @@ export function defaultThemeIdForPlan(isPro: boolean): ThemeId {
   return isPro ? "classic-purple" : "classic-orange";
 }
 
-/** Lighten/darken isn't needed — callers just use accent + bg + derived alpha via CSS color-mix. */
+/**
+ * Picks a readable foreground (near-black or near-white) for an arbitrary
+ * hex background using relative luminance, so themed surfaces such as the
+ * sent-message bubble stay legible whichever preset is active.
+ */
+export function readableOn(hex: string): "light" | "dark" {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return L > 0.45 ? "dark" : "light"; // "dark" = use dark text on this bg
+}
