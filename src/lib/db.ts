@@ -54,6 +54,8 @@ export type MessageRow = {
   expires_at?: string | null;
   scheduled_at?: string | null;
   is_forwarded?: boolean;
+  pinned_by?: string | null;
+  pinned_at?: string | null;
   /** Client-only: true for a message shown optimistically before the insert has been confirmed by the server. Never persisted. */
   _pending?: boolean;
 };
