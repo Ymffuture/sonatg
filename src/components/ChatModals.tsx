@@ -4,7 +4,7 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users, UserX,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Radio, Copy, KeyRound, Mail, Check,
+  Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,12 +14,13 @@ import { unlockChat } from "@/lib/crypto";
 import { useBackToClose } from "@/hooks/useBackStack";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import {
-  CHAT_CATEGORIES, type Profile, type ChatCategory,
+  CHAT_CATEGORIES, type Profile, type ChatCategory, type MessageRow,
 } from "@/lib/db";
-import { type ChatWithMeta, explainSupabaseError, usernameFromEmail, isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
+import { type ChatWithMeta, explainSupabaseError, usernameFromEmail, isReservedSonaName, fallbackNameFromEmail, chatTitle } from "@/utils/utils";
+import { MessagePreview } from "./SonaChatParts";
 import { useSonaTheme } from "@/hooks/useSonaTheme";
 import { Avatar } from "./Avatar";
-import { Spin, Skeleton, Tooltip, notification } from "antd";
+import { Spin, Skeleton, Tooltip, notification, Empty } from "antd";
 import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
@@ -1404,3 +1405,95 @@ export function UnlockModal({ chatId, onUnlocked, onCancel }: { chatId: string; 
     </div>
   );
 }
+
+/* ─── Saved Messages ("Bookmarks") ───
+   Private per-user list — a message shows up here only for whoever
+   bookmarked it, regardless of who sent it or which chat it's in. */
+export function SavedMessagesModal({
+  messages, chats, meId, loading, decrypted, onClose, onOpen, onRemove,
+}: {
+  messages: (MessageRow & { chat_id: string })[];
+  chats: ChatWithMeta[];
+  meId: string;
+  loading: boolean;
+  decrypted?: Record<string, string>;
+  onClose: () => void;
+  onOpen: (chatId: string, messageId: string) => void;
+  onRemove: (msg: MessageRow) => void;
+}) {
+  useBackToClose(onClose);
+  const chatsById = useMemo(() => new Map(chats.map((c) => [c.id, c])), [chats]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end animate-in fade-in duration-200" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+      <div
+        className="relative w-full rounded-t-3xl border-t border-white/20 dark:border-white/10 bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col md:mx-auto md:mb-8 md:max-w-md md:rounded-3xl md:border"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="pt-2.5 pb-1 flex justify-center md:hidden">
+          <div className="h-1.5 w-10 rounded-full bg-[var(--sona-accent,#E07A5F)]/40" />
+        </div>
+        <div className="px-5 pt-2 pb-3 flex items-center justify-between border-b border-[var(--sona-accent,#E07A5F)]/10">
+          <div className="flex items-center gap-2">
+            <Bookmark className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
+            <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Saved Messages</h3>
+          </div>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10 transition" aria-label="Close">
+            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
+          {loading ? (
+            <div className="space-y-2 p-2">
+              {[0, 1, 2].map((i) => <Skeleton key={i} active title={false} paragraph={{ rows: 2 }} />)}
+            </div>
+          ) : messages.length === 0 ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span className="text-sm text-[#8C8C8C]">
+                  Nothing saved yet — long-press any message and tap "Save message".
+                </span>
+              }
+              className="py-12"
+            />
+          ) : (
+            messages.map((m) => {
+              const chat = chatsById.get(m.chat_id);
+              const title = chat ? chatTitle(chat, meId) : "Unknown chat";
+              return (
+                <div
+                  key={m.id}
+                  className="group flex items-start gap-2 rounded-2xl px-3 py-2.5 hover:bg-[var(--sona-accent,#E07A5F)]/5 transition cursor-pointer"
+                  onClick={() => onOpen(m.chat_id, m.id)}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-semibold text-[var(--sona-accent,#E07A5F)]">{title}</span>
+                      <span suppressHydrationWarning className="shrink-0 text-[10px] text-[#8C8C8C]">
+                        {new Date(m.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 truncate text-sm text-[#2D3436] dark:text-[#E8E8E8]">
+                      <MessagePreview msg={m} decrypted={decrypted} />
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRemove(m); }}
+                    aria-label="Remove from Saved Messages"
+                    className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-500/10 transition"
+                  >
+                    <BookmarkX className="h-3.5 w-3.5 text-red-500" />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

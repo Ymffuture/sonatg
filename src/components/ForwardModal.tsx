@@ -24,14 +24,18 @@ import { type ChatWithMeta, chatTitle, chatAvatarUrl, isAIChat } from "@/utils/u
 import { useBackToClose } from "@/hooks/useBackStack";
 
 export function ForwardModal({
-  message, chats, meId, onClose, onForwarded,
+  message, messages, chats, meId, onClose, onForwarded,
 }: {
-  message: MessageRow;
+  /** Single-message forward (existing per-bubble "Forward" action). */
+  message?: MessageRow;
+  /** Bulk forward — multiple messages selected via the bulk-select bar. */
+  messages?: MessageRow[];
   chats: ChatWithMeta[];
   meId: string;
   onClose: () => void;
   onForwarded: () => void;
 }) {
+  const toForward = useMemo(() => messages ?? (message ? [message] : []), [messages, message]);
   useBackToClose(onClose);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -52,23 +56,31 @@ export function ForwardModal({
   };
 
   const forward = async () => {
-    if (selected.size === 0) return;
+    if (selected.size === 0 || toForward.length === 0) return;
     setSending(true);
     try {
-      const inserts = Array.from(selected).map((chatId) => ({
-        chat_id: chatId,
-        sender_id: meId,
-        kind: message.kind,
-        body: message.is_encrypted ? null : message.body,
-        media_url: message.media_url,
-        file_name: message.file_name,
-        file_size: message.file_size,
-        duration_ms: message.duration_ms,
-        is_forwarded: true,
-      }));
+      const ordered = toForward.slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
+      const inserts = Array.from(selected).flatMap((chatId) =>
+        ordered.map((msg) => ({
+          chat_id: chatId,
+          sender_id: meId,
+          kind: msg.kind,
+          body: msg.is_encrypted ? null : msg.body,
+          media_url: msg.media_url,
+          file_name: msg.file_name,
+          file_size: msg.file_size,
+          duration_ms: msg.duration_ms,
+          is_forwarded: true,
+        }))
+      );
       const { error } = await supabase.from("messages").insert(inserts);
       if (error) throw error;
-      toast.success(`Forwarded to ${selected.size} chat${selected.size === 1 ? "" : "s"}`);
+      const chatCount = selected.size;
+      toast.success(
+        toForward.length > 1
+          ? `Forwarded ${toForward.length} messages to ${chatCount} chat${chatCount === 1 ? "" : "s"}`
+          : `Forwarded to ${chatCount} chat${chatCount === 1 ? "" : "s"}`
+      );
       setSelected(new Set());
       onForwarded();
       onClose();
@@ -247,7 +259,7 @@ export function ForwardModal({
             block
             size="large"
             loading={sending}
-            disabled={selected.size === 0}
+            disabled={selected.size === 0 || toForward.length === 0}
             onClick={forward}
             icon={<Forward className="h-4 w-4" />}
             style={{

@@ -7,6 +7,7 @@ import {
   Share2, BadgeCheck, FileText, DoorOpen, Download,
   Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
   AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Megaphone, Radio,
+  Bookmark, Forward,
 } from "lucide-react";
 import { LuCircleFadingPlus } from "react-icons/lu";
 import { IoCameraOutline } from "react-icons/io5";
@@ -14,7 +15,7 @@ import { CiTimer } from "react-icons/ci";
 import { fetchActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 import { notifyOfflineMessage } from "@/lib/notifications.functions";
 import { buildTranscript, exportChatAsJSON, exportChatAsPDF } from "@/lib/export-chat";
-import { Watermark, Modal, Input, message as antMessage } from "antd";
+import { Watermark, Modal, Input, message as antMessage, Tooltip } from "antd";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,7 +97,7 @@ import {
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer, MediaViewer } from "./MessageBubble";
 import { MessageErrorBoundary } from "./MessageErrorBoundary";
-import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal } from "./ChatModals";
+import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal, SavedMessagesModal } from "./ChatModals";
 import { ProfileViewModal } from "./ProfileView";
 import { ForwardModal } from "./ForwardModal";
 import { MediaGalleryModal } from "./MediaGalleryModal";
@@ -641,6 +642,23 @@ function SonaChatInner() {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
 
+  // Message pinning (shared, lives on the messages row itself) and bookmarks
+  // ("Saved Messages" — private, lives in message_bookmarks). bookmarkedIds
+  // is scoped to the current chat's loaded messages; loadedBookmarks (below,
+  // near showSavedMessages) holds the full cross-chat list for that view.
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [showSavedMessages, setShowSavedMessages] = useState(false);
+  const [savedMessages, setSavedMessages] = useState<(MessageRow & { chat_id: string })[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+
+  // Bulk message selection within the open chat (distinct from selectMode
+  // above, which bulk-selects whole chats in the sidebar).
+  const [msgSelectMode, setMsgSelectMode] = useState(false);
+  const [selectedMsgIds, setSelectedMsgIds] = useState<Set<string>>(new Set());
+  const [forwardingMessages, setForwardingMessages] = useState<MessageRow[] | null>(null);
+  const [pinnedBannerIndex, setPinnedBannerIndex] = useState(0);
+  const [pendingJumpId, setPendingJumpId] = useState<string | null>(null);
+
   const { canInstall, promptInstall } = useInstallPrompt();
   const callManagerRef = useRef<CallManagerHandle>(null);
 
@@ -896,6 +914,12 @@ function SonaChatInner() {
       const rows = ((msgs ?? []) as MessageRow[]).reverse(); // fetched newest-first for the LIMIT, flip back to chronological
       setMessages(rows);
       const ids = rows.map((m) => m.id);
+      if (ids.length && me) {
+        supabase.from("message_bookmarks").select("message_id").eq("user_id", me.id).in("message_id", ids)
+          .then(({ data }) => setBookmarkedIds(new Set((data ?? []).map((b) => b.message_id as string))));
+      } else {
+        setBookmarkedIds(new Set());
+      }
       let rx: ReactionRow[] = [];
       let rd: MessageReadRow[] = [];
       if (ids.length) {
@@ -1801,7 +1825,120 @@ function SonaChatInner() {
     loadChats();
   };
 
-  const blockOther = async () => {
+  // Pinning is shared: any member of the chat can pin/unpin, and everyone
+  // sees the same pinned banner. Toggled straight on the messages row.
+  const togglePinMessage = async (m: MessageRow) => {
+    if (!me || !active) return;
+    const pinning = !m.pinned_by;
+    const { error } = await supabase.from("messages")
+      .update({ pinned_by: pinning ? me.id : null, pinned_at: pinning ? new Date().toISOString() : null })
+      .eq("id", m.id);
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.map((row) => row.id === m.id
+      ? { ...row, pinned_by: pinning ? me.id : null, pinned_at: pinning ? new Date().toISOString() : null }
+      : row));
+    toast.success(pinning ? "Message pinned" : "Message unpinned");
+  };
+
+  // Bookmarks are personal — only ever visible to me, regardless of who
+  // sent the message or what chat it's in.
+  const toggleBookmark = async (m: MessageRow) => {
+    if (!me) return;
+    const bookmarked = bookmarkedIds.has(m.id);
+    if (bookmarked) {
+      const { error } = await supabase.from("message_bookmarks").delete().eq("user_id", me.id).eq("message_id", m.id);
+      if (error) { toast.error(error.message); return; }
+      setBookmarkedIds((prev) => { const next = new Set(prev); next.delete(m.id); return next; });
+      setSavedMessages((prev) => prev.filter((row) => row.id !== m.id));
+      toast.success("Removed from Saved Messages");
+    } else {
+      const { error } = await supabase.from("message_bookmarks").insert({ user_id: me.id, message_id: m.id, chat_id: m.chat_id });
+      if (error) { toast.error(error.message); return; }
+      setBookmarkedIds((prev) => new Set(prev).add(m.id));
+      toast.success("Saved");
+    }
+  };
+
+  const loadSavedMessages = async () => {
+    if (!me) return;
+    setLoadingSaved(true);
+    const { data, error } = await supabase
+      .from("message_bookmarks")
+      .select("chat_id, messages:message_id(*)")
+      .eq("user_id", me.id)
+      .order("created_at", { ascending: false });
+    setLoadingSaved(false);
+    if (error) { toast.error(error.message); return; }
+    const rows = (data ?? [])
+      .map((row) => row.messages ? { ...(row.messages as unknown as MessageRow), chat_id: row.chat_id as string } : null)
+      .filter((row): row is MessageRow & { chat_id: string } => !!row);
+    setSavedMessages(rows);
+  };
+
+  // Entering select mode from a single bubble's "Select" menu item both
+  // turns on the mode and selects that message in one tap; while already
+  // in select mode, the same handler just toggles that one message.
+  const toggleSelectMessage = (id: string) => {
+    setMsgSelectMode(true);
+    setSelectedMsgIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const exitMsgSelectMode = () => { setMsgSelectMode(false); setSelectedMsgIds(new Set()); };
+
+  const selectedMsgs = messages.filter((m) => selectedMsgIds.has(m.id));
+
+  const bulkPin = async () => {
+    if (!me || selectedMsgs.length === 0) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("messages").update({ pinned_by: me.id, pinned_at: now })
+      .in("id", Array.from(selectedMsgIds));
+    if (error) { toast.error(error.message); return; }
+    setMessages((prev) => prev.map((m) => selectedMsgIds.has(m.id) ? { ...m, pinned_by: me.id, pinned_at: now } : m));
+    toast.success(`Pinned ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
+    exitMsgSelectMode();
+  };
+
+  const bulkBookmark = async () => {
+    if (!me || selectedMsgs.length === 0) return;
+    const inserts = selectedMsgs.map((m) => ({ user_id: me.id, message_id: m.id, chat_id: m.chat_id }));
+    const { error } = await supabase.from("message_bookmarks").upsert(inserts, { onConflict: "user_id,message_id" });
+    if (error) { toast.error(error.message); return; }
+    setBookmarkedIds((prev) => { const next = new Set(prev); selectedMsgs.forEach((m) => next.add(m.id)); return next; });
+    toast.success(`Saved ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
+    exitMsgSelectMode();
+  };
+
+  const bulkDelete = async () => {
+    if (!me || selectedMsgs.length === 0) return;
+    const mine = selectedMsgs.filter((m) => m.sender_id === me.id);
+    if (mine.length === 0) { toast.error("You can only delete your own messages"); return; }
+    if (!(await confirm({
+      title: `Delete ${mine.length} message${mine.length === 1 ? "" : "s"} for everyone?`,
+      confirmText: "Delete", danger: true,
+    }))) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("messages")
+      .update({ deleted_at: now, body: null, media_url: null, file_name: null, file_size: null, duration_ms: null })
+      .in("id", mine.map((m) => m.id)).eq("sender_id", me.id);
+    if (error) { toast.error(error.message); return; }
+    const ids = new Set(mine.map((m) => m.id));
+    setMessages((prev) => prev.map((m) => ids.has(m.id)
+      ? { ...m, deleted_at: now, body: null, media_url: null, file_name: null, file_size: null, duration_ms: null }
+      : m));
+    loadChats();
+    exitMsgSelectMode();
+  };
+
+  const bulkForward = () => {
+    if (selectedMsgs.length === 0) return;
+    setForwardingMessages(selectedMsgs);
+  };
+
+
     if (!me || !active) return;
     const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
     if (!other) { toast.error("Can't block in this chat."); return; }
@@ -1996,7 +2133,7 @@ function SonaChatInner() {
   }, [messages, msgSearchQuery, decrypted]);
 
   useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
-  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); }, [activeId]);
+  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); }, [activeId]);
   useEffect(() => {
     if (!showMsgSearch || msgSearchMatches.length === 0) return;
     const target = msgSearchMatches[Math.min(msgSearchIndex, msgSearchMatches.length - 1)];
@@ -2017,6 +2154,26 @@ function SonaChatInner() {
     jumpTimeoutRef.current = setTimeout(() => setJumpHighlightId(null), 1600);
   };
   useEffect(() => () => { if (jumpTimeoutRef.current) clearTimeout(jumpTimeoutRef.current); }, []);
+
+  // Opening a message from Saved Messages (or any other cross-chat entry
+  // point) switches the active chat first, then waits for that chat's
+  // messages to actually be loaded before scrolling to it — jumpToMessage
+  // itself only works once the target row exists in the DOM.
+  const openMessageInChat = (chatId: string, messageId: string) => {
+    setActiveId(chatId);
+    setPendingJumpId(messageId);
+    setShowSavedMessages(false);
+    setShowSidebarMobile(false);
+  };
+  useEffect(() => {
+    if (!pendingJumpId) return;
+    if (!messages.some((m) => m.id === pendingJumpId)) return;
+    const id = pendingJumpId;
+    setPendingJumpId(null);
+    // Wait a frame for the newly-switched chat's bubbles to actually paint.
+    requestAnimationFrame(() => jumpToMessage(id));
+  }, [messages, pendingJumpId]);
+
   
 useEffect(() => {
   if (!showHeaderMenu) return;
@@ -2254,6 +2411,13 @@ useEffect(() => {
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
             {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+
+          <button
+            onClick={() => { setShowSavedMessages(true); setShowHeaderMenu(false); loadSavedMessages(); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
+          >
+            <Bookmark className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Saved Messages
           </button>
 
           <Link
@@ -2562,7 +2726,36 @@ useEffect(() => {
                 )}
               </span>
               <div className="flex shrink-0 flex-col items-end gap-1">
-                
+                {!selectMode && (
+                  <div className="flex items-center gap-1">
+                    {!ai && !c.is_group && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const otherId = c.memberIds.find((id) => id !== me.id);
+                          const p = otherId ? profilesById[otherId] : undefined;
+                          if (p) setReportTarget(p);
+                          else antMessage.error("Couldn't find that user's profile to report.");
+                        }}
+                        className="grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full opacity-40 hover:opacity-100 hover:bg-[#F4A261]/20 md:opacity-0 md:group-hover:opacity-100 transition"
+                        aria-label="Report user"
+                        title="Report user"
+                      >
+                        <Flag className="h-3 w-3 text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)]" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => togglePin(e, c)}
+                      className={`grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${
+                        c.isPinned ? "" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
+                      }`}
+                      aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
+                      title={c.isPinned ? "Unpin chat" : "Pin chat"}
+                    >
+                      <Pin className="h-3 w-3" style={c.isPinned ? { fill: "var(--sona-accent, #E07A5F)", color: "var(--sona-accent, #E07A5F)" } : undefined} />
+                    </button>
+                  </div>
+                )}
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "var(--sona-accent, #D97757)" } : undefined}>
                   {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
@@ -2748,8 +2941,8 @@ useEffect(() => {
         className={`
           truncate text-sm tracking-tight
           ${isLong 
-            ? "text-[12px]" 
-            : "text-[16px]"
+            ? "text-[10px]" 
+            : "text-[15px]"
           }
           ${isAIChat(active)
             ? ""
@@ -3009,6 +3202,45 @@ useEffect(() => {
                   </div>
                 )}
 
+                {(() => {
+                  const pinned = messages.filter((m) => m.pinned_by).sort((a, b) => (b.pinned_at ?? "").localeCompare(a.pinned_at ?? ""));
+                  if (pinned.length === 0) return null;
+                  const current = pinned[Math.min(pinnedBannerIndex, pinned.length - 1)];
+                  return (
+                    <div className="flex items-center gap-2 border-b border-[var(--sona-accent,#E07A5F)]/10 bg-[var(--sona-accent,#E07A5F)]/5 px-4 py-2">
+                      <Pin className="h-4 w-4 shrink-0 text-[var(--sona-accent,#E07A5F)]" />
+                      <button
+                        onClick={() => jumpToMessage(current.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="text-[11px] font-semibold text-[var(--sona-accent,#E07A5F)]">
+                          {pinned.length > 1 ? `Pinned message ${pinnedBannerIndex + 1}/${pinned.length}` : "Pinned message"}
+                        </div>
+                        <div className="truncate text-xs text-[#2D3436] dark:text-[#E8E8E8]">
+                          <MessagePreview msg={current} decrypted={decrypted} />
+                        </div>
+                      </button>
+                      {pinned.length > 1 && (
+                        <button
+                          onClick={() => setPinnedBannerIndex((i) => (i + 1) % pinned.length)}
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10"
+                          aria-label="Next pinned message"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => togglePinMessage(current)}
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10"
+                        aria-label="Unpin message"
+                        title="Unpin"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {showMsgSearch && (
                   <div className="flex items-center gap-2 border-b border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] px-4 py-2">
                     <Search className="h-4 w-4 shrink-0 text-[#8C8C8C]" />
@@ -3143,6 +3375,13 @@ useEffect(() => {
       replyCount={repliesByParent[m.id]?.length ?? 0}
       onOpenThread={() => setThreadRootId(m.id)}
       onForward={() => setForwardingMessage(m)}
+      isPinned={!!m.pinned_by}
+      onTogglePin={() => togglePinMessage(m)}
+      isBookmarked={bookmarkedIds.has(m.id)}
+      onToggleBookmark={() => toggleBookmark(m)}
+      selectMode={msgSelectMode}
+      selected={selectedMsgIds.has(m.id)}
+      onToggleSelect={() => toggleSelectMessage(m.id)}
     />
     </MessageErrorBoundary>
     </motion.div>
@@ -3275,7 +3514,64 @@ useEffect(() => {
                   </div>
                 )}
 
-                {composerNotice ? (
+                {msgSelectMode ? (
+                  <div className="flex items-center justify-between gap-2 border-t border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] px-3 py-2.5 dark:bg-[#242424]">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={exitMsgSelectMode}
+                        aria-label="Cancel selection"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                      <span className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                        {selectedMsgIds.size} selected
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Tooltip title="Pin">
+                        <button
+                          onClick={bulkPin}
+                          disabled={selectedMsgIds.size === 0}
+                          className="grid h-9 w-9 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10 disabled:opacity-30"
+                          aria-label="Pin selected"
+                        >
+                          <Pin className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip title="Save">
+                        <button
+                          onClick={bulkBookmark}
+                          disabled={selectedMsgIds.size === 0}
+                          className="grid h-9 w-9 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10 disabled:opacity-30"
+                          aria-label="Save selected"
+                        >
+                          <Bookmark className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip title="Forward">
+                        <button
+                          onClick={bulkForward}
+                          disabled={selectedMsgIds.size === 0}
+                          className="grid h-9 w-9 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10 disabled:opacity-30"
+                          aria-label="Forward selected"
+                        >
+                          <Forward className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <button
+                          onClick={bulkDelete}
+                          disabled={selectedMsgIds.size === 0}
+                          className="grid h-9 w-9 place-items-center rounded-full hover:bg-red-500/10 disabled:opacity-30"
+                          aria-label="Delete selected"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
+                ) : composerNotice ? (
                   <div className="border-t border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] px-4 py-5 text-center dark:bg-[#242424]">
                     <p className="mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl bg-[#F5F0E8] px-4 py-3 text-sm font-medium text-[#8C8C8C] dark:bg-[#2A2A2A]">
                       {broadcastLocked && !accountRestricted && !iBlockedThem && !theyBlockedMe ? (
@@ -3579,6 +3875,29 @@ useEffect(() => {
           meId={me.id}
           onClose={() => setForwardingMessage(null)}
           onForwarded={() => {}}
+        />
+      )}
+
+      {forwardingMessages && me && (
+        <ForwardModal
+          messages={forwardingMessages}
+          chats={chats}
+          meId={me.id}
+          onClose={() => { setForwardingMessages(null); exitMsgSelectMode(); }}
+          onForwarded={() => {}}
+        />
+      )}
+
+      {showSavedMessages && me && (
+        <SavedMessagesModal
+          messages={savedMessages}
+          chats={chats}
+          meId={me.id}
+          loading={loadingSaved}
+          decrypted={decrypted}
+          onClose={() => setShowSavedMessages(false)}
+          onOpen={(chatId, messageId) => openMessageInChat(chatId, messageId)}
+          onRemove={(m) => toggleBookmark(m)}
         />
       )}
 

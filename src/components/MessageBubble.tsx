@@ -4,7 +4,7 @@ import {
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
-  FileText, Plus, ListChecks, CircleAlert,
+  FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PollCard } from "@/features/classroom";
@@ -778,10 +778,14 @@ function useLongPress(callback: () => void, ms = 500) {
 /* ─── WhatsApp-style Context Menu ─── */
 function MessageContextMenu({
   open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onForward, onClose,
+  isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect,
 }: {
   open: boolean; x: number; y: number; mine: boolean; isText: boolean;
   onReply: () => void; onReact: (emoji: string) => void;
   onEdit: () => void; onDelete: () => void; onCopy: () => void; onForward: () => void; onClose: () => void;
+  isPinned?: boolean; onTogglePin?: () => void;
+  isBookmarked?: boolean; onToggleBookmark?: () => void;
+  onEnterSelect?: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -827,6 +831,24 @@ function MessageContextMenu({
         {isText && <MenuItem icon={<Copy className="h-4 w-4" />} label="Copy text" onClick={() => { onCopy(); onClose(); }} />}
         <MenuItem icon={<FaRegThumbsUp className="h-4 w-4" />} label="React" onClick={() => { onReact("👍"); onClose(); }} />
         {mine && isText && <MenuItem icon={<Pencil className="h-4 w-4" />} label="Edit" onClick={() => { onEdit(); onClose(); }} />}
+        <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
+        {onTogglePin && (
+          <MenuItem
+            icon={isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+            label={isPinned ? "Unpin" : "Pin"}
+            onClick={() => { onTogglePin(); onClose(); }}
+          />
+        )}
+        {onToggleBookmark && (
+          <MenuItem
+            icon={isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+            label={isBookmarked ? "Remove from Saved" : "Save message"}
+            onClick={() => { onToggleBookmark(); onClose(); }}
+          />
+        )}
+        {onEnterSelect && (
+          <MenuItem icon={<CheckSquare className="h-4 w-4" />} label="Select" onClick={() => { onEnterSelect(); onClose(); }} />
+        )}
         <div className="my-1 border-t border-[var(--sona-accent,#E07A5F)]/10" />
         {mine && <MenuItem icon={<Trash2 className="h-4 w-4 text-red-500" />} label="Delete" danger onClick={() => { onDelete(); onClose(); }} />}
       </div>
@@ -1322,6 +1344,7 @@ export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread,allImages, onForward, isHighlighted,
+  isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -1341,6 +1364,16 @@ export function Bubble({
   onOpenThread?: () => void;
   allImages?: MediaItem[];
   onForward?: () => void;
+  /** Pinned = shared across the whole chat; shows a small badge and feeds the pinned-messages banner. */
+  isPinned?: boolean;
+  onTogglePin?: () => void;
+  /** Bookmarked = private to me, feeds the "Saved Messages" list. */
+  isBookmarked?: boolean;
+  onToggleBookmark?: () => void;
+  /** Bulk-select mode: renders a checkbox and taps toggle selection instead of opening the message. */
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1478,7 +1511,23 @@ const tailClass = !grouped && mine
 
   return (
     <>
-      <div className={`group select-none flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}>
+      <div
+        className={`group select-none flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}
+        onClick={selectMode ? () => onToggleSelect?.() : undefined}
+      >
+        {selectMode && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
+            aria-label={selected ? "Deselect message" : "Select message"}
+            className="mb-1 grid h-6 w-6 shrink-0 place-items-center self-center"
+          >
+            {selected ? (
+              <CheckCircle2 className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
+            ) : (
+              <Circle className="h-5 w-5 text-[#8C8C8C]" />
+            )}
+          </button>
+        )}
         {!mine && isGroup && !grouped && (
           <div className="mb-1">
             <Avatar url={sender?.avatar_url} name={sender?.display_name ?? "?"} size={28} ai={isAI} />
@@ -1486,8 +1535,17 @@ const tailClass = !grouped && mine
         )}
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
-        <div className="relative max-w-[82%] sm:max-w-[75%]">
-          <div
+        <div className={`relative max-w-[82%] sm:max-w-[75%] ${selectMode ? "pointer-events-none" : ""}`}>
+          {isPinned && (
+            <div
+              className={`absolute -top-2 z-10 flex items-center gap-0.5 rounded-full bg-[var(--sona-accent,#E07A5F)] px-1.5 py-0.5 text-white shadow-sm ${
+                mine ? "-left-1.5" : "-right-1.5"
+              }`}
+              title="Pinned message"
+            >
+              <Pin className="h-2.5 w-2.5 fill-current" />
+            </div>
+          )}          <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
               mine ? "-left-7" : "-right-7"
             } opacity-0 group-hover:opacity-100 ${actionsOpen ? "opacity-100" : ""}`}
@@ -1797,6 +1855,11 @@ const tailClass = !grouped && mine
         onCopy={handleCopy}
         onForward={() => onForward?.()}
         onClose={() => setContextMenu({ ...contextMenu, open: false })}
+        isPinned={isPinned}
+        onTogglePin={onTogglePin}
+        isBookmarked={isBookmarked}
+        onToggleBookmark={onToggleBookmark}
+        onEnterSelect={onToggleSelect ? () => onToggleSelect() : undefined}
       />
       
       {viewer && (
