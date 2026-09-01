@@ -1413,7 +1413,12 @@ export function Bubble({
   };
 
   // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[var(--sona-bubble-mine,#6B352A)] text-[#FFFCF4] " : "bg-[#FFFCF4] ";
+// Sent bubbles take their background from the active theme preset, so the
+// foreground comes from the contrast-aware token the theme hook publishes
+// (--sona-bubble-mine-fg) instead of a hardcoded near-white.
+const bubbleBase = mine
+  ? "bg-[var(--sona-bubble-mine,#6B352A)] text-[var(--sona-bubble-mine-fg,#FFFCF4)] [&_a]:text-[var(--sona-bubble-mine-fg,#FFFCF4)] [&_a]:underline [&_code]:text-[var(--sona-bubble-mine-fg,#FFFCF4)] "
+  : "bg-[#FFFCF4] ";
 
 const bubbleRadius = mine
   ? grouped
