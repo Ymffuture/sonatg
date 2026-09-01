@@ -3076,68 +3076,241 @@ useEffect(() => {
                     </div>
                   )}
 
-                  
-
-<DropdownMenu open={menuOpen} onOpenChange={handleMenuOpenChange}>
+                  <DropdownMenu open={menuOpen} onOpenChange={handleMenuOpenChange}>
   <DropdownMenuTrigger asChild>
-    <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
+    <button
+      className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20"
+      aria-label="Menu"
+    >
       <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#fff]" />
     </button>
   </DropdownMenuTrigger>
 
   <DropdownMenuContent align="end" className="w-64">
+    {/* ── Root ── */}
     {menuView === "root" && (
-  <>
-    <DropdownMenuItem onClick={() => setShowMsgSearch((s) => !s)}>
-      Search
-    </DropdownMenuItem>
-    {!isAIChat(active) && (
-      <DropdownMenuItem>
-        {isSummarized ? "Summarizing..." : "Summarize"}
-      </DropdownMenuItem>
-    )}
-    <DropdownMenuItem onClick={() => setShowMediaGallery(true)}>
-      Media, links, and docs
-    </DropdownMenuItem>
-    {!isAIChat(active) && <DropdownMenuItem>Scheduled messages</DropdownMenuItem>}
-    <DropdownMenuSeparator />
-    <DropdownMenuItem 
-      onSelect={(e) => {
-        e.preventDefault();
-        setMenuView("more");
-      }}
-      className="flex gap-8"
-    >
-      More <IoMdArrowDropright /> 
-    </DropdownMenuItem>
-  </>
-)}
-
-    {menuView === "more" && (
       <>
-        <DropdownMenuItem onClick={() => setMenuView("root")} className="text-[#8C8C8C] flex gap-4 ">
-          
-<IoMdArrowDropleft /> Back
+        <DropdownMenuItem
+          onClick={() => {
+            setShowMsgSearch((s) => !s);
+            setMenuOpen(false);
+          }}
+        >
+          Search
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+
         {!isAIChat(active) && (
-          <DropdownMenuItem onClick={() => setMenuView("disappearing")}>Disappearing messages</DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={isSummarized}
+            onClick={() => {
+              setMenuOpen(false);
+              void runSummary();
+            }}
+          >
+            {isSummarized ? "Summarizing…" : "Summarize"}
+          </DropdownMenuItem>
         )}
-        {!isAIChat(active) && <DropdownMenuItem onClick={() => setMenuView("export")}>Export chat</DropdownMenuItem>}
-        <DropdownMenuItem onClick={clearChat}>Clear chat</DropdownMenuItem>
-        {/* ...Hide/Lock/Report/Block items, all closing the menu normally on click */}
+
+        <DropdownMenuItem
+          onClick={() => {
+            setShowMediaGallery(true);
+            setMenuOpen(false);
+          }}
+        >
+          Media, links, and docs
+        </DropdownMenuItem>
+
+        {!isAIChat(active) && (
+          <DropdownMenuItem
+            onClick={() => {
+              setMenuOpen(false);
+              void openScheduledList();
+            }}
+          >
+            Scheduled messages
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault(); // keep menu open while drilling in
+            setMenuView("more");
+          }}
+          className="flex items-center justify-between"
+        >
+          More
+          <IoMdArrowDropright />
+        </DropdownMenuItem>
       </>
     )}
 
+    {/* ── More ── */}
+    {menuView === "more" && (
+      <>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setMenuView("root");
+          }}
+          className="flex items-center gap-2 text-[#8C8C8C]"
+        >
+          <IoMdArrowDropleft />
+          Back
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        {!isAIChat(active) && (
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setMenuView("disappearing");
+            }}
+          >
+            Disappearing messages
+            {active.disappearing_seconds
+              ? ` · ${disappearingLabel(active.disappearing_seconds)}`
+              : ""}
+          </DropdownMenuItem>
+        )}
+
+        {!isAIChat(active) && (
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setMenuView("export");
+            }}
+          >
+            Export chat
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuItem
+          onClick={() => {
+            setMenuOpen(false);
+            void clearChat();
+          }}
+        >
+          Clear chat
+        </DropdownMenuItem>
+
+        {!isAIChat(active) && (
+          <DropdownMenuItem
+            onClick={() => {
+              setMenuOpen(false);
+              void toggleHideChat();
+            }}
+          >
+            {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
+          </DropdownMenuItem>
+        )}
+
+        {active.is_hidden && isUnlocked(active.id) && (
+          <DropdownMenuItem
+            onClick={() => {
+              setMenuOpen(false);
+              relock();
+            }}
+          >
+            Lock chat
+          </DropdownMenuItem>
+        )}
+
+        {!isAIChat(active) && !active.is_group && activeOtherId && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                const other = profilesById[activeOtherId];
+                if (other) setReportTarget(other);
+                setMenuOpen(false);
+              }}
+            >
+              Report
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setMenuOpen(false);
+                void (iBlockedThem ? unblockOther() : blockOther());
+              }}
+              className="text-red-500 focus:text-red-500"
+            >
+              {iBlockedThem ? "Unblock" : "Block"}
+            </DropdownMenuItem>
+          </>
+        )}
+      </>
+    )}
+
+    {/* ── Disappearing messages ── */}
     {menuView === "disappearing" && (
       <>
-        <DropdownMenuItem onClick={() => setMenuView("more")} className="text-[#8C8C8C]">← Back</DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setMenuView("more");
+          }}
+          className="text-[#8C8C8C] gap-3 flex"
+        >
+          <IoMdArrowDropleft /> Back
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
-        {DISAPPEARING_OPTIONS.map((opt) => (
-          <DropdownMenuItem key={opt.label} onClick={() => setDisappearing(opt.seconds)}>
-            {opt.label}
-          </DropdownMenuItem>
-        ))}
+
+        {DISAPPEARING_OPTIONS.map((opt) => {
+          const selected =
+            (active?.disappearing_seconds ?? null) === (opt.seconds ?? null);
+          return (
+            <DropdownMenuItem
+              key={opt.label}
+              onClick={() => {
+                setMenuOpen(false);
+                void setDisappearing(opt.seconds);
+              }}
+              className="flex items-center justify-between"
+            >
+              {opt.label}
+              {selected && <Check className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />}
+            </DropdownMenuItem>
+          );
+        })}
+      </>
+    )}
+
+    {/* ── Export ── */}
+    {menuView === "export" && (
+      <>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setMenuView("more");
+          }}
+          className="text-[#8C8C8C] flex gap-2"
+        >
+          <IoMdArrowDropleft /> Back
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={() => {
+            setMenuOpen(false);
+            exportChat("json");
+          }}
+        >
+          Export as JSON
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={() => {
+            setMenuOpen(false);
+            exportChat("pdf");
+          }}
+        >
+          Export as PDF
+        </DropdownMenuItem>
       </>
     )}
   </DropdownMenuContent>
