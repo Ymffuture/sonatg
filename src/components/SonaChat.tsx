@@ -42,7 +42,8 @@ import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import { PurpleBadge } from "./PurpleBadge";
 import {MdDiamond} from "react-icons/md";
-
+import { IoMdArrowDropleft } from "react-icons/io";
+import { IoMdArrowDropright } from "react-icons/io";
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -3099,21 +3100,24 @@ useEffect(() => {
       Media, links, and docs
     </DropdownMenuItem>
     {!isAIChat(active) && <DropdownMenuItem>Scheduled messages</DropdownMenuItem>}
+    <DropdownMenuSeparator />
     <DropdownMenuItem 
       onSelect={(e) => {
         e.preventDefault();
         setMenuView("more");
       }}
+      className="flex gap-8"
     >
-      More
+      More <IoMdArrowDropright /> 
     </DropdownMenuItem>
   </>
 )}
 
     {menuView === "more" && (
       <>
-        <DropdownMenuItem onClick={() => setMenuView("root")} className="text-[#8C8C8C]">
-          ← Back
+        <DropdownMenuItem onClick={() => setMenuView("root")} className="text-[#8C8C8C] flex gap-4 ">
+          
+<IoMdArrowDropleft /> Back
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {!isAIChat(active) && (
