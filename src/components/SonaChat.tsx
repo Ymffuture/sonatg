@@ -65,7 +65,7 @@ function AdminLink({ onNavigate }: { onNavigate: () => void }) {
       onClick={onNavigate}
       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
     >
-      <Shield className="h-4 w-4 shrink-0" />
+      
       Admin console
     </Link>
   );
@@ -2451,7 +2451,7 @@ useEffect(() => {
             onClick={() => { setShowSavedMessages(true); setShowHeaderMenu(false); loadSavedMessages(); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            <Bookmark className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Saved Messages
+            Saved Messages
           </button>
 
           <Link
@@ -3105,7 +3105,7 @@ useEffect(() => {
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger>More</DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
-                          <DropdownMenuSubContent className="w-60" sideOffset={6}>
+                          <DropdownMenuSubContent className="w-40" sideOffset={4}>
                             {!isAIChat(active) && (
                               <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>Disappearing messages</DropdownMenuSubTrigger>
