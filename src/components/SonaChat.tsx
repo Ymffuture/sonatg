@@ -1938,7 +1938,7 @@ function SonaChatInner() {
     setForwardingMessages(selectedMsgs);
   };
 
-
+  const blockOther = async () => {
     if (!me || !active) return;
     const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
     if (!other) { toast.error("Can't block in this chat."); return; }
