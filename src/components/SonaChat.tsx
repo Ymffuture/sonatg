@@ -21,7 +21,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -42,8 +41,7 @@ import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import { PurpleBadge } from "./PurpleBadge";
 import {MdDiamond} from "react-icons/md";
-import { IoMdArrowDropleft } from "react-icons/io";
-import { IoMdArrowDropright } from "react-icons/io";
+
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -66,7 +64,7 @@ function AdminLink({ onNavigate }: { onNavigate: () => void }) {
       onClick={onNavigate}
       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
     >
-      
+      <Shield className="h-4 w-4 shrink-0" />
       Admin console
     </Link>
   );
@@ -100,6 +98,7 @@ import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer, MediaViewer } from "./MessageBubble";
 import { MessageErrorBoundary } from "./MessageErrorBoundary";
 import { MemberListModal, GroupSettingsModal, NewChatModal, SettingsModal, UnlockModal, SavedMessagesModal } from "./ChatModals";
+import { NetworkStatusFooter } from "./NetworkStatusFooter";
 import { ProfileViewModal } from "./ProfileView";
 import { ForwardModal } from "./ForwardModal";
 import { MediaGalleryModal } from "./MediaGalleryModal";
@@ -481,16 +480,7 @@ function SonaChatInner() {
   const [query, setQuery] = useState("");
   const [announcement, setAnnouncement] = useState<AppAnnouncement | null>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
-const [menuOpen, setMenuOpen] = useState(false);
-const [menuView, setMenuView] = useState<"root" | "more" | "disappearing" | "export">("root");
 
-// reset the drill-down whenever the menu closes, so it doesn't reopen mid-flow
-const handleMenuOpenChange = (open: boolean) => {
-  setMenuOpen(open);
-  if (!open) setMenuView("root");
-};
-
-  
   useEffect(() => {
     fetchActiveAnnouncement().then(setAnnouncement).catch(() => {});
     const channel = supabase
@@ -559,7 +549,7 @@ const handleMenuOpenChange = (open: boolean) => {
         score: verdict.score,
         blocked: !verdict.allowed,
         categories,
-        pattern_signals: JSON.parse(JSON.stringify(verdict.patternSignals)),
+        pattern_signals: verdict.patternSignals,
       });
       if (error) console.error("[moderation] failed to log flag:", error.message);
     },
@@ -652,21 +642,6 @@ const handleMenuOpenChange = (open: boolean) => {
   const [editing, setEditing] = useState<MessageRow | null>(null);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
-
-  // Single source of truth for the message "More" / long-press context menu
-  // (Reply/Forward/Pin/Save/Delete/...). Keyed by message id and owned here
-  // rather than inside each Bubble instance, so opening one message's menu
-  // always implicitly closes any other — there is never more than one of
-  // these open at once, app-wide, by construction.
-  const [openMessageMenu, setOpenMessageMenu] = useState<{ id: string; x: number; y: number } | null>(null);
-  const closeMessageMenu = useCallback(() => setOpenMessageMenu(null), []);
-  const openMessageMenuFor = useCallback((id: string, x: number, y: number) => {
-    // Opening a message menu always wins over any other open menu/popover.
-    setShowHeaderMenu(false);
-    setShowDisappearingMenu(false);
-    setChatLongPressMenu(null);
-    setOpenMessageMenu({ id, x, y });
-  }, []);
 
   // Message pinning (shared, lives on the messages row itself) and bookmarks
   // ("Saved Messages" — private, lives in message_bookmarks). bookmarkedIds
@@ -2091,7 +2066,7 @@ const handleMenuOpenChange = (open: boolean) => {
       setSummary(r.summary);
       toast.success("Summary ready", { id: "sum" });
       setIsSummarized(false) ;
-    } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
+    } catch (e) { antMessage.error((e as Error).message, { id: "sum" }); }
   };
 
   const startCall = (kind: "voice" | "video") => {
@@ -2159,25 +2134,7 @@ const handleMenuOpenChange = (open: boolean) => {
   }, [messages, msgSearchQuery, decrypted]);
 
   useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
-  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); closeMessageMenu(); setShowHeaderMenu(false); setChatLongPressMenu(null); setReactingOn(null); }, [activeId]);
-
-  // Single Escape-key handler for every menu/popover in the app (message
-  // context menu, header dropdown, chat long-press menu, reaction picker).
-  // Centralized here rather than duplicated inside each menu component, so
-  // there's exactly one place that defines "Escape closes the active menu".
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      closeMessageMenu();
-      setShowHeaderMenu(false);
-      setShowDisappearingMenu(false);
-      setChatLongPressMenu(null);
-      setReactingOn(null);
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [closeMessageMenu]);
-
+  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); }, [activeId]);
   useEffect(() => {
     if (!showMsgSearch || msgSearchMatches.length === 0) return;
     const target = msgSearchMatches[Math.min(msgSearchIndex, msgSearchMatches.length - 1)];
@@ -2341,6 +2298,7 @@ useEffect(() => {
       className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] hide-scrollbar dark:text-[#E8E8E8]"
       style={sonaTheme.style}
     >
+      <NetworkStatusFooter />
       <Watermark
           content="" 
           font={{ color: "#e1f6fc" , fontSize: 8}}
@@ -2421,7 +2379,7 @@ useEffect(() => {
 <div className="relative" ref={headerMenuRef}>
     <button
       data-tour="settings-btn"
-      onClick={() => setShowHeaderMenu((v) => { const next = !v; if (next) closeMessageMenu(); return next; })}
+      onClick={() => setShowHeaderMenu((v) => !v)}
       className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${
         showHeaderMenu ? "bg-white/20" : "hover:bg-white/20"
       } text-gray-600 dark:text-white`}
@@ -2461,7 +2419,7 @@ useEffect(() => {
             onClick={() => { setShowSavedMessages(true); setShowHeaderMenu(false); loadSavedMessages(); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
           >
-            Saved Messages
+            <Bookmark className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Saved Messages
           </button>
 
           <Link
@@ -2690,7 +2648,6 @@ useEffect(() => {
             // WhatsApp, rather than Gmail-style bulk selection.
             e.preventDefault();
             if (selectMode) return;
-            closeMessageMenu();
             setChatLongPressMenu({ chatId: c.id, x: e.clientX, y: e.clientY });
           }}
           className={`group relative flex w-full items-center gap-3 px-3 py-3 mx-1 my-0.5 text-left transition-colors cursor-pointer rounded-xl ${
@@ -2771,7 +2728,36 @@ useEffect(() => {
                 )}
               </span>
               <div className="flex shrink-0 flex-col items-end gap-1">
-      
+                {!selectMode && (
+                  <div className="flex items-center gap-1">
+                    {!ai && !c.is_group && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const otherId = c.memberIds.find((id) => id !== me.id);
+                          const p = otherId ? profilesById[otherId] : undefined;
+                          if (p) setReportTarget(p);
+                          else antMessage.error("Couldn't find that user's profile to report.");
+                        }}
+                        className="grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full opacity-40 hover:opacity-100 hover:bg-[#F4A261]/20 md:opacity-0 md:group-hover:opacity-100 transition"
+                        aria-label="Report user"
+                        title="Report user"
+                      >
+                        <Flag className="h-3 w-3 text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)]" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => togglePin(e, c)}
+                      className={`grid h-6 w-6 md:h-5 md:w-5 place-items-center rounded-full hover:bg-[#F4A261]/20 ${
+                        c.isPinned ? "" : "opacity-40 md:opacity-0 md:group-hover:opacity-100"
+                      }`}
+                      aria-label={c.isPinned ? "Unpin chat" : "Pin chat"}
+                      title={c.isPinned ? "Unpin chat" : "Pin chat"}
+                    >
+                      <Pin className="h-3 w-3" style={c.isPinned ? { fill: "var(--sona-accent, #E07A5F)", color: "var(--sona-accent, #E07A5F)" } : undefined} />
+                    </button>
+                  </div>
+                )}
                 <span className={`text-[11px] ${c.unread > 0 ? "font-semibold" : "text-[#8C8C8C]"}`} style={c.unread > 0 ? { color: "var(--sona-accent, #D97757)" } : undefined}>
                   {last ? fmtChatTimestamp(last.created_at) : ""}
                 </span>
@@ -2820,7 +2806,7 @@ useEffect(() => {
     })
   )}
   {!loadingChats && filtered.length === 0 && ( <div className="-mb-2">
-        <EmptyChatState onStartChat={() => setShowNewChat(true)} />
+        <EmptyChatState/>
       </div>)} 
                </AnimatePresence>
 </div>
@@ -3076,246 +3062,119 @@ useEffect(() => {
                     </div>
                   )}
 
-                  <DropdownMenu open={menuOpen} onOpenChange={handleMenuOpenChange}>
-  <DropdownMenuTrigger asChild>
-    <button
-      className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20"
-      aria-label="Menu"
-    >
-      <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#fff]" />
-    </button>
-  </DropdownMenuTrigger>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Menu">
+                        <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#fff]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuItem onClick={() => setShowMsgSearch((s) => !s)}>
+                        Search
+                      </DropdownMenuItem>
 
-  <DropdownMenuContent align="end" className="w-64">
-    {/* ── Root ── */}
-    {menuView === "root" && (
-      <>
-        <DropdownMenuItem
-          onClick={() => {
-            setShowMsgSearch((s) => !s);
-            setMenuOpen(false);
-          }}
-        >
-          Search
-        </DropdownMenuItem>
+                      {!isAIChat(active) && (
+                        <DropdownMenuItem disabled={isSummarized} onClick={runSummary}>
+                          <span className={`flex w-full items-center ${isSummarized ? "animate-pulse" : ""}`}>
+                            {isSummarized ? "Summarizing..." : "Summarize"}
+                            {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                          </span>
+                        </DropdownMenuItem>
+                      )}
 
-        {!isAIChat(active) && (
-          <DropdownMenuItem
-            disabled={isSummarized}
-            onClick={() => {
-              setMenuOpen(false);
-              void runSummary();
-            }}
-          >
-            {isSummarized ? "Summarizing…" : "Summarize"}
-          </DropdownMenuItem>
-        )}
+                      {!isAIChat(active) && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>Disappearing messages</DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                              {DISAPPEARING_OPTIONS.map((opt) => (
+                                <DropdownMenuItem key={opt.label} onClick={() => setDisappearing(opt.seconds)}>
+                                  <span className="flex w-full items-center justify-between">
+                                    {opt.label}
+                                    {(active.disappearing_seconds ?? null) === opt.seconds && (
+                                      <Check className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" />
+                                    )}
+                                  </span>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                      )}
 
-        <DropdownMenuItem
-          onClick={() => {
-            setShowMediaGallery(true);
-            setMenuOpen(false);
-          }}
-        >
-          Media, links, and docs
-        </DropdownMenuItem>
+                      {!isAIChat(active) && (
+                        <DropdownMenuItem onClick={openScheduledList}>
+                          Scheduled messages
+                        </DropdownMenuItem>
+                      )}
 
-        {!isAIChat(active) && (
-          <DropdownMenuItem
-            onClick={() => {
-              setMenuOpen(false);
-              void openScheduledList();
-            }}
-          >
-            Scheduled messages
-          </DropdownMenuItem>
-        )}
+                      <DropdownMenuItem onClick={() => setShowMediaGallery(true)}>
+                        Media, links, and docs
+                      </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
+                      {!isAIChat(active) && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <span className="flex w-full items-center">
+                              Export chat
+                              {!me.is_pro && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                            </span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => exportChat("json")}>Export as JSON</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => exportChat("pdf")}>Export as PDF</DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                      )}
 
-        <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault(); // keep menu open while drilling in
-            setMenuView("more");
-          }}
-          className="flex items-center justify-between"
-        >
-          More
-          <IoMdArrowDropright />
-        </DropdownMenuItem>
-      </>
-    )}
+                      <DropdownMenuItem onClick={clearChat}>
+                        Clear chat
+                      </DropdownMenuItem>
 
-    {/* ── More ── */}
-    {menuView === "more" && (
-      <>
-        <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            setMenuView("root");
-          }}
-          className="flex items-center gap-2 text-[#8C8C8C]"
-        >
-          <IoMdArrowDropleft />
-          Back
-        </DropdownMenuItem>
+                      {!isAIChat(active) && (
+                        <DropdownMenuItem onClick={toggleHideChat}>
+                          <span className="flex w-full items-center">
+                            {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
+                            {!me.is_pro && !active.is_hidden && <MdDiamond className="ml-auto h-3 w-3 text-[#8B5CF6]" />}
+                          </span>
+                        </DropdownMenuItem>
+                      )}
 
-        <DropdownMenuSeparator />
+                      {active.is_hidden && isUnlocked(active.id) && (
+                        <DropdownMenuItem onClick={relock}>Lock now</DropdownMenuItem>
+                      )}
 
-        {!isAIChat(active) && (
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              setMenuView("disappearing");
-            }}
-          >
-            Disappearing messages
-            {active.disappearing_seconds
-              ? ` · ${disappearingLabel(active.disappearing_seconds)}`
-              : ""}
-          </DropdownMenuItem>
-        )}
+                      {!isAIChat(active) && !active.is_group && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const p = activeOtherId ? profilesById[activeOtherId] : undefined;
+                              if (p) setReportTarget(p);
+                            }}
+                          >
+                            Report
+                          </DropdownMenuItem>
+                          {iBlockedThem ? (
+                            <DropdownMenuItem onClick={unblockOther}>Unblock</DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={blockOther} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
+                              Block
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
 
-        {!isAIChat(active) && (
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              setMenuView("export");
-            }}
-          >
-            Export chat
-          </DropdownMenuItem>
-        )}
-
-        <DropdownMenuItem
-          onClick={() => {
-            setMenuOpen(false);
-            void clearChat();
-          }}
-        >
-          Clear chat
-        </DropdownMenuItem>
-
-        {!isAIChat(active) && (
-          <DropdownMenuItem
-            onClick={() => {
-              setMenuOpen(false);
-              void toggleHideChat();
-            }}
-          >
-            {active.is_hidden ? "Unhide chat" : "Hide & encrypt"}
-          </DropdownMenuItem>
-        )}
-
-        {active.is_hidden && isUnlocked(active.id) && (
-          <DropdownMenuItem
-            onClick={() => {
-              setMenuOpen(false);
-              relock();
-            }}
-          >
-            Lock chat
-          </DropdownMenuItem>
-        )}
-
-        {!isAIChat(active) && !active.is_group && activeOtherId && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                const other = profilesById[activeOtherId];
-                if (other) setReportTarget(other);
-                setMenuOpen(false);
-              }}
-            >
-              Report
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setMenuOpen(false);
-                void (iBlockedThem ? unblockOther() : blockOther());
-              }}
-              className="text-red-500 focus:text-red-500"
-            >
-              {iBlockedThem ? "Unblock" : "Block"}
-            </DropdownMenuItem>
-          </>
-        )}
-      </>
-    )}
-
-    {/* ── Disappearing messages ── */}
-    {menuView === "disappearing" && (
-      <>
-        <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            setMenuView("more");
-          }}
-          className="text-[#8C8C8C] gap-3 flex"
-        >
-          <IoMdArrowDropleft /> Back
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        {DISAPPEARING_OPTIONS.map((opt) => {
-          const selected =
-            (active?.disappearing_seconds ?? null) === (opt.seconds ?? null);
-          return (
-            <DropdownMenuItem
-              key={opt.label}
-              onClick={() => {
-                setMenuOpen(false);
-                void setDisappearing(opt.seconds);
-              }}
-              className="flex items-center justify-between"
-            >
-              {opt.label}
-              {selected && <Check className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />}
-            </DropdownMenuItem>
-          );
-        })}
-      </>
-    )}
-
-    {/* ── Export ── */}
-    {menuView === "export" && (
-      <>
-        <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            setMenuView("more");
-          }}
-          className="text-[#8C8C8C] flex gap-2"
-        >
-          <IoMdArrowDropleft /> Back
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={() => {
-            setMenuOpen(false);
-            exportChat("json");
-          }}
-        >
-          Export as JSON
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          onClick={() => {
-            setMenuOpen(false);
-            exportChat("pdf");
-          }}
-        >
-          Export as PDF
-        </DropdownMenuItem>
-      </>
-    )}
-  </DropdownMenuContent>
-</DropdownMenu>
-                  
+                      {/* Groups don't have one "other user" — surface the member list so
+                          the person can pick exactly who they want to report or block. */}
+                      {!isAIChat(active) && active.is_group && (
+                        <DropdownMenuItem onClick={() => setShowMemberList(true)}>
+                          Report a member
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </header>
 
                 {active.is_group && active.description && (
@@ -3525,10 +3384,6 @@ useEffect(() => {
       selectMode={msgSelectMode}
       selected={selectedMsgIds.has(m.id)}
       onToggleSelect={() => toggleSelectMessage(m.id)}
-      menuOpen={openMessageMenu?.id === m.id}
-      menuPos={openMessageMenu?.id === m.id ? { x: openMessageMenu.x, y: openMessageMenu.y } : null}
-      onOpenMenu={(x, y) => openMessageMenuFor(m.id, x, y)}
-      onCloseMenu={closeMessageMenu}
     />
     </MessageErrorBoundary>
     </motion.div>
@@ -3580,7 +3435,7 @@ useEffect(() => {
             <>
               <Reply className="h-3 w-3" />
               <span>
-                {replyTo?.sender_id === me?.id ? "You" : (replyTo ? profiles[replyTo.sender_id]?.display_name : null) ?? "…"}
+                {replyTo?.sender_id === me?.id ? "You" : profiles[replyTo?.sender_id]?.display_name ?? "…"}
               </span>
             </>
           )}
