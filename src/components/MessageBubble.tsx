@@ -887,8 +887,16 @@ function MessageContextMenu({
                 onClick={() => { onEnterSelect(); onClose(); }}
               />
             )}
+            {onInfo && (
+              <CompactMenuItem
+                icon={<Info className="h-4 w-4" />}
+                label="Message info"
+                onClick={() => { onInfo(); onClose(); }}
+              />
+            )}
           </>
         )}
+
 
         {mine && (
           <>
