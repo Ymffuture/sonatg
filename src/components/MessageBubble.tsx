@@ -4,7 +4,7 @@ import {
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
-  FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
+  FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PollCard } from "@/features/classroom";
