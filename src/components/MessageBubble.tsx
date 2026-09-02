@@ -1897,6 +1897,8 @@ const tailClass = !grouped && mine
                   )}
                 </AnimatePresence>
                 {msg.edited_at && <span className="text-[10px] !text-[#8C8C8C] italic opacity-70">edited</span>}
+                {isPinned && <Pin className="h-3 w-3 fill-[#8C8C8C] text-[#8C8C8C]" />}
+                {isBookmarked && <Bookmark className="h-3 w-3 fill-[#8C8C8C] text-[#8C8C8C]" />}
                 <span suppressHydrationWarning className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
                 {mine && (msg._pending ? <Clock className="h-3 w-3 text-[#8C8C8C] " /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
               </div>
