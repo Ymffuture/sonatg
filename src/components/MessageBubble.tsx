@@ -1608,7 +1608,7 @@ const tailClass = !grouped && mine
         )}
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
-        <div className={`relative max-w-[92%] sm:max-w-[85%] ${selectMode ? "pointer-events-none" : ""}`}>
+        <div className={`relative max-w-[100%] sm:max-w-[100%] ${selectMode ? "pointer-events-none" : ""}`}>
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
               mine ? "-left-7" : "-right-7"
@@ -1723,7 +1723,7 @@ const tailClass = !grouped && mine
   loading="lazy"
   onLoad={() => setImgLoaded(true)}
   onClick={(e) => { e.stopPropagation(); setViewer({ kind: "image", url: msg.media_url!, name: `sona-photo-${msg.id}.jpg` }); }}
-  className={`max-h-[600px] w-full cursor-pointer rounded-lg object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+  className={`!max-h-[600px] w-full cursor-pointer rounded-lg object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
   style={{ maxWidth: '600px' }}
 />
                 <button
@@ -1748,7 +1748,7 @@ const tailClass = !grouped && mine
       src={msg.media_url}
       fileSize={msg.file_size}
       onDownload={() => downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`)}
-      className="w-full max-w-[600px]"
+      className="w-full !max-w-[600px]"
     />
   </div>
 )}
