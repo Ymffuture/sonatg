@@ -2019,6 +2019,73 @@ const tailClass = !grouped && mine
   );
 }
 
+/* ─── Message info ─── */
+function MessageInfoSheet({
+  msg, mine, senderName, reads, recipientCount, reactionCount, isPinned, isBookmarked, onClose,
+}: {
+  msg: MessageRow; mine: boolean; senderName: string;
+  reads: MessageReadRow[]; recipientCount: number; reactionCount: number;
+  isPinned: boolean; isBookmarked: boolean; onClose: () => void;
+}) {
+  const kindLabel =
+    msg.kind === "text" ? "Text" :
+    msg.kind === "image" ? "Photo" :
+    msg.kind === "video" ? "Video" :
+    msg.kind === "voice" ? "Voice note" :
+    msg.kind === "file" ? "File" : msg.kind;
+
+  const rows: { label: string; value: React.ReactNode }[] = [
+    { label: "From", value: senderName },
+    { label: "Type", value: kindLabel },
+    { label: "Sent", value: <span suppressHydrationWarning>{new Date(msg.created_at).toLocaleString()}</span> },
+  ];
+  if (msg.edited_at) rows.push({ label: "Edited", value: <span suppressHydrationWarning>{new Date(msg.edited_at).toLocaleString()}</span> });
+  if (mine) rows.push({ label: "Read by", value: `${reads.length}${recipientCount ? ` of ${recipientCount}` : ""}` });
+  if (reads.length > 0) {
+    const last = reads.map((r) => r.read_at).sort().slice(-1)[0];
+    rows.push({ label: "Last read", value: <span suppressHydrationWarning>{new Date(last).toLocaleString()}</span> });
+  }
+  if (msg.file_name) rows.push({ label: "File", value: msg.file_name });
+  if (msg.file_size) rows.push({ label: "Size", value: formatBytes(msg.file_size) });
+  if (msg.duration_ms) rows.push({ label: "Duration", value: `${Math.round(msg.duration_ms / 1000)}s` });
+  if (reactionCount) rows.push({ label: "Reactions", value: String(reactionCount) });
+  if (msg.is_forwarded) rows.push({ label: "Forwarded", value: "Yes" });
+  if (msg.is_encrypted) rows.push({ label: "Encrypted", value: "Yes" });
+  if (isPinned) rows.push({ label: "Pinned", value: "Yes" });
+  if (isBookmarked) rows.push({ label: "Saved", value: "Yes" });
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/30 dark:border-white/10 bg-white/80 dark:bg-[#1E1E1E]/85 backdrop-blur-2xl shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-white/25 dark:border-white/10 px-4 py-3">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+            <Info className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Message info
+          </h3>
+          <button onClick={onClose} aria-label="Close message info" className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10">
+            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto scrollbar-thin px-4 py-3">
+          <dl className="space-y-2">
+            {rows.map((r) => (
+              <div key={r.label} className="flex items-start justify-between gap-4 text-[13px]">
+                <dt className="shrink-0 text-[#8C8C8C]">{r.label}</dt>
+                <dd className="min-w-0 truncate text-right font-medium text-[#2D3436] dark:text-[#E8E8E8]">{r.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 /* ─── Voice Player ─── */
 export function VoicePlayer({
   url, durationMs, mine, avatarUrl, avatarName, messageId, transcript, onTranscribed,
