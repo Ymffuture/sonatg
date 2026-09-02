@@ -156,6 +156,53 @@ export type Database = {
           },
         ]
       }
+      chat_invites: {
+        Row: {
+          allowed_email: string | null
+          chat_id: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number
+          token: string
+          uses: number
+        }
+        Insert: {
+          allowed_email?: string | null
+          chat_id: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          token: string
+          uses?: number
+        }
+        Update: {
+          allowed_email?: string | null
+          chat_id?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          token?: string
+          uses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_invites_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_members: {
         Row: {
           chat_id: string
@@ -1145,6 +1192,7 @@ export type Database = {
           unreviewed_high_severity_flags: number
         }[]
       }
+      generate_chat_invite_token: { Args: never; Returns: string }
       generate_class_join_code: { Args: never; Returns: string }
       get_public_profile: {
         Args: { profile_id: string }
@@ -1173,7 +1221,21 @@ export type Database = {
         Returns: boolean
       }
       is_user_offline: { Args: { _user_id: string }; Returns: boolean }
+      join_chat_by_invite: { Args: { _token: string }; Returns: string }
       join_class_by_code: { Args: { _code: string }; Returns: string }
+      preview_chat_invite: {
+        Args: { _token: string }
+        Returns: {
+          allowed_email: string
+          already_member: boolean
+          avatar_url: string
+          chat_id: string
+          is_group: boolean
+          is_valid: boolean
+          reason: string
+          title: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

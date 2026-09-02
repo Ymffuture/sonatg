@@ -4,7 +4,7 @@ import {
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
-  FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
+  FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PollCard } from "@/features/classroom";
@@ -777,7 +777,7 @@ function useLongPress(callback: () => void, ms = 500) {
 /* ─── WhatsApp-style Context Menu (compact) ─── */
 function MessageContextMenu({
   open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onForward, onClose,
-  isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect,
+  isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect, onInfo,
 }: {
   open: boolean; x: number; y: number; mine: boolean; isText: boolean;
   onReply: () => void; onReact: (emoji: string) => void;
@@ -785,6 +785,8 @@ function MessageContextMenu({
   isPinned?: boolean; onTogglePin?: () => void;
   isBookmarked?: boolean; onToggleBookmark?: () => void;
   onEnterSelect?: () => void;
+  onInfo?: () => void;
+
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -885,8 +887,16 @@ function MessageContextMenu({
                 onClick={() => { onEnterSelect(); onClose(); }}
               />
             )}
+            {onInfo && (
+              <CompactMenuItem
+                icon={<Info className="h-4 w-4" />}
+                label="Message info"
+                onClick={() => { onInfo(); onClose(); }}
+              />
+            )}
           </>
         )}
+
 
         {mine && (
           <>
@@ -1420,6 +1430,8 @@ export function Bubble({
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread,allImages, onForward, isHighlighted,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
+  menuOpen, menuPos, onOpenMenu, onCloseMenu,
+
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -1449,6 +1461,11 @@ export function Bubble({
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  /** Optional controlled context-menu state (lets the parent keep only one menu open at a time). */
+  menuOpen?: boolean;
+  menuPos?: { x: number; y: number } | null;
+  onOpenMenu?: (x: number, y: number) => void;
+  onCloseMenu?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1456,18 +1473,32 @@ export function Bubble({
   reactions.forEach((r) => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
-  const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const [localMenu, setLocalMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const isControlledMenu = menuOpen !== undefined;
+  const contextMenu = isControlledMenu
+    ? { open: !!menuOpen, x: menuPos?.x ?? 0, y: menuPos?.y ?? 0 }
+    : localMenu;
+  const openMenuAt = (x: number, y: number) => {
+    if (isControlledMenu) onOpenMenu?.(x, y);
+    else setLocalMenu({ open: true, x, y });
+  };
+  const closeMenu = () => {
+    if (isControlledMenu) onCloseMenu?.();
+    else setLocalMenu({ open: false, x: 0, y: 0 });
+  };
   const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
   const [justCopied, setJustCopied] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
   const longPress = useLongPress(() => {
     if (bubbleRef.current) {
       const rect = bubbleRef.current.getBoundingClientRect();
-      setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
+      openMenuAt(rect.left + rect.width / 2, rect.top);
     }
+
   }, 600);
 
   const handleCopy = () => {
@@ -1532,13 +1563,13 @@ const tailClass = !grouped && mine
         </div>
         {mine && contextMenu.open && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setContextMenu({ open: false, x: 0, y: 0 })} />
+            <div className="fixed inset-0 z-40" onClick={closeMenu} />
             <div
               className="fixed z-50 -translate-x-1/2 -translate-y-full rounded-xl border border-[var(--sona-accent,#E07A5F)]/15 bg-white dark:bg-[#242424] shadow-xl overflow-hidden"
               style={{ left: contextMenu.x, top: contextMenu.y - 8 }}
             >
               <button
-                onClick={() => { setContextMenu({ open: false, x: 0, y: 0 }); onRemove?.(); }}
+                onClick={() => { closeMenu(); onRemove?.(); }}
                 className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition whitespace-nowrap"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Remove
@@ -1651,7 +1682,7 @@ const tailClass = !grouped && mine
                 e.stopPropagation();
                 if (bubbleRef.current) {
                   const rect = bubbleRef.current.getBoundingClientRect();
-                  setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
+                  openMenuAt(rect.left + rect.width / 2, rect.top);
                 }
               }}
               className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
@@ -1913,8 +1944,19 @@ const tailClass = !grouped && mine
                     </motion.span>
                   )}
                 </AnimatePresence>
+                {isPinned && (
+                  <Tooltip title="Pinned in this chat">
+                    <Pin className="h-3 w-3 shrink-0 text-[var(--sona-accent,#E07A5F)]" />
+                  </Tooltip>
+                )}
+                {isBookmarked && (
+                  <Tooltip title="Saved">
+                    <BookmarkCheck className="h-3 w-3 shrink-0 text-[#4FA6E0]" />
+                  </Tooltip>
+                )}
                 {msg.edited_at && <span className="text-[10px] !text-[#8C8C8C] italic opacity-70">edited</span>}
                 <span suppressHydrationWarning className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
+
                 {mine && (msg._pending ? <Clock className="h-3 w-3 text-[#8C8C8C] " /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
               </div>
             </div>
@@ -1934,13 +1976,29 @@ const tailClass = !grouped && mine
         onDelete={() => onDelete()}
         onCopy={handleCopy}
         onForward={() => onForward?.()}
-        onClose={() => setContextMenu({ ...contextMenu, open: false })}
+        onClose={closeMenu}
         isPinned={isPinned}
         onTogglePin={onTogglePin}
         isBookmarked={isBookmarked}
         onToggleBookmark={onToggleBookmark}
         onEnterSelect={onToggleSelect ? () => onToggleSelect() : undefined}
+        onInfo={() => setInfoOpen(true)}
       />
+
+      {infoOpen && (
+        <MessageInfoSheet
+          msg={msg}
+          mine={mine}
+          senderName={mine ? "You" : sender?.display_name ?? "Unknown"}
+          reads={reads.filter((r) => r.message_id === msg.id && r.user_id !== msg.sender_id)}
+          recipientCount={otherMemberIds.length}
+          reactionCount={reactions.length}
+          isPinned={!!isPinned}
+          isBookmarked={!!isBookmarked}
+          onClose={() => setInfoOpen(false)}
+        />
+      )}
+
       
       {viewer && (
         <MediaViewer
@@ -1960,6 +2018,73 @@ const tailClass = !grouped && mine
     </>
   );
 }
+
+/* ─── Message info ─── */
+function MessageInfoSheet({
+  msg, mine, senderName, reads, recipientCount, reactionCount, isPinned, isBookmarked, onClose,
+}: {
+  msg: MessageRow; mine: boolean; senderName: string;
+  reads: MessageReadRow[]; recipientCount: number; reactionCount: number;
+  isPinned: boolean; isBookmarked: boolean; onClose: () => void;
+}) {
+  const kindLabel =
+    msg.kind === "text" ? "Text" :
+    msg.kind === "image" ? "Photo" :
+    msg.kind === "video" ? "Video" :
+    msg.kind === "voice" ? "Voice note" :
+    msg.kind === "file" ? "File" : msg.kind;
+
+  const rows: { label: string; value: React.ReactNode }[] = [
+    { label: "From", value: senderName },
+    { label: "Type", value: kindLabel },
+    { label: "Sent", value: <span suppressHydrationWarning>{new Date(msg.created_at).toLocaleString()}</span> },
+  ];
+  if (msg.edited_at) rows.push({ label: "Edited", value: <span suppressHydrationWarning>{new Date(msg.edited_at).toLocaleString()}</span> });
+  if (mine) rows.push({ label: "Read by", value: `${reads.length}${recipientCount ? ` of ${recipientCount}` : ""}` });
+  if (reads.length > 0) {
+    const last = reads.map((r) => r.read_at).sort().slice(-1)[0];
+    rows.push({ label: "Last read", value: <span suppressHydrationWarning>{new Date(last).toLocaleString()}</span> });
+  }
+  if (msg.file_name) rows.push({ label: "File", value: msg.file_name });
+  if (msg.file_size) rows.push({ label: "Size", value: formatBytes(msg.file_size) });
+  if (msg.duration_ms) rows.push({ label: "Duration", value: `${Math.round(msg.duration_ms / 1000)}s` });
+  if (reactionCount) rows.push({ label: "Reactions", value: String(reactionCount) });
+  if (msg.is_forwarded) rows.push({ label: "Forwarded", value: "Yes" });
+  if (msg.is_encrypted) rows.push({ label: "Encrypted", value: "Yes" });
+  if (isPinned) rows.push({ label: "Pinned", value: "Yes" });
+  if (isBookmarked) rows.push({ label: "Saved", value: "Yes" });
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/30 dark:border-white/10 bg-white/80 dark:bg-[#1E1E1E]/85 backdrop-blur-2xl shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-white/25 dark:border-white/10 px-4 py-3">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+            <Info className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Message info
+          </h3>
+          <button onClick={onClose} aria-label="Close message info" className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10">
+            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto scrollbar-thin px-4 py-3">
+          <dl className="space-y-2">
+            {rows.map((r) => (
+              <div key={r.label} className="flex items-start justify-between gap-4 text-[13px]">
+                <dt className="shrink-0 text-[#8C8C8C]">{r.label}</dt>
+                <dd className="min-w-0 truncate text-right font-medium text-[#2D3436] dark:text-[#E8E8E8]">{r.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 /* ─── Voice Player ─── */
 export function VoicePlayer({
