@@ -1982,7 +1982,23 @@ const tailClass = !grouped && mine
         isBookmarked={isBookmarked}
         onToggleBookmark={onToggleBookmark}
         onEnterSelect={onToggleSelect ? () => onToggleSelect() : undefined}
+        onInfo={() => setInfoOpen(true)}
       />
+
+      {infoOpen && (
+        <MessageInfoSheet
+          msg={msg}
+          mine={mine}
+          senderName={mine ? "You" : sender?.display_name ?? "Unknown"}
+          reads={reads.filter((r) => r.message_id === msg.id && r.user_id !== msg.sender_id)}
+          recipientCount={otherMemberIds.length}
+          reactionCount={reactions.length}
+          isPinned={!!isPinned}
+          isBookmarked={!!isBookmarked}
+          onClose={() => setInfoOpen(false)}
+        />
+      )}
+
       
       {viewer && (
         <MediaViewer
