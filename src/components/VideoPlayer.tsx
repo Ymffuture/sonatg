@@ -275,7 +275,7 @@ export function VideoPlayer({
         playsInline
         muted={muted}
         poster={poster}
-        className="h-full w-full cursor-pointer object-contain"
+        className="h-full w-[540px] cursor-pointer object-contain"
         onClick={togglePlay}
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onTimeUpdate={(e) => {
