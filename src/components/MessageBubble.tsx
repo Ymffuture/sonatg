@@ -1461,6 +1461,11 @@ export function Bubble({
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  /** Optional controlled context-menu state (lets the parent keep only one menu open at a time). */
+  menuOpen?: boolean;
+  menuPos?: { x: number; y: number } | null;
+  onOpenMenu?: (x: number, y: number) => void;
+  onCloseMenu?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1468,18 +1473,32 @@ export function Bubble({
   reactions.forEach((r) => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
-  const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const [localMenu, setLocalMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const isControlledMenu = menuOpen !== undefined;
+  const contextMenu = isControlledMenu
+    ? { open: !!menuOpen, x: menuPos?.x ?? 0, y: menuPos?.y ?? 0 }
+    : localMenu;
+  const openMenuAt = (x: number, y: number) => {
+    if (isControlledMenu) onOpenMenu?.(x, y);
+    else setLocalMenu({ open: true, x, y });
+  };
+  const closeMenu = () => {
+    if (isControlledMenu) onCloseMenu?.();
+    else setLocalMenu({ open: false, x: 0, y: 0 });
+  };
   const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
   const [justCopied, setJustCopied] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
   const longPress = useLongPress(() => {
     if (bubbleRef.current) {
       const rect = bubbleRef.current.getBoundingClientRect();
-      setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
+      openMenuAt(rect.left + rect.width / 2, rect.top);
     }
+
   }, 600);
 
   const handleCopy = () => {
