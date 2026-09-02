@@ -1747,7 +1747,7 @@ const tailClass = !grouped && mine
                   src={msg.media_url}
                   fileSize={msg.file_size}
                   onDownload={() => downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`)}
-                  className="w-full"
+                  className="w-[540px]"
                 />
               </div>
             )}
