@@ -777,7 +777,7 @@ function useLongPress(callback: () => void, ms = 500) {
 /* ─── WhatsApp-style Context Menu (compact) ─── */
 function MessageContextMenu({
   open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onForward, onClose,
-  isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect,
+  isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect, onInfo,
 }: {
   open: boolean; x: number; y: number; mine: boolean; isText: boolean;
   onReply: () => void; onReact: (emoji: string) => void;
@@ -785,6 +785,8 @@ function MessageContextMenu({
   isPinned?: boolean; onTogglePin?: () => void;
   isBookmarked?: boolean; onToggleBookmark?: () => void;
   onEnterSelect?: () => void;
+  onInfo?: () => void;
+
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
