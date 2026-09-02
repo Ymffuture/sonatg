@@ -1944,8 +1944,19 @@ const tailClass = !grouped && mine
                     </motion.span>
                   )}
                 </AnimatePresence>
+                {isPinned && (
+                  <Tooltip title="Pinned in this chat">
+                    <Pin className="h-3 w-3 shrink-0 text-[var(--sona-accent,#E07A5F)]" />
+                  </Tooltip>
+                )}
+                {isBookmarked && (
+                  <Tooltip title="Saved">
+                    <BookmarkCheck className="h-3 w-3 shrink-0 text-[#4FA6E0]" />
+                  </Tooltip>
+                )}
                 {msg.edited_at && <span className="text-[10px] !text-[#8C8C8C] italic opacity-70">edited</span>}
                 <span suppressHydrationWarning className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
+
                 {mine && (msg._pending ? <Clock className="h-3 w-3 text-[#8C8C8C] " /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
               </div>
             </div>
