@@ -3,19 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type NetworkStatus = "online" | "offline" | "unstable";
 
+const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // check reachability every 2 minutes
+const HEARTBEAT_TIMEOUT_MS = 10 * 1000; // give each check up to 10s before treating it as a failure
+
 /**
  * Tracks whether the app can actually reach the server, not just whether
  * the OS thinks there's a link. Combines three signals:
  *
  *  1. `navigator.onLine` / the `online`/`offline` window events — the
- *     baseline "is there a link at all" check, universally supported.
+ *     baseline "is there a link at all" check, universally supported and
+ *     event-driven (no polling needed for this one).
  *  2. The Network Information API (`navigator.connection`) where the
  *     browser supports it (Chrome/Android; not Safari/Firefox) — catches
  *     a technically-up but very poor connection (2G, save-data, etc).
- *  3. A lightweight Supabase Realtime channel subscription used purely as
- *     a heartbeat — this is the most reliable signal, since it proves the
- *     app can actually round-trip to the backend rather than just having
- *     *a* network interface up.
+ *  3. A lightweight reachability check against Supabase, polled every
+ *     HEARTBEAT_INTERVAL_MS with a HEARTBEAT_TIMEOUT_MS cutoff per check —
+ *     this is the most reliable signal, since it proves the app can
+ *     actually round-trip to the backend rather than just having *a*
+ *     network interface up. Polled rather than a persistent connection so
+ *     it stays cheap to keep open in the background.
  *
  * "unstable" wins over "online" whenever any signal is bad; "offline"
  * only comes from the hard browser-level signal, since that's the one
@@ -60,18 +66,35 @@ export function useNetworkStatus(): NetworkStatus {
 
   useEffect(() => {
     let cancelled = false;
-    const channel = supabase.channel("network-heartbeat");
-    channel.subscribe((status) => {
-      if (cancelled) return;
-      if (status === "SUBSCRIBED") setHeartbeatOk(true);
-      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setHeartbeatOk(false);
-      // "CLOSED" is a normal part of unmount/reconnect churn, not itself a
-      // failure signal — leave heartbeatOk as-is when that happens.
-    });
-    return () => { cancelled = true; supabase.removeChannel(channel); };
+
+    const runCheck = async () => {
+      // Browser already knows we're hard offline — no point spending a
+      // round-trip (or the 10s timeout) confirming what we already know.
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), HEARTBEAT_TIMEOUT_MS);
+      try {
+        const { error } = await supabase
+          .from("profiles")
+          .select("id", { head: true, count: "exact" })
+          .limit(1)
+          .abortSignal(controller.signal);
+        if (!cancelled) setHeartbeatOk(!error);
+      } catch {
+        if (!cancelled) setHeartbeatOk(false);
+      } finally {
+        clearTimeout(timeout);
+      }
+    };
+
+    runCheck(); // immediate check on mount, then every HEARTBEAT_INTERVAL_MS
+    const timer = setInterval(runCheck, HEARTBEAT_INTERVAL_MS);
+    return () => { cancelled = true; clearInterval(timer); };
   }, []);
 
   if (!browserOnline) return "offline";
   if (connectionPoor || !heartbeatOk) return "unstable";
   return "online";
 }
+
