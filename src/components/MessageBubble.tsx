@@ -18,6 +18,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { transcribeVoiceMessage } from "@/lib/transcribe.functions";
 import { fetchLinkPreview, type LinkPreview } from "@/lib/linkpreview.functions";
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
+import { VideoPlayer } from "./VideoPlayer";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
   URL_REGEX, URL_REGEX_TEST, DOC_EXTENSIONS, docExtOf,
@@ -1741,27 +1742,13 @@ const tailClass = !grouped && mine
             )}
 
             {msg.kind === "video" && msg.media_url && (
-              <div className="relative mb-1 -mx-1 -mt-1 group/video">
-                <video
+              <div className="relative mb-1 -mx-1 -mt-1">
+                <VideoPlayer
                   src={msg.media_url}
-                  controls
-                  preload="metadata"
-                  className="max-h-72 w-full rounded-lg bg-black"
+                  fileSize={msg.file_size}
+                  onDownload={() => downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`)}
+                  className="w-full"
                 />
-                <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-                  {msg.file_size ? (
-                    <span className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-                      {formatBytes(msg.file_size)}
-                    </span>
-                  ) : null}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`); }}
-                    aria-label="Download video"
-                    className="grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover/video:opacity-100 hover:bg-black/70 active:scale-95 transition-all"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
-                </div>
               </div>
             )}
 
