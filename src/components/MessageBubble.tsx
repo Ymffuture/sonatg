@@ -1563,13 +1563,13 @@ const tailClass = !grouped && mine
         </div>
         {mine && contextMenu.open && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setContextMenu({ open: false, x: 0, y: 0 })} />
+            <div className="fixed inset-0 z-40" onClick={closeMenu} />
             <div
               className="fixed z-50 -translate-x-1/2 -translate-y-full rounded-xl border border-[var(--sona-accent,#E07A5F)]/15 bg-white dark:bg-[#242424] shadow-xl overflow-hidden"
               style={{ left: contextMenu.x, top: contextMenu.y - 8 }}
             >
               <button
-                onClick={() => { setContextMenu({ open: false, x: 0, y: 0 }); onRemove?.(); }}
+                onClick={() => { closeMenu(); onRemove?.(); }}
                 className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition whitespace-nowrap"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Remove
@@ -1682,7 +1682,7 @@ const tailClass = !grouped && mine
                 e.stopPropagation();
                 if (bubbleRef.current) {
                   const rect = bubbleRef.current.getBoundingClientRect();
-                  setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
+                  openMenuAt(rect.left + rect.width / 2, rect.top);
                 }
               }}
               className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
@@ -1965,7 +1965,7 @@ const tailClass = !grouped && mine
         onDelete={() => onDelete()}
         onCopy={handleCopy}
         onForward={() => onForward?.()}
-        onClose={() => setContextMenu({ ...contextMenu, open: false })}
+        onClose={closeMenu}
         isPinned={isPinned}
         onTogglePin={onTogglePin}
         isBookmarked={isBookmarked}
