@@ -267,7 +267,15 @@ export function VideoPlayer({
       onMouseMove={wakeControls}
       onMouseLeave={() => playing && !scrubbing && setControlsVisible(false)}
     >
-      {/* Video Element */}
+      {/* Video Element
+          The outer container is pinned to 16:9 (see style above) so every
+          video takes up a consistent, predictable slot in the chat column —
+          same idea as the 1:1 image crop. object-contain here (instead of
+          cover) means the video's *own* orientation is respected inside that
+          box: a landscape clip fills the full 16:9 frame edge-to-edge, while
+          a portrait clip letterboxes with pillars left/right — nothing gets
+          cropped or stretched. Tapping fullscreen (see toggleFullscreen)
+          then plays it edge-to-edge in its native orientation. */}
       <video
         ref={videoRef}
         src={src}
@@ -275,7 +283,7 @@ export function VideoPlayer({
         playsInline
         muted={muted}
         poster={poster}
-        className="h-full w-[540px] cursor-pointer object-contain"
+        className="h-full w-full cursor-pointer object-contain"
         onClick={togglePlay}
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onTimeUpdate={(e) => {
@@ -342,7 +350,7 @@ export function VideoPlayer({
             <Play className="ml-1 h-8 w-8 fill-current" />
           )}
         </button>
-      ))
+      )}
 
       {/* Skip Buttons */}
       {controlsVisible && !loading && (

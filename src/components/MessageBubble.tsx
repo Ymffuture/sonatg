@@ -1709,23 +1709,31 @@ const tailClass = !grouped && mine
             )}
 
             {msg.kind === "image" && msg.media_url && (
-              <div className="relative mb-1 group/image -mx-1 -mt-1 min-h-[160px]">
+              // 1:1 crop in the bubble (Instagram/WhatsApp-grid style) so mixed
+              // portrait/landscape photos still line up into a tidy chat column.
+              // The original, uncropped ratio is restored in the full viewer below
+              // (MediaViewer renders with object-contain), so nothing is lost —
+              // just previewed differently.
+              <div
+                className="relative mb-1 group/image -mx-1 -mt-1 aspect-square w-full max-w-[320px] overflow-hidden rounded-lg bg-[#F5F0E8] dark:bg-[#2A2A2A]"
+              >
                 {!imgLoaded && (
-                  <div className="absolute inset-0 z-10 rounded-lg overflow-hidden bg-[#F5F0E8] dark:bg-[#2A2A2A] flex items-center justify-center">
+                  <div className="absolute inset-0 z-10 flex items-center justify-center">
                     <Skeleton.Node active className="!w-full !h-full !rounded-lg">
                       <ImageIcon className="h-16 w-16 text-[#8C8C8C]" />
                     </Skeleton.Node>
                   </div>
                 )}
                 <img
-  src={msg.media_url}
-  alt=""
-  loading="lazy"
-  onLoad={() => setImgLoaded(true)}
-  onClick={(e) => { e.stopPropagation(); setViewer({ kind: "image", url: msg.media_url!, name: `sona-photo-${msg.id}.jpg` }); }}
-  className={`!max-h-[600px] w-full cursor-pointer rounded-lg object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-  style={{ maxWidth: '600px' }}
-/>
+                  src={msg.media_url}
+                  alt=""
+                  loading="lazy"
+                  onLoad={() => setImgLoaded(true)}
+                  onClick={(e) => { e.stopPropagation(); setViewer({ kind: "image", url: msg.media_url!, name: `sona-photo-${msg.id}.jpg` }); }}
+                  // object-cover + aspect-square = the smart 1:1 bubble crop.
+                  // Tapping opens MediaViewer, which shows the untouched original ratio.
+                  className={`h-full w-full cursor-pointer object-cover transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+                />
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1743,15 +1751,19 @@ const tailClass = !grouped && mine
             )}
 
             {msg.kind === "video" && msg.media_url && (
-  <div className="relative mb-1 -mx-1 -mt-1">
-    <VideoPlayer
-      src={msg.media_url}
-      fileSize={msg.file_size}
-      onDownload={() => downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`)}
-      className="w-full !max-w-[600px]"
-    />
-  </div>
-)}
+              // 16:9 in the bubble (see VideoPlayer's aspectRatio style) to
+              // match the square image bubbles into one predictable grid,
+              // while the <video> inside stays object-contain so playback
+              // respects whatever orientation it was actually shot in.
+              <div className="relative mb-1 -mx-1 -mt-1">
+                <VideoPlayer
+                  src={msg.media_url}
+                  fileSize={msg.file_size}
+                  onDownload={() => downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`)}
+                  className="w-full max-w-[320px] rounded-lg"
+                />
+              </div>
+            )}
 
             {msg.kind === "file" && msg.media_url && (
               <button
