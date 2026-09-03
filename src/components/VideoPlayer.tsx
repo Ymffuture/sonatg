@@ -342,7 +342,7 @@ export function VideoPlayer({
         <button
           onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           aria-label={playing ? "Pause" : "Play"}
-          className="absolute inset-0 m-auto grid h-16 w-16 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-all hover:scale-110 hover:bg-black/60 active:scale-95"
+          className="absolute inset-0 m-auto grid h-16 w-16 place-items-center rounded-full bg-black/50 text-[#E07A5F] backdrop-blur-sm transition-all hover:scale-110 hover:bg-black/60 active:scale-95"
         >
           {playing ? (
             <Pause className="h-8 w-8 fill-current" />
@@ -424,7 +424,7 @@ export function VideoPlayer({
                 />
                 {/* Progress */}
                 <div 
-                  className="absolute h-full rounded-full bg-blue-500 transition-all" 
+                  className="absolute h-full rounded-full bg-[#E07A5F] transition-all" 
                   style={{ width: `${progressPct}%` }} 
                 />
               </div>
