@@ -3320,31 +3320,35 @@ useEffect(() => {
                 </header>
 
                 {active.is_group && active.description && (
-                  <div className="border-b border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E]">
-                    <button
-                      onClick={() => setDescOpen((v) => !v)}
-                      className="flex w-full items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)] transition"
-                    >
-                      Description
-                      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${descOpen ? "rotate-180" : "-rotate-90"}`} />
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {descOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                          className="overflow-hidden"
-                        >
-                          <p className="whitespace-pre-wrap break-words px-4 pb-3 text-sm leading-6 text-[#2D3436] dark:text-[#E8E8E8]">
-                            {active.description}
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
+  <div className="relative border-b border-[var(--sona-accent,#E07A5F)]/10">
+    {/* Glass background with blur - positioned in the middle */}
+    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-12 bg-white/20 dark:bg-white/10 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 dark:border-white/20" />
+    
+    <button
+      onClick={() => setDescOpen((v) => !v)}
+      className="relative z-10 flex w-full items-center gap-1.5 px-4 py-2 text-xs font-medium text-[#8C8C8C] hover:text-[var(--sona-accent,#E07A5F)] transition"
+    >
+      Description
+      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${descOpen ? "rotate-180" : "-rotate-90"}`} />
+    </button>
+    
+    <AnimatePresence initial={false}>
+      {descOpen && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 overflow-hidden"
+        >
+          <p className="whitespace-pre-wrap break-words px-4 pb-3 text-sm leading-6 text-[#2D3436] dark:text-[#E8E8E8]">
+            {active.description}
+          </p>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+)}
 
                 {(() => {
                   const pinned = messages.filter((m) => m.pinned_by).sort((a, b) => (b.pinned_at ?? "").localeCompare(a.pinned_at ?? ""));
