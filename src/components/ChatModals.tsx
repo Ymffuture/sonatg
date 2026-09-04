@@ -4,7 +4,7 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users, UserX,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX,
+  Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX, Link2,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ import { Spin, Skeleton, Tooltip, notification, Empty } from "antd";
 import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
+import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, type ChatInviteRow } from "@/features/invites";
 import SoundSettings from "./SoundSettings";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
@@ -216,6 +217,59 @@ export function GroupSettingsModal({
   const [isBroadcast, setIsBroadcast] = useState(false);
   const [classInfo, setClassInfo] = useState<ClassRow | null>(null);
   const [classroomBusy, setClassroomBusy] = useState(false);
+
+  // ─── Invite links ───
+  const [invites, setInvites] = useState<ChatInviteRow[]>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState<string | null>(null);
+
+  const loadInvites = async () => {
+    try { setInvites(await listChatInvites(chat.id)); } catch { /* member-only; ignore */ }
+  };
+  useEffect(() => { void loadInvites(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [chat.id]);
+
+  const makeInvite = async () => {
+    const email = inviteEmail.trim();
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      notify.error({ message: "That email doesn't look right", description: "Enter a full address like name@company.com, or leave it blank for an open link." });
+      return;
+    }
+    setInviteBusy(true);
+    try {
+      const created = await createChatInvite({ chatId: chat.id, allowedEmail: email || null, expiresInDays: 7 });
+      setInvites((prev) => [created, ...prev]);
+      setInviteEmail("");
+      await navigator.clipboard?.writeText(inviteUrl(created.token)).catch(() => {});
+      notify.success({
+        message: "Invite link created",
+        description: email ? `Copied. Only ${email} can join with this link — it expires in 7 days.` : "Copied to your clipboard. It expires in 7 days.",
+      });
+    } catch (e) {
+      const explained = explainSupabaseError(e);
+      notify.error({ message: explained.title, description: explained.explanation });
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const copyInvite = async (invite: ChatInviteRow) => {
+    await navigator.clipboard?.writeText(inviteUrl(invite.token)).catch(() => {});
+    setCopiedInvite(invite.id);
+    setTimeout(() => setCopiedInvite((c) => (c === invite.id ? null : c)), 1500);
+    notify.success({ message: "Link copied", description: "Share it with the people you want in this group." });
+  };
+
+  const revokeInvite = async (invite: ChatInviteRow) => {
+    try {
+      await revokeChatInvite(invite.id);
+      setInvites((prev) => prev.map((i) => (i.id === invite.id ? { ...i, is_active: false } : i)));
+      notify.success({ message: "Invite revoked", description: "That link no longer works for anyone." });
+    } catch (e) {
+      const explained = explainSupabaseError(e);
+      notify.error({ message: explained.title, description: explained.explanation });
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -474,6 +528,64 @@ export function GroupSettingsModal({
               {classroomBusy ? <Spin size="small" /> : <KeyRound className="h-4 w-4" />}
               Generate join code
             </button>
+          )}
+        </div>
+
+        {/* Invite link */}
+        <div className="rounded-xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-white/5 p-3 backdrop-blur-sm space-y-3">
+          <p className="flex items-center gap-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+            <Link2 className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" /> Invite link
+          </p>
+          <p className="text-[11px] text-[#8C8C8C] -mt-1">
+            Share a link instead of adding people one by one. Restrict it to a single email so only that person can join.
+          </p>
+
+          <div className="flex items-center gap-2 rounded-xl bg-white/50 dark:bg-white/5 px-3 py-2 border border-white/30 dark:border-white/10">
+            <Mail className="h-4 w-4 shrink-0 text-[#8C8C8C]" />
+            <input
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="Restrict to email (optional)"
+              type="email"
+              className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]"
+            />
+          </div>
+
+          <button
+            onClick={makeInvite}
+            disabled={inviteBusy}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--sona-accent,#E07A5F)]/10 px-3 py-2.5 text-sm font-semibold text-[var(--sona-accent,#E07A5F)] disabled:opacity-60"
+          >
+            {inviteBusy ? <Spin size="small" /> : <Link2 className="h-4 w-4" />}
+            Create invite link
+          </button>
+
+          {invites.length > 0 && (
+            <div className="space-y-2">
+              {invites.map((inv) => (
+                <div key={inv.id} className={`flex items-center gap-2 rounded-xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-white/5 px-3 py-2 ${inv.is_active ? "" : "opacity-50"}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-medium text-[#2D3436] dark:text-[#E8E8E8]">
+                      {inv.allowed_email ? inv.allowed_email : "Anyone with the link"}
+                    </p>
+                    <p className="truncate text-[10px] text-[#8C8C8C]">
+                      {inv.is_active ? "Active" : "Revoked"} · {inv.uses}/{inv.max_uses} used
+                      {inv.expires_at ? ` · expires ${new Date(inv.expires_at).toLocaleDateString()}` : ""}
+                    </p>
+                  </div>
+                  {inv.is_active && (
+                    <>
+                      <button onClick={() => copyInvite(inv)} aria-label="Copy invite link" className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-[var(--sona-accent,#E07A5F)]/10">
+                        {copiedInvite === inv.id ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />}
+                      </button>
+                      <button onClick={() => revokeInvite(inv)} aria-label="Revoke invite link" className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-red-500/10">
+                        <X className="h-4 w-4 text-red-500" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
