@@ -1175,6 +1175,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_user: { Args: { _target: string }; Returns: undefined }
       can_post_in_chat: {
         Args: { _chat_id: string; _user_id: string }
         Returns: boolean
