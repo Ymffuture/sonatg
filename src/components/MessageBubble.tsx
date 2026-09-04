@@ -1608,7 +1608,12 @@ const tailClass = !grouped && mine
         )}
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
-        <div className={`relative max-w-[100%] sm:max-w-[100%] ${selectMode ? "pointer-events-none" : ""}`}>
+        {/* Bubble width cap — was `max-w-[100%] sm:max-w-[100%]`, a no-op
+            that let bubbles stretch to the full row width on every screen
+            size. Image/video ratio handling (aspect-square / 16:9 with
+            their own 320px caps) is untouched — this only affects text
+            bubbles and the outer shell around media. */}
+        <div className={`relative max-w-[80%] sm:max-w-[65%] md:max-w-[55%] lg:max-w-[420px] ${selectMode ? "pointer-events-none" : ""}`}>
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
               mine ? "-left-7" : "-right-7"
@@ -1775,7 +1780,7 @@ const tailClass = !grouped && mine
                     downloadFile(msg.media_url!, msg.file_name || "file");
                   }
                 }}
-                className={`mb-1 flex w-72 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
                   mine
                     ? "border-white/20 dark:bg-white/5 text-[#8C8C8C] dark:text-[#2D3436] hover:bg-white/15"
                     : "border-[var(--sona-accent,#E07A5F)]/15 bg-[#F5F0E8] dark:bg-[#3A3A3A] hover:bg-[#EFE6D8] dark:hover:bg-[#454545]"
