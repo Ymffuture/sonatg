@@ -1,4 +1,4 @@
-function SonaTypingIndicator() {
+export function SonaTypingIndicator() {
   return (
     <div className="mt-3 flex items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-[var(--sona-accent,#E07A5F)]/10 bg-white px-4 py-3.5 shadow-sm dark:bg-[#2A2A2A] dark:border-[#E07A5F]/20">
