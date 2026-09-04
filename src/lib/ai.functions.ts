@@ -15,8 +15,8 @@ type AskInput = {
 type SummarizeInput = { chatId: string };
 
 async function callGateway(messages: unknown[], key: string): Promise<string> {
-  const model = process.env.AI_MODEL || "inclusionai/ling-3.0-flash:free";
-
+  // const model = process.env.AI_MODEL || "inclusionai/ling-3.0-flash:free";
+const model = "nvidia/nemotron-3.5-lightning:free" || "nvidia/nemotron-3-ultra-550b-a55b:free" 
   const res = await fetch(GATEWAY, {
     method: "POST",
     headers: {
@@ -44,7 +44,7 @@ async function callGateway(messages: unknown[], key: string): Promise<string> {
   return json.choices?.[0]?.message?.content?.trim() || "…";
 }
 
-// Describes a message row for the AI's chat-history context. Every kind the
+// Describes a message row for the AI's chat-history context. Every kind the (dots-studio/dots-3-note-preview:free) 
 // `messages` table actually supports gets a real label here — previously
 // anything that wasn't "text" or "image" (i.e. "voice", "file", and "call"
 // log entries) all silently fell through to being mislabeled "[voice note]".
