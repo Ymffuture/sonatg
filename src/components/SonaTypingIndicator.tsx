@@ -6,18 +6,58 @@
 function SonaTypingIndicator() {
   return (
     <div className="mt-3 flex items-end gap-2">
-      <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-[var(--sona-accent,#E07A5F)]/10 bg-white px-3.5 py-3 shadow-sm dark:bg-[#2A2A2A]">
-        <svg width="34" height="14" viewBox="0 0 34 14" aria-label="Sona AI is composing a reply">
+      <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-[#FBBC05]/10 bg-white px-3.5 py-3 shadow-sm dark:bg-[#2A2A2A]">
+        <svg width="44" height="16" viewBox="0 0 44 16" aria-label="AI is composing a reply">
+          <defs>
+            {/* Gooey blob filter — merges overlapping circles organically */}
+            <filter id="blob" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="blur" />
+              <feColorMatrix
+                in="blur"
+                mode="matrix"
+                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
+                result="goo"
+              />
+              <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+            </filter>
+          </defs>
+
           <style>{`
-            @keyframes sona-type-wave {
-              0%, 60%, 100% { transform: translateY(0); opacity: .45; }
-              30% { transform: translateY(-4px); opacity: 1; }
+            @keyframes blobMoveLeft {
+              0%, 100% { cx: 6; opacity: 0.4; }
+              25% { cx: 10; opacity: 1; }
+              50% { cx: 16; opacity: 0.4; }
+              75% { cx: 22; opacity: 1; }
             }
-            .sona-type-dot { animation: sona-type-wave 1.1s ease-in-out infinite; transform-origin: center; }
+            @keyframes blobMoveRight {
+              0%, 100% { cx: 36; opacity: 0.4; }
+              25% { cx: 32; opacity: 1; }
+              50% { cx: 26; opacity: 0.4; }
+              75% { cx: 20; opacity: 1; }
+            }
+            @keyframes blobCenter {
+              0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+              30% { transform: translateY(-4px) scale(1.2); opacity: 1; }
+              60% { transform: translateY(0) scale(1); opacity: 0.6; }
+            }
+            .blob-left {
+              animation: blobMoveLeft 2s ease-in-out infinite;
+            }
+            .blob-right {
+              animation: blobMoveRight 2s ease-in-out infinite;
+            }
+            .blob-center {
+              animation: blobCenter 2s ease-in-out infinite;
+              animation-delay: 0.3s;
+              transform-origin: center;
+            }
           `}</style>
-          <circle cx="7" cy="7" r="3" fill="#E07A5F" className="sona-type-dot" style={{ animationDelay: "0s" }} />
-          <circle cx="17" cy="7" r="3" fill="#E07A5F" className="sona-type-dot" style={{ animationDelay: "0.15s" }} />
-          <circle cx="27" cy="7" r="3" fill="#E07A5F" className="sona-type-dot" style={{ animationDelay: "0.3s" }} />
+
+          <g filter="url(#blob)">
+            <circle cy="8" r="3.5" fill="#FBBC05" className="blob-left" />
+            <circle cx="21" cy="8" r="3.5" fill="#EA4335" className="blob-center" />
+            <circle cy="8" r="3.5" fill="#4285F4" className="blob-right" />
+          </g>
         </svg>
       </div>
     </div>
