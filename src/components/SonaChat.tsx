@@ -2213,17 +2213,18 @@ const handleMenuOpenChange = (open: boolean) => {
     return () => document.removeEventListener("keydown", handleKey);
   }, [closeMessageMenu]);
 
-  // "/" focuses the message composer (Slack/Discord-style shortcut) — but
-  // only when the user isn't already typing somewhere (another input,
-  // textarea, or contenteditable), so it doesn't hijack a "/" you're
-  // actually typing into a search box or the composer itself.
+  // "/" from anywhere on the page jumps into the composer with "/" already
+  // typed, which opens the slash-command menu inside Composer (see
+  // MessageBubble.tsx) — same idea as Claude.ai's own composer. Previously
+  // this only called .focus() with no visible feedback, which is why it
+  // looked like "nothing happens"; now it actually seeds the character via
+  // setDraft (not by relying on the browser's default keydown behavior
+  // after a focus change mid-event, which is unreliable across browsers),
+  // so the menu shows up immediately.
   //
-  // Registered on `window` with `capture: true` so it runs before any
-  // other keydown handler in the tree could stopPropagation() it, and
-  // before a browser's own "/"-triggered quick-find can act on it — and
-  // it grabs the textarea via a ref (composerInputRef), not
-  // getElementById, so there's no dependency on DOM-query timing or the
-  // id being unique.
+  // If you're already typing somewhere (including the composer itself),
+  // this does nothing and lets the "/" type normally — the menu-open logic
+  // then lives entirely in Composer's own draft-watching effect.
   useEffect(() => {
     const handleSlash = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -2234,23 +2235,12 @@ const handleMenuOpenChange = (open: boolean) => {
       const composer = composerInputRef.current;
       if (!composer) return; // no chat open / composer not mounted right now
       e.preventDefault();
+      setDraft("/");
       composer.focus();
-      // Composer has `outline-none` with no other focus style, so a plain
-      // .focus() call is invisible — you can't tell it worked just by
-      // looking. This one-shot ring only plays when the shortcut fires
-      // (not on a normal click-to-focus), so it doubles as visible proof
-      // the handler actually ran.
-      composer.animate(
-        [
-          { boxShadow: "0 0 0 3px rgba(224,122,95,0.65)" },
-          { boxShadow: "0 0 0 0 rgba(224,122,95,0)" },
-        ],
-        { duration: 550, easing: "ease-out" },
-      );
     };
     window.addEventListener("keydown", handleSlash, true);
     return () => window.removeEventListener("keydown", handleSlash, true);
-  }, []);
+  }, [setDraft]);
 
   useEffect(() => {
     if (!showMsgSearch || msgSearchMatches.length === 0) return;

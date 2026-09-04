@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import {
   Download, Reply,Globe, ExternalLink, Pencil, SmilePlus, Trash2, Copy, Check,
   Play, Pause, Mic, Smile, Paperclip, Send, Image as ImageIcon,
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
   FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
+  Sparkles, ArrowUp, ArrowDown, CornerDownLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PollCard } from "@/features/classroom";
@@ -2115,8 +2116,7 @@ export function Composer({
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [scheduleValue, setScheduleValue] = useState("");
-  const [isDark, setIsDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
+  const [scheduleValue, setScheduleValue] = useState("");  const [isDark, setIsDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
   useEffect(() => {
     const el = document.documentElement;
     const obs = new MutationObserver(() => setIsDark(el.classList.contains("dark")));
@@ -2138,6 +2138,57 @@ export function Composer({
 
   useEffect(() => { lockedRef.current = locked; }, [locked]);
   useEffect(() => { onRecordingChange?.(recording); }, [recording, onRecordingChange]);
+
+  // ── "/" slash-command menu ──────────────────────────────────────────
+  // Mirrors Claude.ai's own composer: typing "/" as the very first
+  // character (nothing else in the draft yet) opens a filterable command
+  // list; each command runs one of the composer's existing actions
+  // (open the image picker, open the poll modal, etc) instead of adding
+  // any new plumbing. Only matches when the whole draft is "/" plus
+  // word characters — so a "/" typed mid-sentence never triggers it.
+  const slashCommands = useMemo(() => {
+    const items: { id: string; label: string; hint: string; icon: ReactNode; run: () => void }[] = [
+      {
+        id: "sona", label: "sona", hint: "Ask Sona AI",
+        icon: <Sparkles className="h-4.5 w-4.5" />,
+        run: () => { setDraft("@sona "); },
+      },
+      {
+        id: "emoji", label: "emoji", hint: "Open emoji picker",
+        icon: <RiEmojiStickerLine className="h-4.5 w-4.5" />,
+        run: () => { setDraft(""); setShowEmoji(true); },
+      },
+    ];
+    if (!hideFileAttachments && onPickImages && fileRef) {
+      items.push({ id: "image", label: "image", hint: "Attach a photo", icon: <ImageIcon className="h-4.5 w-4.5" />, run: () => { setDraft(""); fileRef.current?.click(); } });
+    }
+    if (onPickVideo && videoRef) {
+      items.push({ id: "video", label: "video", hint: "Attach a video", icon: <Video className="h-4.5 w-4.5" />, run: () => { setDraft(""); videoRef.current?.click(); } });
+    }
+    if (!hideFileAttachments && onPickDocs && docRef) {
+      items.push({ id: "file", label: "file", hint: "Attach a file", icon: <Paperclip className="h-4.5 w-4.5" />, run: () => { setDraft(""); docRef.current?.click(); } });
+    }
+    if (!hideFileAttachments && onCreatePoll) {
+      items.push({ id: "poll", label: "poll", hint: "Create a poll", icon: <ListChecks className="h-4.5 w-4.5" />, run: () => { setDraft(""); onCreatePoll(); } });
+    }
+    if (onSchedule) {
+      items.push({ id: "schedule", label: "schedule", hint: "Schedule this message", icon: <Clock className="h-4.5 w-4.5" />, run: () => { setDraft(""); setShowScheduler(true); } });
+    }
+    return items;
+  }, [hideFileAttachments, onPickImages, fileRef, onPickVideo, videoRef, onPickDocs, docRef, onCreatePoll, onSchedule, setDraft, setShowEmoji]);
+
+  const slashMatch = /^\/(\w*)$/.exec(draft);
+  const slashFiltered = slashMatch ? slashCommands.filter((c) => c.label.startsWith(slashMatch[1].toLowerCase())) : [];
+  const showSlashMenu = !!slashMatch && slashFiltered.length > 0;
+  const [slashIndex, setSlashIndex] = useState(0);
+  useEffect(() => { setSlashIndex(0); }, [draft]);
+
+  const runSlashCommand = useCallback((cmd: (typeof slashCommands)[number]) => {
+    cmd.run();
+    // Re-focus so the person can keep typing right after (e.g. "/sona"
+    // leaves "@sona " in the draft for them to finish the question).
+    requestAnimationFrame(() => inputRef?.current?.focus());
+  }, [inputRef]);
 
   const cleanupRecording = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -2363,7 +2414,42 @@ export function Composer({
       )}
 
       {!recording && (
-        <div className="mx-auto flex max-w-3xl items-end gap-2">
+        <div className="relative mx-auto flex max-w-3xl items-end gap-2">
+          <AnimatePresence>
+            {showSlashMenu && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: 8 }}
+                transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                className="absolute bottom-full left-0 right-0 z-40 mb-2 max-h-64 overflow-y-auto rounded-2xl border border-[var(--sona-accent,#E07A5F)]/10 bg-white dark:bg-[#2A2A2A] p-1.5 shadow-xl"
+              >
+                {slashFiltered.map((cmd, i) => (
+                  <button
+                    key={cmd.id}
+                    onMouseEnter={() => setSlashIndex(i)}
+                    onClick={() => runSlashCommand(cmd)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors ${
+                      i === slashIndex ? "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)]" : "text-[#2D3436] dark:text-[#E8E8E8]"
+                    }`}
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)]">
+                      {cmd.icon}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">/{cmd.label}</span>
+                      <span className="block truncate text-xs text-[#8C8C8C]">{cmd.hint}</span>
+                    </span>
+                  </button>
+                ))}
+                <div className="mt-1 flex items-center gap-3 border-t border-[var(--sona-accent,#E07A5F)]/10 px-3 pt-1.5 text-[10px] text-[#8C8C8C]">
+                  <span className="flex items-center gap-0.5"><ArrowUp className="h-3 w-3" /><ArrowDown className="h-3 w-3" /> navigate</span>
+                  <span className="flex items-center gap-0.5"><CornerDownLeft className="h-3 w-3" /> select</span>
+                  <span>Esc to dismiss</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="flex flex-1 items-end gap-1.5 rounded-3xl bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5 border border-[var(--sona-accent,#E07A5F)]/10">
             <div className="relative shrink-0 mb-0.5">
               <motion.button
@@ -2440,7 +2526,20 @@ export function Composer({
               ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); } }}
+              onKeyDown={(e) => {
+                if (showSlashMenu) {
+                  if (e.key === "ArrowDown") { e.preventDefault(); setSlashIndex((i) => (i + 1) % slashFiltered.length); return; }
+                  if (e.key === "ArrowUp") { e.preventDefault(); setSlashIndex((i) => (i - 1 + slashFiltered.length) % slashFiltered.length); return; }
+                  if (e.key === "Escape") { e.preventDefault(); setDraft(""); return; }
+                  if (e.key === "Enter" || e.key === "Tab") {
+                    e.preventDefault();
+                    const cmd = slashFiltered[slashIndex];
+                    if (cmd) runSlashCommand(cmd);
+                    return;
+                  }
+                }
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); }
+              }}
               rows={1}
               placeholder="Message"
               className="max-h-36 min-h-[40px] flex-1 resize bg-transparent text-[15px] outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/50 rounded-lg transition-shadow duration-150 placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2 select-text"
