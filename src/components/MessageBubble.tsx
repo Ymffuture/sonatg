@@ -2443,7 +2443,7 @@ export function Composer({
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); } }}
               rows={1}
               placeholder="Message"
-              className="max-h-36 min-h-[40px] flex-1 resize bg-transparent text-[15px] outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2 select-text"
+              className="max-h-36 min-h-[40px] flex-1 resize bg-transparent text-[15px] outline-none focus:ring-2 focus:ring-[var(--sona-accent,#E07A5F)]/50 rounded-lg transition-shadow duration-150 placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8] py-2 select-text"
             />
 
             {videoUploadPct != null && (

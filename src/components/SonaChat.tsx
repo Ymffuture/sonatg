@@ -2235,6 +2235,18 @@ const handleMenuOpenChange = (open: boolean) => {
       if (!composer) return; // no chat open / composer not mounted right now
       e.preventDefault();
       composer.focus();
+      // Composer has `outline-none` with no other focus style, so a plain
+      // .focus() call is invisible — you can't tell it worked just by
+      // looking. This one-shot ring only plays when the shortcut fires
+      // (not on a normal click-to-focus), so it doubles as visible proof
+      // the handler actually ran.
+      composer.animate(
+        [
+          { boxShadow: "0 0 0 3px rgba(224,122,95,0.65)" },
+          { boxShadow: "0 0 0 0 rgba(224,122,95,0)" },
+        ],
+        { duration: 550, easing: "ease-out" },
+      );
     };
     window.addEventListener("keydown", handleSlash, true);
     return () => window.removeEventListener("keydown", handleSlash, true);
