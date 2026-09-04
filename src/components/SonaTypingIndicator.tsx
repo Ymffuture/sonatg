@@ -1,6 +1,6 @@
 export function SonaTypingIndicator() {
   return (
-    <div className="mt-3 flex items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="mt-3 flex items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-100">
       <div className="flex items-center gap-1 bg-[transparent] px-5 py-4">
         <svg width="56" height="32" viewBox="0 0 56 32" aria-label="Sona AI is composing a reply">
           <style>{`
@@ -55,7 +55,7 @@ export function SonaTypingIndicator() {
 
             .sona-morph-dot {
               transform-origin: 28px 16px;
-              transition: fill 0.4s ease;
+              transition: fill 0.2s ease;
             }
 
             .sona-dot-1 { animation: sona-morph-dot-1 5s ease-in-out infinite; }
@@ -67,7 +67,7 @@ export function SonaTypingIndicator() {
             }
 
             .sona-gemini-glow {
-              animation: sona-gemini-pulse 2.5s ease-in-out infinite;
+              animation: sona-gemini-pulse 1.5s ease-in-out infinite;
             }
 
             .sona-gemini-trail {
