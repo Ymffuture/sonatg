@@ -2090,7 +2090,7 @@ export function VoicePlayer({
 /* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
-  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct, onCreatePoll, hideFileAttachments,
+  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct, onCreatePoll, hideFileAttachments, inputRef,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
@@ -2110,6 +2110,8 @@ export function Composer({
   onCreatePoll?: () => void;
   /** When true, hides File/Image/Poll from the attach menu — used for the Sona AI chat, which reads uploads inline via Gemini instead of storing them as regular chat attachments. */
   hideFileAttachments?: boolean;
+  /** Lets the parent (SonaChat) grab a direct handle to the textarea — used for the "/" focus shortcut. Preferred over an id/getElementById lookup so it always points at the live node, with no DOM-timing or duplicate-id edge cases. */
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -2435,6 +2437,7 @@ export function Composer({
 
             <textarea
               id="sona-message-composer"
+              ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); } }}

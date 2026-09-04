@@ -540,6 +540,8 @@ const handleMenuOpenChange = (open: boolean) => {
   // typing indicator in the Sona AI chat (see the SonaTypingIndicator
   // render below the message list) and resets on both success and error.
   const [sonaTyping, setSonaTyping] = useState(false);
+  // Direct handle to the composer's <textarea>, for the "/" focus shortcut.
+  const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const { checkMessage, lastResult: moderationResult } = useMessageModeration();
 
   // Writes a row into moderation_flags so it shows up in the admin queue.
@@ -2215,19 +2217,27 @@ const handleMenuOpenChange = (open: boolean) => {
   // only when the user isn't already typing somewhere (another input,
   // textarea, or contenteditable), so it doesn't hijack a "/" you're
   // actually typing into a search box or the composer itself.
+  //
+  // Registered on `window` with `capture: true` so it runs before any
+  // other keydown handler in the tree could stopPropagation() it, and
+  // before a browser's own "/"-triggered quick-find can act on it — and
+  // it grabs the textarea via a ref (composerInputRef), not
+  // getElementById, so there's no dependency on DOM-query timing or the
+  // id being unique.
   useEffect(() => {
     const handleSlash = (e: KeyboardEvent) => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key !== "/" && e.code !== "Slash") return;
       const el = document.activeElement as HTMLElement | null;
       const alreadyTyping = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
       if (alreadyTyping) return;
-      const composer = document.getElementById("sona-message-composer") as HTMLTextAreaElement | null;
-      if (!composer) return;
+      const composer = composerInputRef.current;
+      if (!composer) return; // no chat open / composer not mounted right now
       e.preventDefault();
       composer.focus();
     };
-    document.addEventListener("keydown", handleSlash);
-    return () => document.removeEventListener("keydown", handleSlash);
+    window.addEventListener("keydown", handleSlash, true);
+    return () => window.removeEventListener("keydown", handleSlash, true);
   }, []);
 
   useEffect(() => {
@@ -3803,6 +3813,7 @@ useEffect(() => {
                 )}
                 <Composer
                   draft={draft}
+                  inputRef={composerInputRef}
                   setDraft={(v) => { setDraft(v); if (v) sendTyping(); }}
                   showEmoji={showEmoji} setShowEmoji={setShowEmoji}
                   onPickImages={onPickImages} fileRef={fileRef} onPickDocs={onPickDocs} docRef={docRef}
