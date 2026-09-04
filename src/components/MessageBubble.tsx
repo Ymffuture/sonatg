@@ -2294,7 +2294,7 @@ export function Composer({
   }, [recording, cancelRecording, lockRecording, finalizeRecording]);
 
   return (
-    <div className="relative chat-pattern px-4 py-6 md:px-4 md:py-3 select-none">
+    <div className="relative chat-pattern px-4 py-6 md:px-4 mdpy-3 scrollbar-hide scrollbar-hiding select-none">
       {showEmoji && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowEmoji(false)} />
