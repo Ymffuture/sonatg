@@ -21,6 +21,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as UIdRouteImport } from './routes/u.$id'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthenticatedStatusRouteImport } from './routes/_authenticated/status'
@@ -85,6 +86,11 @@ const UIdRoute = UIdRouteImport.update({
   path: '/u/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/status': typeof AuthenticatedStatusRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/u/$id': typeof UIdRoute
   '/blog/': typeof BlogIndexRoute
 }
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/status': typeof AuthenticatedStatusRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/u/$id': typeof UIdRoute
   '/': typeof AuthenticatedIndexRoute
   '/blog': typeof BlogIndexRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated/status': typeof AuthenticatedStatusRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/u/$id': typeof UIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/blog/': typeof BlogIndexRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/auth/callback'
     | '/blog/$slug'
+    | '/invite/$token'
     | '/u/$id'
     | '/blog/'
   fileRoutesByTo: FileRoutesByTo
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/auth/callback'
     | '/blog/$slug'
+    | '/invite/$token'
     | '/u/$id'
     | '/'
     | '/blog'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/_authenticated/status'
     | '/auth/callback'
     | '/blog/$slug'
+    | '/invite/$token'
     | '/u/$id'
     | '/_authenticated/'
     | '/blog/'
@@ -222,6 +234,7 @@ export interface RootRouteChildren {
   LearnRoute: typeof LearnRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   UIdRoute: typeof UIdRoute
 }
 
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/$slug': {
       id: '/blog/$slug'
       path: '/$slug'
@@ -389,6 +409,7 @@ const rootRouteChildren: RootRouteChildren = {
   LearnRoute: LearnRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  InviteTokenRoute: InviteTokenRoute,
   UIdRoute: UIdRoute,
 }
 export const routeTree = rootRouteImport
