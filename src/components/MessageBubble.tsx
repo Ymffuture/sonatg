@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Download, Reply,Globe, ExternalLink, Pencil, SmilePlus, Trash2, Copy, Check,
@@ -22,7 +21,7 @@ import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, t
 import { VideoPlayer } from "./VideoPlayer";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
-  URL_REGEX_TEST, DOC_EXTENSIONS, docExtOf,
+  URL_REGEX, URL_REGEX_TEST, DOC_EXTENSIONS, docExtOf,
 } from "@/utils/utils";
 import { IoSend } from "react-icons/io5";
 import { Avatar, TickIcon } from "./Avatar";
@@ -1419,7 +1418,6 @@ export function Bubble({
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread,allImages, onForward, isHighlighted,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
-  menuOpen, menuPos, onOpenMenu, onCloseMenu,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -1449,11 +1447,6 @@ export function Bubble({
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
-  /** Optional controlled context-menu state, so the parent can keep only one menu open at a time. */
-  menuOpen?: boolean;
-  menuPos?: { x: number; y: number } | null;
-  onOpenMenu?: (x: number, y: number) => void;
-  onCloseMenu?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1461,17 +1454,7 @@ export function Bubble({
   reactions.forEach((r) => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
-  const [localMenu, setLocalMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
-  const isControlledMenu = menuOpen !== undefined;
-  const contextMenu = isControlledMenu
-    ? { open: !!menuOpen, x: menuPos?.x ?? 0, y: menuPos?.y ?? 0 }
-    : localMenu;
-  const setContextMenu = (next: { open: boolean; x: number; y: number }) => {
-    if (isControlledMenu) {
-      if (next.open) onOpenMenu?.(next.x, next.y);
-      else onCloseMenu?.();
-    } else setLocalMenu(next);
-  };
+  const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
   const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
   const [justCopied, setJustCopied] = useState(false);
@@ -2451,6 +2434,7 @@ export function Composer({
             </div>
 
             <textarea
+              id="sona-message-composer"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); } }}

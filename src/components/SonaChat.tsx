@@ -41,6 +41,7 @@ import { FaSquareThreads } from "react-icons/fa6";
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import {SonaAIGreeting} from "./SonaAIGreeting";
+import {SonaTypingIndicator} from "./SonaTypingIndicator";
 import { PurpleBadge } from "./PurpleBadge";
 import {MdDiamond} from "react-icons/md";
 import { IoMdArrowDropleft } from "react-icons/io";
@@ -535,6 +536,10 @@ const handleMenuOpenChange = (open: boolean) => {
   }, [pendingImageUrls]);
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  // True while waiting on askAI() for a reply — drives the animated
+  // typing indicator in the Sona AI chat (see the SonaTypingIndicator
+  // render below the message list) and resets on both success and error.
+  const [sonaTyping, setSonaTyping] = useState(false);
   const { checkMessage, lastResult: moderationResult } = useMessageModeration();
 
   // Writes a row into moderation_flags so it shows up in the admin queue.
@@ -1747,6 +1752,7 @@ const handleMenuOpenChange = (open: boolean) => {
         const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
         if ((isAI || mentionsSona) && (prompt || attachedImageUrl || attachedFileUrl)) {
           toast.loading("Sona is thinking…", { id: "sona-ai" });
+          setSonaTyping(true);
           askAI({
             data: {
               chatId: activeId,
@@ -1757,7 +1763,8 @@ const handleMenuOpenChange = (open: boolean) => {
             },
           })
             .then(() => toast.dismiss("sona-ai"))
-            .catch((e) => toast.error(e.message, { id: "sona-ai" }));
+            .catch((e) => toast.error(e.message, { id: "sona-ai" }))
+            .finally(() => setSonaTyping(false));
         }
       }
     } finally {
@@ -2185,7 +2192,7 @@ const handleMenuOpenChange = (open: boolean) => {
   }, [messages, msgSearchQuery, decrypted]);
 
   useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
-  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); closeMessageMenu(); setShowHeaderMenu(false); setChatLongPressMenu(null); setReactingOn(null); }, [activeId]);
+  useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); closeMessageMenu(); setShowHeaderMenu(false); setChatLongPressMenu(null); setReactingOn(null); setSonaTyping(false); }, [activeId]);
 
   // Single Escape-key handler for every menu/popover in the app (message
   // context menu, header dropdown, chat long-press menu, reaction picker).
@@ -2203,6 +2210,25 @@ const handleMenuOpenChange = (open: boolean) => {
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [closeMessageMenu]);
+
+  // "/" focuses the message composer (Slack/Discord-style shortcut) — but
+  // only when the user isn't already typing somewhere (another input,
+  // textarea, or contenteditable), so it doesn't hijack a "/" you're
+  // actually typing into a search box or the composer itself.
+  useEffect(() => {
+    const handleSlash = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement as HTMLElement | null;
+      const alreadyTyping = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+      if (alreadyTyping) return;
+      const composer = document.getElementById("sona-message-composer") as HTMLTextAreaElement | null;
+      if (!composer) return;
+      e.preventDefault();
+      composer.focus();
+    };
+    document.addEventListener("keydown", handleSlash);
+    return () => document.removeEventListener("keydown", handleSlash);
+  }, []);
 
   useEffect(() => {
     if (!showMsgSearch || msgSearchMatches.length === 0) return;
@@ -3579,6 +3605,7 @@ useEffect(() => {
                         </div>
                       </div>
                     )}
+                    {isAIChat(active) && sonaTyping && <SonaTypingIndicator />}
                   </div>
                 </div>
 
