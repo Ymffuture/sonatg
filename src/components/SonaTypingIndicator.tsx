@@ -1,7 +1,7 @@
 export function SonaTypingIndicator() {
   return (
     <div className="mt-3 flex items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-[var(--sona-accent,#E07A5F)]/10 bg-white px-5 py-4 shadow-sm dark:bg-[#2A2A2A] dark:border-[#E07A5F]/20">
+      <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-[transparent] px-5 py-4 shadow-sm dark:bg-[#2A2A2A] dark:border-[#E07A5F]/20">
         <svg width="56" height="32" viewBox="0 0 56 32" aria-label="Sona AI is composing a reply">
           <style>{`
             @keyframes sona-gemini-combine {
