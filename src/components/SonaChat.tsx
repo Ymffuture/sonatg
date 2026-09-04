@@ -40,6 +40,7 @@ import { pushBackLayer } from "@/hooks/useBackStack";
 import { FaSquareThreads } from "react-icons/fa6";
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
+import {SonaAIGreeting} from "./SonaAIGreeting";
 import { PurpleBadge } from "./PurpleBadge";
 import {MdDiamond} from "react-icons/md";
 import { IoMdArrowDropleft } from "react-icons/io";
@@ -716,6 +717,12 @@ const handleMenuOpenChange = (open: boolean) => {
   // anything new. Cleared naturally on full page reload; doesn't need
   // eviction logic since it's just references to already-fetched rows.
   const chatCacheRef = useRef<Record<string, { messages: MessageRow[]; reactions: ReactionRow[]; reads: MessageReadRow[] }>>({});
+  // chat_id -> cleared_before ISO timestamp for the current user. Clearing a
+  // chat only writes a cutoff row (see clearChat()) rather than deleting
+  // anything server-side — every place that loads messages needs to respect
+  // this cutoff, or a cleared chat "un-clears" itself the moment it's
+  // reloaded (switching away and back, a page refresh, a realtime refetch).
+  const chatClearsRef = useRef<Record<string, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
@@ -751,16 +758,27 @@ const handleMenuOpenChange = (open: boolean) => {
     ]);
     const memberIds = Array.from(new Set((allMembers ?? []).map((m: { user_id: string }) => m.user_id)));
 
-    const [{ data: profs }, { data: latest }] = await Promise.all([
+    const [{ data: profs }, { data: latest }, { data: clears }] = await Promise.all([
       supabase.from("profiles").select("*").in("id", memberIds),
       supabase.from("visible_messages").select("*").in("chat_id", chatIds).order("created_at", { ascending: false }).limit(500),
+      supabase.from("chat_clears").select("chat_id, cleared_before").eq("user_id", me.id),
     ]);
+
+    const clearsMap: Record<string, string> = {};
+    (clears ?? []).forEach((c) => { clearsMap[(c as { chat_id: string }).chat_id] = (c as { cleared_before: string }).cleared_before; });
+    chatClearsRef.current = clearsMap;
 
     const profMap: Record<string, Profile> = {};
     (profs ?? []).forEach((p) => { profMap[(p as Profile).id] = p as Profile; });
     setProfiles((prev) => ({ ...prev, ...profMap }));
 
-    const rows = (latest ?? []) as MessageRow[];
+    // Drop anything at or before this user's own clear cutoff for that chat
+    // — otherwise a cleared chat's old messages resurface in the sidebar
+    // preview and in the priming cache the moment the list reloads.
+    const rows = ((latest ?? []) as MessageRow[]).filter((m) => {
+      const cutoff = clearsMap[m.chat_id];
+      return !cutoff || new Date(m.created_at).getTime() > new Date(cutoff).getTime();
+    });
     const lastByChat: Record<string, MessageRow> = {};
     const primingByChat: Record<string, MessageRow[]> = {};
     // rows is newest-first across all chats — walk it and bucket per chat,
@@ -931,10 +949,17 @@ const handleMenuOpenChange = (open: boolean) => {
     }
 
     (async () => {
-      const { data: msgs } = await supabase
+      const clearedBefore = chatClearsRef.current[activeId];
+      let query = supabase
         .from("visible_messages")
         .select("*")
-        .eq("chat_id", activeId)
+        .eq("chat_id", activeId);
+      // Respect this user's own "clear chat" cutoff — without this, every
+      // reload/reopen of the chat re-fetches full history and undoes the
+      // clear (chat_clears never deletes rows server-side, it's a
+      // per-user cutoff that every read path has to honor).
+      if (clearedBefore) query = query.gt("created_at", clearedBefore);
+      const { data: msgs } = await query
         .order("created_at", { ascending: false })
         .limit(100);
       const rows = ((msgs ?? []) as MessageRow[]).reverse(); // fetched newest-first for the LIMIT, flip back to chronological
@@ -2072,6 +2097,7 @@ const handleMenuOpenChange = (open: boolean) => {
       .upsert({ chat_id: active.id, user_id: me.id, cleared_before: clearedBefore }, { onConflict: "chat_id,user_id" });
     if (error) { toast.error(explainSupabaseError(error).title); return; }
     // Instant local feedback — don't wait on a refetch to reflect the clear.
+    chatClearsRef.current[active.id] = clearedBefore;
     setMessages([]);
     setReactions([]);
     setReads([]);
@@ -3319,8 +3345,7 @@ useEffect(() => {
                   
                 </header>
 
-              
-{active.is_group && active.description && (
+                {active.is_group && active.description && (
                   <div className="border-b border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E]">
                     <button
                       onClick={() => setDescOpen((v) => !v)}
@@ -3438,6 +3463,12 @@ useEffect(() => {
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[var(--sona-accent,#E07A5F)]/10">
                       {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
                     </div>
+                    {isAIChat(active) && messages.length === 0 && (
+                      <SonaAIGreeting
+                        name={me?.display_name?.split(" ")[0]}
+                        onSuggestion={(s) => setDraft(s)}
+                      />
+                    )}
                     <AnimatePresence initial={false}>
                      {messages.map((m, idx) => {
   const prev = messages[idx - 1];
