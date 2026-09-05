@@ -392,7 +392,7 @@ function AuthPage() {
                 )}
               </button>
             </form>
-
+7 
             {mode === "signin" && (
               <div className="mt-3 text-sm text-center">
   <button
@@ -478,7 +478,7 @@ function AuthPage() {
                     disabled={loading || !!oauthLoading}
                     className="group relative mt-2 w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#1ED760]/40 hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F0E8] dark:bg-[#1A1A1A] transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
                       {oauthLoading === "spotify" ? <Loader2 className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
                     </div>
                     <span className="flex-1 text-left">{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
