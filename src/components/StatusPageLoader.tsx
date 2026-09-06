@@ -1,9 +1,10 @@
+import * as React from "react";
 import { motion } from "framer-motion";
 
 /* ─── Premium Shimmer Skeleton ──────────────────────────────── */
-function Skeleton({ className = "", delay = 0 }: { className?: string; delay?: number }) {
+function Skeleton({ className = "", delay = 0, style }: { className?: string; delay?: number; style?: React.CSSProperties }) {
   return (
-    <div className={`relative overflow-hidden bg-stone-200/80 dark:bg-zinc-800/80 ${className}`}>
+    <div style={style} className={`relative overflow-hidden bg-stone-200/80 dark:bg-zinc-800/80 ${className}`}>
       <motion.div
         className="absolute inset-0 bg-gradient-to-r from-transparent via-stone-50/80 dark:via-zinc-700/80 to-transparent"
         initial={{ x: "-100%" }}

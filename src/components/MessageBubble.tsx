@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import {
   Download, Reply,Globe, ExternalLink, Pencil, SmilePlus, Trash2, Copy, Check,
@@ -22,7 +23,7 @@ import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, t
 import { VideoPlayer } from "./VideoPlayer";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
-  URL_REGEX, URL_REGEX_TEST, DOC_EXTENSIONS, docExtOf,
+  DOC_EXTENSIONS, docExtOf,
 } from "@/utils/utils";
 import { IoSend } from "react-icons/io5";
 import { Avatar, TickIcon } from "./Avatar";

@@ -4004,7 +4004,7 @@ useEffect(() => {
 
       {forwardingMessages && me && (
         <ForwardModal
-          messages={forwardingMessages}
+          message={forwardingMessages[0]}
           chats={chats}
           meId={me.id}
           onClose={() => { setForwardingMessages(null); exitMsgSelectMode(); }}

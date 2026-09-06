@@ -16,7 +16,7 @@ type SummarizeInput = { chatId: string };
 
 async function callGateway(messages: unknown[], key: string): Promise<string> {
   // const model = process.env.AI_MODEL || "inclusionai/ling-3.0-flash:free";
-const model = "nvidia/nemotron-3.5-lightning:free" || "nvidia/nemotron-3-ultra-550b-a55b:free" 
+const model = "nvidia/nemotron-3.5-lightning:free";
   const res = await fetch(GATEWAY, {
     method: "POST",
     headers: {
