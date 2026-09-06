@@ -1316,6 +1316,20 @@ const handleMenuOpenChange = (open: boolean) => {
   }, [chats, me]);
   // "all" | "unread" | "groups" | "pinned" | a custom folder id (e.g. "custom:1699999999")
   const [activeFolder, setActiveFolder] = useState<string>("all");
+  const [joinLinkOpen, setJoinLinkOpen] = useState(false);
+  const [joinLink, setJoinLink] = useState("");
+
+  // Accepts a full invite URL or a bare token and opens the /invite page.
+  const openInviteLink = () => {
+    const raw = joinLink.trim();
+    if (!raw) return;
+    const token = raw.split("?")[0].split("#")[0].replace(/\/+$/, "").split("/").pop() || "";
+    if (!token) return;
+    setJoinLinkOpen(false);
+    setJoinLink("");
+    navigate({ to: "/invite/$token", params: { token } });
+  };
+
 
   // Custom folders (e.g. "Work", "Family", "Close friends") the user can create,
   // rename, and delete to group chats however they like. Purely client-side,
@@ -2579,7 +2593,46 @@ useEffect(() => {
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
+
+              <button
+                onClick={() => setJoinLinkOpen((v) => !v)}
+                title="Join a group with an invite link"
+                aria-label="Join a group with an invite link"
+                aria-expanded={joinLinkOpen}
+                className={`shrink-0 rounded-full px-2 py-2 text-xs font-medium transition hover:bg-[#F4A261]/20 ${
+                  joinLinkOpen
+                    ? "bg-[var(--sona-accent,#E07A5F)]/15 text-[var(--sona-accent,#E07A5F)]"
+                    : "bg-[#F5F0E8] text-[#8C8C8C] dark:bg-[#2A2A2A]"
+                }`}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+              </button>
             </div>
+
+            {joinLinkOpen && (
+              <div className="flex items-center gap-2 px-3 pb-3">
+                <input
+                  autoFocus
+                  value={joinLink}
+                  onChange={(e) => setJoinLink(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") openInviteLink();
+                    if (e.key === "Escape") setJoinLinkOpen(false);
+                  }}
+                  placeholder="Paste an invite link"
+                  aria-label="Invite link"
+                  className="min-w-0 flex-1 rounded-full bg-[#F5F0E8] px-3 py-2 text-xs text-[#2D3436] outline-none placeholder:text-[#8C8C8C] dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+                />
+                <button
+                  onClick={openInviteLink}
+                  disabled={!joinLink.trim()}
+                  className="shrink-0 rounded-full bg-[var(--sona-accent,#E07A5F)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                >
+                  Open
+                </button>
+              </div>
+            )}
+
 
             {me && (
               <div data-tour="status-bar" className="px-3 pb-3">
