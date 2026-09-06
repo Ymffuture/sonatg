@@ -493,6 +493,8 @@ export function StatusViewer({
   const [progress, setProgress] = useState(0);
   const [viewers, setViewers] = useState<(Profile & { viewed_at: string })[]>([]);
   const [showViewers, setShowViewers] = useState(false);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [reactors, setReactors] = useState<{ user_id: string; emoji: string }[]>([]);
   const [imageLoading, setImageLoading] = useState(true);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
@@ -508,6 +510,38 @@ export function StatusViewer({
 
   const current = statuses[index];
   const currentMediaUrl = useStatusMediaUrl(current);
+
+  // Emoji reactions on a status (one per person, tap again to remove).
+  const loadReactions = useCallback(async (statusId: string) => {
+    const { data } = await supabase.from("status_reactions").select("user_id, emoji").eq("status_id", statusId);
+    const list = (data ?? []) as { user_id: string; emoji: string }[];
+    setReactors(list);
+    setMyReaction(list.find((r) => r.user_id === meId)?.emoji ?? null);
+  }, [meId]);
+
+  const react = async (emoji: string) => {
+    if (!current) return;
+    const removing = myReaction === emoji;
+    setMyReaction(removing ? null : emoji);
+    const { error } = removing
+      ? await supabase.from("status_reactions").delete().eq("status_id", current.id).eq("user_id", meId)
+      : await supabase.from("status_reactions").upsert(
+          { status_id: current.id, user_id: meId, emoji },
+          { onConflict: "status_id,user_id" }
+        );
+    if (error) {
+      const explained = explainSupabaseError(error);
+      notification.error({ message: explained.title, description: explained.explanation, placement: "top" });
+      loadReactions(current.id);
+      return;
+    }
+    loadReactions(current.id);
+  };
+
+  useEffect(() => {
+    if (!current) return;
+    loadReactions(current.id);
+  }, [current?.id, loadReactions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!current) return;
@@ -664,6 +698,26 @@ export function StatusViewer({
         </div>
       </div>
 
+      {/* Reaction bar (viewers) */}
+      {!isSelf && (
+        <div className="flex items-center justify-center gap-2 px-4 py-4" style={{ backgroundColor: THEME.surface }}>
+          {STATUS_REACTIONS.map((emoji) => (
+            <motion.button
+              key={emoji}
+              whileTap={{ scale: 0.85 }}
+              whileHover={{ scale: 1.15 }}
+              onClick={() => react(emoji)}
+              aria-label={`React ${emoji}`}
+              className={`grid h-11 w-11 place-items-center rounded-full text-xl transition-colors ${
+                myReaction === emoji ? "bg-white/20 ring-2 ring-white/40" : "hover:bg-white/10"
+              }`}
+            >
+              {emoji}
+            </motion.button>
+          ))}
+        </div>
+      )}
+
       {/* Views footer */}
       {isSelf && (
         <div className="relative border-t border-white/5" style={{ backgroundColor: THEME.surface }}>
@@ -671,6 +725,11 @@ export function StatusViewer({
             className="flex items-center gap-2.5 px-5 py-4 text-sm w-full hover:bg-white/5 transition-colors" style={{ color: THEME.textMuted }}>
             <Eye className="h-4 w-4" />
             <span className="font-bold">{viewers.length} {viewers.length === 1 ? "view" : "views"}</span>
+            {reactors.length > 0 && (
+              <span className="flex items-center gap-1 text-sm font-semibold" style={{ color: THEME.text }}>
+                {Array.from(new Set(reactors.map((r) => r.emoji))).slice(0, 3).join(" ")} {reactors.length}
+              </span>
+            )}
             <ChevronRight className={`h-4 w-4 ml-auto transition-transform ${showViewers ? "rotate-90" : ""}`} />
           </motion.button>
           
