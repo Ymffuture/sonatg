@@ -2557,8 +2557,8 @@ useEffect(() => {
                   onClick={() => setActiveFolder(f.key)}
                   className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
-                      ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white"
-                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
+                      ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white opacity-60"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#FFFCF4] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
                   }`}
                 >
                   {f.label}
