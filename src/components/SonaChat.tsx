@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useSonaTheme } from "@/hooks/useSonaTheme";
+import {StatusPageLoader} from "./StatusPageLoader"
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -2297,105 +2298,8 @@ useEffect(() => {
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
     return(
-    <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#1A1A1A] dark:text-[#E8E8E8]">
-      <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
-        <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[var(--sona-accent,#E07A5F)]/20 dark:bg-[#242424] dark:border-[var(--sona-accent,#E07A5F)]/10">
-          
-          {/* ─── Sidebar ─── */}
-          <aside className="relative h-full w-full flex-col border-r border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]">
-            
-            {/* Nav bar */}
-            <div className="flex items-center justify-between gap-2 px-4 py-3">
-              <div className="h-7 w-24 rounded-lg bg-[var(--sona-accent,#E07A5F)]/15 animate-pulse" />
-              <div className="flex items-center gap-1.5 rounded-full border border-[var(--sona-accent,#E07A5F)]/10 bg-[#F5F0E8] dark:bg-[#2A2A2A] px-2 py-1.5">
-                {[...Array(3).keys()].map((i) => (
-                  <div
-                    key={i}
-                    style={{ animationDelay: `${i * 0.61}s` }}
-                    className="h-8 w-8 rounded-full bg-[silver]/10 animate-pulse"
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Search */}
-            <div className="px-3 pb-2 pt-1">
-              <div className="h-11 w-full rounded-full bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse" />
-            </div>
-
-            {/* Filter pills */}
-            <div className="flex items-center gap-2 px-3 pb-3 pt-1 overflow-x-auto scrollbar-hiding ">
-              {[...Array(6).keys()].map((i) => (
-                <div
-                  key={i}
-                  style={{ animationDelay: `${i * 0.8}s` }}
-                  className={`h-8 rounded-full bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse shrink-0 ${
-                    i === 0 ? "w-11" : i === 1 ? "w-20" : i === 4 ? "w-24" : "w-[72px]"
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Status banner */}
-            <div className="mx-3 mb-2">
-              <div className="flex items-center gap-3 h-12 w-full rounded-2xl bg-[var(--sona-accent,#E07A5F)]/8 animate-pulse px-4">
-                <div className="h-5 w-5 rounded-full bg-[var(--sona-accent,#E07A5F)]/15 animate-pulse" />
-                <div className="h-3.5 w-36 rounded bg-[var(--sona-accent,#E07A5F)]/15 animate-pulse" />
-              </div>
-            </div>
-
-            {/* Chat rows */}
-            <div className="flex-1 space-y-0.5 px-2 pt-1 overflow-y-auto">
-              {[...Array(10).keys()].map((i) => (
-                <div
-                  key={i}
-                  style={{ animationDelay: `${i * 0.5}s` }}
-                  className="flex items-center gap-3 p-3 rounded-xl"
-                >
-                  {/* Avatar */}
-                  <div className="relative shrink-0">
-                    <div className="h-12 w-12 rounded-full bg-[silver]/10 animate-pulse" />
-                    {i % 3 === 1 && (
-                      <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#FFFDF9] dark:border-[#1E1E1E] bg-[silver]/10 animate-pulse" />
-                    )}
-                  </div>
-
-                  {/* Text content */}
-                  <div className="flex-1 min-w-0 space-y-2.5">
-                    {/* Name + time */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="h-3.5 w-32 rounded bg-[var(--sona-accent,#E07A5F)]/20 animate-pulse" />
-                      <div className="h-3 w-9 rounded bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse shrink-0" />
-                    </div>
-                    {/* Preview + badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="h-2.5 w-[70%] rounded bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse" />
-                      {i % 2 === 0 && (
-                        <div className="h-5 w-5 rounded-full bg-[var(--sona-accent,#E07A5F)]/25 animate-pulse shrink-0" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* FAB */}
-            <div className="absolute bottom-6 right-4">
-              <div className="h-14 w-14 rounded-2xl bg-[var(--sona-accent,#E07A5F)]/20 animate-pulse shadow-xl" />
-            </div>
-          </aside>
-
-          {/* ─── Main area (empty) ─── */}
-          <section className="hidden md:flex h-full flex-1 flex-col bg-[#F0EBE3] dark:bg-[#1A1A1A] items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-[var(--sona-accent,#E07A5F)]/20 animate-pulse" />
-              <div className="h-3 w-28 rounded bg-[var(--sona-accent,#E07A5F)]/10 animate-pulse" />
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  
+    
+            <StatusPageLoader/>
     );
   }
 
