@@ -392,7 +392,6 @@ function AuthPage() {
                 )}
               </button>
             </form>
-7 
             {mode === "signin" && (
               <div className="mt-3 text-sm text-center">
   <button
