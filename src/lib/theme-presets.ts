@@ -33,6 +33,12 @@ export interface ThemePreset {
   userBubbleText?: string;
   aiBubble?: string;
   aiBubbleText?: string;
+  inputBg?: string;
+  hover?: string;
+  sidebar?: string;
+  sidebarText?: string;
+  sidebarHover?: string;
+  sidebarActive?: string;
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
