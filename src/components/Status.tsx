@@ -17,6 +17,8 @@ import { explainSupabaseError } from "@/utils/utils";
 import { Avatar } from "./Avatar";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 
+const STATUS_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
+
 const TEXT_STATUS_MS = 5000;
 
 /* ─── Premium Theme Tokens ───────────────────────────────────── */
