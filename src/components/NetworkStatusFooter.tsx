@@ -14,9 +14,9 @@ const COPY = {
 } as const;
 
 /**
- * A premium, floating network status banner. 
- * Appears as a glassmorphic pill at the bottom center, using smooth 
- * spring animations and subtle translucent colors to avoid visual clutter.
+ * A premium, full-width network status banner. 
+ * Pinned to the bottom edge (bottom-0) to avoid overlap with content, 
+ * using smooth slide-up animations and subtle translucent colors.
  */
 export function NetworkStatusFooter() {
   const status = useNetworkStatus();
@@ -29,11 +29,11 @@ export function NetworkStatusFooter() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ y: 100, opacity: 0, scale: 0.95 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 100, opacity: 0, scale: 0.95 }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className={`fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-3 rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-2xl transition-all duration-300 ${
+        className={`fixed bottom-0 inset-x-0 z-[70] flex w-full items-center justify-center gap-3 rounded-t-2xl border-t px-4 py-3 shadow-2xl backdrop-blur-2xl transition-all duration-300 ${
           isOffline 
             ? "bg-red-500/10 dark:bg-red-500/10 border-red-500/20 dark:border-red-500/20" 
             : "bg-amber-500/10 dark:bg-amber-500/10 border-amber-500/20 dark:border-amber-500/20"
@@ -50,7 +50,7 @@ export function NetworkStatusFooter() {
         </div>
         
         {/* Text content */}
-        <div className="flex flex-col pr-2">
+        <div className="flex flex-col">
           <span className={`text-sm font-bold leading-tight ${
             isOffline ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
           }`}>
