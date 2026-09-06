@@ -1316,6 +1316,20 @@ const handleMenuOpenChange = (open: boolean) => {
   }, [chats, me]);
   // "all" | "unread" | "groups" | "pinned" | a custom folder id (e.g. "custom:1699999999")
   const [activeFolder, setActiveFolder] = useState<string>("all");
+  const [joinLinkOpen, setJoinLinkOpen] = useState(false);
+  const [joinLink, setJoinLink] = useState("");
+
+  // Accepts a full invite URL or a bare token and opens the /invite page.
+  const openInviteLink = () => {
+    const raw = joinLink.trim();
+    if (!raw) return;
+    const token = raw.split("?")[0].split("#")[0].replace(/\/+$/, "").split("/").pop() || "";
+    if (!token) return;
+    setJoinLinkOpen(false);
+    setJoinLink("");
+    navigate({ to: "/invite/$token", params: { token } });
+  };
+
 
   // Custom folders (e.g. "Work", "Family", "Close friends") the user can create,
   // rename, and delete to group chats however they like. Purely client-side,
