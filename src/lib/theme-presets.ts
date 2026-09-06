@@ -25,6 +25,20 @@ export interface ThemePreset {
   /** Soft background paired with the accent (used for bubbles/highlights) */
   bg: string;
   pro: boolean;
+  /** Optional accessibility / UI tokens */
+  textPrimary?: string;
+  textSecondary?: string;
+  border?: string;
+  userBubble?: string;
+  userBubbleText?: string;
+  aiBubble?: string;
+  aiBubbleText?: string;
+  inputBg?: string;
+  hover?: string;
+  sidebar?: string;
+  sidebarText?: string;
+  sidebarHover?: string;
+  sidebarActive?: string;
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
