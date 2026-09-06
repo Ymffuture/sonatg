@@ -23,9 +23,11 @@ import { type ChatWithMeta, chatTitle, chatAvatarUrl, isAIChat } from "@/utils/u
 import { useBackToClose } from "@/hooks/useBackStack";
 
 export function ForwardModal({
-  message, chats, meId, onClose, onForwarded,
+  message, messages, chats, meId, onClose, onForwarded,
 }: {
-  message: MessageRow;
+  message?: MessageRow;
+  /** Bulk forward: when set, every message here is forwarded. */
+  messages?: MessageRow[];
   chats: ChatWithMeta[];
   meId: string;
   onClose: () => void;
@@ -54,17 +56,20 @@ export function ForwardModal({
     if (selected.size === 0) return;
     setSending(true);
     try {
-      const inserts = Array.from(selected).map((chatId) => ({
-        chat_id: chatId,
-        sender_id: meId,
-        kind: message.kind,
-        body: message.is_encrypted ? null : message.body,
-        media_url: message.media_url,
-        file_name: message.file_name,
-        file_size: message.file_size,
-        duration_ms: message.duration_ms,
-        is_forwarded: true,
-      }));
+      const payload = messages?.length ? messages : message ? [message] : [];
+      const inserts = Array.from(selected).flatMap((chatId) =>
+        payload.map((m) => ({
+          chat_id: chatId,
+          sender_id: meId,
+          kind: m.kind,
+          body: m.is_encrypted ? null : m.body,
+          media_url: m.media_url,
+          file_name: m.file_name,
+          file_size: m.file_size,
+          duration_ms: m.duration_ms,
+          is_forwarded: true,
+        }))
+      );
       const { error } = await supabase.from("messages").insert(inserts);
       if (error) throw error;
       toast.success(`Forwarded to ${selected.size} chat${selected.size === 1 ? "" : "s"}`);
