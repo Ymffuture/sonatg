@@ -1420,6 +1420,7 @@ export function Bubble({
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread,allImages, onForward, isHighlighted,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
+  menuOpen, menuPos, onOpenMenu, onCloseMenu,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -1449,6 +1450,11 @@ export function Bubble({
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  /** Controlled context menu (only one message menu open at a time, owned by SonaChat). */
+  menuOpen?: boolean;
+  menuPos?: { x: number; y: number } | null;
+  onOpenMenu?: (x: number, y: number) => void;
+  onCloseMenu?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -1456,7 +1462,22 @@ export function Bubble({
   reactions.forEach((r) => { counts[r.emoji] = (counts[r.emoji] ?? 0) + 1; });
   const status: ReadStatus = readStatusFor(msg, reads, [me.id, ...otherMemberIds], me.id);
 
-  const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const [localMenu, setLocalMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+  const controlled = onOpenMenu !== undefined || onCloseMenu !== undefined;
+  const contextMenu = controlled
+    ? { open: !!menuOpen, x: menuPos?.x ?? 0, y: menuPos?.y ?? 0 }
+    : localMenu;
+  const setContextMenu = useCallback(
+    (next: { open: boolean; x: number; y: number }) => {
+      if (controlled) {
+        if (next.open) onOpenMenu?.(next.x, next.y);
+        else onCloseMenu?.();
+        return;
+      }
+      setLocalMenu(next);
+    },
+    [controlled, onOpenMenu, onCloseMenu]
+  );
   const [imgLoaded, setImgLoaded] = useState(false);
   const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
   const [justCopied, setJustCopied] = useState(false);
