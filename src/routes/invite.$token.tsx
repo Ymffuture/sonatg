@@ -23,6 +23,27 @@ export const Route = createFileRoute("/invite/$token")({
   component: InvitePage,
 });
 
+// Staggered animation variants for a premium, cascading entrance
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: "spring", stiffness: 320, damping: 24 }
+  },
+};
+
 function InvitePage() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
@@ -31,10 +52,6 @@ function InvitePage() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  // Distinguishes "token really doesn't exist" from "the RPC call itself blew up"
-  // (permissions, missing migration, stale PostgREST schema cache, wrong project, etc).
-  // Previously any thrown error here was silently swallowed and every failure mode
-  // rendered as the same generic "Invite not found" message.
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,7 +85,6 @@ function InvitePage() {
           .from("profiles").select("display_name").eq("id", auth.user.id).maybeSingle();
         await postSystemMessage(chatId, `${prof?.display_name ?? "Someone"} joined the group`);
       }
-      // Hand the chat id to the chat list so it opens straight into the group.
       try { localStorage.setItem("sona:openChat", chatId); } catch { /* no-op */ }
       navigate({ to: "/" });
     } catch (e) {
@@ -78,90 +94,131 @@ function InvitePage() {
   };
 
   const title = preview?.title || "Sona group";
+  const accentColor = "var(--sona-accent, #E07A5F)";
 
   return (
-    <main className="min-h-dvh grid place-items-center bg-[#F5F0E8] dark:bg-[#1E1E1E] px-4 py-10">
+    <main className="relative min-h-dvh grid place-items-center bg-gradient-to-br from-[#FAF8F5] to-[#F0EBE3] dark:from-[#09090b] dark:to-[#18181b] px-4 py-10 overflow-hidden">
+      {/* Subtle ambient background glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[var(--sona-accent,#E07A5F)]/5 dark:bg-[var(--sona-accent,#E07A5F)]/10 rounded-full blur-3xl pointer-events-none" />
+
       <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 320, damping: 28 }}
-        className="w-full max-w-sm rounded-3xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 p-6 shadow-xl backdrop-blur-xl text-center"
+        className="relative w-full max-w-sm rounded-[2rem] border border-white/70 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)] backdrop-blur-2xl text-center overflow-hidden"
       >
-        <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-[var(--sona-accent,#E07A5F)]/10">
-          <Link2 className="h-6 w-6 text-[var(--sona-accent,#E07A5F)]" />
-        </div>
+        {/* Subtle top shine effect */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-transparent dark:from-white/5 dark:to-transparent pointer-events-none" />
 
-        {loading ? (
-          <p className="flex items-center justify-center gap-2 py-6 text-sm text-[#8C8C8C]">
-            <Loader2 className="h-4 w-4 animate-spin" /> Checking this invite…
-          </p>
-        ) : !preview ? (
-          <>
-            <h1 className="text-lg font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-              {loadError ? "Couldn't load this invite" : "Invite not found"}
-            </h1>
-            <p className="mt-2 text-sm text-[#8C8C8C]">
-              {loadError ?? "This link is invalid or has been revoked."}
-            </p>
-            {loadError && (
-              <p className="mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-[11px] text-red-500">
-                Technical detail: {loadError}
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="relative z-10"
+        >
+          <motion.div variants={itemVariants} className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-[var(--sona-accent,#E07A5F)]/10 ring-1 ring-[var(--sona-accent,#E07A5F)]/20 shadow-sm">
+            <Link2 className="h-6 w-6 text-[var(--sona-accent,#E07A5F)]" />
+          </motion.div>
+
+          {loading ? (
+            <motion.p variants={itemVariants} className="flex items-center justify-center gap-2.5 py-6 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              <Loader2 className="h-4 w-4 animate-spin" /> 
+              <span>Verifying invite…</span>
+            </motion.p>
+          ) : !preview ? (
+            <motion.div variants={itemVariants} className="space-y-2">
+              <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                {loadError ? "Couldn't load invite" : "Invite not found"}
+              </h1>
+              <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                {loadError ?? "This link is invalid, expired, or has been revoked."}
               </p>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="mx-auto mb-3 w-fit">
-              <Avatar url={preview.avatar_url} name={title} size={64} />
+              {loadError && (
+                <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs font-medium text-red-600 dark:text-red-400 break-words">
+                  <span className="opacity-70">Technical detail:</span> {loadError}
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <div className="space-y-1">
+              <motion.div variants={itemVariants} className="mx-auto mb-4 w-fit">
+                <div className="p-1 rounded-full bg-white dark:bg-zinc-800 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                  <Avatar url={preview.avatar_url} name={title} size={64} />
+                </div>
+              </motion.div>
+              
+              <motion.h1 variants={itemVariants} className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                {title}
+              </motion.h1>
+              
+              <motion.p variants={itemVariants} className="flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <Users className="h-3.5 w-3.5" /> 
+                {preview.is_group ? "Group chat on Sona" : "Chat on Sona"}
+              </motion.p>
+
+              {preview.allowed_email && (
+                <motion.p variants={itemVariants} className="mt-5 rounded-2xl border border-[var(--sona-accent,#E07A5F)]/20 bg-[var(--sona-accent,#E07A5F)]/5 px-4 py-2.5 text-xs font-medium text-[var(--sona-accent,#E07A5F)] dark:text-[#F0A08A]">
+                  Reserved for <span className="font-semibold">{preview.allowed_email}</span>
+                </motion.p>
+              )}
+
+              <motion.div variants={itemVariants} className="pt-2">
+                {preview.already_member ? (
+                  <Link
+                    to="/"
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--sona-accent,#E07A5F)] py-3.5 text-sm font-semibold text-white shadow-[0_4px_14px_0_rgba(224,122,95,0.39)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(224,122,95,0.23)] active:scale-[0.98]"
+                  >
+                    You're already in — open chat
+                  </Link>
+                ) : !preview.is_valid ? (
+                  <div className="flex items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs font-medium text-red-600 dark:text-red-400">
+                    <ShieldAlert className="h-4 w-4 shrink-0" />
+                    {preview.reason || "This invite is no longer valid."}
+                  </div>
+                ) : signedIn === false ? (
+                  <Link
+                    to="/auth"
+                    search={{ redirect: `/invite/${token}` } as never}
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--sona-accent,#E07A5F)] py-3.5 text-sm font-semibold text-white shadow-[0_4px_14px_0_rgba(224,122,95,0.39)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(224,122,95,0.23)] active:scale-[0.98]"
+                  >
+                    <LogIn className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" /> 
+                    Sign in to join
+                  </Link>
+                ) : (
+                  <button
+                    onClick={join}
+                    disabled={joining}
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--sona-accent,#E07A5F)] py-3.5 text-sm font-semibold text-white shadow-[0_4px_14px_0_rgba(224,122,95,0.39)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(224,122,95,0.23)] active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100"
+                  >
+                    {joining ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> 
+                        <span>Joining…</span>
+                      </>
+                    ) : (
+                      "Join group"
+                    )}
+                  </button>
+                )}
+
+                {error && (
+                  <p className="mt-4 rounded-xl bg-red-500/5 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 border border-red-500/10">
+                    {error}
+                  </p>
+                )}
+              </motion.div>
             </div>
-            <h1 className="text-lg font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{title}</h1>
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-[#8C8C8C]">
-              <Users className="h-3.5 w-3.5" /> {preview.is_group ? "Group chat on Sona" : "Chat on Sona"}
-            </p>
+          )}
 
-            {preview.allowed_email && (
-              <p className="mt-3 rounded-xl bg-[var(--sona-accent,#E07A5F)]/10 px-3 py-2 text-[11px] text-[var(--sona-accent,#E07A5F)]">
-                This invite is reserved for <span className="font-semibold">{preview.allowed_email}</span>
-              </p>
-            )}
-
-            {preview.already_member ? (
-              <Link
-                to="/"
-                className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white shadow-lg"
-              >
-                You're already in — open chat
-              </Link>
-            ) : !preview.is_valid ? (
-              <p className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-red-500/10 px-3 py-2.5 text-xs font-medium text-red-500">
-                <ShieldAlert className="h-4 w-4 shrink-0" />
-                {preview.reason || "This invite is no longer valid."}
-              </p>
-            ) : signedIn === false ? (
-              <Link
-                to="/auth"
-                search={{ redirect: `/invite/${token}` } as never}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white shadow-lg"
-              >
-                <LogIn className="h-4 w-4" /> Sign in to join
-              </Link>
-            ) : (
-              <button
-                onClick={join}
-                disabled={joining}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-60"
-              >
-                {joining ? <><Loader2 className="h-4 w-4 animate-spin" /> Joining…</> : "Join group"}
-              </button>
-            )}
-
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
-          </>
-        )}
-
-        <Link to="/" className="mt-4 block text-[11px] text-[#8C8C8C] underline underline-offset-2">
-          Back to Sona
-        </Link>
+          <motion.div variants={itemVariants} className="mt-8 pt-6 border-t border-zinc-200/50 dark:border-white/5">
+            <Link 
+              to="/" 
+              className="inline-block text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 underline underline-offset-4 decoration-zinc-300 dark:decoration-zinc-700 hover:decoration-zinc-400 dark:hover:decoration-zinc-500"
+            >
+              Back to Sona
+            </Link>
+          </motion.div>
+        </motion.div>
       </motion.section>
     </main>
   );
