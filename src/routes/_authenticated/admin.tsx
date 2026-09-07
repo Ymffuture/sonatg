@@ -61,6 +61,9 @@ function AdminPage() {
   const [domains, setDomains] = useState<OrgDomain[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [reportCleanupDays, setReportCleanupDays] = useState(30);
+  const [flagCleanupDays, setFlagCleanupDays] = useState(30);
+  const [cleanupBusy, setCleanupBusy] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [queue, setQueue] = useState<ModerationQueueRow[]>([]);
   const [csvBusy, setCsvBusy] = useState(false);
@@ -137,6 +140,72 @@ function AdminPage() {
       if (error) throw error;
       loadAll();
     } catch (e) { err(e, "Couldn't update report"); }
+  };
+
+  const deleteReport = async (rep: Report) => {
+    const ok = await confirm({
+      title: "Delete this report?",
+      description: "This permanently removes the report. This cannot be undone.",
+      confirmText: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const { error } = await supabase.rpc("admin_delete_report", { _id: rep.id });
+      if (error) throw error;
+      notification.success({ message: "Report deleted", placement: "top" });
+      loadAll();
+    } catch (e) { err(e, "Couldn't delete report"); }
+  };
+
+  const deleteOldReports = async () => {
+    const ok = await confirm({
+      title: `Delete resolved/dismissed reports older than ${reportCleanupDays} days?`,
+      description: "Open reports are never affected, regardless of age. This cannot be undone.",
+      confirmText: "Delete old reports",
+      danger: true,
+    });
+    if (!ok) return;
+    setCleanupBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("admin_delete_old_reports", { _older_than_days: reportCleanupDays });
+      if (error) throw error;
+      notification.success({ message: "Cleanup complete", description: `Deleted ${data ?? 0} old report${data === 1 ? "" : "s"}.`, placement: "top" });
+      loadAll();
+    } catch (e) { err(e, "Couldn't delete old reports"); } finally { setCleanupBusy(false); }
+  };
+
+  const deleteModerationFlag = async (row: ModerationQueueRow) => {
+    const ok = await confirm({
+      title: "Delete this flag?",
+      description: "This permanently removes the moderation flag. This cannot be undone.",
+      confirmText: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const { error } = await supabase.rpc("admin_delete_moderation_flag", { _id: row.id });
+      if (error) throw error;
+      notification.success({ message: "Flag deleted", placement: "top" });
+      loadAll();
+    } catch (e) { err(e, "Couldn't delete flag"); }
+  };
+
+  const deleteOldModerationFlags = async () => {
+    const ok = await confirm({
+      title: `Delete reviewed flags older than ${flagCleanupDays} days?`,
+      description: "Unreviewed flags are never affected, regardless of age. This cannot be undone.",
+      confirmText: "Delete old flags",
+      danger: true,
+    });
+    if (!ok) return;
+    setCleanupBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("admin_delete_old_moderation_flags", { _older_than_days: flagCleanupDays });
+      if (error) throw error;
+      notification.success({ message: "Cleanup complete", description: `Deleted ${data ?? 0} old flag${data === 1 ? "" : "s"}.`, placement: "top" });
+      loadAll();
+    } catch (e) { err(e, "Couldn't delete old flags"); } finally { setCleanupBusy(false); }
   };
 
   const activeDomains = useMemo(() => domains.filter((d) => d.is_active).map((d) => d.domain.toLowerCase()), [domains]);
@@ -464,6 +533,21 @@ function AdminPage() {
 
         {tab === "moderation" && (
           <section>
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+              <span className="text-xs font-medium text-[#8C8C8C]">Delete reviewed flags older than</span>
+              <input
+                type="number" min={0} value={flagCleanupDays}
+                onChange={(e) => setFlagCleanupDays(Math.max(0, Number(e.target.value) || 0))}
+                className="w-16 rounded-lg bg-[#F0EBE3] px-2 py-1 text-center text-xs outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+              />
+              <span className="text-xs font-medium text-[#8C8C8C]">days</span>
+              <button
+                onClick={deleteOldModerationFlags} disabled={cleanupBusy}
+                className="ml-auto flex items-center gap-1 rounded-full bg-red-600/15 px-3 py-1.5 text-xs font-bold text-red-700 disabled:opacity-60"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Clean up
+              </button>
+            </div>
             <ul className="space-y-2">
               {queue.map((row) => (
                 <li key={row.id} className={`rounded-2xl bg-white p-3 dark:bg-[#1E1E1E] ${row.reviewed ? "opacity-60" : ""}`}>
@@ -479,6 +563,9 @@ function AdminPage() {
                         <CheckCircle2 className="h-3 w-3" /> Reviewed
                       </button>
                     )}
+                    <button onClick={() => deleteModerationFlag(row)} aria-label="Delete flag" className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-red-500 hover:bg-red-500/10">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </li>
               ))}
@@ -489,6 +576,21 @@ function AdminPage() {
 
         {tab === "reports" && (
           <section>
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+              <span className="text-xs font-medium text-[#8C8C8C]">Delete resolved/dismissed reports older than</span>
+              <input
+                type="number" min={0} value={reportCleanupDays}
+                onChange={(e) => setReportCleanupDays(Math.max(0, Number(e.target.value) || 0))}
+                className="w-16 rounded-lg bg-[#F0EBE3] px-2 py-1 text-center text-xs outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+              />
+              <span className="text-xs font-medium text-[#8C8C8C]">days</span>
+              <button
+                onClick={deleteOldReports} disabled={cleanupBusy}
+                className="ml-auto flex items-center gap-1 rounded-full bg-red-600/15 px-3 py-1.5 text-xs font-bold text-red-700 disabled:opacity-60"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Clean up
+              </button>
+            </div>
             <ul className="space-y-2">
               {reports.map((r) => {
                 const reporter = profileById[r.reporter_id];
@@ -507,6 +609,9 @@ function AdminPage() {
                         <p className="mt-1 text-[11px] text-[#8C8C8C]">{new Date(r.created_at).toLocaleString()}</p>
                       </div>
                       <span className="rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-bold text-[#E07A5F]">{r.status}</span>
+                      <button onClick={() => deleteReport(r)} aria-label="Delete report" className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-red-500 hover:bg-red-500/10">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {reported && (
