@@ -7,7 +7,7 @@ import { previewChatInvite, joinChatByInvite, type InvitePreview } from "@/featu
 import { Avatar } from "@/components/Avatar";
 import { postSystemMessage } from "@/lib/systemMessages";
 
-export const Route = createFileRoute("/chat/invite/$token")({
+export const Route = createFileRoute("/invite/$token")({
   ssr: false,
   head: () => ({
     meta: [
