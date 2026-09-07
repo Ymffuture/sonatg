@@ -1530,7 +1530,7 @@ export function Bubble({
 
   // Premium Bubble Styling
   const bubbleBase = mine 
-    ? "bg-[var(--sona-bubble-mine,#6B352A)] dark:bg-[#1A1A1A] text-[#FFFCF4] shadow-md shadow-black/10 dark:shadow-black/30" 
+    ? "bg-[var(--sona-bubble-mine,#6B352A)] dark:bg-[#1A1A1A] text-[#8c8c8c] dark:text-[#FFFCF4] shadow-md shadow-black/10 dark:shadow-black/30" 
     : "bg-[#FFFCF4] dark:bg-[#1E1E1E] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm shadow-black/[0.02] dark:shadow-black/20 border border-black/[0.04] dark:border-white/[0.06]";
 
   const bubbleRadius = mine
