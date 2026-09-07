@@ -25,7 +25,7 @@ import { Spin, Skeleton, Tooltip, notification, Empty } from "antd";
 import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
-import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, type ChatInviteRow } from "@/features/invites";
+import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, parseAllowedEmails, type ChatInviteRow } from "@/features/invites";
 import SoundSettings from "./SoundSettings";
 import { postSystemMessage } from "@/lib/systemMessages";
 
@@ -238,7 +238,7 @@ export function GroupSettingsModal({
   const [classroomBusy, setClassroomBusy] = useState(false);
 
   const [invites, setInvites] = useState<ChatInviteRow[]>([]);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteEmails, setInviteEmails] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState<string | null>(null);
 
@@ -248,20 +248,24 @@ export function GroupSettingsModal({
   useEffect(() => { void loadInvites(); }, [chat.id]);
 
   const makeInvite = async () => {
-    const email = inviteEmail.trim();
-    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      notify.error({ message: "Invalid email", description: "Enter a full address like name@company.com, or leave blank for an open link." });
+    let emails: string[];
+    try {
+      emails = parseAllowedEmails(inviteEmails);
+    } catch (e) {
+      notify.error({ message: "Invalid email", description: e instanceof Error ? e.message : "Enter full addresses like name@company.com, one per line or separated by commas." });
       return;
     }
     setInviteBusy(true);
     try {
-      const created = await createChatInvite({ chatId: chat.id, allowedEmail: email || null, expiresInDays: 7 });
+      const created = await createChatInvite({ chatId: chat.id, allowedEmails: emails.length ? emails : null, expiresInDays: 7 });
       setInvites((prev) => [created, ...prev]);
-      setInviteEmail("");
+      setInviteEmails("");
       await navigator.clipboard?.writeText(inviteUrl(created.token)).catch(() => {});
       notify.success({
         message: "Invite link created",
-        description: email ? `Copied. Only ${email} can join — expires in 7 days.` : "Copied to clipboard. Expires in 7 days.",
+        description: emails.length
+          ? `Copied. Only ${emails.length === 1 ? emails[0] : `${emails.length} people`} can join — expires in 7 days.`
+          : "Copied to clipboard. Expires in 7 days.",
       });
     } catch (e) {
       const explained = explainSupabaseError(e);
@@ -574,17 +578,17 @@ export function GroupSettingsModal({
             <Link2 className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Invite link
           </p>
           <p className="text-[11px] text-zinc-500 leading-relaxed">
-            Share a link instead of adding people one by one. Restrict it to a single email so only that person can join.
+            Share a link instead of adding people one by one. Restrict it to specific emails so only those people can join.
           </p>
 
-          <div className="flex items-center gap-3 rounded-xl bg-white dark:bg-zinc-950 px-3 py-2.5 border border-zinc-200/50 dark:border-zinc-800/50">
-            <Mail className="h-4 w-4 shrink-0 text-zinc-400" />
-            <input
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="Restrict to email (optional)"
-              type="email"
-              className="flex-1 bg-transparent text-sm outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
+          <div className="flex items-start gap-3 rounded-xl bg-white dark:bg-zinc-950 px-3 py-2.5 border border-zinc-200/50 dark:border-zinc-800/50">
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
+            <textarea
+              value={inviteEmails}
+              onChange={(e) => setInviteEmails(e.target.value)}
+              placeholder="Restrict to emails (optional) — one per line, or separated by commas"
+              rows={2}
+              className="flex-1 resize-none bg-transparent text-sm outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
             />
           </div>
 
@@ -604,7 +608,7 @@ export function GroupSettingsModal({
                 <div key={inv.id} className={`flex items-center gap-2 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white dark:bg-zinc-950 px-3 py-2.5 transition-all ${inv.is_active ? "" : "opacity-50"}`}>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-semibold text-zinc-900 dark:text-zinc-100">
-                      {inv.allowed_email ? inv.allowed_email : "Anyone with the link"}
+                      {inv.allowed_emails?.length ? inv.allowed_emails.join(", ") : "Anyone with the link"}
                     </p>
                     <p className="truncate text-[10px] text-zinc-500">
                       {inv.is_active ? "Active" : "Revoked"} · {inv.uses}/{inv.max_uses} used
