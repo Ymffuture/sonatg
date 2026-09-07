@@ -52,7 +52,15 @@ function InvitePage() {
     setJoining(true);
     setError(null);
     try {
-      await joinChatByInvite(token);
+      const chatId = await joinChatByInvite(token);
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user) {
+        const { data: prof } = await supabase
+          .from("profiles").select("display_name").eq("id", auth.user.id).maybeSingle();
+        await postSystemMessage(chatId, `${prof?.display_name ?? "Someone"} joined the group`);
+      }
+      // Hand the chat id to the chat list so it opens straight into the group.
+      try { localStorage.setItem("sona:openChat", chatId); } catch { /* no-op */ }
       navigate({ to: "/" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't join this group.");
