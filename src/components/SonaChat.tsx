@@ -1535,6 +1535,8 @@ const handleMenuOpenChange = (open: boolean) => {
   const leaveGroup = async (chatId: string) => {
     if (!me) return;
     if (!(await confirm({ title: "Leave this group?", description: "You'll need to be re-added to rejoin.", confirmText: "Leave", danger: true }))) return;
+    // Post the notice while still a member — afterwards the write is blocked.
+    await postSystemMessage(chatId, `${me.display_name} left the group`);
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", me.id);
     if (error) { toast.error(explainSupabaseError(error).title); return; }
     toast.success("You left the group");
@@ -1546,6 +1548,7 @@ const handleMenuOpenChange = (open: boolean) => {
   const removeMember = async (chatId: string, member: Profile) => {
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", member.id);
     if (error) { toast.error(explainSupabaseError(error).title); return; }
+    await postSystemMessage(chatId, `${member.display_name} was removed from the group`);
     toast.success(`Removed ${member.display_name}`);
     loadChats();
   };
