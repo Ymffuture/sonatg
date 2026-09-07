@@ -2572,9 +2572,9 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] ":"bg-[#8B5CF6] text-[#FFFCF4]" } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] text-[#FFFCF4] ":"bg-[#8B5CF6] text-[#E8E8E8]" } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
-                      ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white opacity-60"
+                      ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-[#FFFCF4] opacity-60"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
                   }`}
                 >
@@ -2592,7 +2592,7 @@ useEffect(() => {
                     openRenameFolderModal(f.id, f.name);
                   }}
                   title="Tap to filter · double-tap or right-click to rename"
-                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] text-[#FFFCF4] ":"bg-[#8B5CF6] text-[#202124] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] text-[#FFFCF4] ":"bg-[#8B5CF6] text-[#E8E8E8] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.id
                       ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10  opacity-60"
                       : "bg-[#F5F0E8] dark:bg-[#2A2A2A] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
@@ -2627,29 +2627,62 @@ useEffect(() => {
             </div>
 
             {joinLinkOpen && (
-              <div className="flex items-center gap-2 px-3 pb-3">
-                <input
-                  autoFocus
-                  value={joinLink}
-                  onChange={(e) => setJoinLink(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") openInviteLink();
-                    if (e.key === "Escape") setJoinLinkOpen(false);
-                  }}
-                  placeholder="Paste an invite link"
-                  aria-label="Invite link"
-                  className="min-w-0 flex-1 rounded-full bg-[#F5F0E8] px-3 py-2 text-xs text-[#2D3436] outline-none placeholder:text-[#8C8C8C] dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
-                />
-                <button
-                  onClick={openInviteLink}
-                  disabled={!joinLink.trim()}
-                  className="shrink-0 rounded-full bg-[var(--sona-accent,#E07A5F)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  Open
-                </button>
-              </div>
-            )}
+  <div className="flex items-center gap-2.5 px-3 pb-3 pt-1">
+    {/* Premium Input Field */}
+    <div className="relative min-w-0 flex-1 group">
+      {/* Link Icon (Changes color on focus) */}
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8C8C8C] group-focus-within:text-[var(--sona-accent,#E07A5F)] transition-colors duration-200 pointer-events-none"
+      >
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
 
+      <input
+        autoFocus
+        value={joinLink}
+        onChange={(e) => setJoinLink(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") openInviteLink();
+          if (e.key === "Escape") setJoinLinkOpen(false);
+        }}
+        placeholder="Paste an invite link"
+        aria-label="Invite link"
+        className="w-full rounded-full bg-[#F5F0E8] border border-black/5 pl-10 pr-4 py-2.5 text-xs font-medium text-[#2D3436] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.04)] outline-none transition-all duration-200 placeholder:text-[#8C8C8C]/70 focus:bg-white focus:border-[var(--sona-accent,#E07A5F)]/30 focus:ring-4 focus:ring-[var(--sona-accent,#E07A5F)]/10 dark:bg-[#1A1A1A] dark:border-white/10 dark:text-[#E8E8E8] dark:shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.6)] dark:focus:bg-[#222] dark:focus:border-[var(--sona-accent,#E07A5F)]/40 dark:focus:ring-[var(--sona-accent,#E07A5F)]/20"
+      />
+    </div>
+
+    {/* Premium Action Button */}
+    <button
+      onClick={openInviteLink}
+      disabled={!joinLink.trim()}
+      className="shrink-0 flex items-center gap-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-[var(--sona-accent,#E07A5F)]/20 transition-all duration-200 hover:shadow-lg hover:shadow-[var(--sona-accent,#E07A5F)]/30 hover:brightness-110 active:scale-[0.97] active:shadow-sm disabled:opacity-40 disabled:shadow-none disabled:hover:brightness-100 disabled:active:scale-100 dark:shadow-black/40"
+    >
+      Open
+      {/* Arrow Icon */}
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2.5" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className="h-3 w-3"
+      >
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </button>
+  </div>
+)}
 
             {me && (
               <div data-tour="status-bar" className="px-3 pb-3">
