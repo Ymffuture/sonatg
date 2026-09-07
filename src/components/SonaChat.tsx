@@ -646,7 +646,9 @@ const handleMenuOpenChange = (open: boolean) => {
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
   const [recordingOthers, setRecordingOthers] = useState<string[]>([]);
   const [listActivity, setListActivity] = useState<Record<string, { typing: string[]; recording: string[] }>>({});
-  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
+
+  
   const [showSettings, setShowSettings] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [blockedByIds, setBlockedByIds] = useState<Set<string>>(new Set());
@@ -663,11 +665,6 @@ const handleMenuOpenChange = (open: boolean) => {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [openBubbleId, setOpenBubbleId] = useState<string | null>(null);
 
-  // Single source of truth for the message "More" / long-press context menu
-  // (Reply/Forward/Pin/Save/Delete/...). Keyed by message id and owned here
-  // rather than inside each Bubble instance, so opening one message's menu
-  // always implicitly closes any other — there is never more than one of
-  // these open at once, app-wide, by construction.
   const [openMessageMenu, setOpenMessageMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const closeMessageMenu = useCallback(() => setOpenMessageMenu(null), []);
   const openMessageMenuFor = useCallback((id: string, x: number, y: number) => {
@@ -678,10 +675,11 @@ const handleMenuOpenChange = (open: boolean) => {
     setOpenMessageMenu({ id, x, y });
   }, []);
 
-  // Message pinning (shared, lives on the messages row itself) and bookmarks
-  // ("Saved Messages" — private, lives in message_bookmarks). bookmarkedIds
-  // is scoped to the current chat's loaded messages; loadedBookmarks (below,
-  // near showSavedMessages) holds the full cross-chat list for that view.
+  const handleHeaderMenuOpenChange = (open: boolean) => {
+  setShowHeaderMenu(open);
+  if (!open) setHeaderMenuView("root"); // Reset to root when menu closes
+};
+
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [showSavedMessages, setShowSavedMessages] = useState(false);
   const [savedMessages, setSavedMessages] = useState<(MessageRow & { chat_id: string })[]>([]);
@@ -728,7 +726,8 @@ const handleMenuOpenChange = (open: boolean) => {
   const cameraRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
   const typingChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const headerMenuRef = useRef<HTMLDivElement>(null);
+  
+  
     
 
   // Bootstrap: current user + profile
@@ -770,9 +769,7 @@ const handleMenuOpenChange = (open: boolean) => {
     (profs ?? []).forEach((p) => { profMap[(p as Profile).id] = p as Profile; });
     setProfiles((prev) => ({ ...prev, ...profMap }));
 
-    // Drop anything at or before this user's own clear cutoff for that chat
-    // — otherwise a cleared chat's old messages resurface in the sidebar
-    // preview and in the priming cache the moment the list reloads.
+  
     const rows = ((latest ?? []) as MessageRow[]).filter((m) => {
       const cutoff = clearsMap[m.chat_id];
       return !cutoff || new Date(m.created_at).getTime() > new Date(cutoff).getTime();
@@ -2268,17 +2265,6 @@ const handleMenuOpenChange = (open: boolean) => {
     requestAnimationFrame(() => jumpToMessage(id));
   }, [messages, pendingJumpId]);
 
-  
-useEffect(() => {
-  if (!showHeaderMenu) return;
-  const onClick = (e: MouseEvent) => {
-    if (!headerMenuRef.current?.contains(e.target as Node)) {
-      setShowHeaderMenu(false);
-    }
-  };
-  document.addEventListener("click", onClick);
-  return () => document.removeEventListener("click", onClick);
-}, [showHeaderMenu]);
     
   /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
@@ -2372,7 +2358,7 @@ useEffect(() => {
   <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
 
   {/* More options dropdown */}
-{/* More options dropdown */}
+
 <DropdownMenu open={showHeaderMenu} onOpenChange={handleHeaderMenuOpenChange}>
   <DropdownMenuTrigger asChild>
     <button
