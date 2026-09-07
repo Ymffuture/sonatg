@@ -3623,14 +3623,44 @@ useEffect(() => {
                     </AnimatePresence>
 
                     {typingNames.length > 0 && (
-                      <div className="flex items-end gap-2 mt-3">
-                        <div className="rounded-2xl rounded-bl-md bg-white dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm px-3 py-2.5 flex items-center gap-1 border border-[var(--sona-accent,#E07A5F)]/10">
-                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] inline-block animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] inline-block animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] inline-block animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
-                      </div>
-                    )}
+  <>
+    {/* Inject smooth wave animation (avoids needing tailwind.config.js changes) */}
+    <style>{`
+      @keyframes typingWave {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+        30% { transform: translateY(-4px); opacity: 1; }
+      }
+    `}</style>
+
+    <div className="flex items-end gap-2 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="group relative flex items-center gap-2 rounded-2xl rounded-bl-sm bg-white/95 dark:bg-[#1A1A1A]/95 px-3.5 py-2.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.08),0_2px_6px_-2px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] border border-black/[0.04] dark:border-white/[0.06] backdrop-blur-md transition-all duration-300">
+        
+        {/* Optional: Elegant text label for context */}
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8C8C8C] dark:text-zinc-500 mr-1">
+          {typingNames.length === 1 
+            ? `${typingNames[0]} is typing` 
+            : `${typingNames.length} people are typing`}
+        </span>
+
+        {/* Smooth Wave Dots */}
+        <div className="flex items-center gap-1.5 pl-1 border-l border-black/5 dark:border-white/5">
+          <span 
+            className="h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] shadow-[0_0_6px_var(--sona-accent,#E07A5F)]"
+            style={{ animation: 'typingWave 1.4s ease-in-out infinite' }}
+          />
+          <span 
+            className="h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] shadow-[0_0_6px_var(--sona-accent,#E07A5F)]"
+            style={{ animation: 'typingWave 1.4s ease-in-out infinite 0.15s' }}
+          />
+          <span 
+            className="h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] shadow-[0_0_6px_var(--sona-accent,#E07A5F)]"
+            style={{ animation: 'typingWave 1.4s ease-in-out infinite 0.3s' }}
+          />
+        </div>
+      </div>
+    </div>
+  </>
+)}
                     {isAIChat(active) && sonaTyping && <SonaTypingIndicator />}
                   </div>
                 </div>
