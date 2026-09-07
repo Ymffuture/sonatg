@@ -31,6 +31,11 @@ function InvitePage() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  // Distinguishes "token really doesn't exist" from "the RPC call itself blew up"
+  // (permissions, missing migration, stale PostgREST schema cache, wrong project, etc).
+  // Previously any thrown error here was silently swallowed and every failure mode
+  // rendered as the same generic "Invite not found" message.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -41,7 +46,10 @@ function InvitePage() {
         const p = await previewChatInvite(token);
         if (alive) setPreview(p);
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : "This invite couldn't be loaded.");
+        console.error("preview_chat_invite failed:", e);
+        if (alive) {
+          setLoadError(e instanceof Error ? e.message : "This invite couldn't be loaded.");
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -89,8 +97,17 @@ function InvitePage() {
           </p>
         ) : !preview ? (
           <>
-            <h1 className="text-lg font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Invite not found</h1>
-            <p className="mt-2 text-sm text-[#8C8C8C]">This link is invalid or has been revoked.</p>
+            <h1 className="text-lg font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+              {loadError ? "Couldn't load this invite" : "Invite not found"}
+            </h1>
+            <p className="mt-2 text-sm text-[#8C8C8C]">
+              {loadError ?? "This link is invalid or has been revoked."}
+            </p>
+            {loadError && (
+              <p className="mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-[11px] text-red-500">
+                Technical detail: {loadError}
+              </p>
+            )}
           </>
         ) : (
           <>
