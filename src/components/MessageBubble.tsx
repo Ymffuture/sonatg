@@ -1358,7 +1358,7 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
         active:translate-y-0 active:shadow-md
         ${
           mine
-            ? "border-white/[0.08] bg-[#18181B] dark:bg-white/[0.08] shadow-sm shadow-black/40 hover:bg-[#1F1F23] dark:hover:bg-white/[0.12]"
+            ? "border-white/[0.08] bg-[#18181B] text-black dark:text-white dark:bg-white/[0.08] shadow-sm shadow-black/40 hover:bg-[#1F1F23] dark:hover:bg-white/[0.12]"
             : "border-black/[0.04] dark:border-white/[0.06] bg-white dark:bg-[#242424] shadow-sm shadow-black/[0.03] dark:shadow-black/40 hover:border-[var(--sona-accent,#E07A5F)]/20"
         }
       `}
