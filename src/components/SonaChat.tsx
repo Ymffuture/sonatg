@@ -15,7 +15,7 @@ import { CiTimer } from "react-icons/ci";
 import { fetchActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 import { notifyOfflineMessage } from "@/lib/notifications.functions";
 import { buildTranscript, exportChatAsJSON, exportChatAsPDF } from "@/lib/export-chat";
-import { Watermark, Modal, Input, message as antMessage, Tooltip } from "antd";
+import { Watermark, message as antMessage, Tooltip } from "antd";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -4004,16 +4004,24 @@ useEffect(() => {
         </div>
       )}
 
-      <Modal
-        open={!!folderModal}
-        title={folderModal?.mode === "create" ? "New folder" : "Rename folder"}
-        onCancel={() => setFolderModal(null)}
-        rootClassName="dark:[&_.ant-modal-content]:!bg-[#2A2A2A] dark:[&_.ant-modal-header]:!bg-[#2A2A2A] dark:[&_.ant-modal-title]:!text-[#E8E8E8]"
-        footer={[
-          ...(folderModal?.mode === "rename" && folderModal.id
-            ? [
+      {folderModal && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setFolderModal(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-[#FFFDF9] p-5 shadow-xl dark:bg-[#242424]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+              {folderModal.mode === "create" ? "New folder" : "Rename folder"}
+            </h3>
+            <input
+              autoFocus
+              maxLength={30}
+              placeholder="e.g. Work, Family, Close friends"
+              value={folderModal.value}
+              onChange={(e) => setFolderModal((s) => (s ? { ...s, value: e.target.value } : s))}
+              onKeyDown={(e) => e.key === "Enter" && submitFolderModal()}
+              className="mt-4 w-full rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm text-[#2D3436] outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+            />
+            <div className="mt-4 flex items-center gap-2">
+              {folderModal.mode === "rename" && folderModal.id && (
                 <button
-                  key="delete"
                   onClick={() => {
                     const folder = customFolders.find((cf) => cf.id === folderModal.id);
                     if (folder) deleteCustomFolder(folder.id, folder.name);
@@ -4021,26 +4029,18 @@ useEffect(() => {
                   className="mr-auto rounded-xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-500/20 transition"
                 >
                   Delete folder
-                </button>,
-              ]
-            : []),
-          <button key="cancel" onClick={() => setFolderModal(null)} className="rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
-            Cancel
-          </button>,
-          <button key="save" onClick={submitFolderModal} className="rounded-xl bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-sm font-semibold text-white">
-            {folderModal?.mode === "create" ? "Create" : "Save"}
-          </button>,
-        ]}
-      >
-        <Input
-          autoFocus
-          maxLength={30}
-          placeholder="e.g. Work, Family, Close friends"
-          value={folderModal?.value ?? ""}
-          onChange={(e) => setFolderModal((s) => (s ? { ...s, value: e.target.value } : s))}
-          onPressEnter={submitFolderModal}
-        />
-      </Modal>
+                </button>
+              )}
+              <button onClick={() => setFolderModal(null)} className="rounded-xl bg-[#F5F0E8] px-3 py-2 text-sm dark:bg-[#3A3A3A] dark:text-[#E8E8E8]">
+                Cancel
+              </button>
+              <button onClick={submitFolderModal} className="rounded-xl bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-sm font-semibold text-white">
+                {folderModal.mode === "create" ? "Create" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {reportTarget && me && (
         <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" onClick={() => setReportTarget(null)}>
