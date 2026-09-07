@@ -265,7 +265,7 @@ export function GroupSettingsModal({
       });
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
     } finally {
       setInviteBusy(false);
     }
@@ -285,7 +285,7 @@ export function GroupSettingsModal({
       notify.success({ message: "Invite revoked", description: "That link no longer works for anyone." });
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
     }
   };
 
@@ -312,7 +312,7 @@ export function GroupSettingsModal({
       });
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
     } finally {
       setClassroomBusy(false);
     }
@@ -326,7 +326,7 @@ export function GroupSettingsModal({
       notify.success({ message: "Class code created", description: created.join_code });
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
     } finally {
       setClassroomBusy(false);
     }
@@ -364,7 +364,7 @@ export function GroupSettingsModal({
       onClose();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
     } finally {
       setSaving(false);
     }
@@ -394,7 +394,7 @@ export function GroupSettingsModal({
       onUpdated();
     } catch (e) {
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
     } finally {
       setAddBusy(false);
     }
@@ -710,7 +710,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
     } catch (e) {
       console.error("startWith failed", e);
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
       setGroupError(explained);
     } finally { setBusyId(null); }
   };
@@ -745,7 +745,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
     } catch (e) {
       console.error("createGroup failed", e);
       const explained = explainSupabaseError(e);
-      notify.error({ message: explained.title, description: explained.explanation });
+      notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
       setGroupError(explained);
     } finally {
       setCreatingGroup(false);
