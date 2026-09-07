@@ -1566,6 +1566,19 @@ const tailClass = !grouped && mine
     );
   }
 
+  // Membership notices ("Alex joined the group") render as a centered pill,
+  // WhatsApp-style — no avatar, no actions, no sender side.
+  if (msg.kind === "system") {
+    return (
+      <div className="my-2 flex justify-center">
+        <div className="max-w-[85%] rounded-full border border-black/5 bg-white/60 px-3.5 py-1.5 text-center text-[11px] font-medium text-[#5C5C5C] backdrop-blur-md dark:border-white/10 dark:bg-white/10 dark:text-[#B8B8B8]">
+          {msg.body}
+          <span suppressHydrationWarning className="ml-1.5 opacity-60 select-none">· {fmtTime(msg.created_at)}</span>
+        </div>
+      </div>
+    );
+  }
+
   // Call-ended log entries render as a centered pill, WhatsApp-style,
   // instead of the normal left/right chat bubble.
   if (msg.kind === "call") {

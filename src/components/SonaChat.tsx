@@ -111,6 +111,7 @@ import { useMessageModeration, ModerationAlert, type ModerationResult } from "@/
 import { getOrgFileLimits } from "@/features/admin";
 import { PollComposerModal, canPostInChat } from "@/features/classroom";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
+import { postSystemMessage } from "@/lib/systemMessages";
 import { FaPoll } from "react-icons/fa";
 
 // Call-log messages store their metadata as JSON in the file_name column
@@ -866,6 +867,19 @@ const handleMenuOpenChange = (open: boolean) => {
 
   useEffect(() => { loadChats(); }, [loadChats]);
 
+  // A group joined from an invite link hands its id over here so the chat
+  // list opens straight into the new group once it has loaded.
+  useEffect(() => {
+    if (chats.length === 0) return;
+    let pending: string | null = null;
+    try { pending = localStorage.getItem("sona:openChat"); } catch { /* no-op */ }
+    if (!pending) return;
+    if (chats.some((c) => c.id === pending)) {
+      setActiveId(pending);
+      try { localStorage.removeItem("sona:openChat"); } catch { /* no-op */ }
+    }
+  }, [chats]);
+
   // Load my blocks (both directions) and my moderation state
   useEffect(() => {
     if (!me) return;
@@ -1522,6 +1536,8 @@ const handleMenuOpenChange = (open: boolean) => {
   const leaveGroup = async (chatId: string) => {
     if (!me) return;
     if (!(await confirm({ title: "Leave this group?", description: "You'll need to be re-added to rejoin.", confirmText: "Leave", danger: true }))) return;
+    // Post the notice while still a member — afterwards the write is blocked.
+    await postSystemMessage(chatId, `${me.display_name} left the group`);
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", me.id);
     if (error) { toast.error(explainSupabaseError(error).title); return; }
     toast.success("You left the group");
@@ -1533,6 +1549,7 @@ const handleMenuOpenChange = (open: boolean) => {
   const removeMember = async (chatId: string, member: Profile) => {
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", member.id);
     if (error) { toast.error(explainSupabaseError(error).title); return; }
+    await postSystemMessage(chatId, `${member.display_name} was removed from the group`);
     toast.success(`Removed ${member.display_name}`);
     loadChats();
   };
