@@ -646,9 +646,13 @@ const handleMenuOpenChange = (open: boolean) => {
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
   const [recordingOthers, setRecordingOthers] = useState<string[]>([]);
   const [listActivity, setListActivity] = useState<Record<string, { typing: string[]; recording: string[] }>>({});
-  const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
-
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   
+const handleHeaderMenuOpenChange = (open: boolean) => {
+  setShowHeaderMenu(open);
+  if (!open) setHeaderMenuView("root"); // Reset to root when menu closes
+};
   const [showSettings, setShowSettings] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [blockedByIds, setBlockedByIds] = useState<Set<string>>(new Set());
