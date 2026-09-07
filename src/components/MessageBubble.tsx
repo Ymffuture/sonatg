@@ -1530,7 +1530,7 @@ export function Bubble({
 
   // Premium Bubble Styling
   const bubbleBase = mine 
-    ? "bg-[var(--sona-bubble-mine,#6B352A)] dark:bg-[#1A1A1A] text-[#8c8c8c] dark:text-[#FFFCF4] shadow-md shadow-black/10 dark:shadow-black/30" 
+    ? "bg-[var(--sona-bubble-mine,#6B352A)] dark:bg-[#1A1A1A] text-[#8C8C8C] dark:text-[#FFFCF4] shadow-md shadow-black/10 dark:shadow-black/30" 
     : "bg-[#FFFCF4] dark:bg-[#1E1E1E] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm shadow-black/[0.02] dark:shadow-black/20 border border-black/[0.04] dark:border-white/[0.06]";
 
   const bubbleRadius = mine
@@ -1638,6 +1638,28 @@ export function Bubble({
     );
   }
 
+  const NAME_COLORS = [
+  "text-rose-500 dark:text-rose-400",
+  "text-orange-500 dark:text-orange-400",
+  "text-amber-500 dark:text-amber-400",
+  "text-emerald-500 dark:text-emerald-400",
+  "text-teal-500 dark:text-teal-400",
+  "text-cyan-500 dark:text-cyan-400",
+  "text-blue-500 dark:text-blue-400",
+  "text-indigo-500 dark:text-indigo-400",
+  "text-violet-500 dark:text-violet-400",
+  "text-fuchsia-500 dark:text-fuchsia-400",
+  "text-pink-500 dark:text-pink-400",
+];
+
+function getNameColor(identifier: string) {
+  let hash = 0;
+  for (let i = 0; i < identifier.length; i++) {
+    hash = identifier.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return NAME_COLORS[Math.abs(hash) % NAME_COLORS.length];
+}
+
   return (
     <>
       <motion.div
@@ -1716,22 +1738,22 @@ export function Bubble({
                 : ""
             }`}
           >
-            {!mine && !grouped && (isAI || isGroup) && (
-              <div className="mb-1 flex items-center gap-1.5">
-                {isAI ? (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500 dark:text-emerald-400">
-                    Sona <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-medium italic text-[#8C8C8C]">
-                    ~ {sender?.display_name ?? "Unknown"}
-                  </span>
-                )}
-              </div>
-            )}
+         {!mine && !grouped && (isAI || isGroup) && (
+  <div className="mb-1 flex items-center gap-1.5">
+    {isAI ? (
+      <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500 dark:text-emerald-400">
+        Sona <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
+      </span>
+    ) : (
+      <span className={`text-[11px] font-semibold tracking-wide ${getNameColor(sender?.id ?? sender?.display_name ?? "Unknown")}`}>
+        {sender?.display_name ?? "Unknown"}
+      </span>
+    )}
+  </div>
+)}
 
             {msg.is_forwarded && (
-              <div className={`mb-1.5 flex items-center gap-1 text-[11px] italic ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
+              <div className={`mb-1.5 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600" : "text-[#8C8C8C]"}`}>
                 <Forward className="h-3 w-3" /> Forwarded
               </div>
             )}
