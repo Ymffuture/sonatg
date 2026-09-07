@@ -720,17 +720,9 @@ const handleMenuOpenChange = (open: boolean) => {
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  // In-memory cache of {messages, reactions, reads} per chat. Switching to
-  // a chat already loaded this session renders synchronously from here —
-  // zero network wait — while a background fetch quietly reconciles with
-  // anything new. Cleared naturally on full page reload; doesn't need
-  // eviction logic since it's just references to already-fetched rows.
+  
   const chatCacheRef = useRef<Record<string, { messages: MessageRow[]; reactions: ReactionRow[]; reads: MessageReadRow[] }>>({});
-  // chat_id -> cleared_before ISO timestamp for the current user. Clearing a
-  // chat only writes a cutoff row (see clearChat()) rather than deleting
-  // anything server-side — every place that loads messages needs to respect
-  // this cutoff, or a cleared chat "un-clears" itself the moment it's
-  // reloaded (switching away and back, a page refresh, a realtime refetch).
+  
   const chatClearsRef = useRef<Record<string, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -758,9 +750,6 @@ const handleMenuOpenChange = (open: boolean) => {
     const chatIds = (memberships ?? []).map((m: { chat_id: string }) => m.chat_id);
     if (chatIds.length === 0) { setChats([]); setLoadingChats(false); return; }
 
-    // These two only depend on chatIds (not on each other) — firing them
-    // together instead of one-after-another cuts a full round trip off
-    // every chat-list load. Same for the pair below.
     const [{ data: chatRows }, { data: allMembers }] = await Promise.all([
       supabase.from("chats").select("*").in("id", chatIds).order("last_message_at", { ascending: false }),
       supabase.from("chat_members").select("chat_id, user_id, role, is_pinned, pinned_at").in("chat_id", chatIds),
@@ -818,9 +807,7 @@ const handleMenuOpenChange = (open: boolean) => {
       }
     });
 
-    // One small batched query so every chat's row can show a reaction
-    // badge on its last message, not just whichever chat happens to be
-    // open (the `reactions` state is scoped to the active chat only).
+    
     const lastMsgIds = Object.values(lastByChat).map((m) => m.id);
     const lastReactionByChat: Record<string, string> = {};
     if (lastMsgIds.length) {
@@ -897,10 +884,6 @@ const handleMenuOpenChange = (open: boolean) => {
     })();
   }, [me]);
 
-
-  // When opening someone else's profile, look up their ban/suspension status
-  // (separately from myModeration, which only ever covers the signed-in user)
-  // so the profile modal can show the exact reason and disable messaging.
   useEffect(() => {
     if (!viewingProfile || !me || viewingProfile.id === me.id) { setOtherModeration(null); return; }
     let cancelled = false;
@@ -938,11 +921,6 @@ const handleMenuOpenChange = (open: boolean) => {
     })();
   }, [activeId, messages, decrypted, needsUnlock]);
 
-  // Belt-and-suspenders: hide a message from the currently-open chat the
-  // instant its own expires_at passes, rather than waiting on the next
-  // pg_cron cleanup tick + realtime DELETE round trip. Purely cosmetic —
-  // cleanup_expired_messages() (scheduled every minute) still does the
-  // real deletion so it disappears for the other side too.
   useEffect(() => {
     if (!messages.some((m) => m.expires_at)) return;
     const id = setInterval(() => {
@@ -976,10 +954,7 @@ const handleMenuOpenChange = (open: boolean) => {
         .from("visible_messages")
         .select("*")
         .eq("chat_id", activeId);
-      // Respect this user's own "clear chat" cutoff — without this, every
-      // reload/reopen of the chat re-fetches full history and undoes the
-      // clear (chat_clears never deletes rows server-side, it's a
-      // per-user cutoff that every read path has to honor).
+      
       if (clearedBefore) query = query.gt("created_at", clearedBefore);
       const { data: msgs } = await query
         .order("created_at", { ascending: false })
@@ -1009,10 +984,6 @@ const handleMenuOpenChange = (open: boolean) => {
     })();
   }, [activeId]);
 
-  // Keep the cache in sync as messages/reactions/reads change for the
-  // currently-open chat (new sends, edits, realtime updates, etc.), so
-  // switching away and back still shows the latest state instantly
-  // rather than a stale snapshot from when you first opened it.
   useEffect(() => {
     if (!activeId) return;
     chatCacheRef.current[activeId] = { messages, reactions, reads };
@@ -2401,10 +2372,12 @@ useEffect(() => {
   <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
 
   {/* More options dropdown */}
-<div className="relative" ref={headerMenuRef}>
+{/* More options dropdown */}
+<DropdownMenu open={showHeaderMenu} onOpenChange={handleHeaderMenuOpenChange}>
+  <DropdownMenuTrigger asChild>
     <button
       data-tour="settings-btn"
-      onClick={() => setShowHeaderMenu((v) => { const next = !v; if (next) closeMessageMenu(); return next; })}
+      onClick={() => { if (!showHeaderMenu) closeMessageMenu(); }}
       className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${
         showHeaderMenu ? "bg-white/20" : "hover:bg-white/20"
       } text-gray-600 dark:text-white`}
@@ -2413,84 +2386,82 @@ useEffect(() => {
     >
       <MoreVertical className="h-5 w-5" />
     </button>
+  </DropdownMenuTrigger>
+  
+  <DropdownMenuContent align="end" className="w-56">
+    {/* ── Root View ── */}
+    {headerMenuView === "root" && (
+      <>
+        <DropdownMenuItem onClick={() => { setShowSavedMessages(true); setShowHeaderMenu(false); loadSavedMessages(); }}>
+          Saved Messages
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => { setShowSettings(true); setShowHeaderMenu(false); }}>
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault(); // Keeps menu open while drilling in
+            setHeaderMenuView("more");
+          }}
+          className="flex items-center justify-between"
+        >
+          More
+          <IoMdArrowDropright />
+        </DropdownMenuItem>
+      </>
+    )}
 
-    <AnimatePresence>
-    {showHeaderMenu && (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: -6 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: -6 }}
-        transition={{ duration: 0.14, ease: "easeOut" }}
-        className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[var(--sona-accent,#E07A5F)]/10 bg-white !dark:text-[#fff] dark:bg-[#242424] shadow-xl z-50 overflow-hidden origin-top-right"
-      >
-        <div className="py-1">
-          {canInstall && (
-            <button
-              onClick={() => { promptInstall(); setShowHeaderMenu(false); }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
-            >
-              Install app
-            </button>
-          )}
-
-          <button
-            onClick={() => { toggle(); setShowHeaderMenu(false); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
-          >
-            {theme === "dark" ? "Light mode" : "Dark mode"}
-          </button>
-
-          <button
-            onClick={() => { setShowSavedMessages(true); setShowHeaderMenu(false); loadSavedMessages(); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
-          >
-            Saved Messages
-          </button>
-
-          <Link
-            to="/learn"
-            onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
-          >
+    {/* ── More View ── */}
+    {headerMenuView === "more" && (
+      <>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setHeaderMenuView("root");
+          }}
+          className="flex items-center gap-2 text-[#8C8C8C]"
+        >
+          <IoMdArrowDropleft />
+          Back
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        
+        {canInstall && (
+          <DropdownMenuItem onClick={() => { promptInstall(); setShowHeaderMenu(false); }}>
+            Install app
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => { toggle(); setShowHeaderMenu(false); }}>
+          {theme === "dark" ? "Light mode" : "Dark mode"}
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem asChild>
+          <Link to="/learn" onClick={() => setShowHeaderMenu(false)}>
             Manual for Sona
           </Link>
-
-          <Link
-            to="/blog"
-            onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
-          >
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/blog" onClick={() => setShowHeaderMenu(false)}>
             Blog
           </Link>
-
-          <Link
-            to="/help"
-            onClick={() => setShowHeaderMenu(false)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#fff] hover:bg-[#F4A261]/10 transition-colors"
-          >
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/help" onClick={() => setShowHeaderMenu(false)}>
             Help Center
           </Link>
-
-          <AdminLink onNavigate={() => setShowHeaderMenu(false)} />
-
-          <button
-            onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
-          >
-            Replay tour
-          </button>
-
-          <button
-            onClick={() => { setShowSettings(true); setShowHeaderMenu(false); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#2D3436] dark:text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
-          >
-            Settings
-          </button>
-        </div>
-      </motion.div>
+        </DropdownMenuItem>
+        
+        {/* AdminLink renders its own <Link> with admin-check logic, so we render it directly */}
+        <AdminLink onNavigate={() => setShowHeaderMenu(false)} />
+        
+        <DropdownMenuItem onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}>
+          Replay tour
+        </DropdownMenuItem>
+      </>
     )}
-    </AnimatePresence>
-  </div>
+  </DropdownMenuContent>
+</DropdownMenu>
 </div>
             </div>
 
