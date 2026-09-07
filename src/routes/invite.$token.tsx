@@ -5,6 +5,7 @@ import { Loader2, Link2, ShieldAlert, Users, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { previewChatInvite, joinChatByInvite, type InvitePreview } from "@/features/invites";
 import { Avatar } from "@/components/Avatar";
+import { postSystemMessage } from "@/lib/systemMessages";
 
 export const Route = createFileRoute("/invite/$token")({
   ssr: false,
