@@ -2228,10 +2228,7 @@ const handleMenuOpenChange = (open: boolean) => {
   useEffect(() => { setMsgSearchIndex(0); }, [msgSearchQuery]);
   useEffect(() => { setShowMsgSearch(false); setMsgSearchQuery(""); setShowDisappearingMenu(false); setDescOpen(false); setPinnedBannerIndex(0); setMsgSelectMode(false); setSelectedMsgIds(new Set()); closeMessageMenu(); setShowHeaderMenu(false); setChatLongPressMenu(null); setReactingOn(null); setSonaTyping(false); }, [activeId]);
 
-  // Single Escape-key handler for every menu/popover in the app (message
-  // context menu, header dropdown, chat long-press menu, reaction picker).
-  // Centralized here rather than duplicated inside each menu component, so
-  // there's exactly one place that defines "Escape closes the active menu".
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -2245,18 +2242,7 @@ const handleMenuOpenChange = (open: boolean) => {
     return () => document.removeEventListener("keydown", handleKey);
   }, [closeMessageMenu]);
 
-  // "/" from anywhere on the page jumps into the composer with "/" already
-  // typed, which opens the slash-command menu inside Composer (see
-  // MessageBubble.tsx) — same idea as Claude.ai's own composer. Previously
-  // this only called .focus() with no visible feedback, which is why it
-  // looked like "nothing happens"; now it actually seeds the character via
-  // setDraft (not by relying on the browser's default keydown behavior
-  // after a focus change mid-event, which is unreliable across browsers),
-  // so the menu shows up immediately.
-  //
-  // If you're already typing somewhere (including the composer itself),
-  // this does nothing and lets the "/" type normally — the menu-open logic
-  // then lives entirely in Composer's own draft-watching effect.
+  
   useEffect(() => {
     const handleSlash = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -2295,10 +2281,7 @@ const handleMenuOpenChange = (open: boolean) => {
   };
   useEffect(() => () => { if (jumpTimeoutRef.current) clearTimeout(jumpTimeoutRef.current); }, []);
 
-  // Opening a message from Saved Messages (or any other cross-chat entry
-  // point) switches the active chat first, then waits for that chat's
-  // messages to actually be loaded before scrolling to it — jumpToMessage
-  // itself only works once the target row exists in the DOM.
+  
   const openMessageInChat = (chatId: string, messageId: string) => {
     setActiveId(chatId);
     setPendingJumpId(messageId);
