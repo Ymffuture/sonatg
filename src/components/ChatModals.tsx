@@ -376,6 +376,17 @@ export function GroupSettingsModal({
       const rows = Array.from(addSelected).map((user_id) => ({ chat_id: chat.id, user_id }));
       const { error } = await supabase.from("chat_members").insert(rows);
       if (error) throw error;
+      const names = Array.from(addSelected)
+        .map((id) => candidates.find((c) => c.id === id)?.display_name)
+        .filter((n): n is string => !!n);
+      if (names.length) {
+        await postSystemMessage(
+          chat.id,
+          names.length === 1
+            ? `${names[0]} joined the group`
+            : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} joined the group`,
+        );
+      }
       notify.success({ message: `Added ${addSelected.size} member(s)`, description: "They can now see the group and its message history." });
       setAddOpen(false);
       setAddSelected(new Set());
