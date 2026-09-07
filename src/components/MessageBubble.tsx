@@ -1831,24 +1831,24 @@ function getNameColor(identifier: string) {
                 }}
                 className={`group/file mb-2 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.98] ${
                   mine
-                    ? "border-white/10 bg-white/10 text-white hover:bg-white/15"
+                    ? "border-white/10 bg-white/10 text-[#8C8C8C] hover:bg-white/15"
                     : "border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]"
                 }`}
               >
                 <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-colors ${
-                  mine ? "bg-white/10 text-white" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)] group-hover/file:bg-[var(--sona-accent,#E07A5F)]/15"
+                  mine ? "bg-white/10 text-[#8C8C8C]" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)] group-hover/file:bg-[var(--sona-accent,#E07A5F)]/15"
                 }`}>
                   <FileIcon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-sm font-medium ${mine ? "text-white" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+                  <span className={`block truncate text-sm font-medium ${mine ? "text-[#8C8C8C]/5" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
                     {msg.file_name || "File"}
                   </span>
                   <span className={`block text-xs ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
                     {msg.file_size ? formatBytes(msg.file_size) : "Unknown size"}
                   </span>
                 </span>
-                <Download className={`h-4 w-4 shrink-0 transition-transform group-hover/file:-translate-y-0.5 group-hover/file:translate-x-0.5 ${mine ? "text-white/60" : "text-[#8C8C8C]"}`} />
+                <Download className={`h-4 w-4 shrink-0 transition-transform group-hover/file:-translate-y-0.5 group-hover/file:translate-x-0.5 ${mine ? "text-[#5BC0BE]/5" : "text-[#8C8C8C]"}`} />
               </button>
             )}
 
@@ -1928,7 +1928,7 @@ function getNameColor(identifier: string) {
               </motion.div>
             )}
 
-            <div className={`mt-1.5 flex items-center justify-end gap-1.5 select-none ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+            <div className={`mt-1.5 flex items-center justify-end gap-1.5 select-none ${mine ? "text-[#8C8C8C]" : "text-[#8C8C8C]"}`}>
               <AnimatePresence>
                 {justCopied && (
                   <motion.span
@@ -1936,7 +1936,7 @@ function getNameColor(identifier: string) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 4 }}
                     transition={{ duration: 0.15 }}
-                    className={`text-[10px] font-medium ${mine ? "text-white/80" : "text-[#8C8C8C]"}`}
+                    className={`text-[10px] font-medium ${mine ? "text-[#5BC0BE] " : "text-[#8C8C8C]"}`}
                   >
                     Copied
                   </motion.span>
