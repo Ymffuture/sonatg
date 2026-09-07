@@ -1440,10 +1440,12 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   );
                 }
 
+
+
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
-  replyCount, onOpenThread,allImages, onForward, isHighlighted,
+  replyCount, onOpenThread, allImages, onForward, isHighlighted,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
   menuOpen, menuPos, onOpenMenu, onCloseMenu,
 }: {
@@ -1451,13 +1453,10 @@ export function Bubble({
   reads: MessageReadRow[]; otherMemberIds: string[];
   onReact: (emoji: string) => void; opening: boolean; onOpenPicker: () => void; grouped: boolean; isGroup: boolean;
   overrideBody?: string; onDelete: () => void;
-  /** Permanently removes an already-deleted message's row (no more placeholder). */
   onRemove?: () => void;
   onReply: () => void; onEdit: () => void;
   parentName?: string; parentBody?: React.ReactNode;
-  /** Called when the user taps the quoted reply preview — scrolls to and highlights the original message. */
   onJumpToParent?: () => void;
-  /** True briefly after this message is jumped to (via reply-tap or search), to flash its border. */
   isHighlighted?: boolean;
   actionsOpen: boolean; onToggleActions: () => void;
   onTranscribed?: (messageId: string, transcript: string) => void;
@@ -1465,17 +1464,13 @@ export function Bubble({
   onOpenThread?: () => void;
   allImages?: MediaItem[];
   onForward?: () => void;
-  /** Pinned = shared across the whole chat; shows a small badge and feeds the pinned-messages banner. */
   isPinned?: boolean;
   onTogglePin?: () => void;
-  /** Bookmarked = private to me, feeds the "Saved Messages" list. */
   isBookmarked?: boolean;
   onToggleBookmark?: () => void;
-  /** Bulk-select mode: renders a checkbox and taps toggle selection instead of opening the message. */
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
-  /** Controlled context menu (only one message menu open at a time, owned by SonaChat). */
   menuOpen?: boolean;
   menuPos?: { x: number; y: number } | null;
   onOpenMenu?: (x: number, y: number) => void;
@@ -1533,39 +1528,33 @@ export function Bubble({
       });
   };
 
-  // Tailwind classes for the bubble wrapper
-const bubbleBase = mine ? "bg-[var(--sona-bubble-mine,#6B352A)] text-[#202124] dark:text-[#FFFCF4] " : "bg-[#FFFCF4] ";
+  // Premium Bubble Styling
+  const bubbleBase = mine 
+    ? "bg-[var(--sona-bubble-mine,#6B352A)] dark:bg-[#1A1A1A] text-[#FFFCF4] shadow-md shadow-black/10 dark:shadow-black/30" 
+    : "bg-[#FFFCF4] dark:bg-[#1E1E1E] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm shadow-black/[0.02] dark:shadow-black/20 border border-black/[0.04] dark:border-white/[0.06]";
 
-const bubbleRadius = mine
-  ? grouped
-    ? "rounded-[16px] rounded-tr-[2px] rounded-br-[2px]"
-    : "rounded-[16px] rounded-tr-[2px]"
-  : grouped
-    ? "rounded-[16px] rounded-tl-[2px] rounded-bl-[2px]"
-    : "rounded-[16px] rounded-tl-[2px]";
+  const bubbleRadius = mine
+    ? grouped ? "rounded-[18px] rounded-tr-[4px]" : "rounded-[18px] rounded-tr-[4px]"
+    : grouped ? "rounded-[18px] rounded-tl-[4px]" : "rounded-[18px] rounded-tl-[4px]";
 
-// Only show tail on non-grouped bubbles
-const tailClass = !grouped && mine
-  ? `after:content-[''] after:absolute after:top-0 after:-right-[8px] 
-     after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-bl-full`
-  : !grouped && !mine
-  ? `after:content-[''] after:absolute after:top-0 after:-left-[8px] 
-     after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-br-full`
-  : "";
+  const tailClass = !grouped
+    ? mine
+      ? "after:content-[''] after:absolute after:top-0 after:-right-[8px] after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-bl-[16px]"
+      : "after:content-[''] after:absolute after:top-0 after:-left-[8px] after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-br-[16px]"
+    : "";
 
-  
-  // Deleted messages render as a muted placeholder — content is already
-  // cleared server-side (soft delete). Sender can still long-press to
-  // permanently remove the row (hard delete), since there's no content
-  // left to edit, copy, or react to.
   if (msg.deleted_at) {
     return (
-      <div className={`flex ${mine ? "justify-end" : "justify-start"} mb-1`}>
+      <motion.div 
+        initial={{ opacity: 0, y: 8 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className={`flex ${mine ? "justify-end" : "justify-start"} mb-1`}
+      >
         <div
           ref={bubbleRef}
           {...(mine ? longPress : {})}
-          className={`relative flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] select-none ${
-            mine ? "bg-[#eeffde]/50 dark:bg-white/5 cursor-pointer" : "bg-white/60 dark:bg-white/5"
+          className={`relative flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] select-none transition-colors ${
+            mine ? "bg-[#eeffde]/50 dark:bg-white/5 cursor-pointer hover:bg-[#eeffde]/70 dark:hover:bg-white/10" : "bg-white/60 dark:bg-white/5"
           }`}
         >
           <CircleAlert className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -1587,25 +1576,25 @@ const tailClass = !grouped && mine
             </div>
           </>
         )}
-      </div>
+      </motion.div>
     );
   }
 
-  // Membership notices ("Alex joined the group") render as a centered pill,
-  // WhatsApp-style — no avatar, no actions, no sender side.
   if (msg.kind === "system") {
     return (
-      <div className="my-2 flex justify-center">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        className="my-2 flex justify-center"
+      >
         <div className="max-w-[85%] rounded-full border border-black/5 bg-white/60 px-3.5 py-1.5 text-center text-[11px] font-medium text-[#5C5C5C] backdrop-blur-md dark:border-white/10 dark:bg-white/10 dark:text-[#B8B8B8]">
           {msg.body}
           <span suppressHydrationWarning className="ml-1.5 opacity-60 select-none">· {fmtTime(msg.created_at)}</span>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
-  // Call-ended log entries render as a centered pill, WhatsApp-style,
-  // instead of the normal left/right chat bubble.
   if (msg.kind === "call") {
     const call = parseCallLogMeta(msg.file_name ?? null);
     const missed = call.outcome === "missed" || call.outcome === "declined";
@@ -1614,11 +1603,15 @@ const tailClass = !grouped && mine
       ? `${call.outcome === "missed" ? "Missed" : "Declined"} ${call.kind === "video" ? "video call" : "voice call"}`
       : `${call.kind === "video" ? "Video call" : "Voice call"} · ${fmtCallDuration(call.durationMs)}`;
     return (
-      <div className="my-2 flex justify-center">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        className="my-2 flex justify-center"
+      >
         <div
-          className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium ${
+          className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium shadow-sm ${
             missed
-              ? "border-red-500/25 bg-red-500/10 text-red-500"
+              ? "border-red-500/25 bg-red-500/10 text-red-500 dark:bg-red-500/5"
               : "border-[var(--sona-accent,#E07A5F)]/20 bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#2D3436] dark:text-[#E8E8E8]"
           }`}
         >
@@ -1626,34 +1619,39 @@ const tailClass = !grouped && mine
           <span>{label}</span>
           <span suppressHydrationWarning className="opacity-60 select-none">· {fmtTime(msg.created_at)}</span>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
-  // Poll/quiz messages render as a self-contained PollCard instead of the
-  // normal text/media bubble. body stores JSON: {"pollId": "..."}.
   if (msg.kind === "poll") {
     let pollId: string | null = null;
     try { pollId = (JSON.parse(msg.body ?? "{}") as { pollId?: string }).pollId ?? null; } catch { /* ignore malformed body */ }
     if (!pollId) return null;
     return (
-      <div className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}>
+      <motion.div 
+        initial={{ opacity: 0, y: 8 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}
+      >
         <PollCard pollId={pollId} meId={me.id} />
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <>
-      <div
-        className={`group select-none flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-1.5"}`}
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
+        className={`group select-none flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}
         onClick={selectMode ? () => onToggleSelect?.() : undefined}
       >
         {selectMode && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
             aria-label={selected ? "Deselect message" : "Select message"}
-            className="mb-1 grid h-6 w-6 shrink-0 place-items-center self-center"
+            className="mb-1 grid h-6 w-6 shrink-0 place-items-center self-center transition-transform active:scale-90"
           >
             {selected ? (
               <CheckCircle2 className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
@@ -1669,20 +1667,15 @@ const tailClass = !grouped && mine
         )}
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
-        {/* Bubble width cap — was `max-w-[100%] sm:max-w-[100%]`, a no-op
-            that let bubbles stretch to the full row width on every screen
-            size. Image/video ratio handling (aspect-square / 16:9 with
-            their own 320px caps) is untouched — this only affects text
-            bubbles and the outer shell around media. */}
-        <div className={`relative max-w-[80%] sm:max-w-[65%] md:max-w-[55%] lg:max-w-[420px] ${selectMode ? "pointer-events-none" : ""}`}>
+        <div className={`relative max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[480px] ${selectMode ? "pointer-events-none" : ""}`}>
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
-              mine ? "-left-7" : "-right-7"
+              mine ? "-left-8" : "-right-8"
             } opacity-0 group-hover:opacity-100 ${actionsOpen ? "opacity-100" : ""}`}
           >
             <button
               onClick={(e) => { e.stopPropagation(); onReply(); }}
-              className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
               aria-label="Reply"
             >
               <Reply className="h-3.5 w-3.5" />
@@ -1690,7 +1683,7 @@ const tailClass = !grouped && mine
             {!mine && (
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenPicker(); }}
-                className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
                 aria-label="React"
               >
                 <SmilePlus className="h-3.5 w-3.5" />
@@ -1704,7 +1697,7 @@ const tailClass = !grouped && mine
                   setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
                 }
               }}
-              className="grid h-7 w-7 place-items-center rounded-full text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10 transition"
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
               aria-label="More"
             >
               <MoreVertical className="h-3.5 w-3.5" />
@@ -1715,30 +1708,22 @@ const tailClass = !grouped && mine
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-none px-3 py-1.5 mb-3 shadow-xl transition-[opacity,box-shadow,border-color] duration-300 ${bubbleBase} ${bubbleRadius} ${tailClass} ${
-              msg._pending ? "opacity-60" : "opacity-100"
-            } ${
-              mine
-                ? "dark:bg-[#0B1215] dark:text-[#FFFCF4]"
-                : "dark:bg-[#0D1717] text-[#151c1c] dark:text-[#FFFCF4] "
+            className={`relative cursor-pointer select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${bubbleRadius} ${tailClass} ${
+              msg._pending ? "opacity-70" : "opacity-100"
             } ${
               isHighlighted
-                ? "!border-2 !border-[#E8E8E8] animate-pulse ring-2 ring-[#1E1E1E]"
+                ? "!border-2 !border-[var(--sona-accent,#E07A5F)]/50 animate-pulse ring-4 ring-[var(--sona-accent,#E07A5F)]/10"
                 : ""
             }`}
           >
             {!mine && !grouped && (isAI || isGroup) && (
-              <div className="mb-0.5 text-[11px] flex items-center gap-1">
+              <div className="mb-1 flex items-center gap-1.5">
                 {isAI ? (
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 font-semibold text-emerald-400 text-xs">
-                      Sona
-                      <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
-                    </span>
-                    
-                  </div>
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500 dark:text-emerald-400">
+                    Sona <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
+                  </span>
                 ) : (
-                  <span className="text-xs font-medium italic mb-2 text-[#8c8c8c]">
+                  <span className="text-[11px] font-medium italic text-[#8C8C8C]">
                     ~ {sender?.display_name ?? "Unknown"}
                   </span>
                 )}
@@ -1746,7 +1731,7 @@ const tailClass = !grouped && mine
             )}
 
             {msg.is_forwarded && (
-              <div className={`mb-1 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600 dark:text-white" : "text-[#8C8C8C]"}`}>
+              <div className={`mb-1.5 flex items-center gap-1 text-[11px] italic ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
                 <Forward className="h-3 w-3" /> Forwarded
               </div>
             )}
@@ -1757,36 +1742,26 @@ const tailClass = !grouped && mine
                 tabIndex={onJumpToParent ? 0 : undefined}
                 onClick={(e) => { if (onJumpToParent) { e.stopPropagation(); onJumpToParent(); } }}
                 onKeyDown={(e) => { if (onJumpToParent && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onJumpToParent(); } }}
-                title={onJumpToParent ? "Jump to original message" : undefined}
-                className={`mb-1.5 rounded-lg border-l-[1px] border-[var(--sona-accent,#E07A5F)] px-2 py-1.5 text-[11px] ${
-                  mine ? "bg-black/10" : "bg-[#2D3436]/10 dark:bg-white/5"
-                } ${onJumpToParent ? "cursor-pointer hover:brightness-95 active:brightness-90 transition" : ""}`}
+                className={`group/reply relative mb-2 overflow-hidden rounded-xl border-l-[3px] border-[var(--sona-accent,#E07A5F)] px-3 py-2 text-[12px] transition-all duration-200 ${
+                  mine ? "bg-black/10 hover:bg-black/15" : "bg-black/[0.03] dark:bg-white/5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                } ${onJumpToParent ? "cursor-pointer active:scale-[0.98]" : ""}`}
               >
-                <div className="font-semibold italic text-[var(--sona-accent,#E07A5F)] text-[11px]">{parentName}</div>
-                {/* Fade-out on the right edge instead of a hard "…" cutoff —
-                    reads more naturally for a preview snippet, and doesn't
-                    clip a clickable link mid-URL. */}
-                <div
-                  className="overflow-hidden whitespace-nowrap max-w-[240px] leading-tight opacity-80 [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)]"
-                >
+                <div className="mb-0.5 flex items-center gap-1.5">
+                  <CornerUpLeft className="h-3 w-3 text-[var(--sona-accent,#E07A5F)]" />
+                  <span className="font-semibold text-[var(--sona-accent,#E07A5F)]">{parentName}</span>
+                </div>
+                <div className="overflow-hidden whitespace-nowrap leading-snug opacity-70 [mask-image:linear-gradient(to_right,black_80%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_80%,transparent_100%)]">
                   {parentBody}
                 </div>
               </div>
             )}
 
             {msg.kind === "image" && msg.media_url && (
-              // 1:1 crop in the bubble (Instagram/WhatsApp-grid style) so mixed
-              // portrait/landscape photos still line up into a tidy chat column.
-              // The original, uncropped ratio is restored in the full viewer below
-              // (MediaViewer renders with object-contain), so nothing is lost —
-              // just previewed differently.
-              <div
-                className="relative mb-1 group/image -mx-1 -mt-1 aspect-square w-full max-w-[320px] overflow-hidden rounded-lg bg-[#F5F0E8] dark:bg-[#2A2A2A]"
-              >
+              <div className="relative mb-2 group/image -mx-1 -mt-1 aspect-square w-full max-w-[320px] overflow-hidden rounded-xl bg-black/5 dark:bg-white/5 ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
                 {!imgLoaded && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center">
-                    <Skeleton.Node active className="!w-full !h-full !rounded-lg">
-                      <ImageIcon className="h-16 w-16 text-[#8C8C8C]" />
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/[0.02] dark:bg-white/[0.02]">
+                    <Skeleton.Node active className="!w-full !h-full !rounded-xl">
+                      <ImageIcon className="h-12 w-12 text-[#8C8C8C]/50" />
                     </Skeleton.Node>
                   </div>
                 )}
@@ -1796,9 +1771,7 @@ const tailClass = !grouped && mine
                   loading="lazy"
                   onLoad={() => setImgLoaded(true)}
                   onClick={(e) => { e.stopPropagation(); setViewer({ kind: "image", url: msg.media_url!, name: `sona-photo-${msg.id}.jpg` }); }}
-                  // object-cover + aspect-square = the smart 1:1 bubble crop.
-                  // Tapping opens MediaViewer, which shows the untouched original ratio.
-                  className={`h-full w-full cursor-pointer object-cover transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  className={`h-full w-full cursor-pointer object-cover transition-all duration-500 ${imgLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
                 />
                 <button
                   onClick={(e) => {
@@ -1806,27 +1779,20 @@ const tailClass = !grouped && mine
                     downloadFile(msg.media_url!, `SonaTG-photo-${msg.id}.jpg`);
                   }}
                   aria-label="Download image"
-                  className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm opacity-0 group-hover/image:opacity-100 hover:bg-black/70 active:scale-95 transition-all"
+                  className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-md transition-all duration-200 hover:bg-black/60 hover:scale-110 active:scale-95 group-hover/image:opacity-100"
                 >
-                  <Download className="h-4 text-purple w-4" />
+                  <Download className="h-4 w-4" />
                 </button>
-                <div className="absolute bottom-1 -right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-                  Photo
-                </div>
               </div>
             )}
 
             {msg.kind === "video" && msg.media_url && (
-              // 16:9 in the bubble (see VideoPlayer's aspectRatio style) to
-              // match the square image bubbles into one predictable grid,
-              // while the <video> inside stays object-contain so playback
-              // respects whatever orientation it was actually shot in.
-              <div className="relative mb-1 -mx-1 -mt-1">
+              <div className="relative mb-2 -mx-1 -mt-1">
                 <VideoPlayer
                   src={msg.media_url}
                   fileSize={msg.file_size}
                   onDownload={() => downloadFile(msg.media_url!, `SonaTG-video-${msg.id}.mp4`)}
-                  className="w-full max-w-[320px] rounded-lg"
+                  className="w-full max-w-[320px] rounded-xl ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
                 />
               </div>
             )}
@@ -1841,28 +1807,26 @@ const tailClass = !grouped && mine
                     downloadFile(msg.media_url!, msg.file_name || "file");
                   }
                 }}
-                className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                className={`group/file mb-2 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.98] ${
                   mine
-                    ? "border-white/20 dark:bg-white/5 text-[#8C8C8C] dark:text-[#2D3436] hover:bg-white/15"
-                    : "border-[var(--sona-accent,#E07A5F)]/15 bg-[#F5F0E8] dark:bg-[#3A3A3A] hover:bg-[#EFE6D8] dark:hover:bg-[#454545]"
+                    ? "border-white/10 bg-white/10 text-white hover:bg-white/15"
+                    : "border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]"
                 }`}
               >
-                <span
-                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${
-                    mine ? "bg-white/20 dark:text-white !text-gray-600" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)]"
-                  }`}
-                >
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-colors ${
+                  mine ? "bg-white/10 text-white" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)] group-hover/file:bg-[var(--sona-accent,#E07A5F)]/15"
+                }`}>
                   <FileIcon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-sm font-medium ${mine ? "dark:text-white text-gray-600" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+                  <span className={`block truncate text-sm font-medium ${mine ? "text-white" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
                     {msg.file_name || "File"}
                   </span>
-                  <span className={`block text-xs ${mine ? "text-[#1E90FF]" : "text-[#8C8C8C]"}`}>
-                    {msg.file_size ? formatBytes(msg.file_size) : ""}
+                  <span className={`block text-xs ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
+                    {msg.file_size ? formatBytes(msg.file_size) : "Unknown size"}
                   </span>
                 </span>
-                <Download className={`h-4 w-4 shrink-0 ${mine ? "text-[#F4A261] " : "text-[#8C8C8C]"}`} />
+                <Download className={`h-4 w-4 shrink-0 transition-transform group-hover/file:-translate-y-0.5 group-hover/file:translate-x-0.5 ${mine ? "text-white/60" : "text-[#8C8C8C]"}`} />
               </button>
             )}
 
@@ -1880,7 +1844,7 @@ const tailClass = !grouped && mine
             )}
 
             {(overrideBody ?? msg.body) && (
-              <div className="text-[14.5px] leading-snug pr-14 pb-1">
+              <div className="text-[14.5px] leading-relaxed pr-12 pb-1">
                 {renderMarkdown(overrideBody ?? msg.body ?? "", mine)}
               </div>
             )}
@@ -1892,8 +1856,8 @@ const tailClass = !grouped && mine
             {(replyCount ?? 0) > 0 && (
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenThread?.(); }}
-                className={`mb-1 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition hover:opacity-80 ${
-                  mine ? "text-zinc-400" : "text-[#2D3436]"
+                className={`mb-1 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition hover:opacity-80 active:scale-95 ${
+                  mine ? "text-white/70 hover:bg-white/10" : "text-[#8C8C8C] hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
                 <CornerUpLeft className="h-3.5 w-3.5" />
@@ -1901,77 +1865,78 @@ const tailClass = !grouped && mine
               </button>
             )}
 
-            <div
-              className={`flex items-end justify-end gap-1.5 -mt-1 ${
-                mine ? "text-white/85" : "text-[#8C8C8C]"
-              }`}
-            >
-              
-              {Object.keys(counts).length > 0 && (
-  <div className={`absolute z-10 ${mine ? "left-1.5" : "left-1.5"} -bottom-4.5`}>
-    <Tooltip
-      title={
-        <div className="flex flex-col gap-2 py-0.5">
-          {Object.entries(counts).map(([emoji, count]) => (
-            <div key={emoji} className="flex items-center gap-2 text-xs">
-              <span className="text-sm">{emoji}</span>
-              <span className="opacity-90">{getReactorNames(emoji).join(", ")}</span>
-            </div>
-          ))}
-        </div>
-      }
-      placement="top"
-    >
-      <button
-        onClick={(ev) => { ev.stopPropagation(); /* open reactions detail sheet */ }}
-        className="flex items-center gap-[3px] rounded-full border bg-[#1E1E1E] dark:bg-[#2A2A2A] border-black/5 dark:border-black shadow-[0_1px_4px_rgba(0,0,0,0.12)] px-[6px] py-[6px] transition-transform active:scale-95"
-      >
-        {/* Overlapping emojis */}
-        <div className="flex gap-2 items-center">
-          {Object.keys(counts).map((emoji, i) => (
-            <span
-              key={emoji}
-              className="text-[13px] leading-none"
-              style={{ marginLeft: i > 0 ? "-3px" : undefined }}
-            >
-              {emoji}
-            </span>
-          ))}
-        </div>
+            {Object.keys(counts).length > 0 && (
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className={`absolute z-10 flex items-center gap-0.5 rounded-full border px-1.5 py-1 shadow-sm backdrop-blur-md transition-transform hover:scale-105 active:scale-95 ${
+                  mine 
+                    ? "left-1.5 -bottom-4 bg-[#1E1E1E]/80 border-white/10 shadow-black/20" 
+                    : "left-1.5 -bottom-4 bg-white/80 dark:bg-[#1E1E1E]/80 border-black/5 dark:border-white/10 shadow-black/5 dark:shadow-black/20"
+                }`}
+              >
+                <Tooltip
+                  title={
+                    <div className="flex flex-col gap-1.5 py-0.5">
+                      {Object.entries(counts).map(([emoji, count]) => (
+                        <div key={emoji} className="flex items-center gap-2 text-xs">
+                          <span className="text-sm">{emoji}</span>
+                          <span className="opacity-90">{getReactorNames(emoji).join(", ")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  }
+                  placement="top"
+                >
+                  <div className="flex items-center">
+                    {Object.keys(counts).map((emoji, i) => (
+                      <span
+                        key={emoji}
+                        className="text-[13px] leading-none"
+                        style={{ marginLeft: i > 0 ? "-2px" : undefined }}
+                      >
+                        {emoji}
+                      </span>
+                    ))}
+                  </div>
+                </Tooltip>
+                <span className="text-[10px] font-semibold text-[#666] dark:text-[#aaa] leading-none ml-1">
+                  {Object.values(counts).reduce((sum, c) => sum + c, 0)}
+                </span>
+              </motion.div>
+            )}
 
-        {/* Total count */}
-        <span className="text-[11px] font-semibold text-[#666] dark:text-[#aaa] leading-none ml-0.5">
-          {Object.values(counts).reduce((sum, c) => sum + c, 0)}
-        </span>
-      </button>
-    </Tooltip>
-  </div>
-)}
-
-              <div className="flex items-center gap-1 translate-y-0.5">
-                <AnimatePresence>
-                  {justCopied && (
-                    <motion.span
-                      initial={{ opacity: 0, x: 4 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 4 }}
-                      transition={{ duration: 0.15 }}
-                      className={`text-[10px] font-medium ${mine ? "text-[#151c1c]/70 dark:text-white" : "text-[#8C8C8C]"}`}
-                    >
-                      Copied
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-                {msg.edited_at && <span className="text-[10px] !text-[#8C8C8C] italic opacity-70">edited</span>}
-                {isPinned && <Pin className="h-3 w-3 fill-[#8C8C8C] text-[#8C8C8C]" />}
-                {isBookmarked && <Bookmark className="h-3 w-3 fill-[#8C8C8C] text-[#8C8C8C]" />}
-                <span suppressHydrationWarning className="text-[10.5px] !text-[#8C8C8C] tabular-nums">{fmtTime(msg.created_at)}</span>
-                {mine && (msg._pending ? <Clock className="h-3 w-3 text-[#8C8C8C] " /> : <TickIcon status={status} className="h-3.5 w-3.5" />)}
-              </div>
+            <div className={`mt-1.5 flex items-center justify-end gap-1.5 select-none ${mine ? "text-white/70" : "text-[#8C8C8C]"}`}>
+              <AnimatePresence>
+                {justCopied && (
+                  <motion.span
+                    initial={{ opacity: 0, x: 4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 4 }}
+                    transition={{ duration: 0.15 }}
+                    className={`text-[10px] font-medium ${mine ? "text-white/80" : "text-[#8C8C8C]"}`}
+                  >
+                    Copied
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {msg.edited_at && <span className="text-[10px] italic opacity-70">edited</span>}
+              {isPinned && <Pin className="h-3 w-3 fill-current opacity-70" />}
+              {isBookmarked && <Bookmark className="h-3 w-3 fill-current opacity-70" />}
+              <span suppressHydrationWarning className="text-[10.5px] font-medium tabular-nums tracking-wide">
+                {fmtTime(msg.created_at)}
+              </span>
+              {mine && (
+                msg._pending ? (
+                  <Clock className="h-3.5 w-3.5 animate-pulse opacity-70" />
+                ) : (
+                  <TickIcon status={status} className="h-4 w-4" />
+                )
+              )}
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <MessageContextMenu
         open={contextMenu.open}
