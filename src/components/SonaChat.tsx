@@ -2572,10 +2572,10 @@ useEffect(() => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFolder(f.key)}
-                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] ":"bg-[#8B5CF6] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] ":"bg-[#8B5CF6] text-[#FFFCF4]" } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.key
                       ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10 text-white opacity-60"
-                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#FFFCF4] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
                   }`}
                 >
                   {f.label}
@@ -2592,10 +2592,10 @@ useEffect(() => {
                     openRenameFolderModal(f.id, f.name);
                   }}
                   title="Tap to filter · double-tap or right-click to rename"
-                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] text-white ":"bg-[#8B5CF6] text-[#202124] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`shrink-0 ${!me.is_pro ? " bg-[var(--sona-accent,#E07A5F)] text-[#FFFCF4] ":"bg-[#8B5CF6] text-[#202124] " } rounded-full shadow-md px-3 py-1.5 text-xs font-medium transition ${
                     activeFolder === f.id
                       ? "dark:bg-[#1E1E1E] border border-[#F5F0E8]/10  opacity-60"
-                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#FFFCF4] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
+                      : "bg-[#F5F0E8] dark:bg-[#2A2A2A] border border-[#F5F0E8]/10 hover:bg-[#F4A261]/20"
                   }`}
                 >
                   {f.name}
