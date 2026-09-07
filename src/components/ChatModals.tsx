@@ -27,6 +27,7 @@ import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type N
 import type { ClassRow } from "@/features/classroom";
 import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, type ChatInviteRow } from "@/features/invites";
 import SoundSettings from "./SoundSettings";
+import { postSystemMessage } from "@/lib/systemMessages";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
