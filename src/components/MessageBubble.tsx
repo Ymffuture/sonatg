@@ -1294,6 +1294,7 @@ export function MediaViewer({
 // Or inline the class if you prefer:
 const toolBtnClass = "grid h-8 w-8 place-items-center rounded-lg text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none";
 
+
 function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   const url = useMemo(() => {
     const re = new RegExp(URL_REGEX.source, URL_REGEX.flags);
@@ -1325,96 +1326,120 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   }, [url, fetchPreview]);
 
   if (!url) return null;
+
   if (loading) {
-    return <Skeleton.Input active size="small" className="!w-full !max-w-[280px] !mb-1" />;
+    // Premium Skeleton matching the final card dimensions to prevent layout shift
+    return (
+      <div className={`mb-4 w-full max-w-[360px] overflow-hidden rounded-2xl border shadow-sm ${
+        mine ? "border-white/[0.08] bg-[#18181B]" : "border-black/[0.04] bg-white dark:bg-[#242424]"
+      }`}>
+        <Skeleton.Input active className="!h-40 !w-full !rounded-none !mb-0" />
+        <div className="p-4 space-y-2.5">
+          <Skeleton.Input active size="small" className="!w-24" />
+          <Skeleton.Input active className="!w-full" />
+          <Skeleton.Input active className="!w-3/4" />
+        </div>
+      </div>
+    );
   }
-  // Nothing worth showing (blocked host, non-HTML resource with no title, fetch failed, etc).
+
+  // Nothing worth showing
   if (!preview || (!preview.title && !preview.description && !preview.image)) return null;
 
-  
-return (
-  <a
-    href={preview.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    className={`
-      group mb-4 p-2 block max-w-[340px] overflow-hidden rounded-2xl border
-      transition-all duration-200 ease-out
-      hover:-translate-y-0.5 hover:shadow-lg
-      active:scale-[0.99] active:shadow-md
-      ${
-        mine
-          ? "border-white/15 bg-slate-950 dark:bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:bg-white/[0.12]"
-          : "border-[var(--sona-accent,#E07A5F)]/10 bg-white dark:bg-[#242424] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-[var(--sona-accent,#E07A5F)]/20 dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
-      }
-    `}
-  >
-    {/* Image with gradient overlay */}
-    {preview.image && (
-      <div className="relative h-36 w-full overflow-hidden">
-        <img
-          src={preview.image}
-          alt=""
-          className="h-full w-full object-cover rounded-xl transition-transform duration-500 ease-out group-hover:scale-105"
-          loading="lazy"
-        />
-        <div
-          className={`absolute inset-0 bg-gradient-to-t ${
-            mine ? "from-black" : "from-black/10 dark:from-black/20"
-          } to-transparent`}
-        />
-        {/* External link badge */}
-        <div className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/30 backdrop-blur-md opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <ExternalLink className="h-3.5 w-3.5 text-white" />
-        </div>
-      </div>
-    )}
-
-    {/* Content */}
-    <div className="px-3.5 py-2.5">
-      {/* Site name with favicon placeholder */}
-      {preview.siteName && (
-        <div className={`mb-1 flex items-center gap-1.5 ${mine ? "dark:text-white/50 text-[#8C8C8C] " : "text-[#8C8C8C]"}`}>
-          <Globe className="h-3 w-3 shrink-0 opacity-60" />
-          <p className="truncate text-[11px] font-medium uppercase tracking-wider">
-            {preview.siteName}
-          </p>
+  return (
+    <a
+      href={preview.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`
+        group relative mb-4 block w-full max-w-[360px] overflow-hidden rounded-2xl
+        border transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]
+        hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/40
+        active:translate-y-0 active:shadow-md
+        ${
+          mine
+            ? "border-white/[0.08] bg-[#18181B] dark:bg-white/[0.08] shadow-sm shadow-black/40 hover:bg-[#1F1F23] dark:hover:bg-white/[0.12]"
+            : "border-black/[0.04] dark:border-white/[0.06] bg-white dark:bg-[#242424] shadow-sm shadow-black/[0.03] dark:shadow-black/40 hover:border-[var(--sona-accent,#E07A5F)]/20"
+        }
+      `}
+    >
+      {/* Image Section */}
+      {preview.image && (
+        <div className="relative w-full aspect-[16/9] overflow-hidden bg-black/5 dark:bg-white/5">
+          <img
+            src={preview.image}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            loading="lazy"
+          />
+          {/* Gradient overlay for depth and text contrast */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 dark:to-black/50 opacity-80" />
+          
+          {/* Floating glassmorphic domain badge */}
+          {preview.siteName && (
+            <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 backdrop-blur-md border border-white/10 shadow-lg shadow-black/10">
+              <Globe className="h-3 w-3 text-white/90" />
+              <span className="text-[11px] font-medium text-white/90 tracking-wide truncate max-w-[140px]">
+                {preview.siteName}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Title */}
-      {preview.title && (
-        <p
-          className={`
-            text-[13px] font-semibold leading-snug line-clamp-2
+      {/* Content Section */}
+      <div className="p-4 space-y-1.5">
+        {/* Fallback domain badge if no image */}
+        {!preview.image && preview.siteName && (
+          <div className={`flex items-center gap-1.5 ${mine ? "text-white/50" : "text-black/40 dark:text-white/50"}`}>
+            <Globe className="h-3.5 w-3.5 opacity-80" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider truncate">
+              {preview.siteName}
+            </span>
+          </div>
+        )}
+
+        {/* Title */}
+        {preview.title && (
+          <h3 className={`
+            text-[15px] font-bold leading-snug line-clamp-2
             transition-colors duration-200
-            ${mine ? "text-[#8C8C8C] dark:text-white " : "text-[#1a1a1a] dark:text-[#F0EBE3] group-hover:text-[var(--sona-accent,#E07A5F)]"}
-          `}
-        >
-          {preview.title}
-        </p>
-      )}
+            ${mine 
+              ? "text-white group-hover:text-blue-400" 
+              : "text-gray-900 dark:text-white group-hover:text-[var(--sona-accent,#E07A5F)]"}
+          `}>
+            {preview.title}
+          </h3>
+        )}
 
-      {/* Description */}
-      {preview.description && (
-        <p className={`mt-1 text-[12px] leading-relaxed line-clamp-2 ${mine ? "dark:text-white/60 text-[#1E1E1E] " : "text-[#8C8C8C]"}`}>
-          {preview.description}
-        </p>
-      )}
-
-      {/* URL pill */}
-      <div className={`mt-2 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-        mine
-          ? " dark:bg-white/10 dark:text-white/40 bg-slate-950 text-[#8C8C8C] "
-          : "bg-[#F5F0E8] text-[#8C8C8C] dark:bg-white/5"
-      }`}>
-        <span className="truncate">{new URL(preview.url).hostname.replace(/^www\./, "")}</span>
-        <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-50" />
+        {/* Description */}
+        {preview.description && (
+          <p className={`
+            text-[13px] leading-relaxed line-clamp-2 
+            ${mine ? "text-white/60" : "text-black/60 dark:text-white/60"}
+          `}>
+            {preview.description}
+          </p>
+        )}
       </div>
-    </div>
-  </a>
-);
-} 
+
+      {/* Footer / URL Pill */}
+      <div className={`
+        px-4 py-2.5 flex items-center justify-between gap-2 
+        border-t transition-colors duration-200
+        ${mine 
+          ? "border-white/[0.06] bg-white/[0.02] group-hover:bg-white/[0.04]" 
+          : "border-black/[0.04] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.04]"}
+      `}>
+        <span className={`text-[11px] font-medium truncate ${mine ? "text-white/40" : "text-black/40 dark:text-white/40"}`}>
+          {new URL(preview.url).hostname.replace(/^www\./, "")}
+        </span>
+        <ExternalLink className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${mine ? "text-white/40" : "text-black/40 dark:text-white/40"}`} />
+      </div>
+    </a>
+  );
+                }
+
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
