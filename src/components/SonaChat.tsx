@@ -866,6 +866,19 @@ const handleMenuOpenChange = (open: boolean) => {
 
   useEffect(() => { loadChats(); }, [loadChats]);
 
+  // A group joined from an invite link hands its id over here so the chat
+  // list opens straight into the new group once it has loaded.
+  useEffect(() => {
+    if (chats.length === 0) return;
+    let pending: string | null = null;
+    try { pending = localStorage.getItem("sona:openChat"); } catch { /* no-op */ }
+    if (!pending) return;
+    if (chats.some((c) => c.id === pending)) {
+      setActiveId(pending);
+      try { localStorage.removeItem("sona:openChat"); } catch { /* no-op */ }
+    }
+  }, [chats]);
+
   // Load my blocks (both directions) and my moderation state
   useEffect(() => {
     if (!me) return;
