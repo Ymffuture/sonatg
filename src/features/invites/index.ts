@@ -33,6 +33,15 @@ export function inviteUrl(token: string): string {
   return `${origin}/invite/${token}`;
 }
 
+// The table stores a single optional restricted address (`allowed_email`);
+// the app surface works with a list, so we map between the two here.
+type RawInvite = Omit<ChatInviteRow, "allowed_emails"> & { allowed_email: string | null };
+
+const toInvite = (row: RawInvite): ChatInviteRow => {
+  const { allowed_email, ...rest } = row;
+  return { ...rest, allowed_emails: allowed_email ? [allowed_email] : null };
+};
+
 export async function listChatInvites(chatId: string): Promise<ChatInviteRow[]> {
   const { data, error } = await supabase
     .from("chat_invites")
@@ -40,7 +49,7 @@ export async function listChatInvites(chatId: string): Promise<ChatInviteRow[]> 
     .eq("chat_id", chatId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as ChatInviteRow[];
+  return ((data ?? []) as RawInvite[]).map(toInvite);
 }
 
 // Normalizes free-form input (comma/newline/space separated, mixed case,
