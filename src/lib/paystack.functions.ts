@@ -5,9 +5,15 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // Requires PAYSTACK_SECRET_KEY and PAYSTACK_PLAN_CODE_MONTHLY server env.
 export const startPaystackCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((data: { interval?: "monthly" | "yearly" } | undefined) => ({
+    interval: data?.interval === "yearly" ? ("yearly" as const) : ("monthly" as const),
+  }))
+  .handler(async ({ context, data }) => {
     const secret = process.env.PAYSTACK_SECRET_KEY;
-    const plan = process.env.PAYSTACK_PLAN_CODE_MONTHLY;
+    const plan =
+      data.interval === "yearly"
+        ? process.env.PAYSTACK_PLAN_CODE_YEARLY || process.env.PAYSTACK_PLAN_CODE_MONTHLY
+        : process.env.PAYSTACK_PLAN_CODE_MONTHLY;
     if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not set. Ask the app owner to add it.");
     if (!plan) throw new Error("PAYSTACK_PLAN_CODE_MONTHLY is not set. Ask the app owner to add it.");
 

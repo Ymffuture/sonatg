@@ -33,6 +33,15 @@ export function inviteUrl(token: string): string {
   return `${origin}/invite/${token}`;
 }
 
+// The table stores a single optional restricted address (`allowed_email`);
+// the app surface works with a list, so we map between the two here.
+type RawInvite = Omit<ChatInviteRow, "allowed_emails"> & { allowed_email: string | null };
+
+const toInvite = (row: RawInvite): ChatInviteRow => {
+  const { allowed_email, ...rest } = row;
+  return { ...rest, allowed_emails: allowed_email ? [allowed_email] : null };
+};
+
 export async function listChatInvites(chatId: string): Promise<ChatInviteRow[]> {
   const { data, error } = await supabase
     .from("chat_invites")
@@ -40,7 +49,7 @@ export async function listChatInvites(chatId: string): Promise<ChatInviteRow[]> 
     .eq("chat_id", chatId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as ChatInviteRow[];
+  return ((data ?? []) as RawInvite[]).map(toInvite);
 }
 
 // Normalizes free-form input (comma/newline/space separated, mixed case,
@@ -83,7 +92,7 @@ export async function createChatInvite(opts: {
     .insert({
       chat_id: opts.chatId,
       token: tokenData as string,
-      allowed_emails: emails,
+      allowed_email: emails?.[0] ?? null,
       created_by: auth.user.id,
       expires_at,
       max_uses: opts.maxUses ?? 100,
@@ -91,7 +100,7 @@ export async function createChatInvite(opts: {
     .select("*")
     .single();
   if (error) throw error;
-  return data as ChatInviteRow;
+  return toInvite(data as RawInvite);
 }
 
 export async function revokeChatInvite(inviteId: string): Promise<void> {
@@ -102,8 +111,12 @@ export async function revokeChatInvite(inviteId: string): Promise<void> {
 export async function previewChatInvite(token: string): Promise<InvitePreview | null> {
   const { data, error } = await supabase.rpc("preview_chat_invite", { _token: token });
   if (error) throw error;
-  const row = Array.isArray(data) ? data[0] : data;
-  return (row as InvitePreview) ?? null;
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | (Omit<InvitePreview, "allowed_emails"> & { allowed_email: string | null })
+    | undefined;
+  if (!row) return null;
+  const { allowed_email, ...rest } = row;
+  return { ...rest, allowed_emails: allowed_email ? [allowed_email] : null };
 }
 
 export async function joinChatByInvite(token: string): Promise<string> {

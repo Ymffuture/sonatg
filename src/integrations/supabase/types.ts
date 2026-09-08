@@ -158,7 +158,7 @@ export type Database = {
       }
       chat_invites: {
         Row: {
-          allowed_emails: string[] | null
+          allowed_email: string | null
           chat_id: string
           created_at: string
           created_by: string
@@ -170,7 +170,7 @@ export type Database = {
           uses: number
         }
         Insert: {
-          allowed_emails?: string[] | null
+          allowed_email?: string | null
           chat_id: string
           created_at?: string
           created_by: string
@@ -182,7 +182,7 @@ export type Database = {
           uses?: number
         }
         Update: {
-          allowed_emails?: string[] | null
+          allowed_email?: string | null
           chat_id?: string
           created_at?: string
           created_by?: string
@@ -1207,6 +1207,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_moderation_flag: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      admin_delete_old_moderation_flags: {
+        Args: { _older_than_days: number }
+        Returns: number
+      }
+      admin_delete_old_reports: {
+        Args: { _older_than_days: number }
+        Returns: number
+      }
+      admin_delete_report: { Args: { _id: string }; Returns: undefined }
       admin_delete_user: { Args: { _target: string }; Returns: undefined }
       can_post_in_chat: {
         Args: { _chat_id: string; _user_id: string }
@@ -1259,7 +1272,7 @@ export type Database = {
       preview_chat_invite: {
         Args: { _token: string }
         Returns: {
-          allowed_emails: string[]
+          allowed_email: string
           already_member: boolean
           avatar_url: string
           chat_id: string

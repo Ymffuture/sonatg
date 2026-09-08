@@ -1570,17 +1570,50 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
 
                       {!me.is_pro && <FreeTierUsage meId={me.id} />}
 
+                      {!me.is_pro && (
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          {(["monthly", "yearly"] as const).map((iv) => {
+                            const selected = interval === iv;
+                            return (
+                              <button
+                                key={iv}
+                                type="button"
+                                onClick={() => setInterval(iv)}
+                                className={`rounded-2xl border px-3 py-3 text-left transition ${selected ? "border-[#8B5CF6] bg-[#8B5CF6]/10" : "border-zinc-200/70 dark:border-zinc-700/60 bg-white/40 dark:bg-zinc-900/40"}`}
+                              >
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{iv === "monthly" ? "Monthly" : "Yearly"}</div>
+                                <div className="mt-1 text-sm font-black text-zinc-900 dark:text-zinc-100">
+                                  {iv === "monthly" ? PRICING.monthly.label : PRICING.yearly.label}
+                                  <span className="text-[10px] font-semibold text-zinc-500">{iv === "monthly" ? PRICING.monthly.per : PRICING.yearly.per}</span>
+                                </div>
+                                <div className="text-[10px] text-zinc-500">
+                                  {iv === "monthly" ? "Billed every month" : `${PRICING.yearly.perMonthLabel}/mo · save ${PRICING.yearly.savePercent}%`}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {me.is_pro ? (
-                        <div className="mt-6 flex items-center gap-2 text-xs font-bold text-[#8B5CF6]">
-                          <Zap className="h-4 w-4 drop-shadow" />
-                          <span>You’re on Purple</span>
+                        <div className="mt-6 space-y-3">
+                          <div className="flex items-center gap-2 text-xs font-bold text-[#8B5CF6]">
+                            <Zap className="h-4 w-4 drop-shadow" />
+                            <span>You’re on Purple</span>
+                          </div>
+                          <a
+                            href="/pricing#cancel"
+                            className="block w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 px-4 py-3 text-center text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          >
+                            Cancel plan
+                          </a>
                         </div>
                       ) : (
                         <motion.button
                           whileTap={{ scale: 0.98 }}
                           disabled={busy}
                           onClick={upgrade}
-                          className="mt-6 w-full rounded-2xl bg-[#8B5CF6] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition-all hover:-translate-y-0.5 hover:bg-[#7c3aed] hover:shadow-xl hover:shadow-violet-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="mt-4 w-full rounded-2xl bg-[#8B5CF6] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition-all hover:-translate-y-0.5 hover:bg-[#7c3aed] hover:shadow-xl hover:shadow-violet-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
                           style={{ transform: "translateZ(35px)" }}
                         >
                           {busy ? (
@@ -1589,10 +1622,18 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                               Processing…
                             </span>
                           ) : (
-                            "Upgrade to Purple"
+                            `Upgrade — ${interval === "monthly" ? `${PRICING.monthly.label}${PRICING.monthly.per}` : `${PRICING.yearly.label}${PRICING.yearly.per}`}`
                           )}
                         </motion.button>
                       )}
+
+                      <a
+                        href="/pricing"
+                        className="mt-3 block text-center text-[11px] font-semibold text-[#8B5CF6] hover:underline"
+                      >
+                        See full pricing details
+                      </a>
+
                     </div>
                   </div>
                 </div>

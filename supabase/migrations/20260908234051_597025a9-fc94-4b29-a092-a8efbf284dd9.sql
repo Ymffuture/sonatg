@@ -1,0 +1,2 @@
+CREATE POLICY "members update own membership" ON public.chat_members FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+GRANT UPDATE ON public.chat_members TO authenticated;

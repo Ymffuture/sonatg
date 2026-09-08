@@ -7,8 +7,10 @@
 // upsell instead of waiting for a Postgres error to come back.
 import { supabase } from "@/integrations/supabase/client";
 
-export const FREE_CHAT_LIMIT = 3;
+export const FREE_CHAT_LIMIT = 10;
 export const FREE_DAILY_MESSAGE_LIMIT = 3;
+/** Free accounts can keep at most this many chats pinned to the top. */
+export const FREE_PIN_LIMIT = 2;
 
 /** Postgres error code raised by both `enforce_free_*_limit` triggers. */
 const FREE_TIER_SQLSTATE = "P0001";
