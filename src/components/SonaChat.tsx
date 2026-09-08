@@ -111,6 +111,7 @@ import { useMessageModeration, ModerationAlert, type ModerationResult } from "@/
 import { getOrgFileLimits } from "@/features/admin";
 import {
   FREE_CHAT_LIMIT,
+  FREE_PIN_LIMIT,
   FREE_DAILY_MESSAGE_LIMIT,
   FREE_CHAT_LIMIT_MESSAGE,
   FREE_MESSAGE_LIMIT_MESSAGE,
