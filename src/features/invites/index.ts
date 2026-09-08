@@ -92,7 +92,7 @@ export async function createChatInvite(opts: {
     .insert({
       chat_id: opts.chatId,
       token: tokenData as string,
-      allowed_emails: emails,
+      allowed_email: emails?.[0] ?? null,
       created_by: auth.user.id,
       expires_at,
       max_uses: opts.maxUses ?? 100,
@@ -100,7 +100,7 @@ export async function createChatInvite(opts: {
     .select("*")
     .single();
   if (error) throw error;
-  return data as ChatInviteRow;
+  return toInvite(data as RawInvite);
 }
 
 export async function revokeChatInvite(inviteId: string): Promise<void> {
