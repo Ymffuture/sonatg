@@ -109,6 +109,14 @@ import { MediaGalleryModal } from "./MediaGalleryModal";
 import { uploadToCloudinary, readVideoDurationMs } from "@/utils/cloudinary";
 import { useMessageModeration, ModerationAlert, type ModerationResult } from "@/features/moderation";
 import { getOrgFileLimits } from "@/features/admin";
+import {
+  FREE_CHAT_LIMIT,
+  FREE_DAILY_MESSAGE_LIMIT,
+  FREE_CHAT_LIMIT_MESSAGE,
+  FREE_MESSAGE_LIMIT_MESSAGE,
+  countMessagesSentToday,
+  isFreeTierLimitError,
+} from "@/lib/planLimits";
 import { PollComposerModal, canPostInChat } from "@/features/classroom";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 import { postSystemMessage } from "@/lib/systemMessages";
@@ -633,6 +641,19 @@ const handleMenuOpenChange = (open: boolean) => {
   }, []);
 
   const [showNewChat, setShowNewChat] = useState(false);
+
+  // Free-plan ("not Purple") usage tracking — see src/lib/planLimits.ts.
+  // The DB triggers are the real enforcement; this is just so the UI can
+  // show a friendly upsell before hitting send/create instead of after.
+  const [messagesSentToday, setMessagesSentToday] = useState(0);
+  const refreshMessagesSentToday = useCallback(() => {
+    if (!me || me.is_pro) return;
+    countMessagesSentToday(me.id).then(setMessagesSentToday).catch(() => {});
+  }, [me]);
+  useEffect(() => { refreshMessagesSentToday(); }, [refreshMessagesSentToday]);
+  const myChatCount = chats.length;
+  const canCreateChat = !!me?.is_pro || myChatCount < FREE_CHAT_LIMIT;
+  const canSendMessageToday = !!me?.is_pro || messagesSentToday < FREE_DAILY_MESSAGE_LIMIT;
   const [showMemberList, setShowMemberList] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
@@ -1288,7 +1309,22 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         ? "You can't send messages to this person."
         : broadcastLocked
           ? "Only admins can send messages to this group."
-          : null;
+          : !canSendMessageToday
+            ? FREE_MESSAGE_LIMIT_MESSAGE
+            : null;
+
+  // Gate for opening the "New chat" flow — used by both the FAB and the
+  // empty-state CTA so free-plan users see one consistent upsell instead
+  // of getting all the way to NewChatModal before finding out it's blocked.
+  const openNewChat = useCallback(() => {
+    if (accountRestricted) { toast.error(composerNotice ?? "Your account is restricted."); return; }
+    if (!canCreateChat) {
+      antMessage.error(FREE_CHAT_LIMIT_MESSAGE);
+      setShowSettings(true);
+      return;
+    }
+    setShowNewChat(true);
+  }, [accountRestricted, composerNotice, canCreateChat]);
 
   const profilesById = useMemo(() => {
     const map: Record<string, Profile> = {};
@@ -1689,8 +1725,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
         const { data: inserted, error } = await supabase.from("messages").insert(payload).select().single();
         if (error) {
-          toast.error(error.message);
+          toast.error(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
           if (!scheduledFor) setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          if (isFreeTierLimitError(error)) { refreshMessagesSentToday(); break; }
           continue;
         }
         anySucceeded = true;
@@ -1710,6 +1747,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         antMessage.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);
       } else if (anySucceeded) {
         playSendSound();
+        refreshMessagesSentToday();
       }
 
       // Message was allowed to send but still flagged (e.g. profanity that
@@ -2856,7 +2894,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     })
   )}
   {!loadingChats && filtered.length === 0 && ( <div className="-mb-2">
-        <EmptyChatState onStartChat={() => setShowNewChat(true)} />
+        <EmptyChatState onStartChat={openNewChat} />
       </div>)} 
                </AnimatePresence>
 </div>
@@ -2921,10 +2959,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
             {/* Floating New-Chat FAB */}
             <button
   data-tour="new-chat-fab"
-  onClick={() => {
-    if (accountRestricted) { toast.error(composerNotice ?? "Your account is restricted."); return; }
-    setShowNewChat(true);
-  }}
+  onClick={openNewChat}
   aria-label="New chat"
   className="group absolute bottom-8 right-5 z-30 grid h-[60px] w-[60px] place-items-center rounded-2xl
     /* Glass base */

@@ -28,6 +28,7 @@ import type { ClassRow } from "@/features/classroom";
 import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, parseAllowedEmails, type ChatInviteRow } from "@/features/invites";
 import SoundSettings from "./SoundSettings";
 import { postSystemMessage } from "@/lib/systemMessages";
+import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, countMyChats, countMessagesSentToday } from "@/lib/planLimits";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
@@ -713,6 +714,10 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
       onCreated(chat.id);
     } catch (e) {
       console.error("startWith failed", e);
+      if (isFreeTierLimitError(e)) {
+        notify.error({ message: "Sona Purple limit reached", description: FREE_CHAT_LIMIT_MESSAGE });
+        return;
+      }
       const explained = explainSupabaseError(e);
       notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
       setGroupError(explained);
@@ -748,6 +753,10 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
       onCreated(chat.id);
     } catch (e) {
       console.error("createGroup failed", e);
+      if (isFreeTierLimitError(e)) {
+        notify.error({ message: "Sona Purple limit reached", description: FREE_CHAT_LIMIT_MESSAGE });
+        return;
+      }
       const explained = explainSupabaseError(e);
       notify.error({ message: explained.title, description: `${explained.explanation}\n\nDetails: ${explained.raw}` });
       setGroupError(explained);
@@ -992,6 +1001,39 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
           </motion.div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Free-tier usage mini-panel (shown in Settings → Subscription for non-Purple users) ─── */
+function FreeTierUsage({ meId }: { meId: string }) {
+  const [chatsUsed, setChatsUsed] = useState<number | null>(null);
+  const [messagesToday, setMessagesToday] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([countMyChats(meId), countMessagesSentToday(meId)]).then(([chats, msgs]) => {
+      if (!cancelled) { setChatsUsed(chats); setMessagesToday(msgs); }
+    });
+    return () => { cancelled = true; };
+  }, [meId]);
+
+  const Row = ({ label, used, limit }: { label: string; used: number | null; limit: number }) => (
+    <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400">
+      <span>{label}</span>
+      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+        {used === null ? "…" : `${Math.min(used, limit)} / ${limit}`}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="mt-4 space-y-2 rounded-xl border border-zinc-200/60 dark:border-zinc-700/50 bg-white/40 dark:bg-zinc-900/40 p-3">
+      <Row label="Chats" used={chatsUsed} limit={FREE_CHAT_LIMIT} />
+      <Row label="Messages today" used={messagesToday} limit={FREE_DAILY_MESSAGE_LIMIT} />
+      <p className="pt-1 text-[11px] leading-snug text-zinc-500 dark:text-zinc-500">
+        Free-plan limit — upgrade to Sona Purple for unlimited chats and messages.
+      </p>
     </div>
   );
 }
@@ -1520,7 +1562,13 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                           <MdCloudUpload className="h-4 w-4 text-[#8B5CF6] drop-shadow" />
                           <span>Unlimited media uploads (photos, videos, files)</span>
                         </li>
+                        <li className="flex items-center gap-2.5">
+                          <Zap className="h-4 w-4 text-[#8B5CF6] drop-shadow" />
+                          <span>Unlimited chats & unlimited daily messages</span>
+                        </li>
                       </ul>
+
+                      {!me.is_pro && <FreeTierUsage meId={me.id} />}
 
                       {me.is_pro ? (
                         <div className="mt-6 flex items-center gap-2 text-xs font-bold text-[#8B5CF6]">
