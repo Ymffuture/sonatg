@@ -1495,18 +1495,32 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     e.stopPropagation();
     if (!me) return;
     const next = !chat.isPinned;
+    if (next && !me.is_pro) {
+      const pinnedCount = chats.filter((c) => c.isPinned).length;
+      if (pinnedCount >= FREE_PIN_LIMIT) {
+        antMessage.error(`Free plan lets you pin ${FREE_PIN_LIMIT} chats. Unpin one, or upgrade to Sona Purple for unlimited pins.`);
+        return;
+      }
+    }
     setChats((prev) => {
       const updated = prev.map((c) => (c.id === chat.id ? { ...c, isPinned: next } : c));
       updated.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
       return updated;
     });
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("chat_members")
       .update({ is_pinned: next, pinned_at: next ? new Date().toISOString() : null })
       .eq("chat_id", chat.id)
-      .eq("user_id", me.id);
-    if (error) { toast.error(error.message); loadChats(); return; }
+      .eq("user_id", me.id)
+      .select("chat_id");
+    if (error || !data?.length) {
+      toast.error(error?.message ?? "Couldn't update the pin. Please try again.");
+      loadChats();
+      return;
+    }
+    antMessage.success(next ? "Chat pinned" : "Chat unpinned");
   };
+
 
   const toggleChatSelection = (chatId: string) => {
     setSelectedChatIds((prev) => {
