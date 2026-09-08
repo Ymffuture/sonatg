@@ -1378,8 +1378,8 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
           {/* Floating glassmorphic domain badge */}
           {preview.siteName && (
             <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 backdrop-blur-md border border-white/10 shadow-lg shadow-black/10">
-              <Globe className="h-3 w-3 text-white/90" />
-              <span className="text-[11px] font-medium text-white/90 tracking-wide truncate max-w-[140px]">
+              <Globe className="h-3 w-3 dark:text-white/90 text-[#8C8C8C] " />
+              <span className="text-[11px] font-medium text-[#8C8C8C] dark:text-white/90 tracking-wide truncate max-w-[140px]">
                 {preview.siteName}
               </span>
             </div>
@@ -1391,7 +1391,7 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
       <div className="p-4 space-y-1.5">
         {/* Fallback domain badge if no image */}
         {!preview.image && preview.siteName && (
-          <div className={`flex items-center gap-1.5 ${mine ? "text-white/50" : "text-black/40 dark:text-white/50"}`}>
+          <div className={`flex items-center gap-1.5 ${mine ? "dark:text-white/50 text-[#8C8C8C]" : "text-black/40 dark:text-white/50"}`}>
             <Globe className="h-3.5 w-3.5 opacity-80" />
             <span className="text-[11px] font-semibold uppercase tracking-wider truncate">
               {preview.siteName}
@@ -1416,7 +1416,7 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
         {preview.description && (
           <p className={`
             text-[13px] leading-relaxed line-clamp-2 
-            ${mine ? "text-white/60" : "text-black/60 dark:text-white/60"}
+            ${mine ? "dark:text-white/60 text-[#8C8C8C]" : "text-black/60 dark:text-white/60"}
           `}>
             {preview.description}
           </p>
@@ -1425,7 +1425,7 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
 
       {/* Footer / URL Pill */}
       <div className={`
-        px-4 py-2.5 flex items-center justify-between gap-2 
+        px-4 py-2.5 flex text-[#8C8C8C] items-center justify-between gap-2 
         border-t transition-colors duration-200
         ${mine 
           ? "border-white/[0.06] bg-white/[0.02] group-hover:bg-white/[0.04]" 
