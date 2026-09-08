@@ -111,8 +111,12 @@ export async function revokeChatInvite(inviteId: string): Promise<void> {
 export async function previewChatInvite(token: string): Promise<InvitePreview | null> {
   const { data, error } = await supabase.rpc("preview_chat_invite", { _token: token });
   if (error) throw error;
-  const row = Array.isArray(data) ? data[0] : data;
-  return (row as InvitePreview) ?? null;
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | (Omit<InvitePreview, "allowed_emails"> & { allowed_email: string | null })
+    | undefined;
+  if (!row) return null;
+  const { allowed_email, ...rest } = row;
+  return { ...rest, allowed_emails: allowed_email ? [allowed_email] : null };
 }
 
 export async function joinChatByInvite(token: string): Promise<string> {
