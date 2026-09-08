@@ -1207,6 +1207,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_moderation_flag: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      admin_delete_old_moderation_flags: {
+        Args: { _older_than_days: number }
+        Returns: number
+      }
+      admin_delete_old_reports: {
+        Args: { _older_than_days: number }
+        Returns: number
+      }
+      admin_delete_report: { Args: { _id: string }; Returns: undefined }
       admin_delete_user: { Args: { _target: string }; Returns: undefined }
       can_post_in_chat: {
         Args: { _chat_id: string; _user_id: string }
