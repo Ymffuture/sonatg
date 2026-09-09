@@ -5,17 +5,23 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // Project Settings -> Environment Variables):
 //   OPENROUTER_API_KEY — same key already used by ai.functions.ts for Sona AI.
 //
-// Unlike a dedicated speech-to-text endpoint (e.g. OpenAI's Whisper API),
-// this routes through OpenRouter's chat-completions endpoint using an
-// audio-capable ("omni") model, passing the voice note as an inline
-// `input_audio` content block alongside a transcription instruction —
-// the same multimodal content shape OpenAI-compatible chat APIs use for
-// audio input. Because this depends on a specific free-tier model rather
-// than a purpose-built transcription API, accuracy/availability may be
-// less consistent than Whisper — swap the model below if you hit issues.
+// Uses OpenRouter's dedicated /api/v1/audio/transcriptions endpoint (not
+// the /chat/completions input_audio hack this used to route through) —
+// purpose-built for STT, returns structured JSON with a real `usage`
+// object, and lets OpenRouter pick from actual transcription-capable
+// models instead of overloading a general chat model to do it.
+// https://openrouter.ai/docs/guides/overview/multimodal/stt
+//
+// NOTE: fish-audio/s2.1-pro-free:free is a *text-to-speech* model (see
+// tts.functions.ts) — it has no transcription capability and doesn't
+// appear under OpenRouter's `output_modalities=transcription` filter, so
+// it can't be used here. Whisper Large V3 Turbo is the closest free-tier
+// equivalent: cheap, fast, and accurate. Override via STT_MODEL if you'd
+// rather use a different transcription model.
 
-const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
+const TRANSCRIBE_ENDPOINT = "https://openrouter.ai/api/v1/audio/transcriptions";
+const MODEL = process.env.STT_MODEL || "openai/whisper-large-v3-turbo";
+const TRANSCRIBE_TIMEOUT_MS = 30_000;
 
 type TranscribeInput = { messageId: string };
 
@@ -53,10 +59,17 @@ export const transcribeVoiceMessage = createServerFn({ method: "POST" })
       );
     }
 
-    const audioRes = await fetch(message.media_url as string);
-    if (!audioRes.ok) throw new Error("Couldn't download the voice note to transcribe it.");
-    const contentType = audioRes.headers.get("content-type") ?? "audio/webm";
-    const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+    let audioBuffer: Buffer;
+    let contentType: string;
+    try {
+      const audioRes = await fetch(message.media_url as string);
+      if (!audioRes.ok) throw new Error(`HTTP ${audioRes.status}`);
+      contentType = audioRes.headers.get("content-type") ?? "audio/webm";
+      audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+    } catch (e) {
+      throw new Error(`Couldn't download the voice note to transcribe it: ${(e as Error).message}`);
+    }
+
     const base64Audio = audioBuffer.toString("base64");
     const format = contentType.includes("mp3")
       ? "mp3"
@@ -66,44 +79,47 @@ export const transcribeVoiceMessage = createServerFn({ method: "POST" })
       ? "ogg"
       : "webm";
 
-    const res = await fetch(GATEWAY, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": process.env.APP_URL || "https://your-app.vercel.app",
-        "X-Title": "Sona AI",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Transcribe this audio verbatim. Reply with only the spoken words as plain text — no commentary, no quotation marks, no timestamps.",
-              },
-              {
-                type: "input_audio",
-                input_audio: { data: base64Audio, format },
-              },
-            ],
-          },
-        ],
-      }),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TRANSCRIBE_TIMEOUT_MS);
+    let transcript: string;
+    try {
+      const res = await fetch(TRANSCRIBE_ENDPOINT, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "HTTP-Referer": process.env.APP_URL || "https://your-app.vercel.app",
+          "X-Title": "Sona AI",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          input_audio: { data: base64Audio, format },
+        }),
+      });
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      if (res.status === 429) throw new Error("Transcription is busy right now, try again in a moment.");
-      throw new Error(`Transcription failed [${res.status}]: ${body}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        if (res.status === 429) throw new Error("Transcription is busy right now, try again in a moment.");
+        if (res.status === 402) throw new Error("OpenRouter credits exhausted. Please check your account balance.");
+        throw new Error(`Transcription failed [${res.status}]: ${body.slice(0, 300)}`);
+      }
+
+      const json = (await res.json()) as { text?: string };
+      transcript = json.text?.trim() || "(No speech detected)";
+    } catch (e) {
+      if ((e as { name?: string })?.name === "AbortError") {
+        throw new Error("Transcription took too long — the voice note may be too long. Try a shorter clip.");
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
     }
 
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const transcript = json.choices?.[0]?.message?.content?.trim() || "(No speech detected)";
-
-    await context.supabase.from("messages").update({ transcript }).eq("id", data.messageId);
+    const { error: updateErr } = await context.supabase
+      .from("messages").update({ transcript }).eq("id", data.messageId);
+    if (updateErr) throw new Error(`Transcribed, but saving the result failed: ${updateErr.message}`);
 
     return { transcript };
   });
+

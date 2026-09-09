@@ -25,6 +25,7 @@ export type Profile = {
   avatar_url: string | null;
   is_ai: boolean;
   is_pro?: boolean;
+  ai_model?: string | null;
   bio?: string | null;
   last_seen?: string | null;
   created_at?: string;
