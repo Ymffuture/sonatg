@@ -30,6 +30,7 @@ import SoundSettings from "./SoundSettings";
 import { postSystemMessage } from "@/lib/systemMessages";
 import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, FREE_PIN_LIMIT, countMyChats, countMessagesSentToday } from "@/lib/planLimits";
 import { PRICING, type BillingInterval } from "@/lib/pricing";
+import { PRO_MODELS, DEFAULT_MODEL, isProModelId } from "@/lib/aiModels";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
@@ -1039,6 +1040,55 @@ function FreeTierUsage({ meId }: { meId: string }) {
   );
 }
 
+/* ─── Sona Purple AI model picker (Settings → Subscription, Purple only) ─── */
+function AiModelPicker({ me, onSaved }: { me: Profile; onSaved: (p: Profile) => void }) {
+  const [saving, setSaving] = useState(false);
+  const current = isProModelId(me.ai_model) ? me.ai_model : DEFAULT_MODEL;
+
+  const pick = async (modelId: string) => {
+    if (modelId === current || saving) return;
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles").update({ ai_model: modelId }).eq("id", me.id).select().single();
+      if (error) throw error;
+      onSaved(data as Profile);
+      notify.success({ message: "Model updated", description: "Sona will use this model for your next reply." });
+    } catch (e) {
+      notify.error({ message: "Couldn't switch models", description: (e as Error).message || "Try again in a moment." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-2 rounded-xl border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 p-3">
+      <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Sona AI model</p>
+      <div className="space-y-1.5">
+        {[{ id: DEFAULT_MODEL, label: "Default", blurb: "Sona's standard everyday model." }, ...PRO_MODELS].map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            disabled={saving}
+            onClick={() => pick(m.id)}
+            className={`w-full rounded-lg border px-3 py-2 text-left transition disabled:opacity-60 ${
+              current === m.id
+                ? "border-[#8B5CF6] bg-[#8B5CF6]/10"
+                : "border-zinc-200/70 dark:border-zinc-700/50 hover:border-[#8B5CF6]/50"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{m.label}</span>
+              {current === m.id && <Check className="h-3.5 w-3.5 text-[#8B5CF6]" />}
+            </div>
+            <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-500">{m.blurb}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Settings ─── */
 export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: () => void; onSaved: (p: Profile) => void }) {
   useBackToClose(onClose);
@@ -1591,7 +1641,17 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                           <Zap className="h-4 w-4 text-[#8B5CF6] drop-shadow" />
                           <span>Unlimited chats & unlimited daily messages</span>
                         </li>
+                        <li className="flex items-center gap-2.5">
+                          <Sparkles className="h-4 w-4 text-[#8B5CF6] drop-shadow" />
+                          <span>Choice of 4 AI models for Sona chat</span>
+                        </li>
+                        <li className="flex items-center gap-2.5">
+                          <MdPhone className="h-4 w-4 text-[#8B5CF6] drop-shadow" />
+                          <span>Sona AI replies read aloud (text-to-speech)</span>
+                        </li>
                       </ul>
+
+                      {me.is_pro && <AiModelPicker me={me} onSaved={onSaved} />}
 
                       {!me.is_pro && <FreeTierUsage meId={me.id} />}
 

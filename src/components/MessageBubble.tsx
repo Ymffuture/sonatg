@@ -18,6 +18,7 @@ import { VscVerifiedFilled } from "react-icons/vsc";
 import { Skeleton, Tooltip, notification } from "antd";
 import { useServerFn } from "@tanstack/react-start";
 import { transcribeVoiceMessage } from "@/lib/transcribe.functions";
+import { synthesizeSpeech } from "@/lib/tts.functions";
 import { fetchLinkPreview, type LinkPreview } from "@/lib/linkpreview.functions";
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
 import { VideoPlayer } from "./VideoPlayer";
@@ -1442,6 +1443,55 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
 
 
 
+// Sona Purple text-to-speech: a small speaker button on Sona AI's text
+// replies. Self-contained — owns its own audio element + loading/playing
+// state — so dropping it into the message footer doesn't need Bubble to
+// track per-message playback state itself.
+function SonaListenButton({ chatId, text }: { chatId: string; text: string }) {
+  const speak = useServerFn(synthesizeSpeech);
+  const [status, setStatus] = useState<"idle" | "loading" | "playing">("idle");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const toggle = async () => {
+    if (status === "loading") return;
+    if (status === "playing") { audioRef.current?.pause(); setStatus("idle"); return; }
+    if (audioRef.current) { audioRef.current.play(); setStatus("playing"); return; }
+
+    setStatus("loading");
+    try {
+      const { audioBase64, mimeType } = await speak({ data: { chatId, text } }) as { audioBase64: string; mimeType: string };
+      const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
+      audio.onended = () => setStatus("idle");
+      audio.onerror = () => { setStatus("idle"); toast.error("Couldn't play that audio."); };
+      audioRef.current = audio;
+      await audio.play();
+      setStatus("playing");
+    } catch (e) {
+      setStatus("idle");
+      toast.error((e as Error).message || "Text-to-speech failed.");
+    }
+  };
+
+  useEffect(() => () => { audioRef.current?.pause(); }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      title={status === "playing" ? "Pause" : "Listen"}
+      className="inline-flex items-center justify-center rounded-full p-0.5 opacity-70 hover:opacity-100 transition"
+    >
+      {status === "loading" ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : status === "playing" ? (
+        <Pause className="h-3 w-3" />
+      ) : (
+        <Play className="h-3 w-3" />
+      )}
+    </button>
+  );
+}
+
 export function Bubble({
   msg, me, sender, reactions, reads, otherMemberIds, onReact, opening, onOpenPicker, grouped, isGroup,
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
@@ -1943,6 +1993,9 @@ function getNameColor(identifier: string) {
                 )}
               </AnimatePresence>
               {msg.edited_at && <span className="text-[10px] italic opacity-70">edited</span>}
+              {isAI && msg.kind === "text" && me.is_pro && msg.body && (
+                <SonaListenButton chatId={msg.chat_id} text={msg.body} />
+              )}
               {isPinned && <Pin className="h-3 w-3 fill-current opacity-70" />}
               {isBookmarked && <Bookmark className="h-3 w-3 fill-current opacity-70" />}
               <span suppressHydrationWarning className="text-[10.5px] font-medium tabular-nums tracking-wide">
