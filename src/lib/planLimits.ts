@@ -8,7 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const FREE_CHAT_LIMIT = 10;
-export const FREE_DAILY_MESSAGE_LIMIT = 3;
+export const FREE_DAILY_MESSAGE_LIMIT = 200;
 /** Free accounts can keep at most this many chats pinned to the top. */
 export const FREE_PIN_LIMIT = 2;
 
