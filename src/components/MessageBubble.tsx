@@ -2158,7 +2158,7 @@ export function VoicePlayer({
           <button
             onClick={handleTranscribeClick}
             disabled={transcribing}
-            className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-[#8C8C8C] : "text-[#151c1c]"} hover:underline disabled:no-underline disabled:opacity-70`}
+            className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-[#8C8C8C]" : "text-[#151c1c]"} hover:underline disabled:no-underline disabled:opacity-70`}
           >
             {transcribing && <Loader2 className="h-3 w-3 animate-spin" />}
             {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
