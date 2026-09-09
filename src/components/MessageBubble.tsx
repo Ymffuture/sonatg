@@ -1392,8 +1392,8 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
       <div className="p-4 space-y-1.5">
         {/* Fallback domain badge if no image */}
         {!preview.image && preview.siteName && (
-          <div className={`flex items-center gap-1.5 ${mine ? "dark:text-white/50 text-[#8C8C8C]" : "text-black/40 dark:text-white/50"}`}>
-            <Globe className="h-3.5 w-3.5 opacity-80" />
+          <div className={`flex items-center gap-1.5 ${mine ? "dark:text-white/50 text-[#FFFCF4]" : "text-black/40 dark:text-white/50"}`}>
+            <Globe className="h-3.5 w-3.5 Opacity-80 text-amber-600" />
             <span className="text-[11px] font-semibold uppercase tracking-wider truncate">
               {preview.siteName}
             </span>
@@ -1406,7 +1406,7 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
             text-[15px] font-bold leading-snug line-clamp-2
             transition-colors duration-200
             ${mine 
-              ? "text-white group-hover:text-blue-400" 
+              ? "text-[#8C8C8C] group-hover:text-blue-400" 
               : "text-gray-900 dark:text-white group-hover:text-[var(--sona-accent,#E07A5F)]"}
           `}>
             {preview.title}
@@ -1432,21 +1432,15 @@ function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
           ? "border-white/[0.06] bg-white/[0.02] group-hover:bg-white/[0.04]" 
           : "border-black/[0.04] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.04]"}
       `}>
-        <span className={`text-[11px] font-medium truncate ${mine ? "text-white/40" : "text-black/40 dark:text-white/40"}`}>
+        <span className={`text-[11px] font-medium truncate ${mine ? "text-[#8C8C8C]" : "text-black/40 dark:text-white/40"}`}>
           {new URL(preview.url).hostname.replace(/^www\./, "")}
         </span>
-        <ExternalLink className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${mine ? "text-white/40" : "text-black/40 dark:text-white/40"}`} />
+        <ExternalLink className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${mine ? "text-[#8C8C8C]" : "text-black/40 dark:text-white/40"}`} />
       </div>
     </a>
   );
                 }
 
-
-
-// Sona Purple text-to-speech: a small speaker button on Sona AI's text
-// replies. Self-contained — owns its own audio element + loading/playing
-// state — so dropping it into the message footer doesn't need Bubble to
-// track per-message playback state itself.
 function SonaListenButton({ chatId, text }: { chatId: string; text: string }) {
   const speak = useServerFn(synthesizeSpeech);
   const [status, setStatus] = useState<"idle" | "loading" | "playing">("idle");
@@ -2110,8 +2104,8 @@ export function VoicePlayer({
   };
 
   const secs = Math.round(durationMs / 1000);
-  const filledColor = mine ? "bg-white" : "bg-[var(--sona-accent,#E07A5F)]";
-  const mutedColor = mine ? "bg-white/30" : "bg-[var(--sona-accent,#E07A5F)]/25";
+  const filledColor = mine ? "bg-amber-300" : "bg-[var(--sona-accent,#E07A5F)]";
+  const mutedColor = mine ? "bg-gray-400" : "bg-[var(--sona-accent,#E07A5F)]/25";
 
   return (
     <div className="min-w-[260px] py-0.5">
@@ -2164,18 +2158,18 @@ export function VoicePlayer({
           <button
             onClick={handleTranscribeClick}
             disabled={transcribing}
-            className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-white/80" : "text-[#151c1c]"} hover:underline disabled:no-underline disabled:opacity-70`}
+            className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-[#8C8C8C] : "text-[#151c1c]"} hover:underline disabled:no-underline disabled:opacity-70`}
           >
             {transcribing && <Loader2 className="h-3 w-3 animate-spin" />}
             {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
           </button>
           {transcribeError && (
             <Tooltip title="Transcription failed">
-              <CircleAlert className={`h-3.5 w-3.5 shrink-0 ${mine ? "text-[#151c1c] " : "text-[#8C8C8C ]"}`} />
+              <CircleAlert className={`h-3.5 w-3.5 shrink-0 ${mine ? "text-blue-400 " : "text-[#8C8C8C ]"}`} />
             </Tooltip>
           )}
         </div>
-        <span className={`text-[10px] tabular-nums ${mine ? "text-[#151c1c] " : "text-[#151c1c]"}`}>
+        <span className={`text-[10px] tabular-nums ${mine ? "text-[#8C8C8C] " : "text-amber-400"}`}>
           {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
         </span>
       </div>
