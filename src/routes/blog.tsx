@@ -16,9 +16,6 @@ export const Route = createFileRoute("/blog")({
         content: "Guides on privacy, group chats, and AI — from the team building Sona.",
       },
     ],
-    // AdSense loader is scoped to this content layout and everything nested
-    // under it (/blog and /blog/$slug) — it must never load on the private
-    // chat app or auth screens, which is why it's not in __root.tsx.
     scripts: [
       {
         async: true,
@@ -32,17 +29,29 @@ export const Route = createFileRoute("/blog")({
 
 function BlogLayout() {
   return (
-    <div className="min-h-dvh bg-[#FAF8F5] text-[#111b21] dark:bg-[#151c1c] dark:text-white">
-      <header className="sticky top-0 z-10 border-b border-black/5 bg-white dark:bg-[#1a1a1a]">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <Link to="/" className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10">
-            <ArrowLeft className="h-5 w-5" />
+    <div className="relative min-h-dvh bg-[#FFFDF9] text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
+      {/* Subtle ambient background gradient for premium feel */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent dark:from-purple-900/10" />
+      
+      <header className="sticky top-0 z-20 border-b border-zinc-200/60 bg-white/80 backdrop-blur-xl transition-colors dark:border-zinc-800/60 dark:bg-[#0F0F11]/80">
+        <div className="mx-auto flex max-w-3xl items-center gap-4 px-5 py-4 sm:px-8">
+          <Link 
+            to="/" 
+            className="group grid h-10 w-10 place-items-center rounded-full border border-zinc-200 bg-white/50 shadow-sm transition-all hover:border-zinc-300 hover:bg-white hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
+            aria-label="Back to Sona"
+          >
+            <ArrowLeft className="h-4.5 w-4.5 text-zinc-600 transition-transform group-hover:-translate-x-0.5 dark:text-zinc-400" />
           </Link>
-          <Link to="/blog" className="text-lg font-bold">Sona Blog</Link>
+          <Link 
+            to="/blog" 
+            className="text-lg font-bold tracking-tight text-zinc-900 transition-colors hover:text-[var(--sona-accent,#E07A5F)] dark:text-white dark:hover:text-[var(--sona-accent,#E07A5F)]"
+          >
+            Sona Blog
+          </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8">
+      <main className="relative mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
         <Outlet />
       </main>
     </div>
