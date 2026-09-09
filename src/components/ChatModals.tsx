@@ -28,7 +28,8 @@ import type { ClassRow } from "@/features/classroom";
 import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, parseAllowedEmails, type ChatInviteRow } from "@/features/invites";
 import SoundSettings from "./SoundSettings";
 import { postSystemMessage } from "@/lib/systemMessages";
-import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, countMyChats, countMessagesSentToday } from "@/lib/planLimits";
+import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, FREE_PIN_LIMIT, countMyChats, countMessagesSentToday } from "@/lib/planLimits";
+import { PRICING, type BillingInterval } from "@/lib/pricing";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
@@ -1050,6 +1051,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const [instagramUrl, setInstagramUrl] = useState(me.instagram_url ?? "");
   const [threadsUrl, setThreadsUrl] = useState(me.threads_url ?? "");
   const [busy, setBusy] = useState(false);
+  const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [avatarUrl, setAvatarUrl] = useState(me.avatar_url ?? "");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -1162,7 +1164,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const upgrade = async () => {
     setBusy(true);
     try {
-      const r = await paystackCheckout() as { url: string };
+      const r = await paystackCheckout({ data: { interval } }) as { url: string };
       notify.success({ message: "Redirecting to Paystack…", description: "You'll be taken to a secure checkout page." });
       window.location.href = r.url;
     } catch (e) { 
@@ -1494,6 +1496,29 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                 transition={{ duration: 0.2 }}
                 className="space-y-4 pb-4 text-sm"
               >
+                {/* Free plan — always shown so people can see what they're on / what they'd give up */}
+                <div className={`rounded-3xl border p-5 ${!me.is_pro ? "border-zinc-300 dark:border-zinc-600" : "border-zinc-200/70 dark:border-zinc-700/50"} bg-white/40 dark:bg-zinc-900/40`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-zinc-100">
+                      <span>Free</span>
+                      {!me.is_pro && (
+                        <span className="rounded-full bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+                          Current plan
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-lg font-black text-zinc-900 dark:text-zinc-100">
+                      R0<span className="text-[11px] font-semibold text-zinc-500">/month</span>
+                    </div>
+                  </div>
+                  <ul className="mt-3 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
+                    <li>Up to {FREE_CHAT_LIMIT} chats</li>
+                    <li>{FREE_DAILY_MESSAGE_LIMIT} messages a day</li>
+                    <li>Pin up to {FREE_PIN_LIMIT} chats</li>
+                    <li>Photos, voice notes, files, groups & invite links</li>
+                  </ul>
+                </div>
+
                 {/* 3D tilt card wrapper */}
                 <div
                   className="relative group"
