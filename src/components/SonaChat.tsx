@@ -1900,11 +1900,20 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     }
   };
 
+  // One reaction per user per message: tapping the emoji you already
+  // reacted with clears it; tapping a different one replaces it (updates
+  // the existing row's emoji instead of adding a second row alongside
+  // it). Matches the DB's unique(message_id, user_id) constraint.
   const toggleReaction = async (messageId: string, emoji: string) => {
     if (!me) return;
-    const existing = reactions.find((r) => r.message_id === messageId && r.user_id === me.id && r.emoji === emoji);
-    if (existing) await supabase.from("reactions").delete().eq("id", existing.id);
-    else await supabase.from("reactions").insert({ message_id: messageId, user_id: me.id, emoji });
+    const existing = reactions.find((r) => r.message_id === messageId && r.user_id === me.id);
+    if (existing && existing.emoji === emoji) {
+      await supabase.from("reactions").delete().eq("id", existing.id);
+    } else if (existing) {
+      await supabase.from("reactions").update({ emoji }).eq("id", existing.id);
+    } else {
+      await supabase.from("reactions").insert({ message_id: messageId, user_id: me.id, emoji });
+    }
     setReactingOn(null);
     loadChats();
   };
