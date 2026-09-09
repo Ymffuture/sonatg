@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, Crown, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Crown, Sparkles, ShieldCheck, Zap } from "lucide-react";
 import { PRICING } from "@/lib/pricing";
 import { FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, FREE_PIN_LIMIT } from "@/lib/planLimits";
 
@@ -43,94 +43,137 @@ const purpleFeatures = [
 
 function PricingPage() {
   return (
-    <main className="min-h-screen bg-[#FFFDF9] text-zinc-900 dark:bg-[#141414] dark:text-zinc-100">
-      <div className="mx-auto w-full max-w-4xl px-5 py-10">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
-          <ArrowLeft className="h-4 w-4" /> Back to Sona
+    <main className="relative min-h-screen bg-[#FFFDF9] text-zinc-900 dark:bg-[#0F0F11] dark:text-zinc-100 transition-colors duration-300">
+      {/* Subtle ambient background gradient for premium feel */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent dark:from-purple-900/10" />
+      
+      <div className="relative mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
+        <Link 
+          to="/" 
+          className="group inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 px-4 py-2 text-sm font-semibold text-zinc-600 backdrop-blur-md transition-all hover:border-zinc-300 hover:text-zinc-900 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-100"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" /> 
+          Back to Sona
         </Link>
 
-        <header className="mt-8 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#8B5CF6]">
+        <header className="mt-12 text-center sm:mt-16">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#8B5CF6] ring-1 ring-inset ring-[#8B5CF6]/20 dark:bg-[#8B5CF6]/15 dark:ring-[#8B5CF6]/30">
             <Crown className="h-3.5 w-3.5" /> Sona Purple
           </span>
-          <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Simple pricing, no surprises</h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
+          <h1 className="mt-6 text-4xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
+            Simple pricing, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8B5CF6] to-[#E07A5F]">no surprises</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
             Start free. Upgrade to Purple whenever you want more chats, calls and AI help. Cancel any time.
           </p>
         </header>
 
-        <section className="mt-10 grid gap-5 sm:grid-cols-2">
-          <div className="rounded-3xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
-            <h2 className="text-lg font-bold">Free</h2>
-            <p className="mt-1 text-3xl font-black">R0<span className="text-sm font-semibold text-zinc-500">/month</span></p>
-            <ul className="mt-5 space-y-2.5 text-sm">
+        <section className="mt-12 grid gap-6 sm:mt-16 sm:grid-cols-2">
+          {/* Free Plan */}
+          <div className="group relative flex flex-col rounded-3xl border border-zinc-200 bg-white/60 p-8 backdrop-blur-xl transition-all hover:border-zinc-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:border-zinc-700 dark:hover:shadow-zinc-900/50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                <Zap className="h-5 w-5" />
+              </div>
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Free</h2>
+            </div>
+            <div className="mt-6 flex items-baseline gap-1">
+              <span className="text-4xl font-black text-zinc-900 dark:text-white">R0</span>
+              <span className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">/month</span>
+            </div>
+            <ul className="mt-8 flex-1 space-y-4 text-sm">
               {freeFeatures.map((f) => (
-                <li key={f} className="flex items-start gap-2.5">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
+                <li key={f} className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                    <Check className="h-3 w-3 text-zinc-600 dark:text-zinc-400" />
+                  </div>
                   <span className="text-zinc-700 dark:text-zinc-300">{f}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="relative overflow-hidden rounded-3xl border border-[#8B5CF6]/30 bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-orange-500/5 p-6 shadow-xl">
-            <span className="absolute right-5 top-5 rounded-full bg-[#8B5CF6] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+          {/* Purple Plan */}
+          <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-[#8B5CF6]/30 bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-orange-500/5 p-8 shadow-2xl shadow-purple-500/10 transition-all hover:shadow-purple-500/20 dark:border-[#8B5CF6]/40 dark:from-violet-500/15 dark:via-purple-500/10 dark:to-orange-500/10 dark:shadow-purple-900/20">
+            {/* Ambient glow effect */}
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#8B5CF6]/20 blur-3xl" />
+            
+            <span className="absolute right-5 top-5 rounded-full bg-[#8B5CF6] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-lg shadow-purple-500/30">
               {PRICING.yearly.savePercent}% off yearly
             </span>
-            <h2 className="flex items-center gap-2 text-lg font-bold">
-              <Sparkles className="h-4 w-4 text-[#8B5CF6]" /> Purple
-            </h2>
-            <p className="mt-1 text-3xl font-black">
-              {PRICING.monthly.label}
-              <span className="text-sm font-semibold text-zinc-500">{PRICING.monthly.per}</span>
+            
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#8B5CF6]/20 text-[#8B5CF6] ring-1 ring-inset ring-[#8B5CF6]/30">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Purple</h2>
+            </div>
+            
+            <div className="mt-6 flex items-baseline gap-1">
+              <span className="text-4xl font-black text-zinc-900 dark:text-white">{PRICING.monthly.label}</span>
+              <span className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">{PRICING.monthly.per}</span>
+            </div>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              or <strong className="text-zinc-900 dark:text-zinc-100">{PRICING.yearly.label}{PRICING.yearly.per}</strong> — that's <strong className="text-[#8B5CF6]">{PRICING.yearly.perMonthLabel}</strong> a month.
             </p>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              or <strong>{PRICING.yearly.label}{PRICING.yearly.per}</strong> — that's {PRICING.yearly.perMonthLabel} a month.
-            </p>
-            <ul className="mt-5 space-y-2.5 text-sm">
+            
+            <ul className="mt-8 flex-1 space-y-4 text-sm">
               {purpleFeatures.map((f) => (
-                <li key={f} className="flex items-start gap-2.5">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#8B5CF6]" />
-                  <span className="text-zinc-700 dark:text-zinc-300">{f}</span>
+                <li key={f} className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6]/15 ring-1 ring-inset ring-[#8B5CF6]/20 dark:bg-[#8B5CF6]/20">
+                    <Check className="h-3 w-3 text-[#8B5CF6]" />
+                  </div>
+                  <span className="text-zinc-800 dark:text-zinc-200">{f}</span>
                 </li>
               ))}
             </ul>
+
             <Link
               to="/"
-              className="mt-6 block w-full rounded-2xl bg-[#8B5CF6] px-4 py-3 text-center text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:-translate-y-0.5 hover:bg-[#7c3aed]"
+              className="mt-8 block w-full rounded-2xl bg-[#8B5CF6] px-4 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-purple-500/25 transition-all hover:-translate-y-0.5 hover:bg-[#7c3aed] hover:shadow-purple-500/40 active:translate-y-0"
             >
               Upgrade in Settings → Subscription
             </Link>
           </div>
         </section>
 
-        <section className="mt-12 space-y-6 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-          <div>
-            <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">How billing works</h2>
-            <p className="mt-2">
+        <section className="mt-16 space-y-8 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-20">
+          <div className="rounded-2xl border border-zinc-200 bg-white/50 p-6 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/30">
+            <h2 className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-100">
+              <ShieldCheck className="h-5 w-5 text-[#8B5CF6]" /> How billing works
+            </h2>
+            <p className="mt-3">
               Payments are handled securely by Paystack in South African Rand. Monthly plans renew every month on the day you
               subscribed; yearly plans renew once a year. Purple features unlock as soon as your payment goes through.
             </p>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Cancelling your plan</h2>
-            <p className="mt-2">
-              You can cancel any time — open <strong>Settings → Subscription</strong> in Sona and choose <strong>Cancel plan</strong>,
-              or use the manage-subscription link in the receipt email from Paystack. You keep Purple until the end of the period
-              you already paid for, then your account moves back to the free plan. Nothing is deleted: your chats and media stay,
-              but the free limits ({FREE_CHAT_LIMIT} chats, {FREE_DAILY_MESSAGE_LIMIT} messages a day, {FREE_PIN_LIMIT} pinned chats) apply again.
-            </p>
+          
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Cancelling your plan</h2>
+              <p className="mt-3">
+                You can cancel any time — open <strong className="text-zinc-900 dark:text-zinc-100">Settings → Subscription</strong> in Sona and choose <strong className="text-zinc-900 dark:text-zinc-100">Cancel plan</strong>,
+                or use the manage-subscription link in the receipt email from Paystack. You keep Purple until the end of the period
+                you already paid for, then your account moves back to the free plan. Nothing is deleted: your chats and media stay,
+                but the free limits ({FREE_CHAT_LIMIT} chats, {FREE_DAILY_MESSAGE_LIMIT} messages a day, {FREE_PIN_LIMIT} pinned chats) apply again.
+              </p>
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Refunds</h2>
+              <p className="mt-3">
+                Payments already taken aren't refunded, but cancelling stops all future charges immediately. If something went
+                wrong with a charge, contact us and we'll sort it out.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Refunds</h2>
-            <p className="mt-2">
-              Payments already taken aren't refunded, but cancelling stops all future charges immediately. If something went
-              wrong with a charge, contact us and we'll sort it out.
-            </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4 text-xs text-zinc-500 dark:text-zinc-500">
+            <span>Secured by Paystack</span>
+            <span className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            <Link to="/terms" className="underline underline-offset-2 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">Terms</Link>
+            <span className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            <Link to="/privacy" className="underline underline-offset-2 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">Privacy Policy</Link>
           </div>
-          <p className="text-xs text-zinc-500">
-            See our <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy" className="underline">Privacy Policy</Link> for the full details.
-          </p>
         </section>
       </div>
     </main>
