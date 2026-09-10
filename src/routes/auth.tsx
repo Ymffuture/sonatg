@@ -15,7 +15,7 @@ const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
   return (
-    <span className="ml-auto rounded-full bg-[#E07A5F]/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#E07A5F]">
+    <span className="ml-auto rounded-full bg-[#E07A5F]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
       Last used
     </span>
   );
@@ -72,7 +72,6 @@ function SpotifyIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-
 /* ─── Logo Component with PNG fallback ─── */
 function BrandLogo({ className = "" }: { className?: string }) {
   const [imgError, setImgError] = useState(false);
@@ -88,10 +87,9 @@ function BrandLogo({ className = "" }: { className?: string }) {
     );
   }
 
-  // Fallback text logo if PNG fails to load
   return (
-    <div className={`leading-none min-w-0 rounded-xl bg-gradient-to-br from-[#E07A5F]/10 to-[#F4A261]/5 px-3.5 py-2 dark:from-[#E07A5F]/20 dark:to-transparent border border-[#E07A5F]/10 ${className}`}>
-      <span className="text-[20px] font-bold tracking-tight text-[#2D3436] dark:text-white">
+    <div className={`leading-none min-w-0 rounded-xl bg-zinc-100 dark:bg-zinc-800 px-3.5 py-2 border border-zinc-200/60 dark:border-zinc-700/60 ${className}`}>
+      <span className="text-[20px] font-bold tracking-tight text-zinc-900 dark:text-white">
         Sona<span className="font-black text-[#E07A5F]">TG</span>
       </span>
     </div>
@@ -119,10 +117,6 @@ function AuthPage() {
     }
   }, []);
 
-  // Picks up the friendly error message the /auth/callback route hands
-  // off when an OAuth provider rejects the sign-in (e.g. Spotify's
-  // "unverified email" error), and clears it from the URL so it doesn't
-  // reappear on refresh.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const authError = params.get("authError");
@@ -173,8 +167,7 @@ function AuthPage() {
         if (error) throw error;
         localStorage.setItem(LAST_USED_KEY, "email");
 
-        const alreadyRegistered =
-          data.user && data.user.identities && data.user.identities.length === 0;
+        const alreadyRegistered = data.user && data.user.identities && data.user.identities.length === 0;
 
         if (alreadyRegistered) {
           setErrorMsg("An account with this email already exists. Try signing in instead.");
@@ -230,36 +223,36 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-dvh relative flex flex-col items-center justify-center overflow-hidden bg-[#F0EBE3] dark:bg-[#1A1A1A] p-4">
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#FFFDF9] p-4 text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
       {/* Ambient background blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-[#E07A5F]/15 blur-[100px] animate-pulse" />
-        <div className="absolute top-1/3 -right-32 h-[500px] w-[500px] rounded-full bg-[#F4A261]/15 blur-[100px] animate-pulse" style={{ animationDelay: '1.5s' }} />
-        <div className="absolute -bottom-32 left-1/4 h-[500px] w-[500px] rounded-full bg-[#E07A5F]/10 blur-[100px] animate-pulse" style={{ animationDelay: '3s' }} />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-purple-100/40 blur-[120px] dark:bg-purple-900/10" />
+        <div className="absolute top-1/3 -right-32 h-[500px] w-[500px] rounded-full bg-[#E07A5F]/10 blur-[120px]" />
+        <div className="absolute -bottom-32 left-1/4 h-[500px] w-[500px] rounded-full bg-[#F4A261]/10 blur-[120px]" />
       </div>
 
       {/* Floating glass bubbles — desktop only */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden lg:block">
-        <div className="absolute top-[18%] left-[8%] px-4 py-2.5 rounded-2xl rounded-bl-sm bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl animate-float">
-          <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
+      <div className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
+        <div className="absolute top-[18%] left-[8%] animate-float rounded-2xl rounded-bl-sm border border-zinc-200/60 bg-white/60 px-4 py-3 shadow-xl backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/60">
+          <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
             <MessageCircle className="h-4 w-4 text-[#E07A5F]" />
             <span>Hey! Welcome to Sona</span>
           </div>
         </div>
-        <div className="absolute top-[30%] right-[10%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-[#E07A5F]/20 backdrop-blur-xl border border-[#E07A5F]/20 shadow-xl animate-float" style={{ animationDelay: '1.5s' }}>
-          <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
+        <div className="absolute top-[30%] right-[10%] animate-float rounded-2xl rounded-br-sm border border-[#E07A5F]/20 bg-[#E07A5F]/10 px-4 py-3 shadow-xl backdrop-blur-xl" style={{ animationDelay: '1.5s' }}>
+          <div className="flex items-center gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             <Sparkles className="h-4 w-4 text-[#E07A5F]" />
             <span>AI-powered chats</span>
           </div>
         </div>
-        <div className="absolute bottom-[22%] left-[12%] px-4 py-2.5 rounded-2xl rounded-bl-sm bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl animate-float" style={{ animationDelay: '3s' }}>
-          <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
+        <div className="absolute bottom-[22%] left-[12%] animate-float rounded-2xl rounded-bl-sm border border-zinc-200/60 bg-white/60 px-4 py-3 shadow-xl backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/60" style={{ animationDelay: '3s' }}>
+          <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
             <Shield className="h-4 w-4 text-[#E07A5F]" />
             <span>End-to-end encrypted</span>
           </div>
         </div>
-        <div className="absolute bottom-[35%] right-[8%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-[#E07A5F]/20 backdrop-blur-xl border border-[#E07A5F]/20 shadow-xl animate-float" style={{ animationDelay: '2.5s' }}>
-          <div className="flex items-center gap-2 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
+        <div className="absolute bottom-[35%] right-[8%] animate-float rounded-2xl rounded-br-sm border border-[#E07A5F]/20 bg-[#E07A5F]/10 px-4 py-3 shadow-xl backdrop-blur-xl" style={{ animationDelay: '2.5s' }}>
+          <div className="flex items-center gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             <Zap className="h-4 w-4 text-[#E07A5F]" />
             <span>Talk gold</span>
           </div>
@@ -271,12 +264,13 @@ function AuthPage() {
         initial={{ opacity: 0, y: 24, scale: 0.985 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-5xl rounded-[2rem] bg-white/60 dark:bg-[#242424]/60 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-2xl overflow-hidden">
-        <div className="flex flex-col min-h-[640px]">
+        className="relative z-10 w-full max-w-5xl overflow-hidden rounded-3xl border border-zinc-200/60 bg-white/70 shadow-2xl backdrop-blur-2xl dark:border-zinc-800/60 dark:bg-zinc-900/70 dark:shadow-black/40"
+      >
+        <div className="flex min-h-[640px] flex-col lg:flex-row">
           
-          {/* Top panel — Form */}
-          <div className="flex flex-col justify-center p-6 sm:p-10 lg:py-12 lg:px-24 xl:px-32">
-            <div className="flex items-center gap-3 mb-8">
+          {/* Left panel — Form */}
+          <div className="flex flex-col justify-center p-6 sm:p-10 lg:w-1/2 lg:py-12 lg:px-16 xl:px-20">
+            <div className="mb-8 flex items-center gap-3">
               <BrandLogo className="h-10 w-auto" />
             </div>
 
@@ -289,16 +283,16 @@ function AuthPage() {
                 transition={{ duration: 0.25 }}
                 className="mb-8"
               >
-                <h2 className="text-2xl sm:text-3xl font-bold text-[#2D3436] dark:text-[#E8E8E8]">
+                <h2 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
                   {mode === "signin" ? "Welcome back" : "Create account"}
                 </h2>
-                <p className="mt-2 text-sm text-[#8C8C8C]">
+                <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
                   {mode === "signin"
                     ? "Sign in to continue your conversations."
                     : "Join the community and start talking gold."}
                 </p>
                 {lastUsed === "email" && mode === "signin" && (
-                  <p className="mt-3 inline-flex items-center rounded-full bg-[#E07A5F]/10 px-3 py-1 text-xs text-[#E07A5F]">
+                  <p className="mt-3 inline-flex items-center rounded-full bg-[#E07A5F]/10 px-3 py-1 text-xs font-semibold text-[#E07A5F]">
                     You last signed in with your email
                   </p>
                 )}
@@ -310,7 +304,7 @@ function AuthPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="mb-4"
+                className="mb-6"
               >
                 <Alert
                   message={errorMsg}
@@ -318,40 +312,36 @@ function AuthPage() {
                   showIcon
                   closable
                   onClose={() => setErrorMsg(null)}
-                  className="rounded-xl"
-                  style={{
-                    backgroundColor: 'rgba(224, 122, 95, 0.08)',
-                    borderColor: 'rgba(224, 122, 95, 0.25)',
-                  }}
+                  className="rounded-xl border-red-500/20 bg-red-500/5 text-red-600 dark:bg-red-500/10 dark:text-red-400"
                 />
               </motion.div>
             )}
 
-            <form onSubmit={submit} className="space-y-3">
+            <form onSubmit={submit} className="space-y-4">
               {mode === "signup" && (
                 <div className="relative group">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C8C8C] transition group-focus-within:text-[#E07A5F]" />
+                  <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Display name"
-                    className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#A0A0A0] transition-all"
+                    className="w-full rounded-xl border border-zinc-200/60 bg-zinc-50/50 px-11 py-3.5 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[#E07A5F]/40 focus:bg-white focus:ring-2 focus:ring-[#E07A5F]/10 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:focus:border-[#E07A5F]/40 dark:focus:bg-zinc-900"
                   />
                 </div>
               )}
               <div className="relative group">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C8C8C] transition group-focus-within:text-[#E07A5F]" />
+                <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email address"
-                  className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#A0A0A0] transition-all"
+                  className="w-full rounded-xl border border-zinc-200/60 bg-zinc-50/50 px-11 py-3.5 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[#E07A5F]/40 focus:bg-white focus:ring-2 focus:ring-[#E07A5F]/10 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:focus:border-[#E07A5F]/40 dark:focus:bg-zinc-900"
                 />
               </div>
               <div className="relative group">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C8C8C] transition group-focus-within:text-[#E07A5F]" />
+                <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
                 <input
                   type="password"
                   required
@@ -359,31 +349,31 @@ function AuthPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full rounded-xl bg-[#F5F0E8] dark:bg-[#2A2A2A] pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#E07A5F]/40 text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#A0A0A0] transition-all"
+                  className="w-full rounded-xl border border-zinc-200/60 bg-zinc-50/50 px-11 py-3.5 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[#E07A5F]/40 focus:bg-white focus:ring-2 focus:ring-[#E07A5F]/10 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:focus:border-[#E07A5F]/40 dark:focus:bg-zinc-900"
                 />
               </div>
 
               {mode === "signup" && (
-                <div className="flex items-start gap-3 mt-2">
+                <div className="flex items-start gap-3 pt-1">
                   <input
                     id="acceptTerms"
                     type="checkbox"
                     checked={acceptTerms}
                     onChange={(e) => setAcceptTerms(e.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#E07A5F] rounded cursor-pointer"
+                    className="mt-1 h-4 w-4 cursor-pointer rounded border-zinc-300 text-[#E07A5F] focus:ring-[#E07A5F]/20 dark:border-zinc-700 dark:bg-zinc-800"
                   />
-                  <label htmlFor="acceptTerms" className="text-sm text-[#6B6B6B] cursor-pointer">
-                    I agree to the <Link to="/terms" className="text-[#E07A5F] hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-[#E07A5F] hover:underline">Privacy Policy</Link>.
+                  <label htmlFor="acceptTerms" className="cursor-pointer text-sm text-zinc-500 dark:text-zinc-400">
+                    I agree to the <Link to="/terms" className="font-semibold text-[#E07A5F] hover:underline">Terms of Service</Link> and <Link to="/privacy" className="font-semibold text-[#E07A5F] hover:underline">Privacy Policy</Link>.
                   </label>
                 </div>
               )}
 
               <button
                 disabled={loading}
-                className="group w-full rounded-xl bg-gradient-to-r from-[#E07A5F] to-[#D4694F] py-3 text-sm font-semibold text-white shadow-lg shadow-[#E07A5F]/25 transition-all hover:shadow-xl hover:shadow-[#E07A5F]/30 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-zinc-900 py-3.5 text-sm font-bold text-white shadow-lg shadow-zinc-900/20 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 dark:bg-white dark:text-zinc-900 dark:shadow-white/20"
               >
                 {loading ? (
-                  <LoadingOutlined style={{ fontSize: 16, color: '#fff' }} />
+                  <LoadingOutlined style={{ fontSize: 16 }} />
                 ) : (
                   <>
                     {mode === "signin" ? "Sign in" : "Get started"}
@@ -392,51 +382,48 @@ function AuthPage() {
                 )}
               </button>
             </form>
+
             {mode === "signin" && (
-              <div className="mt-3 text-sm text-center">
-  <button
-    onClick={() => navigate({ to: "/forgot-password" })}
-    className="text-[#E07A5F] hover:text-[#C45D43] underline decoration-dashed underline-offset-2 transition"
-  >
-    Forgot password?
-  </button>
-</div>
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => navigate({ to: "/forgot-password" })}
+                  className="text-sm font-medium text-zinc-500 transition-colors hover:text-[#E07A5F] dark:text-zinc-400"
+                >
+                  Forgot password?
+                </button>
+              </div>
             )}
 
-            <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-widest text-[#8C8C8C] font-medium">
-              <div className="h-px flex-1 bg-[#E07A5F]/10" />
+            <div className="my-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+              <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
               OR
-              <div className="h-px flex-1 bg-[#E07A5F]/10" />
+              <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
             </div>
 
             {/* ─── Smart Social Login Buttons ─── */}
             <div className="grid grid-cols-1 gap-3">
-              {/* Google */}
               <button
                 onClick={() => oauth("google")}
                 disabled={loading || !!oauthLoading}
-                className="group relative w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#4285F4]/30 hover:shadow-md hover:shadow-[#4285F4]/10 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
+                className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
                   {oauthLoading === "google" ? <Loader2 className="h-5 w-5 animate-spin text-[#4285F4]" /> : <GoogleIcon className="h-5 w-5" />}
                 </div>
                 <span className="flex-1 text-left">{oauthLoading === "google" ? "Redirecting to Google…" : "Continue with Google"}</span>
                 {lastUsed === "google" && <LastUsed />}
-                <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#4285F4] transition-all duration-300 group-hover:w-full" />
               </button>
 
-              {/* Facebook */}
               <button
                 onClick={() => oauth("facebook")}
                 disabled={loading || !!oauthLoading}
-                className="group relative w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#1877F2]/30 hover:shadow-md hover:shadow-[#1877F2]/10 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
+                className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
                   {oauthLoading === "facebook" ? <Loader2 className="h-5 w-5 animate-spin text-[#1877F2]" /> : <FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
                 </div>
                 <span className="flex-1 text-left">{oauthLoading === "facebook" ? "Redirecting to Facebook…" : "Continue with Facebook"}</span>
                 {lastUsed === "facebook" && <LastUsed />}
-                <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#1877F2] transition-all duration-300 group-hover:w-full" />
               </button>
             </div>
 
@@ -444,7 +431,7 @@ function AuthPage() {
             <button
               type="button"
               onClick={() => setShowMoreMethods((v) => !v)}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-medium text-[#8C8C8C] transition hover:text-[#E07A5F]"
+              className="mt-4 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-zinc-400 transition-colors hover:text-[#E07A5F]"
             >
               {showMoreMethods ? "Fewer options" : "More login options"}
               <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${showMoreMethods ? "rotate-180" : ""}`} />
@@ -462,36 +449,34 @@ function AuthPage() {
                   <button
                     onClick={() => oauth("github")}
                     disabled={loading || !!oauthLoading}
-                    className="group relative mt-1 w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-black/30 hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
+                    className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
-                      {oauthLoading === "github" ? <Loader2 className="h-5 w-5 animate-spin text-[#181717] dark:text-white" /> : <GitHubIcon className="h-5 w-5 text-[#181717] dark:text-white" />}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                      {oauthLoading === "github" ? <Loader2 className="h-5 w-5 animate-spin text-zinc-900 dark:text-white" /> : <GitHubIcon className="h-5 w-5 text-zinc-900 dark:text-white" />}
                     </div>
                     <span className="flex-1 text-left">{oauthLoading === "github" ? "Redirecting to GitHub…" : "Continue with GitHub"}</span>
                     {lastUsed === "github" && <LastUsed />}
-                    <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#181717] dark:bg-white transition-all duration-300 group-hover:w-full" />
                   </button>
 
                   <button
                     onClick={() => oauth("spotify")}
                     disabled={loading || !!oauthLoading}
-                    className="group relative mt-2 w-full overflow-hidden rounded-xl border border-[#E07A5F]/10 bg-white dark:bg-[#2A2A2A] py-3 px-4 text-sm font-medium text-[#2D3436] dark:text-[#E8E8E8] transition-all duration-300 hover:bg-[#F5F0E8] dark:hover:bg-[#333333] hover:border-[#1ED760]/40 hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3"
+                    className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:group-hover:bg-[#2A2A2A]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
                       {oauthLoading === "spotify" ? <Loader2 className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
                     </div>
                     <span className="flex-1 text-left">{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
                     {lastUsed === "spotify" && <LastUsed />}
-                    <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#1ED760] transition-all duration-300 group-hover:w-full" />
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <p className="mt-8 text-center text-sm text-[#8C8C8C]">
+            <p className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
               {mode === "signin" ? "New to Sona?" : "Already have an account?"} {" "}
               <button
-                className="font-semibold text-[#E07A5F] hover:text-[#C45D43] transition underline underline-offset-2"
+                className="font-bold text-[#E07A5F] transition-colors hover:text-[#C45D43]"
                 onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
               >
                 {mode === "signin" ? "Create one" : "Sign in"}
@@ -499,47 +484,47 @@ function AuthPage() {
             </p>
 
             {/* Trust badges */}
-            <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-[#8C8C8C]">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-[#E07A5F]" /> Free forever
+            <div className="mt-8 flex items-center justify-center gap-6 text-[11px] font-semibold text-zinc-400">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#E07A5F]" /> Free forever
               </span>
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-[#E07A5F]" /> No credit card
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#E07A5F]" /> No credit card
               </span>
             </div>
           </div>
 
-          {/* Bottom panel — Branding */}
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 p-8 lg:p-10 bg-gradient-to-br from-[#E07A5F] to-[#C45D43] text-white relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          {/* Right panel — Branding */}
+          <div className="relative flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#E07A5F] to-[#C45D43] p-8 text-white lg:w-1/2 lg:p-12">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
               <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
               <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full border border-white/10" />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full border border-white/10" />
             </div>
 
-            <div className="relative z-10 text-center lg:text-left">
-              <h2 className="text-3xl lg:text-4xl font-bold leading-[1.1] mb-3">
+            <div className="relative z-10 mb-10 text-center lg:text-left">
+              <h2 className="mb-4 text-4xl font-black leading-[1.1] tracking-tight lg:text-5xl">
                 Connect with<br className="hidden lg:block" /> people who<br className="hidden lg:block" /> matter.
               </h2>
-              <p className="text-white/80 text-sm leading-relaxed max-w-[320px] mx-auto lg:mx-0">
+              <p className="mx-auto max-w-[320px] text-sm leading-relaxed text-white/80 lg:mx-0">
                 Join thousands of conversations. Chat smart, stay private, and express yourself freely with Sona.
               </p>
             </div>
 
-            <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <div className="relative z-10 flex flex-col gap-3">
               {[
                 { icon: MessageCircle, label: "Smart Messaging", desc: "AI-powered conversations" },
                 { icon: Shield, label: "Private & Secure", desc: "Encrypted by default" },
                 { icon: Zap, label: "Lightning Fast", desc: "Real-time sync across devices" },
               ].map((feature) => (
-                <div key={feature.label} className="flex-1 min-w-[180px] flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-3 transition hover:bg-white/15">
-                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                    <feature.icon className="h-4 w-4" />
+                <div key={feature.label} className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md transition-all hover:bg-white/15">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
+                    <feature.icon className="h-5 w-5" />
                   </div>
                   <div className="text-sm">
-                    <div className="font-semibold">{feature.label}</div>
-                    <div className="text-white/70 text-xs">{feature.desc}</div>
+                    <div className="font-bold">{feature.label}</div>
+                    <div className="text-xs text-white/70">{feature.desc}</div>
                   </div>
                 </div>
               ))}
@@ -550,29 +535,29 @@ function AuthPage() {
 
       {/* Public content footer */}
       <div className="relative z-10 mt-10 w-full max-w-3xl text-center">
-        <p className="mx-auto max-w-xl text-sm leading-6 text-[#5b5b5b] dark:text-[#a8a8a8]">
+        <p className="mx-auto max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
           Sona is a private messaging app with real-time chat, voice and video calls, and an
           AI assistant you can bring into any conversation with an @sona mention. Messages are
           protected by database-level access control by default, and Sona Pro adds fully
           encrypted, hidden chats for conversations where privacy matters most.
         </p>
-        <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-[#8C8C8C]">
-          <Link to="/blog" className="hover:text-[#E07A5F] hover:underline">Blog</Link>
-          <Link to="/help" className="hover:text-[#E07A5F] hover:underline">Help Center</Link>
-          <Link to="/faq" className="hover:text-[#E07A5F] hover:underline">FAQ</Link>
-          <Link to="/learn" className="hover:text-[#E07A5F] hover:underline">How Sona works</Link>
-          <Link to="/privacy" className="hover:text-[#E07A5F] hover:underline">Privacy</Link>
-          <Link to="/terms" className="hover:text-[#E07A5F] hover:underline">Terms</Link>
+        <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs font-semibold text-zinc-400">
+          <Link to="/blog" className="transition-colors hover:text-[#E07A5F]">Blog</Link>
+          <Link to="/help" className="transition-colors hover:text-[#E07A5F]">Help Center</Link>
+          <Link to="/faq" className="transition-colors hover:text-[#E07A5F]">FAQ</Link>
+          <Link to="/learn" className="transition-colors hover:text-[#E07A5F]">How Sona works</Link>
+          <Link to="/privacy" className="transition-colors hover:text-[#E07A5F]">Privacy</Link>
+          <Link to="/terms" className="transition-colors hover:text-[#E07A5F]">Terms</Link>
         </nav>
       </div>
 
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-16px) rotate(1deg); }
+          50% { transform: translateY(-12px) rotate(1deg); }
         }
         .animate-float {
-          animation: float 5s ease-in-out infinite;
+          animation: float 6s ease-in-out infinite;
         }
       `}</style>
     </div>
