@@ -6,7 +6,7 @@ import {
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
   FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
-  Sparkles, ArrowUp, ArrowDown, CornerDownLeft,
+  Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PollCard } from "@/features/classroom";
@@ -2210,6 +2210,7 @@ export function Composer({
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");  const [isDark, setIsDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
   useEffect(() => {
     const el = document.documentElement;
@@ -2510,6 +2511,20 @@ export function Composer({
       {!recording && (
         <div className="relative mx-auto flex max-w-3xl items-end gap-2">
           <AnimatePresence>
+            {showPreview && draft.trim() && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, y: 8, height: 0 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-full left-0 right-0 mb-2 max-h-40 overflow-y-auto rounded-2xl border border-[var(--sona-accent,#E07A5F)]/20 bg-white dark:bg-[#1E1E1E] px-4 py-3 text-[15px] text-[#2D3436] dark:text-[#E8E8E8] shadow-lg"
+              >
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--sona-accent,#E07A5F)] opacity-70">Preview</p>
+                {renderMarkdown(draft, false)}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
             {showSlashMenu && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.97, y: 8 }}
@@ -2614,6 +2629,19 @@ export function Composer({
                 )}
               </AnimatePresence>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowPreview((s) => !s)}
+              disabled={!draft.trim()}
+              title={showPreview ? "Hide markdown preview" : "Preview markdown formatting"}
+              aria-pressed={showPreview}
+              className={`grid h-8 w-8 shrink-0 mb-1 place-items-center self-end rounded-full transition-colors disabled:opacity-30 ${
+                showPreview ? "bg-[var(--sona-accent,#E07A5F)]/15 text-[var(--sona-accent,#E07A5F)]" : "text-[#8C8C8C] hover:bg-[var(--sona-accent,#E07A5F)]/10"
+              }`}
+            >
+              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
 
             <textarea
               id="sona-message-composer"
