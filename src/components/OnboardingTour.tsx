@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Sparkles } from "lucide-react";
 
 export type TourStep = {
   targetSelector: string;
@@ -72,14 +72,14 @@ export function OnboardingTour({ steps, onFinish }: { steps: TourStep[]; onFinis
 
   if (!step) return null;
 
-  const pad = 10;
+  const pad = 12;
   const highlight = rect
     ? { top: rect.top - pad, left: rect.left - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }
     : null;
 
   const placement = step.placement ?? "bottom";
-  const cardWidth = 320;
-  const margin = 18;
+  const cardWidth = 340;
+  const margin = 20;
 
   let cardStyle: React.CSSProperties = { position: "fixed", zIndex: 210 };
   if (highlight) {
@@ -100,28 +100,28 @@ export function OnboardingTour({ steps, onFinish }: { steps: TourStep[]; onFinis
   return (
     <div className="fixed inset-0 z-[200]">
       {/* Soft overlay with animated opacity */}
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-300" />
+      <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in duration-300 dark:bg-black/70" />
 
       {/* Spotlight cutout */}
       {highlight ? (
         <>
-          <div className="fixed bg-black/50 backdrop-blur-[2px]" style={{ top: 0, left: 0, right: 0, height: Math.max(0, highlight.top) }} />
-          <div className="fixed bg-black/50 backdrop-blur-[2px]" style={{ top: highlight.top + highlight.height, left: 0, right: 0, bottom: 0 }} />
-          <div className="fixed bg-black/50 backdrop-blur-[2px]" style={{ top: highlight.top, left: 0, width: Math.max(0, highlight.left), height: highlight.height }} />
-          <div className="fixed bg-black/50 backdrop-blur-[2px]" style={{ top: highlight.top, left: highlight.left + highlight.width, right: 0, height: highlight.height }} />
+          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: 0, left: 0, right: 0, height: Math.max(0, highlight.top) }} />
+          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: highlight.top + highlight.height, left: 0, right: 0, bottom: 0 }} />
+          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: highlight.top, left: 0, width: Math.max(0, highlight.left), height: highlight.height }} />
+          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: highlight.top, left: highlight.left + highlight.width, right: 0, height: highlight.height }} />
           
-          {/* Glow ring + pulse */}
+          {/* Premium Glow ring + pulse */}
           <div
-            className="fixed rounded-xl ring-[3px] ring-[#E07A5F]/60 shadow-[0_0_32px_rgba(224,122,95,0.25)] animate-pulse pointer-events-none transition-all duration-300"
+            className="fixed rounded-2xl ring-2 ring-[#E07A5F]/40 shadow-[0_0_40px_rgba(224,122,95,0.15)] animate-pulse pointer-events-none transition-all duration-500 ease-out"
             style={{ top: highlight.top, left: highlight.left, width: highlight.width, height: highlight.height }}
           />
           <div
-            className="fixed rounded-xl ring-1 ring-white/40 pointer-events-none transition-all duration-300"
+            className="fixed rounded-2xl ring-1 ring-white/20 pointer-events-none transition-all duration-500 ease-out"
             style={{ top: highlight.top, left: highlight.left, width: highlight.width, height: highlight.height }}
           />
         </>
       ) : (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px]" />
+        <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" />
       )}
 
       {/* Glass tooltip card */}
@@ -129,51 +129,52 @@ export function OnboardingTour({ steps, onFinish }: { steps: TourStep[]; onFinis
         ref={cardRef}
         style={cardStyle}
         className={`
-          w-[320px] rounded-2xl border border-white/20 bg-white/80 dark:bg-[#1E1E1E]/80 
-          backdrop-blur-xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.35)] p-5
-          transition-all duration-300 ease-out
-          ${entering ? "opacity-0 translate-y-3 scale-[0.97]" : "opacity-100 translate-y-0 scale-100"}
+          w-[340px] rounded-3xl border border-zinc-200/60 bg-white/90 dark:border-zinc-800/60 dark:bg-zinc-900/90 
+          backdrop-blur-2xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)] p-6
+          transition-all duration-500 ease-out
+          ${entering ? "opacity-0 translate-y-4 scale-[0.96]" : "opacity-100 translate-y-0 scale-100"}
         `}
       >
         {/* Small arrow notch */}
         {highlight && placement === "bottom" && (
-          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/80 dark:bg-[#1E1E1E]/80 border-l border-t border-white/20 rotate-45 backdrop-blur-xl" />
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/90 dark:bg-zinc-900/90 border-l border-t border-zinc-200/60 dark:border-zinc-800/60 rotate-45 backdrop-blur-2xl" />
         )}
         {highlight && placement === "top" && (
-          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/80 dark:bg-[#1E1E1E]/80 border-r border-b border-white/20 rotate-45 backdrop-blur-xl" />
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/90 dark:bg-zinc-900/90 border-r border-b border-zinc-200/60 dark:border-zinc-800/60 rotate-45 backdrop-blur-2xl" />
         )}
 
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <span className="inline-block rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] mb-2">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E07A5F]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20 mb-3">
+              <Sparkles className="h-3 w-3" />
               Step {index + 1} of {steps.length}
             </span>
-            <h3 className="text-[15px] font-bold text-[#2D3436] dark:text-[#F5F0E8] leading-snug">
+            <h3 className="text-lg font-black tracking-tight text-zinc-900 dark:text-white leading-snug">
               {step.title}
             </h3>
           </div>
           <button
             onClick={skip}
             aria-label="Skip tour"
-            className="shrink-0 rounded-full p-1.5 text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            className="shrink-0 grid h-8 w-8 place-items-center rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="mt-2 text-[13px] leading-relaxed text-[#5a5a5a] dark:text-[#b0b0b0]">
+        <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
           {step.description}
         </p>
 
-        <div className="mt-5 flex items-center justify-between">
+        <div className="mt-6 flex items-center justify-between">
           {/* Segmented progress */}
           <div className="flex gap-1.5">
             {steps.map((_, i) => (
               <div
                 key={i}
                 className={`
-                  h-1 rounded-full transition-all duration-500
-                  ${i === index ? "w-6 bg-[#E07A5F]" : i < index ? "w-2 bg-[#E07A5F]/40" : "w-2 bg-[#E07A5F]/15"}
+                  h-1.5 rounded-full transition-all duration-500 ease-out
+                  ${i === index ? "w-8 bg-gradient-to-r from-[#8B5CF6] to-[#E07A5F]" : i < index ? "w-2 bg-[#E07A5F]/40" : "w-2 bg-zinc-200 dark:bg-zinc-800"}
                 `}
               />
             ))}
@@ -183,19 +184,19 @@ export function OnboardingTour({ steps, onFinish }: { steps: TourStep[]; onFinis
             {index > 0 && (
               <button
                 onClick={prev}
-                className="rounded-full px-3 py-2 text-xs font-medium text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition"
+                className="rounded-full px-4 py-2 text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
               >
                 Back
               </button>
             )}
             <button
               onClick={next}
-              className="group flex items-center gap-1 rounded-full bg-[#E07A5F] px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-[#E07A5F]/25 hover:shadow-[#E07A5F]/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="group flex items-center gap-1.5 rounded-full bg-zinc-900 dark:bg-white px-5 py-2.5 text-xs font-bold text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/20 dark:shadow-white/20 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 transition-all"
             >
               {index < steps.length - 1 ? (
                 <>Next <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" /></>
               ) : (
-                "Get started"
+                <>Get started <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" /></>
               )}
             </button>
           </div>
