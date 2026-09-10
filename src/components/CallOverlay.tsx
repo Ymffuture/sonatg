@@ -1,22 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Phone, ShieldCheck, Wifi, AlertTriangle } from "lucide-react";
-
-// Requires two env vars, set in your deployment (Vercel -> Project Settings
-// -> Environment Variables) AND locally in .env / .env.local:
-//   VITE_ZEGO_APP_ID        — numeric App ID from the ZegoCloud console
-//   VITE_ZEGO_SERVER_SECRET — the 32-char Server Secret from the same project
-//
-// These use generateKitTokenForTest(), ZegoCloud's own client-side token
-// helper meant for getting calls working quickly during development. It's
-// fine to ship with while you're building, but because the secret has to be
-// bundled into client JS for this to work, anyone could technically extract
-// it from your app and mint their own room tokens. For production hardening,
-// move token generation to a server function (like cloudinary.functions.ts
-// does for Cloudinary) using Zego's token04 server-side signing — see
-// https://docs.zegocloud.com/article/11648 for the algorithm.
-//
-// Both App ID and Server Secret live in Zego's console under
-// Project Management -> your project -> Basic information.
+import { Phone, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export type CallKind = "voice" | "video";
 
@@ -71,6 +54,7 @@ export function CallOverlay({
         const instance = ZegoUIKitPrebuilt.create(token);
         zp = instance;
 
+        // Join the room with valid Zego config
         instance.joinRoom({
           container: containerRef.current,
           scenario: {
@@ -85,14 +69,15 @@ export function CallOverlay({
           showTextChat: false,
           showUserList: groupCall,
           showLeavingView: false,
-          onJoinRoom: () => {
-            if (!cancelled) {
-              // Small delay to let Zego render its first frame before fading out our overlay
-              setTimeout(() => setIsConnecting(false), 400);
-            }
-          },
           onLeaveRoom: onLeave,
         });
+
+        // Zego doesn't have an onJoinRoom callback, so we use a timeout 
+        // to let the SDK render its first frame before fading out our overlay
+        setTimeout(() => {
+          if (!cancelled) setIsConnecting(false);
+        }, 1500);
+
       } catch (err) {
         console.error("Failed to initialize ZegoCloud:", err);
         setError("Failed to connect to call servers.");
@@ -178,13 +163,10 @@ export function CallOverlay({
       {/* Custom CSS to polish Zego's default UI slightly */}
       <style>{`
         /* Ensure video feeds cover their containers nicely */
-        .zego-uikit-prebuilt-container video {
+        .zego-uikit-prebuilt-container video,
+        [class*="zego"] video {
           object-fit: cover !important;
           border-radius: 12px;
-        }
-        /* Smooth out Zego's internal icon hover states */
-        .zego-uikit-prebuilt-container .zego-icon {
-          transition: all 0.2s ease !important;
         }
       `}</style>
     </div>
