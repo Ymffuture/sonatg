@@ -99,16 +99,16 @@ export function OnboardingTour({ steps, onFinish }: { steps: TourStep[]; onFinis
 
   return (
     <div className="fixed inset-0 z-[200]">
-      {/* Soft overlay with animated opacity */}
-      <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in duration-300 dark:bg-black/70" />
+      {/* Soft overlay with animated opacity (Blur removed) */}
+      <div className="fixed inset-0 bg-zinc-900/80 animate-in fade-in duration-300 dark:bg-black/80" />
 
-      {/* Spotlight cutout */}
+      {/* Spotlight cutout (Blur removed) */}
       {highlight ? (
         <>
-          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: 0, left: 0, right: 0, height: Math.max(0, highlight.top) }} />
-          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: highlight.top + highlight.height, left: 0, right: 0, bottom: 0 }} />
-          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: highlight.top, left: 0, width: Math.max(0, highlight.left), height: highlight.height }} />
-          <div className="fixed bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" style={{ top: highlight.top, left: highlight.left + highlight.width, right: 0, height: highlight.height }} />
+          <div className="fixed bg-zinc-900/80 dark:bg-black/80" style={{ top: 0, left: 0, right: 0, height: Math.max(0, highlight.top) }} />
+          <div className="fixed bg-zinc-900/80 dark:bg-black/80" style={{ top: highlight.top + highlight.height, left: 0, right: 0, bottom: 0 }} />
+          <div className="fixed bg-zinc-900/80 dark:bg-black/80" style={{ top: highlight.top, left: 0, width: Math.max(0, highlight.left), height: highlight.height }} />
+          <div className="fixed bg-zinc-900/80 dark:bg-black/80" style={{ top: highlight.top, left: highlight.left + highlight.width, right: 0, height: highlight.height }} />
           
           {/* Premium Glow ring + pulse */}
           <div
@@ -121,7 +121,7 @@ export function OnboardingTour({ steps, onFinish }: { steps: TourStep[]; onFinis
           />
         </>
       ) : (
-        <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm dark:bg-black/70" />
+        <div className="fixed inset-0 bg-zinc-900/80 dark:bg-black/80" />
       )}
 
       {/* Glass tooltip card */}
