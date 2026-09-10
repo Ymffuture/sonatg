@@ -2717,7 +2717,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     <button
       title="Status & Update news"
       onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-      className="group relative bottom-[10%]flex h-[60px] w-[60px] items-center justify-center rounded-2xl 
+      className="group relative flex h-[60px] w-[60px] items-center justify-center rounded-2xl 
         bg-white/30 dark:bg-zinc-800/40 
         backdrop-blur-xl 
         border border-white/40 dark:border-white/10 
