@@ -3537,105 +3537,113 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                         onSuggestion={(s) => setDraft(s)}
                       />
                     )}
-                    <AnimatePresence initial={false}>
-                     {messages.map((m, idx) => {
-  const prev = messages[idx - 1];
-  const groupWithPrev = prev && prev.sender_id === m.sender_id
-    && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
 
-  const showDateSeparator = !prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
+                    
+                 <AnimatePresence initial={false}>
+                      {messages.map((m, idx) => {
+                        const prev = messages[idx - 1];
+                        const groupWithPrev = prev && prev.sender_id === m.sender_id && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < 60_000;
+                        const showDateSeparator = !prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
 
-  const overrideBody = m.is_encrypted
-    ? (decrypted[m.id] ?? "Locked message — unlock this chat to read")
-    : undefined;
+                        const overrideBody = m.is_encrypted ? (decrypted[m.id] ?? "Locked message — unlock this chat to read") : undefined;
+                        const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
+                        const parentBody = parentMsg ? <MessagePreview msg={parentMsg} decrypted={decrypted} /> : undefined;
+                        const parentName = parentMsg ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…")) : undefined;
 
-  const parentMsg = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
-  const parentBody = parentMsg ? <MessagePreview msg={parentMsg} decrypted={decrypted} /> : undefined;
-  const parentName = parentMsg
-    ? (parentMsg.sender_id === me.id ? "You" : (profiles[parentMsg.sender_id]?.display_name ?? "…"))
-    : undefined;
+                        const isCurrentMatch = showMsgSearch && msgSearchMatches[msgSearchIndex]?.id === m.id;
+                        const isJumpHighlighted = jumpHighlightId === m.id;
 
-  const isCurrentMatch = showMsgSearch && msgSearchMatches[msgSearchIndex]?.id === m.id;
-  const isJumpHighlighted = jumpHighlightId === m.id;
-
-  return (
-    <div key={m.id} className="contents">
-    {showDateSeparator && (
-      <div className="my-3 flex justify-center">
-        <span className="rounded bg-[#F4A261]/20 px-3 py-1 text-[11px] font-medium text-[#8C8C8C] backdrop-blur border border-[var(--sona-accent,#E07A5F)]/20">
-          {fmtDateLabel(m.created_at)}
-        </span>
-      </div>
-    )}
-    {m.id === unreadDividerId && (
-      <div className="my-3 flex items-center gap-2">
-        <div className="h-px flex-1 bg-[var(--sona-accent,#E07A5F)]/30" />
-        <span className="shrink-0 rounded-full bg-[var(--sona-accent,#E07A5F)] px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
-          {unreadSnapshot} unread {unreadSnapshot === 1 ? "message" : "messages"}
-        </span>
-        <div className="h-px flex-1 bg-[var(--sona-accent,#E07A5F)]/30" />
-      </div>
-    )}
-    <motion.div
-      layout="position"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
-      ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
-      className={
-        isCurrentMatch
-          ? "rounded-2xl ring-2 ring-[var(--sona-accent,#E07A5F)] ring-offset-2 ring-offset-transparent transition-all"
-          : ""
-      }
-    >
-    <MessageErrorBoundary messageId={m.id}>
-    <Bubble
-      msg={m}
-      me={me}
-      sender={profiles[m.sender_id]}
-      isGroup={!!active.is_group}
-      reactions={reactions.filter((r) => r.message_id === m.id)}
-      reads={reads}
-      otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
-      onReact={(emoji) => toggleReaction(m.id, emoji)}
-      opening={reactingOn === m.id}
-      onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
-      grouped={!!groupWithPrev}
-      overrideBody={overrideBody}
-      onDelete={() => deleteMessage(m.id)}
-      onRemove={() => hardDeleteMessage(m.id)}
-      onReply={() => startReply(m)}
-      onEdit={() => startEdit(m)}
-      parentName={parentName}
-      parentBody={parentBody}
-      onJumpToParent={parentMsg ? () => jumpToMessage(parentMsg.id) : undefined}
-      isHighlighted={isJumpHighlighted}
-      actionsOpen={openBubbleId === m.id}
-      onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
-      onTranscribed={(messageId, transcript) =>
-        setMessages((prev) => prev.map((row) => (row.id === messageId ? { ...row, transcript } : row)))
-      }
-      replyCount={repliesByParent[m.id]?.length ?? 0}
-      onOpenThread={() => setThreadRootId(m.id)}
-      onForward={() => setForwardingMessage(m)}
-      isPinned={!!m.pinned_by}
-      onTogglePin={() => togglePinMessage(m)}
-      isBookmarked={bookmarkedIds.has(m.id)}
-      onToggleBookmark={() => toggleBookmark(m)}
-      selectMode={msgSelectMode}
-      selected={selectedMsgIds.has(m.id)}
-      onToggleSelect={() => toggleSelectMessage(m.id)}
-      menuOpen={openMessageMenu?.id === m.id}
-      menuPos={openMessageMenu?.id === m.id ? { x: openMessageMenu.x, y: openMessageMenu.y } : null}
-      onOpenMenu={(x, y) => openMessageMenuFor(m.id, x, y)}
-      onCloseMenu={closeMessageMenu}
-    />
-    </MessageErrorBoundary>
-    </motion.div>
-    </div>
-  );
-})}
+                        return (
+                          <div key={m.id} className="contents">
+                            {/* Premium Date Separator */}
+                            {showDateSeparator && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -8 }} 
+                                animate={{ opacity: 1, y: 0 }} 
+                                className="my-4 flex justify-center"
+                              >
+                                <span className="rounded-full bg-white/60 dark:bg-zinc-800/60 px-4 py-1.5 text-[11px] font-semibold tracking-wide text-zinc-500 dark:text-zinc-400 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm">
+                                  {fmtDateLabel(m.created_at)}
+                                </span>
+                              </motion.div>
+                            )}
+                            
+                            {/* Premium Unread Divider */}
+                            {m.id === unreadDividerId && (
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }} 
+                                animate={{ opacity: 1, scale: 1 }} 
+                                className="my-4 flex items-center gap-3"
+                              >
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[var(--sona-accent,#E07A5F)]/40 to-transparent" />
+                                <span className="shrink-0 rounded-full bg-[var(--sona-accent,#E07A5F)] px-3.5 py-1 text-[11px] font-bold tracking-wide text-white shadow-md shadow-[#E07A5F]/20">
+                                  {unreadSnapshot} unread {unreadSnapshot === 1 ? "message" : "messages"}
+                                </span>
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[var(--sona-accent,#E07A5F)]/40 to-transparent" />
+                              </motion.div>
+                            )}
+                            
+                            {/* Message Bubble Wrapper */}
+                            <motion.div
+                              layout="position"
+                              initial={{ opacity: 0, y: 16 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.96 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
+                              ref={(el) => { if (el) msgRefs.current.set(m.id, el); else msgRefs.current.delete(m.id); }}
+                              className={
+                                isCurrentMatch
+                                  ? "relative rounded-2xl ring-2 ring-[var(--sona-accent,#E07A5F)] ring-offset-2 ring-offset-transparent transition-all duration-300"
+                                  : ""
+                              }
+                            >
+                              <MessageErrorBoundary messageId={m.id}>
+                                <Bubble
+                                  msg={m}
+                                  me={me}
+                                  sender={profiles[m.sender_id]}
+                                  isGroup={!!active.is_group}
+                                  reactions={reactions.filter((r) => r.message_id === m.id)}
+                                  reads={reads}
+                                  otherMemberIds={active.memberIds.filter((id) => id !== me.id)}
+                                  onReact={(emoji) => toggleReaction(m.id, emoji)}
+                                  opening={reactingOn === m.id}
+                                  onOpenPicker={() => setReactingOn(reactingOn === m.id ? null : m.id)}
+                                  grouped={!!groupWithPrev}
+                                  overrideBody={overrideBody}
+                                  onDelete={() => deleteMessage(m.id)}
+                                  onRemove={() => hardDeleteMessage(m.id)}
+                                  onReply={() => startReply(m)}
+                                  onEdit={() => startEdit(m)}
+                                  parentName={parentName}
+                                  parentBody={parentBody}
+                                  onJumpToParent={parentMsg ? () => jumpToMessage(parentMsg.id) : undefined}
+                                  isHighlighted={isJumpHighlighted}
+                                  actionsOpen={openBubbleId === m.id}
+                                  onToggleActions={() => setOpenBubbleId(openBubbleId === m.id ? null : m.id)}
+                                  onTranscribed={(messageId, transcript) =>
+                                    setMessages((prev) => prev.map((row) => (row.id === messageId ? { ...row, transcript } : row)))
+                                  }
+                                  replyCount={repliesByParent[m.id]?.length ?? 0}
+                                  onOpenThread={() => setThreadRootId(m.id)}
+                                  onForward={() => setForwardingMessage(m)}
+                                  isPinned={!!m.pinned_by}
+                                  onTogglePin={() => togglePinMessage(m)}
+                                  isBookmarked={bookmarkedIds.has(m.id)}
+                                  onToggleBookmark={() => toggleBookmark(m)}
+                                  selectMode={msgSelectMode}
+                                  selected={selectedMsgIds.has(m.id)}
+                                  onToggleSelect={() => toggleSelectMessage(m.id)}
+                                  menuOpen={openMessageMenu?.id === m.id}
+                                  menuPos={openMessageMenu?.id === m.id ? { x: openMessageMenu.x, y: openMessageMenu.y } : null}
+                                  onOpenMenu={(x, y) => openMessageMenuFor(m.id, x, y)}
+                                  onCloseMenu={closeMessageMenu}
+                                />
+                              </MessageErrorBoundary>
+                            </motion.div>
+                          </div>
+                        );
+                      })}
                     </AnimatePresence>
 
                     {typingNames.length > 0 && (
