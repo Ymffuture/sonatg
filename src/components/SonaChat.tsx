@@ -2711,22 +2711,21 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   </div>
 )}
             
-            
             {me && (
-  <div data-tour="status-bar" className="absolute bottom-6 right-6 z-30">
+  <div data-tour="status-bar" className="absolute bottom-6 left-6 z-30">
     <button
       title="Status & Update news"
       onClick={() => navigate({ to: "/status", search: { user: undefined } })}
-      className="group relative flex h-[60px] w-[60px] items-center justify-center rounded-2xl 
-        bg-white/30 dark:bg-zinc-800/40 
-        backdrop-blur-xl 
-        border border-white/40 dark:border-white/10 
-        shadow-[0_8px_16px_-4px_rgba(224,122,95,0.15),0_4px_6px_-2px_rgba(0,0,0,0.05)] 
-        dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)] 
+      className="group relative flex h-[60px] w-[60px] items-center justify-center rounded-2xl
+        bg-white/30 dark:bg-zinc-800/40
+        backdrop-blur-xl
+        border border-white/40 dark:border-white/10
+        shadow-[0_8px_16px_-4px_rgba(224,122,95,0.15),0_4px_6px_-2px_rgba(0,0,0,0.05)]
+        dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)]
         before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-b before:from-white/40 before:to-transparent dark:before:from-white/10 dark:before:to-transparent
         transition-all duration-300 ease-out
-        hover:-translate-y-1 
-        hover:shadow-[0_12px_24px_-4px_rgba(224,122,95,0.25)] 
+        hover:-translate-y-1
+        hover:shadow-[0_12px_24px_-4px_rgba(224,122,95,0.25)]
         dark:hover:shadow-[0_12px_24px_-4px_rgba(0,0,0,0.5)]
         active:translate-y-0.5 active:scale-95 active:shadow-inner"
     >
@@ -2979,20 +2978,24 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
               })()}
             </AnimatePresence>
             {/* Floating New-Chat FAB */}
-            <button
+            {/* Floating New-Chat FAB */}
+<button
   data-tour="new-chat-fab"
-  onClick={openNewChat}
+  onClick={() => {
+    if (accountRestricted) { toast.error(composerNotice ?? "Your account is restricted."); return; }
+    setShowNewChat(true);
+  }}
   aria-label="New chat"
-  className="group relative flex h-[60px] w-[60px] items-center justify-center rounded-2xl 
-    bg-white/30 dark:bg-zinc-800/40 
-    backdrop-blur-xl 
-    border border-white/40 dark:border-white/10 
-    shadow-[0_8px_16px_-4px_rgba(224,122,95,0.15),0_4px_6px_-2px_rgba(0,0,0,0.05)] 
-    dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)] 
+  className="group absolute bottom-6 right-6 z-30 flex h-[60px] w-[60px] items-center justify-center rounded-2xl
+    bg-white/30 dark:bg-zinc-800/40
+    backdrop-blur-xl
+    border border-white/40 dark:border-white/10
+    shadow-[0_8px_16px_-4px_rgba(224,122,95,0.15),0_4px_6px_-2px_rgba(0,0,0,0.05)]
+    dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)]
     before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-b before:from-white/40 before:to-transparent dark:before:from-white/10 dark:before:to-transparent
     transition-all duration-300 ease-out
-    hover:-translate-y-1 
-    hover:shadow-[0_12px_24px_-4px_rgba(224,122,95,0.25)] 
+    hover:-translate-y-1
+    hover:shadow-[0_12px_24px_-4px_rgba(224,122,95,0.25)]
     dark:hover:shadow-[0_12px_24px_-4px_rgba(0,0,0,0.5)]
     active:translate-y-0.5 active:scale-95 active:shadow-inner"
 >
