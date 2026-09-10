@@ -9,7 +9,6 @@ import {
   MicOff,
   Volume2,
   MessageSquare,
-  MoreVertical,
   User,
   Users,
   Clock,
@@ -42,6 +41,8 @@ type ActiveCall = {
   chatId: string;
   kind: CallKind;
   groupCall: boolean;
+  targetName?: string;
+  targetAvatar?: string | null;
 };
 
 export type CallManagerHandle = {
@@ -149,30 +150,30 @@ function CallButton({
   size?: "sm" | "md" | "lg";
 }) {
   const sizeClasses = {
-    sm: "h-12 w-12",
-    md: "h-14 w-14",
-    lg: "h-16 w-16",
+    sm: "h-14 w-14",
+    md: "h-16 w-16",
+    lg: "h-20 w-20",
   };
 
   const variantClasses = {
-    default: "bg-white/15 hover:bg-white/25 text-white",
-    danger: "bg-[#FA3B4B] hover:bg-[#e2323f] text-white shadow-lg shadow-red-500/20",
-    success: "bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-green-500/20",
-    glass: "bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm",
+    default: "bg-white/15 hover:bg-white/25 text-white border border-white/10",
+    danger: "bg-[#FA3B4B] hover:bg-[#e2323f] text-white shadow-xl shadow-red-500/30 border border-red-400/20",
+    success: "bg-[#25D366] hover:bg-[#128C7E] text-white shadow-xl shadow-green-500/30 border border-green-400/20",
+    glass: "bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/10",
   };
 
-  const iconSizes = { sm: 18, md: 20, lg: 24 };
+  const iconSizes = { sm: 22, md: 26, lg: 32 };
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3">
       <button
         onClick={onClick}
         aria-label={label}
-        className={`grid place-items-center rounded-full transition-all duration-300 active:scale-95 hover:scale-110 ${sizeClasses[size]} ${variantClasses[variant]}`}
+        className={`grid place-items-center rounded-full transition-all duration-300 active:scale-90 hover:scale-105 ${sizeClasses[size]} ${variantClasses[variant]}`}
       >
         <Icon size={iconSizes[size]} strokeWidth={2} />
       </button>
-      <span className="text-[11px] font-medium text-white/60 tracking-wide">{label}</span>
+      <span className="text-[11px] font-medium text-white/60 tracking-wide uppercase">{label}</span>
     </div>
   );
 }
@@ -190,44 +191,43 @@ function ActiveCallControls({
   const [speaker, setSpeaker] = useState(false);
 
   return (
-    <div className="flex w-full max-w-sm items-end justify-between px-4 pb-6">
-      <CallButton
-        onClick={() => setMuted((m) => !m)}
-        variant="glass"
-        icon={muted ? MicOff : Mic}
-        label={muted ? "Unmute" : "Mute"}
-        size="sm"
-      />
-      <CallButton
-        onClick={() => setSpeaker((s) => !s)}
-        variant="glass"
-        icon={Volume2}
-        label={speaker ? "Earpiece" : "Speaker"}
-        size="sm"
-      />
-      <CallButton
-        onClick={() => {}}
-        variant="glass"
-        icon={MessageSquare}
-        label="Chat"
-        size="sm"
-      />
-      {kind === "video" && (
+    <div className="relative z-10 w-full px-6 pb-12 pt-4 flex flex-col items-center gap-8">
+      {/* Secondary Controls Row */}
+      <div className="flex items-center justify-center gap-8 w-full max-w-xs">
         <CallButton
-          onClick={() => setVideoOff((v) => !v)}
-          variant="glass"
-          icon={videoOff ? VideoOff : Video}
-          label={videoOff ? "Start" : "Stop"}
+          onClick={() => setMuted((m) => !m)}
+          variant={muted ? "danger" : "glass"}
+          icon={muted ? MicOff : Mic}
+          label={muted ? "Unmute" : "Mute"}
           size="sm"
         />
-      )}
-      <CallButton
+        <CallButton
+          onClick={() => setSpeaker((s) => !s)}
+          variant={speaker ? "success" : "glass"}
+          icon={Volume2}
+          label={speaker ? "Speaker" : "Earpiece"}
+          size="sm"
+        />
+        {kind === "video" && (
+          <CallButton
+            onClick={() => setVideoOff((v) => !v)}
+            variant={videoOff ? "danger" : "glass"}
+            icon={videoOff ? VideoOff : Video}
+            label={videoOff ? "Video On" : "Video Off"}
+            size="sm"
+          />
+        )}
+      </div>
+
+      {/* End Call Button */}
+      <button
         onClick={onLeave}
-        variant="danger"
-        icon={PhoneMissed}
-        label="End"
-        size="md"
-      />
+        aria-label="End call"
+        className="group relative flex items-center justify-center w-20 h-20 rounded-full bg-[#FA3B4B] hover:bg-[#e2323f] text-white shadow-xl shadow-red-500/30 border border-red-400/20 transition-all duration-300 active:scale-90 hover:scale-105"
+      >
+        <PhoneOff size={32} strokeWidth={2} className="transition-transform group-hover:rotate-12" />
+        <span className="absolute -bottom-8 text-xs font-medium text-white/60 tracking-wider uppercase">End</span>
+      </button>
     </div>
   );
 }
@@ -245,9 +245,12 @@ export const CallManager = forwardRef<
   const callStartedAtRef = useRef<number | null>(null);
   const isCallerRef = useRef(false);
 
-  // Writes a kind='call' message into the chat (like WhatsApp's "Voice
-  // call · 1:02" / "Missed call" log lines). Only the caller's side ever
-  // calls this, so a 1:1 call never ends up with two duplicate log rows.
+  const fmtTime = (s: number) => {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
   const insertCallLog = useCallback(
     async (chatId: string, kind: CallKind, outcome: "answered" | "missed" | "declined", durationMs: number) => {
       await supabase.from("messages").insert({
@@ -282,6 +285,8 @@ export const CallManager = forwardRef<
             chatId: cur.chatId,
             kind: cur.kind,
             groupCall: cur.groupCall,
+            targetName: cur.targetName,
+            targetAvatar: cur.targetAvatar,
           });
           return null;
         });
@@ -294,11 +299,6 @@ export const CallManager = forwardRef<
         });
         setActive((cur) => (cur?.sessionId === sid ? null : cur));
       })
-      // Fired by this same user's OWN devices when one of them
-      // answers/declines an incoming call — without this, if the same
-      // account is logged in on two devices, both ring on an incoming
-      // call, but answering on one leaves the other ringing forever since
-      // only the caller was ever notified.
       .on("broadcast", { event: "resolved-elsewhere" }, ({ payload }) => {
         const sid = (payload as { sessionId: string }).sessionId;
         setIncoming((cur) => (cur?.sessionId === sid ? null : cur));
@@ -396,6 +396,8 @@ export const CallManager = forwardRef<
       chatId: incoming.chatId,
       kind: incoming.kind,
       groupCall: false,
+      targetName: incoming.fromName,
+      targetAvatar: incoming.fromAvatar,
     });
     setIncoming(null);
   };
@@ -418,7 +420,6 @@ export const CallManager = forwardRef<
   const cancelOutgoing = () => {
     if (!outgoing) return;
     insertCallLog(outgoing.chatId, outgoing.kind, "missed", 0);
-    supabase.channel(`calls:${outgoing.chatId}`); // reserved for future cancel-signal to callee
     setOutgoing(null);
   };
 
@@ -432,62 +433,41 @@ export const CallManager = forwardRef<
     setActive(null);
   };
 
-  const fmtTime = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
   return (
     <>
       {/* ═══════════════════════════════════════
           INCOMING CALL SCREEN
          ═══════════════════════════════════════ */}
       {incoming && (
-        <div className="fixed call-pattern inset-0 z-[110] flex flex-col items-center justify-between bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a] text-white">
+        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-between bg-[#0b141a] text-white overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(37,211,102,0.15),transparent_60%)]" />
           <IconBackground />
 
-          {/* Header */}
-          <div className="flex flex-col items-center gap-2 mt-20">
-            <p className="text-xs font-semibold tracking-[0.25em] text-white/50 uppercase">
-              Incoming {incoming.kind === "video" ? "Video Call" : "Voice Call"}
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#25D366] animate-pulse" />
-              <span className="text-[11px] font-medium text-[#25D366]/80 tracking-wider">
-                SonaTG
+          <div className="relative z-10 flex flex-col items-center gap-3 mt-16">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-1.5 backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" />
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/70">
+                Incoming {incoming.kind === "video" ? "Video" : "Voice"} Call
               </span>
-            </div>
+            </span>
           </div>
 
-          {/* Avatar + Name */}
-          <div className="flex flex-col items-center gap-6">
-            <CallerAvatar
-              name={incoming.fromName}
-              avatar={incoming.fromAvatar}
-              size={140}
-            />
+          <div className="relative z-10 flex flex-col items-center gap-8">
+            <CallerAvatar name={incoming.fromName} avatar={incoming.fromAvatar} size={144} />
             <div className="text-center">
-              <h2 className="text-3xl font-semibold tracking-tight text-white">
+              <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-lg">
                 {incoming.fromName}
               </h2>
-              <p className="mt-2 text-sm text-white/40 font-medium">
+              <p className="mt-3 text-sm font-medium text-white/50">
                 {incoming.kind === "video" ? "Video call" : "Voice call"} incoming…
               </p>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex w-full max-w-xs items-center justify-between px-8 pb-16">
-            <CallButton
-              onClick={declineIncoming}
-              variant="danger"
-              icon={PhoneOff}
-              label="Decline"
-            />
-            <CallButton
-              onClick={acceptIncoming}
-              variant="success"
-              icon={Phone}
-              label="Accept"
-            />
+          <div className="relative z-10 flex w-full max-w-xs items-center justify-between px-8 pb-16">
+            <CallButton onClick={declineIncoming} variant="danger" icon={PhoneOff} label="Decline" />
+            <CallButton onClick={acceptIncoming} variant="success" icon={Phone} label="Accept" />
           </div>
         </div>
       )}
@@ -496,55 +476,40 @@ export const CallManager = forwardRef<
           OUTGOING CALL SCREEN
          ═══════════════════════════════════════ */}
       {outgoing && (
-        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-between bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a] text-white">
+        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-between bg-[#0b141a] text-white overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(37,211,102,0.1),transparent_60%)]" />
           <IconBackground />
 
-          <div className="mt-20">
-            <p className="text-xs font-semibold tracking-[0.25em] text-white/50 uppercase">
-              {outgoing.kind === "video" ? "Video Calling" : "Calling"}
-            </p>
+          <div className="relative z-10 mt-16">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-1.5 backdrop-blur-md">
+              <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/70">
+                {outgoing.kind === "video" ? "Video Calling" : "Calling"}
+              </span>
+            </span>
           </div>
 
-          <div className="flex flex-col items-center gap-6">
-            <CallerAvatar
-              name={outgoing.targetName}
-              avatar={outgoing.targetAvatar}
-              size={132}
-              pulse={false}
-            />
+          <div className="relative z-10 flex flex-col items-center gap-8">
+            <CallerAvatar name={outgoing.targetName} avatar={outgoing.targetAvatar} size={132} pulse={false} />
             <div className="text-center">
-              <h2 className="text-3xl font-semibold tracking-tight text-white">
+              <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-lg">
                 {outgoing.targetName}
               </h2>
-              <div className="flex items-center justify-center gap-2 mt-3">
-                <span className="text-sm text-white/50 font-medium tabular-nums">
+              <div className="flex items-center justify-center gap-3 mt-4 bg-white/5 border border-white/10 rounded-full px-5 py-2 backdrop-blur-md">
+                <span className="text-lg font-mono font-medium text-white/90 tabular-nums tracking-wider">
                   {fmtTime(ringSeconds)}
                 </span>
-                <span className="flex gap-0.5">
-                  <span
-                    className="w-1 h-1 rounded-full bg-white/40 animate-bounce"
-                    style={{ animationDelay: "0s" }}
-                  />
-                  <span
-                    className="w-1 h-1 rounded-full bg-white/40 animate-bounce"
-                    style={{ animationDelay: "0.15s" }}
-                  />
-                  <span
-                    className="w-1 h-1 rounded-full bg-white/40 animate-bounce"
-                    style={{ animationDelay: "0.3s" }}
-                  />
+                <span className="flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#25D366] animate-bounce" style={{ animationDelay: "0s" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#25D366] animate-bounce" style={{ animationDelay: "0.15s" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#25D366] animate-bounce" style={{ animationDelay: "0.3s" }} />
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="pb-16">
-            <CallButton
-              onClick={cancelOutgoing}
-              variant="danger"
-              icon={PhoneOff}
-              label="Cancel"
-            />
+          <div className="relative z-10 pb-16">
+            <CallButton onClick={cancelOutgoing} variant="danger" icon={PhoneOff} label="Cancel" />
           </div>
         </div>
       )}
@@ -553,29 +518,34 @@ export const CallManager = forwardRef<
           ACTIVE CALL SCREEN
          ═══════════════════════════════════════ */}
       {active && (
-        <div className="fixed inset-0 z-[110] flex flex-col items-center bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a] text-white">
+        <div className="fixed inset-0 z-[110] flex flex-col items-center bg-[#0b141a] text-white overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b141a] via-[#111b21] to-[#0b141a]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(37,211,102,0.15),transparent_50%)]" />
           <IconBackground />
 
-          {/* Top Bar */}
-          <div className="flex flex-col items-center gap-3 mt-6">
-            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-white/20 shadow-lg">
-              {active.groupCall ? (
-                <div className="w-full h-full bg-gradient-to-br from-[#34B7F1] to-[#128C7E] grid place-items-center">
-                  <Users size={28} className="text-white" />
-                </div>
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#25D366] to-[#128C7E] grid place-items-center text-xl font-bold">
-                  {"?"}
-                </div>
-              )}
+          {/* Top Info with Prominent Timer */}
+          <div className="relative z-10 flex flex-col items-center gap-5 mt-10 w-full px-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#25D366]/20 blur-3xl rounded-full animate-pulse" />
+              <div className="relative w-28 h-28 rounded-full overflow-hidden ring-2 ring-white/20 shadow-2xl bg-gradient-to-br from-[#25D366] to-[#128C7E] grid place-items-center">
+                {active.groupCall ? (
+                  <Users size={48} className="text-white/90" />
+                ) : active.targetAvatar ? (
+                  <img src={active.targetAvatar} alt={active.targetName} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-4xl font-bold text-white">
+                    {active.targetName?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="text-center">
-              <h3 className="text-base font-semibold text-white">
+            <div className="text-center z-10">
+              <h3 className="text-xl font-semibold text-white tracking-tight drop-shadow-md">
                 {active.groupCall ? "Group Call" : "Active Call"}
               </h3>
-              <div className="flex items-center justify-center gap-1.5 mt-1">
-                <Clock size={12} className="text-white/50" />
-                <span className="text-xs text-white/50 tabular-nums font-medium">
+              <div className="flex items-center justify-center gap-2 mt-3 bg-white/10 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 shadow-lg">
+                <Clock size={16} className="text-[#25D366]" />
+                <span className="text-xl text-white tabular-nums font-mono font-medium tracking-wider">
                   {fmtTime(callDuration)}
                 </span>
               </div>
@@ -583,7 +553,7 @@ export const CallManager = forwardRef<
           </div>
 
           {/* Video Placeholder / Call Overlay */}
-          <div className="flex-1 flex items-center justify-center w-full max-w-sm mx-4 my-4">
+          <div className="relative z-10 flex-1 flex items-center justify-center w-full max-w-sm mx-4 my-6">
             <CallOverlay
               roomId={active.sessionId}
               userId={meId}
