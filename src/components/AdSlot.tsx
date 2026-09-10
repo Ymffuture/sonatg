@@ -59,7 +59,7 @@ export function AdSlot({
           <span className="relative text-[9px] font-semibold tracking-wider text-zinc-300 dark:text-zinc-700 uppercase">
             Sponsored
           </span>
-        </div5>
+        </div>
       </div>
 
       {/* Premium Shimmer Effect Overlay (fades out when loaded) */}
