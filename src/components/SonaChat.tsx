@@ -3011,171 +3011,162 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           <section className={`${showSidebarMobile ? "hidden" : "flex"} relative h-full min-w-0 flex-1 flex-col md:flex bg-[#F0EBE3] dark:bg-[#1A1A1A]`}>
             {active ? (
               <>
-                <header className="relative flex items-center gap-1.5 border-transparent bg-[#FFFDF9] dark:bg-[#242424] px-1.5 py-2.5 md:px-4">
-                  <button onClick={closeActiveChat} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 md:hidden" aria-label="Back">
-                    <RiArrowLeftWideFill className="h-5 w-5 text-[#2D3436] dark:text-[#E8E8E8]" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (active.is_group) { setShowMemberList(true); return; }
-                      const otherId = active.memberIds.find((id) => id !== me.id);
-                      const other = otherId ? profilesById[otherId] : undefined;
-                      if (other) setViewingProfile(other);
-                    }}
-                    className="relative shrink-0"
-                  >
-                    <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
-                    {!!active.disappearing_seconds && (
-                      <div
-                        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full dark:bg-[#1E1E1E] bg-[#FAF8F5] ring-2 ring-[#FAF8F5] dark:ring-[#1A1A1A]"
-                        title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
-                      >
-                        <CiTimer className="h-4 w-4 text-[#8C8C8C] " />
-                      </div>
-                    )}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <button
-                      onClick={() => active.is_group && setShowMemberList(true)}
-                      className="truncate font-semibold flex items-center gap-1.5 text-[#2D3436] dark:text-[#E8E8E8] text-left"
-                    >
-                      {(() => {
-  const title = chatTitle(active, me.id);
-  const isLong = title.length > 24;
-  return (
-    <div className="flex items-center gap-1.5 min-w-0">
-      <span
-        className={`
-          truncate text-sm tracking-tight
-          ${isLong 
-            ? "text-[10px]" 
-            : "text-[15px]"
-          }
-          ${isAIChat(active)
-            ? ""
-            : "text-[#2D3436] dark:text-[#F5F0E8]"
-          }
-        `}
-        title={title}
-      >
-        {title}
-      </span>
+                <header className="relative z-10 flex items-center gap-3 border-b border-zinc-200/60 bg-white/80 px-2 py-3 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-[#0F0F11]/80 md:px-5">
+  {/* Back Button (Mobile) */}
+  <button onClick={closeActiveChat} className="group grid h-10 w-10 place-items-center rounded-full border border-zinc-200/60 bg-white/50 text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 md:hidden" aria-label="Back">
+    <RiArrowLeftWideFill className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
+  </button>
 
-      {isAIChat(active) && (
-        <VscVerifiedFilled
-          className="h-4 w-4 text-blue-500 shrink-0 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]"
-          aria-label="Verified Sona AI"
-          title="Verified"
-        />
-      )}
-
-      {active.is_hidden && (
-        <Lock className="h-3 w-3 text-[#8c8c8c] shrink-0" />
-      )}
-
-      
-    </div>
-  );
-})()}
-                      {active.is_hidden && <Lock className="h-3.5 w-3.5 text-[var(--sona-accent,#E07A5F)]" />}
-                      {active.memberRoles[me.id] === "admin" && active.is_group && (
-                        <span title="Admin" className="inline-flex"><BadgeCheck className="h-3.5 w-3.5 text-[#4FA6E0] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" /></span>
-                      )}
-                      {active.is_group && active.category && active.category !== "general" && (
-                        <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium text-[var(--sona-accent,#E07A5F)] text-transparent bg-clip-text bg-gradient-to-r from-[var(--sona-accent,#E07A5F)]/10 to-[var(--sona-accent,#E07A5F)]" >
-                           {categoryMeta[active.category].label}
-                        </span>
-                      )}
-                    </button>
-                    <button
-  onClick={() => active.is_group && setShowMemberList(true)}
-  className="truncate text-xs text-[#8C8C8C] text-left w-full overflow-hidden"
->
-  {recordingNames.length > 0 ? (
-    <span className="inline-flex items-center gap-1 text-[var(--sona-accent,#E07A5F)]">
-      <IoMdMic className="h-3.5 w-3.5 animate-pulse text-green-600" />
-      {recordingNames.join(", ")} recording audio…
-    </span>
-  ) : typingNames.length > 0 ? (
-    <span className="text-[var(--sona-accent,#E07A5F)]">{typingNames.join(", ")} typing…</span>
-  ) : isAIChat(active) ? (
-    <span className="inline-flex items-center gap-1.5">   
-      By Sona AI
-    </span>
-  ) : active.is_group ? (() => {
-      const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
-      return (
-        <div className="flex flex-col overflow-hidden w-full">
-          {onlineCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 mb-0.5">
-              {onlineCount} Online
-            </span>
-          )}
-          <div className="relative flex overflow-hidden w-full">
-            <div className="whitespace-nowrap animate-marquee flex items-center gap-1">
-              <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
-              <span className="opacity-50">•</span>
-              <span className="mx-4">{active.members.map((m) => m.display_name).join(", ")}</span>
-            </div>
-          </div>
-        </div>
-      );
-    })() : (() => {
+  {/* Avatar */}
+  <button
+    onClick={() => {
+      if (active.is_group) { setShowMemberList(true); return; }
       const otherId = active.memberIds.find((id) => id !== me.id);
       const other = otherId ? profilesById[otherId] : undefined;
-      const online = otherId ? onlineIds.has(otherId) : false;
+      if (other) setViewingProfile(other);
+    }}
+    className="group relative shrink-0 transition-transform hover:scale-105"
+  >
+    <div className="rounded-full ring-2 ring-zinc-200/60 dark:ring-zinc-800/60">
+      <Avatar url={chatAvatarUrl(active, me.id)} name={chatTitle(active, me.id)} ai={isAIChat(active)} />
+    </div>
+    {!!active.disappearing_seconds && (
+      <div
+        className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-white shadow-sm ring-2 ring-white dark:bg-zinc-900 dark:ring-zinc-900"
+        title={`Disappearing messages: ${disappearingLabel(active.disappearing_seconds)}`}
+      >
+        <CiTimer className="h-3 w-3 text-[#E07A5F]" />
+      </div>
+    )}
+  </button>
 
-      if (online) {
-        return (
-          <span className="inline-flex items-center gap-1.5">
-          
-            <span className="text-[#8c8c8c] font-medium">Online</span>
-          </span>
-        );
-      }
-
-      if (other?.last_seen) {
-        const lastSeenDate = new Date(other.last_seen);
-        const minsAgo = Math.floor((Date.now() - lastSeenDate.getTime()) / 60000);
-        const isRecent = minsAgo < 5;
-
-        return (
-          <span className="inline-flex items-center gap-1.5">
-          <span>{fmtLastSeen(other.last_seen)}</span>
-          </span>
-        );
-      }
-
-      return (
-        <span className="inline-flex items-center gap-1.5">
-          <span>Offline</span>
-        </span>
-      );
-    })()}
-</button>
-                  </div>
-
-                  {/* Call / Video buttons */}
-                  {!isAIChat(active) && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => startCall("voice")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 dark:text-[#fff] text-[#1E1E1E] " aria-label="Voice call">
-                        <Phone className="h-5 w-5" />
-                      </button>
-                      <button onClick={() => startCall("video")} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20 dark:text-[#fff] text-[#1E1E1E] " aria-label="Video call">
-                        <Video className="h-5 w-5" />
-                      </button>
-                    </div>
-                  )}
-
-                  <DropdownMenu open={menuOpen} onOpenChange={handleMenuOpenChange}>
-  <DropdownMenuTrigger asChild>
+  {/* Title & Subtitle */}
+  <div className="min-w-0 flex-1">
     <button
-      className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#F4A261]/20"
-      aria-label="Menu"
+      onClick={() => active.is_group && setShowMemberList(true)}
+      className="group flex w-full items-center gap-2 text-left"
     >
-      <MoreVertical className="h-5 w-5 text-[#2D3436] dark:text-[#fff]" />
+      <h2 className="truncate text-base font-bold tracking-tight text-zinc-900 dark:text-white">
+        {(() => {
+          const title = chatTitle(active, me.id);
+          return (
+            <span className="flex items-center gap-1.5">
+              {title}
+              {isAIChat(active) && (
+                <VscVerifiedFilled className="h-4 w-4 shrink-0 text-blue-500 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" />
+              )}
+              {active.is_hidden && (
+                <Lock className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+              )}
+            </span>
+          );
+        })()}
+      </h2>
+      {active.memberRoles[me.id] === "admin" && active.is_group && (
+        <span title="Admin" className="inline-flex"><BadgeCheck className="h-4 w-4 text-blue-500 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" /></span>
+      )}
+      {active.is_group && active.category && active.category !== "general" && (
+        <span className="inline-flex items-center rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
+          {categoryMeta[active.category].label}
+        </span>
+      )}
     </button>
-  </DropdownMenuTrigger>
+    
+    <button
+      onClick={() => active.is_group && setShowMemberList(true)}
+      className="mt-0.5 flex w-full items-center gap-1.5 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400"
+    >
+      {recordingNames.length > 0 ? (
+        <span className="inline-flex items-center gap-1.5 text-[#E07A5F]">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E07A5F] opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E07A5F]"></span>
+          </span>
+          {recordingNames.join(", ")} recording audio…
+        </span>
+      ) : typingNames.length > 0 ? (
+        <span className="inline-flex items-center gap-1.5 text-[#E07A5F]">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E07A5F] opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E07A5F]"></span>
+          </span>
+          {typingNames.join(", ")} typing…
+        </span>
+      ) : isAIChat(active) ? (
+        <span className="inline-flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-[#E07A5F]" /> By Sona AI
+        </span>
+      ) : active.is_group ? (() => {
+        const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
+        return (
+          <div className="flex w-full items-center gap-2 overflow-hidden">
+            {onlineCount > 0 && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                {onlineCount} Online
+              </span>
+            )}
+            <div className="relative flex-1 overflow-hidden">
+              <div className="whitespace-nowrap animate-marquee flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                <span className="mx-2">{active.members.map((m) => m.display_name).join(", ")}</span>
+                <span className="opacity-50">•</span>
+                <span className="mx-2">{active.members.map((m) => m.display_name).join(", ")}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })() : (() => {
+        const otherId = active.memberIds.find((id) => id !== me.id);
+        const other = otherId ? profilesById[otherId] : undefined;
+        const online = otherId ? onlineIds.has(otherId) : false;
+        if (online) {
+          return (
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+              Online
+            </span>
+          );
+        }
+        if (other?.last_seen) {
+          return (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600"></span>
+              {fmtLastSeen(other.last_seen)}
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700"></span>
+            Offline
+          </span>
+        );
+      })()}
+    </button>
+  </div>
+
+  {/* Action Buttons */}
+  <div className="flex items-center gap-1.5 shrink-0">
+    {!isAIChat(active) && (
+      <>
+        <button onClick={() => startCall("voice")} className="group grid h-10 w-10 place-items-center rounded-full border border-zinc-200/60 bg-white/50 text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:shadow-md hover:text-[#E07A5F] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-[#E07A5F]" aria-label="Voice call">
+          <Phone className="h-[18px] w-[18px] transition-transform group-hover:scale-110" />
+        </button>
+        <button onClick={() => startCall("video")} className="group grid h-10 w-10 place-items-center rounded-full border border-zinc-200/60 bg-white/50 text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:shadow-md hover:text-[#E07A5F] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-[#E07A5F]" aria-label="Video call">
+          <Video className="h-[18px] w-[18px] transition-transform group-hover:scale-110" />
+        </button>
+      </>
+    )}
+    <DropdownMenu open={menuOpen} onOpenChange={handleMenuOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <button className="group grid h-10 w-10 place-items-center rounded-full border border-zinc-200/60 bg-white/50 text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-900" aria-label="Menu">
+          <MoreVertical className="h-[18px] w-[18px] transition-transform group-hover:rotate-90" />
+        </button>
+      </DropdownMenuTrigger>
+                
+      
+
+        
 
   <DropdownMenuContent align="end" className="w-64">
     {/* ── Root ── */}
