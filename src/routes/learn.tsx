@@ -6,6 +6,7 @@ import {
   Crown, Phone, Download, Forward, UserCircle2, FolderOpen, Video, FileText,
   CalendarClock, Pin, Ban, Radio, ChevronDown, ChevronUp,
 } from "lucide-react";
+
 export const Route = createFileRoute("/learn")({
   head: () => ({
     meta: [
@@ -17,13 +18,6 @@ export const Route = createFileRoute("/learn")({
   }),
   component: LearnPage,
 });
-
-const GREEN = "#1E1E1E ";
-const ORANGE = "#E07A5F";
-const DARK = "#8c8c8c";
-const BRAND = "#1E1E1E ";
-const BG = "#FAF8F5";
-const CARD = "#ffffff";
 
 type Section = {
   id: string;
@@ -50,8 +44,8 @@ const sections: Section[] = [
     icon: MessageCircle,
     body: (
       <>
-        <p>Sign up with your email or Google. Sona automatically creates your profile and drops you into a private chat with <strong>Sona AI</strong>, your always-on assistant.</p>
-        <p>Tap the floating <strong>+</strong> button in the sidebar to slide up the friends drawer and start a new 1:1 conversation with anyone on Sona.</p>
+        <p>Sign up with your email or Google. Sona automatically creates your profile and drops you into a private chat with <strong className="text-zinc-900 dark:text-white">Sona AI</strong>, your always-on assistant.</p>
+        <p className="mt-3">Tap the floating <strong className="text-zinc-900 dark:text-white">+</strong> button in the sidebar to slide up the friends drawer and start a new 1:1 conversation with anyone on Sona.</p>
       </>
     ),
   },
@@ -61,8 +55,8 @@ const sections: Section[] = [
     icon: MessageCircle,
     body: (
       <>
-        <p>Type in the composer and press <kbd>Enter</kbd> to send. Shift+Enter adds a new line.</p>
-        <p>Tap a bubble to see quick actions: Reply, React, Edit, Forward, or Delete for everyone.</p>
+        <p>Type in the composer and press <kbd className="rounded-md border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-xs font-mono dark:border-zinc-700 dark:bg-zinc-800">Enter</kbd> to send. <kbd className="rounded-md border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-xs font-mono dark:border-zinc-700 dark:bg-zinc-800">Shift+Enter</kbd> adds a new line.</p>
+        <p className="mt-3">Tap a bubble to see quick actions: Reply, React, Edit, Forward, or Delete for everyone.</p>
       </>
     ),
   },
@@ -70,7 +64,7 @@ const sections: Section[] = [
     id: "forwarding",
     title: "Forwarding messages",
     icon: Forward,
-    body: <p>Open any message's quick-action menu and tap <strong>Forward</strong> to resend it into one or more other chats, instantly.</p>,
+    body: <p>Open any message's quick-action menu and tap <strong className="text-zinc-900 dark:text-white">Forward</strong> to resend it into one or more other chats, instantly.</p>,
   },
   {
     id: "ai",
@@ -78,8 +72,8 @@ const sections: Section[] = [
     icon: Sparkles,
     body: (
       <>
-        <p>In your Sona AI chat, just talk. In any other chat, type <code>@sona</code> anywhere in your message to summon the assistant.</p>
-        <p>Sona can read images you attach and answer questions about them <span className="ml-1 inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600">Pro</span></p>
+        <p>In your Sona AI chat, just talk. In any other chat, type <code className="rounded-md bg-[#E07A5F]/10 px-1.5 py-0.5 text-sm font-mono text-[#E07A5F]">@sona</code> anywhere in your message to summon the assistant.</p>
+        <p className="mt-3">Sona can read images you attach and answer questions about them <span className="ml-1 inline-flex rounded-full bg-[#8B5CF6]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#8B5CF6] ring-1 ring-inset ring-[#8B5CF6]/20">Pro</span></p>
       </>
     ),
   },
@@ -89,8 +83,8 @@ const sections: Section[] = [
     icon: ImageIcon,
     body: (
       <>
-        <p>Tap the <strong>+</strong> button beside the composer to open a smooth attachment tray with Emoji, File, Image, and Video.</p>
-        <p>Photos and files upload straight to Sona's storage; videos upload via Cloudinary with a live progress percentage.</p>
+        <p>Tap the <strong className="text-zinc-900 dark:text-white">+</strong> button beside the composer to open a smooth attachment tray with Emoji, File, Image, and Video.</p>
+        <p className="mt-3">Photos and files upload straight to Sona's storage; videos upload via Cloudinary with a live progress percentage.</p>
       </>
     ),
   },
@@ -107,7 +101,7 @@ const sections: Section[] = [
     body: (
       <>
         <p>Tap a message to add an emoji reaction. Counts show under the bubble.</p>
-        <p>Use Reply to quote a specific message. Use Edit to correct your own text.</p>
+        <p className="mt-3">Use Reply to quote a specific message. Use Edit to correct your own text.</p>
       </>
     ),
   },
@@ -118,7 +112,7 @@ const sections: Section[] = [
     body: (
       <>
         <p>Tap anyone's avatar to open their consolidated contact info screen: bio, live status, last seen, join date, and shortcuts to message, block, report, or jump into shared media.</p>
-        <p>Online presence updates live — no refresh needed.</p>
+        <p className="mt-3">Online presence updates live — no refresh needed.</p>
       </>
     ),
   },
@@ -126,7 +120,7 @@ const sections: Section[] = [
     id: "media-gallery",
     title: "Media, links & docs gallery",
     icon: FolderOpen,
-    body: <p>Open a chat's header menu or contact info screen and tap Media, links, and docs for a browsable grid of everything shared in that conversation.</p>,
+    body: <p>Open a chat's header menu or contact info screen and tap <strong className="text-zinc-900 dark:text-white">Media, links, and docs</strong> for a browsable grid of everything shared in that conversation.</p>,
   },
   {
     id: "block-report",
@@ -134,8 +128,8 @@ const sections: Section[] = [
     icon: Ban,
     body: (
       <>
-        <p>From anyone's contact info screen, tap Block to instantly stop receiving their messages.</p>
-        <p>Tap Report if someone's behaviour breaks Sona's rules.</p>
+        <p>From anyone's contact info screen, tap <strong className="text-zinc-900 dark:text-white">Block</strong> to instantly stop receiving their messages.</p>
+        <p className="mt-3">Tap <strong className="text-zinc-900 dark:text-white">Report</strong> if someone's behaviour breaks Sona's rules.</p>
       </>
     ),
   },
@@ -146,7 +140,7 @@ const sections: Section[] = [
     body: (
       <>
         <p>Tap the Add status tile at the start of the Status row to post a text, photo, or video update.</p>
-        <p>Statuses disappear automatically after 24 hours and track who has seen them.</p>
+        <p className="mt-3">Statuses disappear automatically after 24 hours and track who has seen them.</p>
       </>
     ),
   },
@@ -157,7 +151,7 @@ const sections: Section[] = [
     body: (
       <>
         <p>Compose a message, then tap the clock icon to pick a future send time instead of sending immediately.</p>
-        <p>Pin any message to the top of a chat so it's never buried.</p>
+        <p className="mt-3">Pin any message to the top of a chat so it's never buried.</p>
       </>
     ),
   },
@@ -168,8 +162,8 @@ const sections: Section[] = [
     pro: true,
     body: (
       <>
-        <p>Sona Pro unlocks Hide & encrypt. New messages in that chat are encrypted client-side with AES-GCM before leaving your device.</p>
-        <p>Re-open a hidden chat and enter your passcode to decrypt.</p>
+        <p>Sona Pro unlocks <strong className="text-zinc-900 dark:text-white">Hide & encrypt</strong>. New messages in that chat are encrypted client-side with AES-GCM before leaving your device.</p>
+        <p className="mt-3">Re-open a hidden chat and enter your passcode to decrypt.</p>
       </>
     ),
   },
@@ -184,7 +178,7 @@ const sections: Section[] = [
     id: "notifications",
     title: "Notifications",
     icon: Bell,
-    body: <p>Enable push notifications from Settings → Advanced to get pinged for new messages even when Sona isn't open in a tab.</p>,
+    body: <p>Enable push notifications from <strong className="text-zinc-900 dark:text-white">Settings → Advanced</strong> to get pinged for new messages even when Sona isn't open in a tab.</p>,
   },
   {
     id: "install",
@@ -193,7 +187,7 @@ const sections: Section[] = [
     body: (
       <>
         <p>Sona is a full installable app. On desktop and Android, look for the Download icon in the sidebar header.</p>
-        <p>On iPhone/iPad, use Safari's Share menu and choose Add to Home Screen.</p>
+        <p className="mt-3">On iPhone/iPad, use Safari's Share menu and choose Add to Home Screen.</p>
       </>
     ),
   },
@@ -202,7 +196,7 @@ const sections: Section[] = [
     title: "Security model",
     icon: Shield,
     body: (
-      <ul className="list-disc space-y-2 pl-5">
+      <ul className="list-disc space-y-2 pl-5 marker:text-[#E07A5F]">
         <li>Row-level security on every table: you only see chats you're a member of.</li>
         <li>Media stored in a private bucket, served through short-lived signed URLs.</li>
         <li>AES-GCM 256-bit encryption for hidden chats.</li>
@@ -218,7 +212,7 @@ const sections: Section[] = [
     body: (
       <>
         <p>Sona Pro unlocks the premium layer:</p>
-        <ul className="list-disc space-y-2 pl-5">
+        <ul className="mt-3 list-disc space-y-2 pl-5 marker:text-[#8B5CF6]">
           <li>AI chat summaries</li>
           <li>Vision — Sona reads your images</li>
           <li>Unlimited hidden encrypted chats</li>
@@ -241,28 +235,27 @@ const limitRows: LimitRow[] = [
 
 function LimitCard({ row }: { row: LimitRow }) {
   const pct = Math.round((row.maxSize / LIMIT_BAR_CEILING) * 100);
-  const color = pct >= 70 ? GREEN : pct >= 25 ? BRAND : ORANGE;
 
   return (
-    <div className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-[#202c33]">
+    <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/60 p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-xl dark:border-zinc-800/60 dark:bg-zinc-900/40 dark:hover:border-zinc-700">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#25D366]/10 text-[#25D366]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E07A5F]/10 text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20 transition-colors group-hover:bg-[#E07A5F]/15">
             <row.icon className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-[#111b21] dark:text-white">{row.type}</h3>
-            <p className="text-sm text-[#667781] dark:text-[#8696a0]">{row.perMessage}</p>
+            <h3 className="font-bold text-zinc-900 dark:text-white">{row.type}</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{row.perMessage}</p>
           </div>
         </div>
-        <span className="rounded-full px-3 py-1 text-xs font-semibold text-white" style={{ background: color }}>
+        <span className="rounded-full bg-zinc-900 px-3 py-1 text-xs font-bold text-white shadow-sm dark:bg-white dark:text-zinc-900">
           {row.maxSizeLabel}
         </span>
       </div>
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      <div className="mt-5 h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <div className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#E07A5F] transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
-      <p className="mt-3 text-sm leading-6 text-[#667781] dark:text-[#aebac1]">{row.notes}</p>
+      <p className="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{row.notes}</p>
     </div>
   );
 }
@@ -271,22 +264,22 @@ function UploadLimitsSection() {
   const [view, setView] = useState<"cards" | "list">("cards");
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-[#25D366]/15 bg-[#25D366]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200/60 bg-white/60 p-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800/60 dark:bg-zinc-900/40">
         <div>
-          <div className="text-sm font-semibold text-[#111b21] dark:text-white">Files over the limit are skipped automatically</div>
-          <div className="text-sm text-[#667781] dark:text-[#8696a0]">Sona tells you exactly which files were too large or too many, right in the composer.</div>
+          <div className="text-sm font-bold text-zinc-900 dark:text-white">Files over the limit are skipped automatically</div>
+          <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Sona tells you exactly which files were too large or too many, right in the composer.</div>
         </div>
-        <div className="inline-flex rounded-full bg-white p-1 shadow-sm dark:bg-[#202c33]">
+        <div className="inline-flex rounded-full border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-800 dark:bg-zinc-900">
           <button
             onClick={() => setView("cards")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${view === "cards" ? "bg-[#25D366] text-white" : "text-[#667781] dark:text-[#8696a0]"}`}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${view === "cards" ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"}`}
           >
             Cards
           </button>
           <button
             onClick={() => setView("list")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${view === "list" ? "bg-[#25D366] text-white" : "text-[#667781] dark:text-[#8696a0]"}`}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${view === "list" ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"}`}
           >
             List
           </button>
@@ -294,33 +287,31 @@ function UploadLimitsSection() {
       </div>
 
       {view === "cards" ? (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {limitRows.map((row) => (
             <LimitCard key={row.key} row={row} />
           ))}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-[#202c33]">
+        <div className="overflow-hidden rounded-2xl border border-zinc-200/60 bg-white/60 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/40">
           {limitRows.map((row, idx) => {
             const pct = Math.round((row.maxSize / LIMIT_BAR_CEILING) * 100);
-            const color = pct >= 70 ? GREEN : pct >= 25 ? BRAND : ORANGE;
-
             return (
-              <div key={row.key} className={`grid gap-3 p-4 md:grid-cols-[220px_1fr_140px] ${idx !== limitRows.length - 1 ? "border-b border-black/5 dark:border-white/10" : ""}`}>
+              <div key={row.key} className={`grid gap-4 p-5 md:grid-cols-[220px_1fr_160px] md:items-center ${idx !== limitRows.length - 1 ? "border-b border-zinc-200/60 dark:border-zinc-800/60" : ""}`}>
                 <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#25D366]/10 text-[#25D366]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E07A5F]/10 text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
                     <row.icon className="h-5 w-5" />
                   </div>
-                  <div className="font-medium text-[#111b21] dark:text-white">{row.type}</div>
+                  <div className="font-bold text-zinc-900 dark:text-white">{row.type}</div>
                 </div>
-                <div className="text-sm text-[#667781] dark:text-[#aebac1]">
-                  <div>{row.perMessage}</div>
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="font-medium text-zinc-700 dark:text-zinc-300">{row.perMessage}</div>
                   <div className="mt-1">{row.notes}</div>
                 </div>
                 <div className="md:text-right">
-                  <div className="text-sm font-semibold text-[#111b21] dark:text-white">{row.maxSizeLabel}</div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/10 md:ml-auto">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                  <div className="text-sm font-bold text-zinc-900 dark:text-white">{row.maxSizeLabel}</div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800 md:ml-auto">
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#E07A5F]" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               </div>
@@ -336,28 +327,30 @@ function AccordionItem({ section, index }: { section: Section; index: number }) 
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-[#202c33]">
+    <div className={`group overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-300 ${open ? "border-[#E07A5F]/30 bg-white/80 shadow-lg dark:border-[#E07A5F]/20 dark:bg-zinc-900/60" : "border-zinc-200/60 bg-white/60 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/40 dark:hover:border-zinc-700"}`}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-black/2 dark:hover:bg-white/5"
+        className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors"
       >
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#25D366]/10 text-[#25D366]">
+        <div className="flex items-center gap-4">
+          <div className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${section.pro ? "bg-[#8B5CF6]/10 text-[#8B5CF6] ring-1 ring-inset ring-[#8B5CF6]/20" : "bg-[#E07A5F]/10 text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20"}`}>
             <section.icon className="h-5 w-5" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-[#111b21] dark:text-white">
-                <span className="mr-1 text-[#25D366]">{index + 1}.</span>
+              <span className="text-base font-bold text-zinc-900 dark:text-white">
+                <span className="mr-1.5 text-zinc-400 dark:text-zinc-600">{String(index + 1).padStart(2, '0')}.</span>
                 {section.title}
               </span>
               {section.pro ? (
-                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600">Pro</span>
+                <span className="rounded-full bg-[#8B5CF6]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#8B5CF6] ring-1 ring-inset ring-[#8B5CF6]/20">Pro</span>
               ) : null}
             </div>
           </div>
         </div>
-        {open ? <ChevronUp className="h-5 w-5 text-[#667781]" /> : <ChevronDown className="h-5 w-5 text-[#667781]" />}
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ${open ? "bg-[#E07A5F] text-white rotate-180" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>
+          <ChevronDown className="h-4 w-4" />
+        </div>
       </button>
 
       <AnimatePresence initial={false}>
@@ -366,10 +359,10 @@ function AccordionItem({ section, index }: { section: Section; index: number }) 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-black/5 px-4 pb-4 pt-1 text-sm leading-7 text-[#667781] dark:border-white/10 dark:text-[#aebac1]">
+            <div className="border-t border-zinc-200/60 px-5 pb-5 pt-4 text-[15px] leading-relaxed text-zinc-600 dark:border-zinc-800/60 dark:text-zinc-400">
               {section.body}
             </div>
           </motion.div>
@@ -381,46 +374,58 @@ function AccordionItem({ section, index }: { section: Section; index: number }) 
 
 function LearnPage() {
   return (
-    <div className="min-h-dvh bg-[transparent] text-[#111b21] dark:bg-[#ffffff] dark:text-white">
-      <header className="sticky top-0 z-10 border-b border-black/5 bg-[#fff] text-[#1E1E1E] ">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <Link to="/" className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/15">
-            <ArrowLeft className="h-8 w-8 " />
+    <div className="relative min-h-dvh bg-[#FFFDF9] text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
+      {/* Subtle ambient background gradient */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent dark:from-purple-900/10" />
+      
+      <header className="sticky top-0 z-20 border-b border-zinc-200/60 bg-white/80 backdrop-blur-xl transition-colors dark:border-zinc-800/60 dark:bg-[#0F0F11]/80">
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 sm:px-8">
+          <Link to="/" className="group grid h-10 w-10 place-items-center rounded-full border border-zinc-200 bg-white/50 shadow-sm transition-all hover:border-zinc-300 hover:bg-white hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700 dark:hover:bg-zinc-900">
+            <ArrowLeft className="h-4.5 w-4.5 text-zinc-600 transition-transform group-hover:-translate-x-0.5 dark:text-zinc-400" />
           </Link>
-          <div>
-            <img
-  src="/s-logo.png"
-  alt="Sona"
-  className="h-10 w-full"
-/>
+          <div className="flex items-center gap-2">
+            <img src="/s-logo.png" alt="Sona" className="h-8 w-auto" />
+            <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">Learn</span>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-6">
-        <section className="rounded-[28px] bg-white p-6 shadow-sm dark:bg-[#202c33]">
-          <h2 className="text-2xl font-bold">Welcome to Sona</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#667781] dark:text-[#aebac1]">
-            Sona is a warm, private messenger with a built-in AI companion. Below is everything the app can do, followed by a quick reference for every upload limit in one place.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-[#25D366]/10 px-3 py-1 font-medium text-[#25D366]">Available on Free</span>
-            <span className="rounded-full bg-amber-500/10 px-3 py-1 font-medium text-amber-600">Sona Pro</span>
+      <main className="relative mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden rounded-3xl border border-zinc-200/60 bg-white/60 p-8 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/40 sm:p-12">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#E07A5F]/10 blur-3xl" />
+          <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-[#8B5CF6]/10 blur-3xl" />
+          <div className="relative">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E07A5F]/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
+              <Sparkles className="h-3.5 w-3.5" /> User Guide
+            </span>
+            <h2 className="mt-6 text-4xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
+              Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8B5CF6] to-[#E07A5F]">Sona</span>
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Sona is a warm, private messenger with a built-in AI companion. Below is everything the app can do, followed by a quick reference for every upload limit in one place.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3 text-xs">
+              <span className="rounded-full bg-zinc-100 px-3.5 py-1.5 font-semibold text-zinc-700 ring-1 ring-inset ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700">Available on Free</span>
+              <span className="rounded-full bg-[#8B5CF6]/10 px-3.5 py-1.5 font-semibold text-[#8B5CF6] ring-1 ring-inset ring-[#8B5CF6]/20">Sona Pro</span>
+            </div>
           </div>
         </section>
 
-        <section className="mt-6 rounded-[28px] bg-white p-6 shadow-sm dark:bg-[#202c33]">
-          <div className="mb-4">
-            <h2 className="text-xl font-bold">Upload limits</h2>
-            <p className="text-sm text-[#667781] dark:text-[#aebac1]">What you can attach, how many at once, and how big each file can be.</p>
+        {/* Upload Limits */}
+        <section className="mt-10 rounded-3xl border border-zinc-200/60 bg-white/60 p-6 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/40 sm:p-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">Upload limits</h2>
+            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">What you can attach, how many at once, and how big each file can be.</p>
           </div>
           <UploadLimitsSection />
         </section>
 
-        <section className="mt-6 rounded-[28px] bg-white p-6 shadow-sm dark:bg-[#202c33]">
-          <div className="mb-4">
-            <h2 className="text-xl font-bold">Features, A to Z</h2>
-            <p className="text-sm text-[#667781] dark:text-[#aebac1]">Tap any section to expand it.</p>
+        {/* Features A-Z */}
+        <section className="mt-10 rounded-3xl border border-zinc-200/60 bg-white/60 p-6 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/40 sm:p-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">Features, A to Z</h2>
+            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Tap any section to expand it.</p>
           </div>
           <div className="space-y-3">
             {sections.map((section, index) => (
@@ -429,12 +434,13 @@ function LearnPage() {
           </div>
         </section>
 
-        <div className="py-8 text-center">
+        {/* Footer */}
+        <div className="mt-16 flex justify-center pb-10">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-full bg-[#E07A5F] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-95"
+            className="group inline-flex items-center gap-2 rounded-full bg-zinc-900 px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-black hover:shadow-xl dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            <MessageCircle className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4 transition-transform group-hover:-rotate-12" />
             Back to chats
           </Link>
         </div>
