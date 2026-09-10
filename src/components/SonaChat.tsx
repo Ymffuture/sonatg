@@ -3398,6 +3398,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   </DropdownMenuContent>
 </DropdownMenu>
                   
+                </div>
                 </header>
 
                 {active.is_group && active.description && (
