@@ -34,6 +34,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
+import { AskSonaPanel } from "@/components/AskSonaPanel";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
@@ -659,6 +660,7 @@ const handleMenuOpenChange = (open: boolean) => {
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<MessageRow | null>(null);
+  const [askSonaMessage, setAskSonaMessage] = useState<MessageRow | null>(null);
   const [showMediaGallery, setShowMediaGallery] = useState(false);
   const [galleryViewer, setGalleryViewer] = useState<{ kind: "image" | "video" | "pdf"; url: string; name?: string | null } | null>(null);
   const [videoUploadPct, setVideoUploadPct] = useState<number | null>(null);
@@ -3626,6 +3628,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                                   menuPos={openMessageMenu?.id === m.id ? { x: openMessageMenu.x, y: openMessageMenu.y } : null}
                                   onOpenMenu={(x, y) => openMessageMenuFor(m.id, x, y)}
                                   onCloseMenu={closeMessageMenu}
+                                  onAskSona={() => setAskSonaMessage(m)}
                                 />
                               </MessageErrorBoundary>
                             </motion.div>
@@ -4161,6 +4164,15 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           meId={me.id}
           onClose={() => { setForwardingMessages(null); exitMsgSelectMode(); }}
           onForwarded={() => {}}
+        />
+      )}
+
+      {askSonaMessage && me && activeId && (
+        <AskSonaPanel
+          chatId={activeId}
+          message={askSonaMessage}
+          onClose={() => setAskSonaMessage(null)}
+          onUseReply={(text) => setDraft(text)}
         />
       )}
 

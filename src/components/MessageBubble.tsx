@@ -8,6 +8,13 @@ import {
   FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
   Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff,
 } from "lucide-react";
+// "Ask Sona" is eligible on any text message, or a voice note that already has a transcript.
+function isAskSonaEligible(msg: { kind: string; body?: string | null; transcript?: string | null; deleted_at?: string | null }): boolean {
+  if (msg.deleted_at) return false;
+  if (msg.kind === "text") return true;
+  if (msg.kind === "voice") return !!msg.transcript;
+  return false;
+}
 import { toast } from "sonner";
 import { PollCard } from "@/features/classroom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -783,6 +790,7 @@ function useLongPress(callback: () => void, ms = 500) {
 function MessageContextMenu({
   open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onForward, onClose,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect,
+  onAskSona, askSonaEligible,
 }: {
   open: boolean; x: number; y: number; mine: boolean; isText: boolean;
   onReply: () => void; onReact: (emoji: string) => void;
@@ -790,6 +798,7 @@ function MessageContextMenu({
   isPinned?: boolean; onTogglePin?: () => void;
   isBookmarked?: boolean; onToggleBookmark?: () => void;
   onEnterSelect?: () => void;
+  onAskSona?: () => void; askSonaEligible?: boolean;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuW = 220;
@@ -872,6 +881,13 @@ function MessageContextMenu({
             icon={<Pencil className="h-4 w-4" />}
             label="Edit"
             onClick={() => { onEdit(); onClose(); }}
+          />
+        )}
+        {onAskSona && askSonaEligible && (
+          <CompactMenuItem
+            icon={<Sparkles className="h-4 w-4" />}
+            label="Ask Sona"
+            onClick={() => { onAskSona(); onClose(); }}
           />
         )}
 
@@ -1491,7 +1507,7 @@ export function Bubble({
   overrideBody, onDelete, onRemove, onReply, onEdit, parentName, parentBody, onJumpToParent, actionsOpen, onToggleActions, onTranscribed,
   replyCount, onOpenThread, allImages, onForward, isHighlighted,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
-  menuOpen, menuPos, onOpenMenu, onCloseMenu,
+  menuOpen, menuPos, onOpenMenu, onCloseMenu, onAskSona,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -1519,6 +1535,8 @@ export function Bubble({
   menuPos?: { x: number; y: number } | null;
   onOpenMenu?: (x: number, y: number) => void;
   onCloseMenu?: () => void;
+  /** Opens the "Ask Sona" message-intelligence panel for this message. */
+  onAskSona?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -2025,6 +2043,8 @@ function getNameColor(identifier: string) {
         isBookmarked={isBookmarked}
         onToggleBookmark={onToggleBookmark}
         onEnterSelect={onToggleSelect ? () => onToggleSelect() : undefined}
+        onAskSona={onAskSona}
+        askSonaEligible={isAskSonaEligible(msg)}
       />
       
       {viewer && (
