@@ -68,7 +68,7 @@ async function callModelOnce(messages: unknown[], key: string, model: string): P
 // to the next model in the chain instead of surfacing the failure right
 // away. The chain always ends with the shared free-tier default, so a
 // Purple pick going down never fully breaks replies.
-async function callGateway(messages: unknown[], key: string, preferredModel: string): Promise<string> {
+export async function callGateway(messages: unknown[], key: string, preferredModel: string): Promise<string> {
   const chain = fallbackChain(preferredModel);
   let lastError: Error | null = null;
   for (const model of chain) {
@@ -89,7 +89,7 @@ async function callGateway(messages: unknown[], key: string, preferredModel: str
 // `messages` table actually supports gets a real label here — previously
 // anything that wasn't "text" or "image" (i.e. "voice", "file", and "call"
 // log entries) all silently fell through to being mislabeled "[voice note]".
-function describeForHistory(m: { kind: string; body?: string | null; file_name?: string | null }): string {
+export function describeForHistory(m: { kind: string; body?: string | null; file_name?: string | null }): string {
   switch (m.kind) {
     case "text":
       return m.body ?? "";
