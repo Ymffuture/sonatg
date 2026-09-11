@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import {
   SONA_AI_ID,
-  type ChatRow, type MessageRow, type Profile, type MessageReadRow,
+  type ChatRow, type MessageRow, type Profile, type MessageReadRow, type MessageDeliveryRow,
   type ChatCategory, type ChatMemberRole,
 } from "@/lib/db";
 
@@ -263,6 +263,52 @@ export function readStatusFor(msg: MessageRow, reads: MessageReadRow[], memberId
   if (readers.length >= others.length) return "read";
   if (readers.length > 0) return "read";
   return "delivered";
+}
+
+// ─── Message lifecycle (for the "Message info" panel) ──────────────
+// Distinct from readStatusFor above (which only drives the small tick icon
+// on the bubble) — this returns the full Sending → Sent → Delivered → Read
+// timeline with real timestamps, sourced only from actual rows: the
+// message's own created_at, and the earliest matching message_deliveries /
+// message_reads rows from other members. Nothing here is inferred from a
+// timer — a stage is only "reached" once its backing row actually exists.
+export type MessageLifecycleStage = "sending" | "failed" | "sent" | "delivered" | "read";
+
+export type MessageLifecycle = {
+  stage: MessageLifecycleStage;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  readAt: string | null;
+};
+
+export function messageLifecycleFor(
+  msg: MessageRow,
+  reads: MessageReadRow[],
+  deliveries: MessageDeliveryRow[],
+  memberIds: string[],
+  meId: string
+): MessageLifecycle {
+  if (msg._failed) return { stage: "failed", sentAt: null, deliveredAt: null, readAt: null };
+  if (msg._pending) return { stage: "sending", sentAt: null, deliveredAt: null, readAt: null };
+
+  const others = memberIds.filter((id) => id !== meId);
+  const sentAt = msg.created_at;
+
+  const deliveredRows = deliveries
+    .filter((d) => d.message_id === msg.id && d.user_id !== meId)
+    .sort((a, b) => a.delivered_at.localeCompare(b.delivered_at));
+  const readRows = reads
+    .filter((r) => r.message_id === msg.id && r.user_id !== meId)
+    .sort((a, b) => a.read_at.localeCompare(b.read_at));
+
+  if (others.length === 0) return { stage: "sent", sentAt, deliveredAt: null, readAt: null };
+  if (readRows.length > 0) {
+    return { stage: "read", sentAt, deliveredAt: deliveredRows[0]?.delivered_at ?? readRows[0].read_at, readAt: readRows[0].read_at };
+  }
+  if (deliveredRows.length > 0) {
+    return { stage: "delivered", sentAt, deliveredAt: deliveredRows[0].delivered_at, readAt: null };
+  }
+  return { stage: "sent", sentAt, deliveredAt: null, readAt: null };
 }
 
 // ─── Voice note waveform ─────────────────────────────────────────
