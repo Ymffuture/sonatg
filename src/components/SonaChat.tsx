@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
 import { AskSonaPanel } from "@/components/AskSonaPanel";
+import { MessageInfoPopover } from "@/components/MessageInfoPopover";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
@@ -78,7 +79,7 @@ function AdminLink({ onNavigate }: { onNavigate: () => void }) {
 import { OnboardingTour, hasSeenOnboarding, type TourStep } from "./OnboardingTour";
 import {
   SONA_AI_ID, fmtTime, fmtLastSeen, fmtDateLabel, CHAT_CATEGORIES,
-  type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow,
+  type ChatRow, type MessageRow, type Profile, type ReactionRow, type MessageReadRow, type MessageDeliveryRow,
   type BlockRow, type ChatCategory, type ChatMemberRole,
 } from "@/lib/db";
 import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
@@ -491,6 +492,7 @@ function SonaChatInner() {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
   const [reads, setReads] = useState<MessageReadRow[]>([]);
+  const [deliveries, setDeliveries] = useState<MessageDeliveryRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [query, setQuery] = useState("");
   const [announcement, setAnnouncement] = useState<AppAnnouncement | null>(null);
@@ -661,6 +663,7 @@ const handleMenuOpenChange = (open: boolean) => {
   const [viewingProfile, setViewingProfile] = useState<Profile | null>(null);
   const [forwardingMessage, setForwardingMessage] = useState<MessageRow | null>(null);
   const [askSonaMessage, setAskSonaMessage] = useState<MessageRow | null>(null);
+  const [messageInfoTarget, setMessageInfoTarget] = useState<MessageRow | null>(null);
   const [showMediaGallery, setShowMediaGallery] = useState(false);
   const [galleryViewer, setGalleryViewer] = useState<{ kind: "image" | "video" | "pdf"; url: string; name?: string | null } | null>(null);
   const [videoUploadPct, setVideoUploadPct] = useState<number | null>(null);
@@ -743,7 +746,11 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const chatCacheRef = useRef<Record<string, { messages: MessageRow[]; reactions: ReactionRow[]; reads: MessageReadRow[] }>>({});
+  const chatCacheRef = useRef<Record<string, { messages: MessageRow[]; reactions: ReactionRow[]; reads: MessageReadRow[]; deliveries: MessageDeliveryRow[] }>>({});
+  // Holds the exact insert payload for a message whose send failed, keyed by
+  // its optimistic temp id, so "Retry" (surfaced from the Message info
+  // panel) can re-attempt the identical insert without the user retyping.
+  const failedPayloadsRef = useRef<Record<string, Record<string, unknown>>>({});
   
   const chatClearsRef = useRef<Record<string, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
@@ -810,7 +817,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       // Never overwrite a fuller cache from having actually opened the
       // chat — this is just a head start for chats not yet opened.
       if (!chatCacheRef.current[chatId]) {
-        chatCacheRef.current[chatId] = { messages: msgs.slice().reverse(), reactions: [], reads: [] };
+        chatCacheRef.current[chatId] = { messages: msgs.slice().reverse(), reactions: [], reads: [], deliveries: [] };
       }
     }
 
@@ -967,6 +974,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       setMessages(cached.messages);
       setReactions(cached.reactions);
       setReads(cached.reads);
+      setDeliveries(cached.deliveries);
     }
 
     (async () => {
@@ -991,24 +999,42 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       }
       let rx: ReactionRow[] = [];
       let rd: MessageReadRow[] = [];
+      let dl: MessageDeliveryRow[] = [];
       if (ids.length) {
-        const [{ data: rxData }, { data: rdData }] = await Promise.all([
+        const [{ data: rxData }, { data: rdData }, { data: dlData }] = await Promise.all([
           supabase.from("reactions").select("*").in("message_id", ids),
           supabase.from("message_reads").select("*").in("message_id", ids),
+          supabase.from("message_deliveries").select("*").in("message_id", ids),
         ]);
         rx = (rxData ?? []) as ReactionRow[];
         rd = (rdData ?? []) as MessageReadRow[];
+        dl = (dlData ?? []) as MessageDeliveryRow[];
         setReactions(rx);
         setReads(rd);
-      } else { setReactions([]); setReads([]); }
-      chatCacheRef.current[activeId] = { messages: rows, reactions: rx, reads: rd };
+        setDeliveries(dl);
+
+        // Catch-up delivery: any message from someone else that reached my
+        // client just now (via this fetch) but has no delivery receipt from
+        // me yet — e.g. it arrived while I was offline — gets marked
+        // delivered right away, same as the realtime path below.
+        if (me) {
+          const haveDelivery = new Set(dl.filter((d) => d.user_id === me.id).map((d) => d.message_id));
+          const toMark = rows.filter((m) => m.sender_id !== me.id && !m._pending && !haveDelivery.has(m.id)).map((m) => m.id);
+          if (toMark.length) {
+            supabase.from("message_deliveries")
+              .upsert(toMark.map((id) => ({ message_id: id, user_id: me.id })), { onConflict: "message_id,user_id", ignoreDuplicates: true })
+              .then(() => {});
+          }
+        }
+      } else { setReactions([]); setReads([]); setDeliveries([]); }
+      chatCacheRef.current[activeId] = { messages: rows, reactions: rx, reads: rd, deliveries: dl };
     })();
   }, [activeId]);
 
   useEffect(() => {
     if (!activeId) return;
-    chatCacheRef.current[activeId] = { messages, reactions, reads };
-  }, [activeId, messages, reactions, reads]);
+    chatCacheRef.current[activeId] = { messages, reactions, reads, deliveries };
+  }, [activeId, messages, reactions, reads, deliveries]);
 
   const notifyReaction = useCallback(async (r: ReactionRow) => {
     // Only notify when it's a reaction to MY message, not just any
@@ -1061,6 +1087,16 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           if (m.sender_id !== me.id) playReceiveSound();
         }
         if (!notYetDue) loadChats();
+        // Real delivery signal: this event only reaches my client once the
+        // message has actually arrived here over realtime. Mark it
+        // delivered-by-me immediately, for every chat I'm in — not just the
+        // one currently open — mirroring how a messaging client's "delivered"
+        // tick reflects the message reaching a recipient's device.
+        if (!notYetDue && m.sender_id !== me.id) {
+          supabase.from("message_deliveries")
+            .upsert({ message_id: m.id, user_id: me.id }, { onConflict: "message_id,user_id", ignoreDuplicates: true })
+            .then(() => {});
+        }
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (p) => {
         const m = p.new as MessageRow;
@@ -1096,6 +1132,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         const r = p.new as MessageReadRow;
         setReads((prev) => prev.some((x) => x.message_id === r.message_id && x.user_id === r.user_id) ? prev : [...prev, r]);
         if (r.user_id === me.id) loadChats();
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_deliveries" }, (p) => {
+        const d = p.new as MessageDeliveryRow;
+        setDeliveries((prev) => prev.some((x) => x.message_id === d.message_id && x.user_id === d.user_id) ? prev : [...prev, d]);
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_members" }, () => { loadChats(); })
       .subscribe();
@@ -1743,7 +1783,13 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         const { data: inserted, error } = await supabase.from("messages").insert(payload).select().single();
         if (error) {
           toast.error(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
-          if (!scheduledFor) setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          // Keep the bubble (instead of deleting it) so the real "failed to
+          // send" state is visible and retryable from Message info — never
+          // silently drop a message the user believed they sent.
+          if (!scheduledFor) {
+            failedPayloadsRef.current[tempId] = payload;
+            setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _pending: false, _failed: true } : m)));
+          }
           if (isFreeTierLimitError(error)) { refreshMessagesSentToday(); break; }
           continue;
         }
@@ -1828,6 +1874,28 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       setSending(false);
     }
   };
+
+  // Re-attempts a failed send using the exact payload that failed, keyed by
+  // the message's optimistic temp id. Surfaced only from the Message info
+  // panel's "Retry" button — never automatic/timer-driven.
+  const retryMessage = useCallback(async (tempId: string) => {
+    const payload = failedPayloadsRef.current[tempId];
+    if (!payload) return;
+    setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _failed: false, _pending: true } : m)));
+    const { data: inserted, error } = await supabase.from("messages").insert(payload as never).select().single();
+    if (error) {
+      toast.error(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _pending: false, _failed: true } : m)));
+      return;
+    }
+    delete failedPayloadsRef.current[tempId];
+    setMessages((prev) => {
+      const withoutRealtimeDupe = prev.filter((m) => m.id !== (inserted as MessageRow).id);
+      return withoutRealtimeDupe.map((m) => (m.id === tempId ? (inserted as MessageRow) : m));
+    });
+    playSendSound();
+    refreshMessagesSentToday();
+  }, [refreshMessagesSentToday]);
 
   const startEdit = (m: MessageRow) => {
     if (m.sender_id !== me?.id || m.kind !== "text") return;
@@ -2174,7 +2242,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     setMessages([]);
     setReactions([]);
     setReads([]);
-    chatCacheRef.current[active.id] = { messages: [], reactions: [], reads: [] };
+    setDeliveries([]);
+    chatCacheRef.current[active.id] = { messages: [], reactions: [], reads: [], deliveries: [] };
     toast.success("Chat cleared");
     loadChats();
   };
@@ -3629,6 +3698,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                                   onOpenMenu={(x, y) => openMessageMenuFor(m.id, x, y)}
                                   onCloseMenu={closeMessageMenu}
                                   onAskSona={() => setAskSonaMessage(m)}
+                                  deliveries={deliveries}
+                                  onRetrySend={() => retryMessage(m.id)}
+                                  onShowMessageInfo={() => setMessageInfoTarget(m)}
                                 />
                               </MessageErrorBoundary>
                             </motion.div>
@@ -4173,6 +4245,18 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           message={askSonaMessage}
           onClose={() => setAskSonaMessage(null)}
           onUseReply={(text) => setDraft(text)}
+        />
+      )}
+
+      {messageInfoTarget && me && active && (
+        <MessageInfoPopover
+          message={messageInfoTarget}
+          reads={reads}
+          deliveries={deliveries}
+          memberIds={active.memberIds}
+          meId={me.id}
+          onClose={() => setMessageInfoTarget(null)}
+          onRetry={() => { retryMessage(messageInfoTarget.id); setMessageInfoTarget(null); }}
         />
       )}
 

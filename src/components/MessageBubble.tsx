@@ -6,7 +6,7 @@ import {
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
   FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
-  Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff,
+  Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff, Info, AlertTriangle,
 } from "lucide-react";
 // "Ask Sona" is eligible on any text message, or a voice note that already has a transcript.
 function isAskSonaEligible(msg: { kind: string; body?: string | null; transcript?: string | null; deleted_at?: string | null }): boolean {
@@ -27,7 +27,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { transcribeVoiceMessage } from "@/lib/transcribe.functions";
 import { synthesizeSpeech } from "@/lib/tts.functions";
 import { fetchLinkPreview, type LinkPreview } from "@/lib/linkpreview.functions";
-import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow } from "@/lib/db";
+import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow, type MessageDeliveryRow } from "@/lib/db";
 import { VideoPlayer } from "./VideoPlayer";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
@@ -790,7 +790,7 @@ function useLongPress(callback: () => void, ms = 500) {
 function MessageContextMenu({
   open, x, y, mine, isText, onReply, onReact, onEdit, onDelete, onCopy, onForward, onClose,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, onEnterSelect,
-  onAskSona, askSonaEligible,
+  onAskSona, askSonaEligible, onMessageInfo,
 }: {
   open: boolean; x: number; y: number; mine: boolean; isText: boolean;
   onReply: () => void; onReact: (emoji: string) => void;
@@ -799,6 +799,8 @@ function MessageContextMenu({
   isBookmarked?: boolean; onToggleBookmark?: () => void;
   onEnterSelect?: () => void;
   onAskSona?: () => void; askSonaEligible?: boolean;
+  /** Own messages only — opens the Sending → Sent → Delivered → Read lifecycle popover. */
+  onMessageInfo?: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuW = 220;
@@ -888,6 +890,13 @@ function MessageContextMenu({
             icon={<Sparkles className="h-4 w-4" />}
             label="Ask Sona"
             onClick={() => { onAskSona(); onClose(); }}
+          />
+        )}
+        {mine && onMessageInfo && (
+          <CompactMenuItem
+            icon={<Info className="h-4 w-4" />}
+            label="Message info"
+            onClick={() => { onMessageInfo(); onClose(); }}
           />
         )}
 
@@ -1508,6 +1517,7 @@ export function Bubble({
   replyCount, onOpenThread, allImages, onForward, isHighlighted,
   isPinned, onTogglePin, isBookmarked, onToggleBookmark, selectMode, selected, onToggleSelect,
   menuOpen, menuPos, onOpenMenu, onCloseMenu, onAskSona,
+  deliveries, onRetrySend, onShowMessageInfo,
 }: {
   msg: MessageRow; me: Profile; sender?: Profile; reactions: ReactionRow[];
   reads: MessageReadRow[]; otherMemberIds: string[];
@@ -1537,6 +1547,12 @@ export function Bubble({
   onCloseMenu?: () => void;
   /** Opens the "Ask Sona" message-intelligence panel for this message. */
   onAskSona?: () => void;
+  /** Delivery receipts across the whole chat — used only for own-message "Message info". */
+  deliveries?: MessageDeliveryRow[];
+  /** Re-attempts sending this message after a failed send. */
+  onRetrySend?: () => void;
+  /** Opens the Sending → Sent → Delivered → Read lifecycle popover for this (own) message. */
+  onShowMessageInfo?: () => void;
 }) {
   const mine = msg.sender_id === me.id;
   const isAI = msg.sender_id === SONA_AI_ID;
@@ -2014,7 +2030,16 @@ function getNameColor(identifier: string) {
                 {fmtTime(msg.created_at)}
               </span>
               {mine && (
-                msg._pending ? (
+                msg._failed ? (
+                  <button
+                    type="button"
+                    onClick={() => onShowMessageInfo?.()}
+                    className="flex items-center gap-1 text-red-500"
+                    aria-label="Message failed to send — view details"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                  </button>
+                ) : msg._pending ? (
                   <Clock className="h-3.5 w-3.5 animate-pulse opacity-70" />
                 ) : (
                   <TickIcon status={status} className="h-4 w-4" />
@@ -2045,6 +2070,7 @@ function getNameColor(identifier: string) {
         onEnterSelect={onToggleSelect ? () => onToggleSelect() : undefined}
         onAskSona={onAskSona}
         askSonaEligible={isAskSonaEligible(msg)}
+        onMessageInfo={mine && onShowMessageInfo ? onShowMessageInfo : undefined}
       />
       
       {viewer && (
