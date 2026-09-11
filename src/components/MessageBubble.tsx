@@ -1582,6 +1582,14 @@ export function Bubble({
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
+  // "Read more" / "Read less" — collapse long text bodies so a wall of text
+  // doesn't dominate the thread; the raw text is only sliced for display,
+  // never mutated, so expanding always shows the exact original message.
+  const READ_MORE_CHAR_LIMIT = 320;
+  const [textExpanded, setTextExpanded] = useState(false);
+  const isLongText = bodyText.length > READ_MORE_CHAR_LIMIT;
+  const visibleBodyText = isLongText && !textExpanded ? bodyText.slice(0, READ_MORE_CHAR_LIMIT).trimEnd() + "…" : bodyText;
+
   const longPress = useLongPress(() => {
     if (bubbleRef.current) {
       const rect = bubbleRef.current.getBoundingClientRect();
@@ -1945,7 +1953,19 @@ function getNameColor(identifier: string) {
 
             {(overrideBody ?? msg.body) && (
               <div className="text-[14.5px] leading-relaxed pr-12 pb-1">
-                {renderMarkdown(overrideBody ?? msg.body ?? "", mine)}
+                {renderMarkdown(visibleBodyText, mine)}
+                {isLongText && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setTextExpanded((v) => !v); }}
+                    className={`mt-0.5 block text-[13px] font-semibold hover:underline ${
+                      mine ? "text-white/85" : "text-[var(--sona-accent,#E07A5F)]"
+                    }`}
+                    aria-expanded={textExpanded}
+                  >
+                    {textExpanded ? "Read less" : "Read more"}
+                  </button>
+                )}
               </div>
             )}
 
