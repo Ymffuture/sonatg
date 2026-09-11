@@ -59,6 +59,8 @@ export type MessageRow = {
   pinned_at?: string | null;
   /** Client-only: true for a message shown optimistically before the insert has been confirmed by the server. Never persisted. */
   _pending?: boolean;
+  /** Client-only: true when the optimistic insert for this message failed (e.g. offline). Never persisted. */
+  _failed?: boolean;
 };
 
 
@@ -88,6 +90,12 @@ export type MessageReadRow = {
   message_id: string;
   user_id: string;
   read_at: string;
+};
+
+export type MessageDeliveryRow = {
+  message_id: string;
+  user_id: string;
+  delivered_at: string;
 };
 
 export type BlockRow = {
