@@ -3938,10 +3938,12 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                     )}
                   </div>
                 ) : (
-                <>
+                <div className="relative">
                 {moderationResult && (moderationResult.shouldLog || !moderationResult.allowed) && (
-                  <div className="px-4 pt-3 chat-pattern absolute">
-                    <ModerationAlert result={moderationResult} />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 px-4 pb-2 chat-pattern">
+                    <div className="pointer-events-auto">
+                      <ModerationAlert result={moderationResult} />
+                    </div>
                   </div>
                 )}
                 <Composer
@@ -3971,7 +3973,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                   videoUploadPct={videoUploadPct}
                   onCreatePoll={isAIChat(active) ? undefined : () => setShowPollComposer(true)}
                 />
-                </>
+                </div>
                 )}
               </>
             ) : (
