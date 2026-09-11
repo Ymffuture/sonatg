@@ -1828,7 +1828,7 @@ function getNameColor(identifier: string) {
   <div className="mb-1 flex items-center gap-1.5">
     {isAI ? (
       <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500 dark:text-emerald-400">
-        Sona <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
+        Sona AI <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
       </span>
     ) : (
       <span className={`text-[11px] font-semibold tracking-wide ${getNameColor(sender?.id ?? sender?.display_name ?? "Unknown")}`}>
@@ -1917,20 +1917,20 @@ function getNameColor(identifier: string) {
                 }}
                 className={`group/file mb-2 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.98] ${
                   mine
-                    ? "border-white/10 bg-white/10 text-[#8C8C8C] hover:bg-white/15"
+                    ? "border-black/5 bg-orange-300 text-[#8C8C8C] hover:bg-white/15"
                     : "border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]"
                 }`}
               >
                 <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-colors ${
-                  mine ? "bg-white/10 text-[#8C8C8C]" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)] group-hover/file:bg-[var(--sona-accent,#E07A5F)]/15"
+                  mine ? "bg-ember-500 text-[#8C8C8C]" : "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)] group-hover/file:bg-[var(--sona-accent,#E07A5F)]/15"
                 }`}>
                   <FileIcon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-sm font-medium ${mine ? "text-[#8C8C8C]/5" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
+                  <span className={`block truncate text-sm font-medium ${mine ? "text-[#8C8C8C]" : "text-[#2D3436] dark:text-[#E8E8E8]"}`}>
                     {msg.file_name || "File"}
                   </span>
-                  <span className={`block text-xs ${mine ? "text-white/60" : "text-[#8C8C8C]"}`}>
+                  <span className={`block text-xs ${mine ? "text-neutral-400 " : "text-[#8C8C8C]"}`}>
                     {msg.file_size ? formatBytes(msg.file_size) : "Unknown size"}
                   </span>
                 </span>
