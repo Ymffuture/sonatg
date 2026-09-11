@@ -1952,23 +1952,37 @@ function getNameColor(identifier: string) {
             )}
 
             {(overrideBody ?? msg.body) && (
-              <div className="text-[14.5px] leading-relaxed pr-12 pb-1">
-                {renderMarkdown(visibleBodyText, mine)}
-                {isLongText && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setTextExpanded((v) => !v); }}
-                    className={`mt-0.5 block text-[13px] font-semibold hover:underline ${
-                      mine ? "text-white/85" : "text-[var(--sona-accent,#E07A5F)]"
-                    }`}
-                    aria-expanded={textExpanded}
-                  >
-                    {textExpanded ? "Read less" : "Read more"}
-                  </button>
-                )}
-              </div>
-            )}
-
+  <div className="text-[15px] leading-[1.65] tracking-[-0.01em] pr-12 pb-2">
+    {renderMarkdown(visibleBodyText, mine)}
+    
+    {isLongText && (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setTextExpanded((v) => !v); }}
+        className={`group mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-300 ease-out ${
+          mine 
+            ? "text-gray-500 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/80 dark:hover:text-gray-100" 
+            : "text-[var(--sona-accent,#E07A5F)] hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent-dark,#C2634A)]"
+        }`}
+        aria-expanded={textExpanded}
+      >
+        <span className="transition-all duration-300">
+          {textExpanded ? "Show less" : "Read more"}
+        </span>
+        
+        {/* Animated Chevron Icon */}
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 20 20" 
+          fill="currentColor" 
+          className={`w-3.5 h-3.5 transition-transform duration-300 ease-out ${textExpanded ? 'rotate-180' : 'rotate-0'}`}
+        >
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+    )}
+  </div>
+)}
             {!msg.is_encrypted && (overrideBody ?? msg.body) && (
               <LinkPreviewCard text={overrideBody ?? msg.body ?? ""} mine={mine} />
             )}
@@ -1977,7 +1991,7 @@ function getNameColor(identifier: string) {
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenThread?.(); }}
                 className={`mb-1 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition hover:opacity-80 active:scale-95 ${
-                  mine ? "text-white/70 hover:bg-white/10" : "text-[#8C8C8C] hover:bg-black/5 dark:hover:bg-white/5"
+                  mine ? "text-[#8c8c8c] hover:bg-white/10" : "text-[#8C8C8C] hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
                 <CornerUpLeft className="h-3.5 w-3.5" />
