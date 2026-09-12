@@ -32,10 +32,10 @@ export const BrainSparkle: React.FC<BrainSparkleProps> = ({ className = 'h-4 w-4
       {/* Brain - right hemisphere */}
       <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.54" />
 
-      {/* ✦ Large sparkle - top right (≈60% of brain size, radius ~3.5) */}
-      <g transform="translate(20, 3.5)" filter="url(#sparkle-glow)">
+      {/* ✦ Large sparkle - top right (≈70% of brain size, radius ~4.1) */}
+      <g transform="translate(19.4, 4.1)" filter="url(#sparkle-glow)">
         <path
-          d="M0,-3.5 L1,-1 L3.5,0 L1,1 L0,3.5 L-1,1 L-3.5,0 L-1,-1 Z"
+          d="M0,-4.1 L1.17,-1.17 L4.1,0 L1.17,1.17 L0,4.1 L-1.17,1.17 L-4.1,0 L-1.17,-1.17 Z"
           fill="currentColor"
           stroke="none"
         >
