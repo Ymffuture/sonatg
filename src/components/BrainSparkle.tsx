@@ -32,49 +32,47 @@ export const BrainSparkle: React.FC<BrainSparkleProps> = ({ className = 'h-4 w-4
       {/* Brain - right hemisphere */}
       <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.54" />
 
-      {/* ✦ Large sparkle - top right (twinkles first) */}
-      <g transform="translate(20.5, 2.5)" filter="url(#sparkle-glow)">
+      {/* ✦ Large sparkle - top right (≈60% of brain size, radius ~3.5) */}
+      <g transform="translate(20, 3.5)" filter="url(#sparkle-glow)">
         <path
-          d="M0,-1.3 L0.38,-0.38 L1.3,0 L0.38,0.38 L0,1.3 L-0.38,0.38 L-1.3,0 L-0.38,-0.38 Z"
-          fill="currentColor"
-          stroke="none"
-        >
-          {/* Scale pulse */}
-          <animateTransform
-            attributeName="transform"
-            type="scale"
-            values="0.85;1.25;0.85"
-            dur="1.8s"
-            repeatCount="indefinite"
-          />
-          {/* Opacity twinkle */}
-          <animate
-            attributeName="opacity"
-            values="0.55;1;0.55"
-            dur="1.8s"
-            repeatCount="indefinite"
-          />
-        </path>
-      </g>
-
-      {/* ✦ Small sparkle - bottom left (twinkles in counter-rhythm) */}
-      <g transform="translate(3.5, 20.5)" filter="url(#sparkle-glow)">
-        <path
-          d="M0,-0.9 L0.26,-0.26 L0.9,0 L0.26,0.26 L0,0.9 L-0.26,0.26 L-0.9,0 L-0.26,-0.26 Z"
+          d="M0,-3.5 L1,-1 L3.5,0 L1,1 L0,3.5 L-1,1 L-3.5,0 L-1,-1 Z"
           fill="currentColor"
           stroke="none"
         >
           <animateTransform
             attributeName="transform"
             type="scale"
-            values="1.2;0.8;1.2"
+            values="0.85;1.2;0.85"
+            dur="1.8s"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            values="0.6;1;0.6"
+            dur="1.8s"
+            repeatCount="indefinite"
+          />
+        </path>
+      </g>
+
+      {/* ✦ Medium sparkle - bottom left (≈45% of brain size, radius ~2.5) */}
+      <g transform="translate(4, 20.5)" filter="url(#sparkle-glow)">
+        <path
+          d="M0,-2.5 L0.7,-0.7 L2.5,0 L0.7,0.7 L0,2.5 L-0.7,0.7 L-2.5,0 L-0.7,-0.7 Z"
+          fill="currentColor"
+          stroke="none"
+        >
+          <animateTransform
+            attributeName="transform"
+            type="scale"
+            values="1.15;0.8;1.15"
             dur="1.8s"
             begin="0.9s"
             repeatCount="indefinite"
           />
           <animate
             attributeName="opacity"
-            values="1;0.5;1"
+            values="1;0.55;1"
             dur="1.8s"
             begin="0.9s"
             repeatCount="indefinite"
@@ -82,13 +80,13 @@ export const BrainSparkle: React.FC<BrainSparkleProps> = ({ className = 'h-4 w-4
         </path>
       </g>
 
-      {/* ✦ Tiny accent sparkle - top left (slow drift) */}
-      <g transform="translate(4, 3.5)">
+      {/* ✦ Tiny accent sparkle - top left (≈25% of brain size, radius ~1.3) */}
+      <g transform="translate(3.5, 3.5)">
         <path
-          d="M0,-0.55 L0.16,-0.16 L0.55,0 L0.16,0.16 L0,0.55 L-0.16,0.16 L-0.55,0 L-0.16,-0.16 Z"
+          d="M0,-1.3 L0.35,-0.35 L1.3,0 L0.35,0.35 L0,1.3 L-0.35,0.35 L-1.3,0 L-0.35,-0.35 Z"
           fill="currentColor"
           stroke="none"
-          opacity="0.7"
+          opacity="0.75"
         >
           <animateTransform
             attributeName="transform"
@@ -99,7 +97,7 @@ export const BrainSparkle: React.FC<BrainSparkleProps> = ({ className = 'h-4 w-4
           />
           <animate
             attributeName="opacity"
-            values="0.3;0.9;0.3"
+            values="0.35;0.9;0.35"
             dur="3s"
             repeatCount="indefinite"
           />
