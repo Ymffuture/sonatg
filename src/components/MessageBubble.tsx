@@ -36,6 +36,8 @@ import {
 import { IoSend } from "react-icons/io5";
 import { Avatar, TickIcon } from "./Avatar";
 import { LuCalendarClock } from "react-icons/lu";
+import {BrainSparkle} from "./BrainSparkle" 
+
 type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
 function parseCallLogMeta(raw: string | null): CallLogMeta {
   try {
@@ -886,12 +888,12 @@ function MessageContextMenu({
           />
         )}
         {onAskSona && askSonaEligible && (
-          <CompactMenuItem
-            icon={<Sparkles className="h-4 w-4" />}
-            label="Ask Sona"
-            onClick={() => { onAskSona(); onClose(); }}
-          />
-        )}
+  <CompactMenuItem
+    icon={<BrainSparkle className="h-4 w-4" />}
+    label="Ask Sona AI"
+    onClick={() => { onAskSona(); onClose(); }}
+  />
+)}
         {mine && onMessageInfo && (
           <CompactMenuItem
             icon={<Info className="h-4 w-4" />}
