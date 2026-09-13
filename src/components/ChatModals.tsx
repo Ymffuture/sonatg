@@ -10,6 +10,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
+import { startPaypalCheckout } from "@/lib/paypal.functions";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
 import { useBackToClose } from "@/hooks/useBackStack";
@@ -1193,6 +1194,7 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
 
   const paystackCheckout = useServerFn(startPaystackCheckout);
+  const paypalCheckout = useServerFn(startPaypalCheckout);
   const deleteAccount = useServerFn(deleteMyAccount);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -1219,6 +1221,17 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
       window.location.href = r.url;
     } catch (e) { 
       notify.error({ message: (e as Error).message, description: "Something went wrong." }); 
+    } finally { setBusy(false); }
+  };
+
+  const upgradeWithPaypal = async () => {
+    setBusy(true);
+    try {
+      const r = await paypalCheckout({ data: { interval } }) as { url: string };
+      notify.success({ message: "Redirecting to PayPal…", description: "You'll be taken to a secure checkout page." });
+      window.location.href = r.url;
+    } catch (e) {
+      notify.error({ message: (e as Error).message, description: "Something went wrong." });
     } finally { setBusy(false); }
   };
 
@@ -1708,6 +1721,27 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                             </span>
                           ) : (
                             `Upgrade — ${interval === "monthly" ? `${PRICING.monthly.label}${PRICING.monthly.per}` : `${PRICING.yearly.label}${PRICING.yearly.per}`}`
+                          )}
+                        </motion.button>
+                      )}
+
+                      {!me.is_pro && (
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          disabled={busy}
+                          onClick={upgradeWithPaypal}
+                          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-bold text-[#003087] dark:text-[#5c9cff] transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {busy ? (
+                            <Spin size="small" />
+                          ) : (
+                            <>
+                              Pay with{" "}
+                              <span className="font-black italic">
+                                <span className="text-[#003087] dark:text-[#5c9cff]">Pay</span>
+                                <span className="text-[#0070E0] dark:text-[#7fb4ff]">Pal</span>
+                              </span>
+                            </>
                           )}
                         </motion.button>
                       )}
