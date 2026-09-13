@@ -5,12 +5,13 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users, UserX, User,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX, Link2, Zap,
+  Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX, Link2, Zap, Ticket,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
 import { startPaypalCheckout } from "@/lib/paypal.functions";
+import { redeemVoucher } from "@/lib/voucher.functions";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
 import { useBackToClose } from "@/hooks/useBackStack";
@@ -1235,6 +1236,25 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     } finally { setBusy(false); }
   };
 
+  const redeem = useServerFn(redeemVoucher);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherOpen, setVoucherOpen] = useState(false);
+  const [redeeming, setRedeeming] = useState(false);
+
+  const handleRedeem = async () => {
+    if (!voucherCode.trim() || redeeming) return;
+    setRedeeming(true);
+    try {
+      await redeem({ data: { code: voucherCode } });
+      notify.success({ message: "Code redeemed 🎉", description: "You're on Sona Purple now." });
+      setVoucherCode("");
+      setVoucherOpen(false);
+      window.location.reload();
+    } catch (e) {
+      notify.error({ message: "Couldn't redeem that code", description: (e as Error).message || "Try again." });
+    } finally { setRedeeming(false); }
+  };
+
   const askNotif = async () => {
     if (typeof Notification === "undefined") return;
     const p = await Notification.requestPermission();
@@ -1744,6 +1764,47 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                             </>
                           )}
                         </motion.button>
+                      )}
+
+                      {!me.is_pro && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setVoucherOpen((v) => !v)}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-bold text-zinc-500 transition-colors hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                          >
+                            <Ticket className="h-3.5 w-3.5" />
+                            Have a voucher code?
+                          </button>
+                          <AnimatePresence>
+                            {voucherOpen && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="flex gap-2 pt-1">
+                                  <input
+                                    value={voucherCode}
+                                    onChange={(e) => setVoucherCode(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleRedeem()}
+                                    placeholder="PURPLE-XXXX-XXXX"
+                                    className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-zinc-900 outline-none focus:border-[#8B5CF6] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                  />
+                                  <button
+                                    type="button"
+                                    disabled={redeeming || !voucherCode.trim()}
+                                    onClick={handleRedeem}
+                                    className="shrink-0 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+                                  >
+                                    {redeeming ? <Spin size="small" /> : "Redeem"}
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       )}
 
                       <a
