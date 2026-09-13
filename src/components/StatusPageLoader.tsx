@@ -45,7 +45,7 @@ export function StatusPageLoader() {
             </div>
 
             {/* Filter pills */}
-            <div className="flex items-center gap-2 px-4 pb-4 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-stone-300 dark:scrollbar-thumb-zinc-700">
+            <div className="flex items-center gap-2 px-4 pb-4 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-hiding scrollbar-thumb-stone-300 dark:scrollbar-thumb-zinc-700">
               {[11, 20, 24, 18, 24, 16].map((w, i) => (
                 <Skeleton 
                   key={i} 
