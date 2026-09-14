@@ -94,8 +94,12 @@ export function MessageInfoPopover({
           : -1;
 
   return (
-    <div
-      className="fixed inset-0 z-[110] flex items-end justify-center bg-black/50 backdrop-blur-sm md:items-center"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="fixed inset-0 z-[110] flex items-end justify-center bg-black/40 backdrop-blur-md md:bg-black/30 md:items-center"
       onClick={onClose}
     >
       <motion.div
@@ -104,17 +108,17 @@ export function MessageInfoPopover({
         aria-modal="true"
         aria-labelledby="message-info-title"
         tabIndex={-1}
-        initial={{ y: 24, opacity: 0, scale: 0.98 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 24, opacity: 0, scale: 0.98 }}
-        transition={{ type: "spring", damping: 30, stiffness: 340 }}
-        className="w-full max-w-[300px] overflow-hidden rounded-3xl border border-zinc-200/60 dark:border-zinc-800/60 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-2xl mb-[env(safe-area-inset-bottom)] md:mb-0 outline-none"
+        initial={{ y: "100%", opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "100%", opacity: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[320px] overflow-hidden rounded-t-3xl md:rounded-3xl border border-zinc-200/60 dark:border-zinc-800/60 bg-gradient-to-b from-white/95 to-white/90 dark:from-zinc-950/95 dark:to-zinc-950/90 backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)] ring-1 ring-black/5 dark:ring-white/10 mb-[env(safe-area-inset-bottom)] md:mb-0 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50 px-5 py-4">
           <h3
             id="message-info-title"
-            className="flex items-center gap-2 text-sm font-bold text-zinc-900 dark:text-zinc-50"
+            className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50"
           >
             <Info className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" />
             Message info
@@ -122,16 +126,16 @@ export function MessageInfoPopover({
           <button
             onClick={onClose}
             aria-label="Close message info"
-            className="grid h-7 w-7 place-items-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="grid h-8 w-8 place-items-center rounded-full bg-zinc-100/50 hover:bg-zinc-200/80 dark:bg-zinc-800/50 dark:hover:bg-zinc-700/80 transition-colors"
           >
-            <X className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+            <X className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
           </button>
         </div>
 
-        <div className="px-4 py-4">
+        <div className="px-5 py-5">
           {lifecycle.stage === "sending" && (
             <div
-              className="flex items-center gap-2.5 text-sm text-zinc-500 dark:text-zinc-400"
+              className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400"
               aria-live="polite"
             >
               <Clock className="h-4 w-4 animate-pulse" />
@@ -147,9 +151,9 @@ export function MessageInfoPopover({
               </div>
               <button
                 onClick={onRetry}
-                className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] px-3.5 py-1.5 text-xs font-semibold text-white"
+                className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] px-4 py-2 text-xs font-semibold text-white shadow-sm transition-transform active:scale-95"
               >
-                <RotateCcw className="h-3 w-3" /> Retry
+                <RotateCcw className="h-3.5 w-3.5" /> Retry
               </button>
             </div>
           )}
@@ -157,7 +161,7 @@ export function MessageInfoPopover({
           {(lifecycle.stage === "sent" ||
             lifecycle.stage === "delivered" ||
             lifecycle.stage === "read") && (
-            <ol className="flex flex-col gap-3" aria-label="Message delivery timeline">
+            <ol className="flex flex-col gap-4" aria-label="Message delivery timeline">
               {STAGE_ORDER.map((stage, i) => {
                 const done = i <= reachedStageIndex;
                 const ts =
@@ -170,14 +174,14 @@ export function MessageInfoPopover({
                 return (
                   <li
                     key={stage}
-                    className="flex items-center gap-3"
+                    className="flex items-center gap-4"
                     aria-current={i === reachedStageIndex ? "step" : undefined}
                   >
                     <span
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${
+                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors duration-300 ${
                         done
                           ? "bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)]"
-                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-700"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600"
                       }`}
                     >
                       {meta.icon}
@@ -189,7 +193,7 @@ export function MessageInfoPopover({
                         {meta.label}
                       </div>
                       {done && ts && (
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                           {fmtTime(ts)}
                         </div>
                       )}
@@ -201,6 +205,6 @@ export function MessageInfoPopover({
           )}
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
