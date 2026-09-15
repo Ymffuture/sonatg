@@ -257,8 +257,22 @@ function parseInline(text: string): InlineToken[] {
     }
 
     const remaining = text.slice(i);
-const url = remaining.match(URL_REGEX)?.[0];
-const email = remaining.match(EMAIL_REGEX)?.[0];
+const urlMatch = remaining.match(URL_REGEX);
+const emailMatch = remaining.match(EMAIL_REGEX);
+// `.match()` with a non-global, non-anchored regex returns the FIRST match
+// found ANYWHERE in `remaining` — not necessarily right at the cursor. If a
+// URL/email appears later in the string (e.g. "Testing https://..."), the
+// old code below would still fire here, push an autolink token, and then
+// advance `i` by the match's length as though it started at the cursor.
+// That desyncs the cursor from the real text — it lands mid-URL — and the
+// parser then re-derives bits of the same URL as plain text on the next
+// pass(es), which is what produced the duplicated/garbled links like
+// "https://www.netflix.comhttps://www.netflix.com...". Only treat this as
+// an autolink when the match starts exactly at the cursor (index 0);
+// otherwise fall through to the plain-text scan below, which already stops
+// right before a URL/email so it gets picked up correctly next iteration.
+const url = urlMatch && urlMatch.index === 0 ? urlMatch[0] : undefined;
+const email = emailMatch && emailMatch.index === 0 ? emailMatch[0] : undefined;
 if (url && (!email || url.length <= email.length)) {
   tokens.push({ type: "autolink", href: url, kind: "url" });
   i += url.length;
@@ -665,9 +679,9 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
       case "strike":
         return <s key={key} className="line-through opacity-70">{renderInlineTokens(token.children, key)}</s>;
       case "code":
-        return <code key={key} className="rounded text-orange-400 border border-orange-200 bg-black/10 px-1 py-0.5 font-mono text-[0.9em] dark:bg-white/15">{token.content}</code>;
+        return <code key={key} className="rounded bg-black/10 px-1 py-0.5 font-mono text-[0.9em] dark:bg-white/15">{token.content}</code>;
       case "link":
-        return <a key={key} href={token.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 break-all text-blue-400 ">{renderInlineTokens(token.children, key)}</a>;
+        return <a key={key} href={token.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 break-all">{renderInlineTokens(token.children, key)}</a>;
       case "image":
         return <img key={key} src={token.src} alt={token.alt} title={token.title} className="inline-block max-h-48 rounded" />;
       case "autolink":
@@ -687,7 +701,7 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
           />
           <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
         </svg>
-        EMAIL
+        EMAIL SENT
       </a>
     );
   }
@@ -719,7 +733,7 @@ function TableRenderer({
 }) {
   return (
     <div className="my-2 overflow-x-auto rounded-lg border border-[var(--sona-accent,#E07A5F)]/20 dark:border-[var(--sona-accent,#E07A5F)]/15">
-      <table className="w-[140%] border-collapse text-left text-[13px]">
+      <table className="w-[130%] border-collapse text-left text-[13px]">
         <thead>
           <tr className={mine ? "bg-black/15" : "bg-[var(--sona-accent,#E07A5F)]/8 dark:bg-[var(--sona-accent,#E07A5F)]/15"}>
             {header.map((h, i) => (
