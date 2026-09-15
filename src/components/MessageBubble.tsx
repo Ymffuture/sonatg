@@ -347,7 +347,12 @@ function matchDelimited(text: string, start: number, delimiter: string) {
   const end = text.indexOf(delimiter, start + delimiter.length);
   if (end === -1) return null;
   const content = text.slice(start + delimiter.length, end);
-  return { content, end };
+  // `end` above is the index of the *closing* delimiter itself. Callers use
+  // this as the new cursor position, so it must point past the delimiter —
+  // otherwise the closing backtick is never consumed, gets reprocessed as a
+  // fresh (unmatched) opening delimiter, and leaks into the output as a
+  // stray literal "`" character after every inline code span.
+  return { content, end: end + delimiter.length };
 }
 
 function findClosingDelimiter(text: string, start: number, delimiter: string) {
@@ -2742,7 +2747,9 @@ export function Composer({
                     return;
                   }
                 }
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!sending) onSend(); }
+                // Plain Enter now just inserts a newline (default <textarea> behavior).
+                // Sending happens via the send button, or Ctrl/Cmd+Enter as a keyboard shortcut.
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!sending) onSend(); }
               }}
               rows={1}
               placeholder="Message"
