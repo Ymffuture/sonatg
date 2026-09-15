@@ -439,7 +439,7 @@ export function ProfileViewModal({
                 </Text>
               </div>
               <Text className="!text-[10px] !text-zinc-400 dark:!text-zinc-600 tracking-wide">
-                Powered by <span className="font-bold text-zinc-600 dark:text-zinc-300">Swiftmeta</span>
+                Powered by <span className="font-bold text-zinc-600 dark:text-zinc-300">© SumStack </span>
               </Text>
             </div>
           </div>
