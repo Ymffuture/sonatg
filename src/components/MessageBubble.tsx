@@ -635,11 +635,7 @@ function renderBlock(block: Block, keyPrefix: string): React.ReactNode {
   }
 }
 
-// Flattens a run of inline tokens (bold/italic/link/etc.) down to plain
-// text. Table cells render through TableRenderer's plain <td>/<th>, which
-// expects strings — passing raw token objects there triggers React error
-// #31 ("object with keys {type, children}"), since a {type, children}
-// shape is exactly what a bold/italic/paragraph token looks like.
+
 function flattenInlineToText(tokens: InlineToken[]): string {
   return tokens
     .map((t) => {
@@ -679,9 +675,9 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
       case "strike":
         return <s key={key} className="line-through opacity-70">{renderInlineTokens(token.children, key)}</s>;
       case "code":
-        return <code key={key} className="rounded bg-black/10 px-1 py-0.5 font-mono text-[0.9em] dark:bg-white/15">{token.content}</code>;
+        return <code key={key} className="rounded text-orange-600 border border-orange-200 bg-black/10 px-1 py-0.5 font-mono text-[0.9em] dark:bg-white/15">{token.content}</code>;
       case "link":
-        return <a key={key} href={token.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 break-all">{renderInlineTokens(token.children, key)}</a>;
+        return <a key={key} href={token.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline text-blue-400 underline-offset-2 break-all">{renderInlineTokens(token.children, key)}</a>;
       case "image":
         return <img key={key} src={token.src} alt={token.alt} title={token.title} className="inline-block max-h-48 rounded" />;
       case "autolink":
@@ -701,7 +697,7 @@ function renderInlineTokens(tokens: InlineToken[], keyPrefix: string): React.Rea
           />
           <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.8" />
         </svg>
-        EMAIL SENT
+        EMAIL
       </a>
     );
   }
@@ -825,10 +821,7 @@ function MessageContextMenu({
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuW = 220;
-  // Rendered hidden at a guess position first, then measured and moved once
-  // its *actual* height is known — the item list isn't fixed (reply/forward/
-  // copy/edit/pin/save/select/delete all show conditionally), so guessing a
-  // height was cutting the menu off near the bottom of the screen.
+  
   const [style, setStyle] = useState<React.CSSProperties>({
     position: "fixed", left: x, top: y, zIndex: 100, width: menuW, visibility: "hidden",
   });
@@ -1606,7 +1599,7 @@ export function Bubble({
   // "Read more" / "Read less" — collapse long text bodies so a wall of text
   // doesn't dominate the thread; the raw text is only sliced for display,
   // never mutated, so expanding always shows the exact original message.
-  const READ_MORE_CHAR_LIMIT = 320;
+  const READ_MORE_CHAR_LIMIT = 620;
   const [textExpanded, setTextExpanded] = useState(false);
   const isLongText = bodyText.length > READ_MORE_CHAR_LIMIT;
   const visibleBodyText = isLongText && !textExpanded ? bodyText.slice(0, READ_MORE_CHAR_LIMIT).trimEnd() + "…" : bodyText;
