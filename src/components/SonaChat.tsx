@@ -4092,6 +4092,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       {showAdComposer && activeId && me && (
         <AdComposerModal
           meId={me.id}
+          chatId={activeId}
           onClose={() => setShowAdComposer(false)}
           onCreated={onAdCreated}
         />
