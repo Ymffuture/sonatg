@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
 import { startPaypalCheckout, startPaypalBusinessCheckout } from "@/lib/paypal.functions";
+import { startStripeCheckout } from "@/lib/stripe.functions";
 import { redeemVoucher } from "@/lib/voucher.functions";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
@@ -1197,8 +1198,11 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const paystackCheckout = useServerFn(startPaystackCheckout);
   const paypalCheckout = useServerFn(startPaypalCheckout);
   const paypalBusinessCheckout = useServerFn(startPaypalBusinessCheckout);
+  const stripeCheckout = useServerFn(startStripeCheckout);
   const [businessInterval, setBusinessInterval] = useState<BillingInterval>("monthly");
   const [businessBusy, setBusinessBusy] = useState(false);
+  const [stripeBusy, setStripeBusy] = useState(false);
+  const [stripeBusinessBusy, setStripeBusinessBusy] = useState(false);
   const deleteAccount = useServerFn(deleteMyAccount);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -1248,6 +1252,28 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     } catch (e) {
       notify.error({ message: (e as Error).message, description: "Something went wrong." });
     } finally { setBusinessBusy(false); }
+  };
+
+  const upgradeWithStripe = async () => {
+    setStripeBusy(true);
+    try {
+      const r = await stripeCheckout({ data: { plan: "purple", interval } }) as { url: string };
+      notify.success({ message: "Redirecting to Stripe…", description: "You'll be taken to a secure checkout page." });
+      window.location.href = r.url;
+    } catch (e) {
+      notify.error({ message: (e as Error).message, description: "Something went wrong." });
+    } finally { setStripeBusy(false); }
+  };
+
+  const upgradeBusinessWithStripe = async () => {
+    setStripeBusinessBusy(true);
+    try {
+      const r = await stripeCheckout({ data: { plan: "business", interval: businessInterval } }) as { url: string };
+      notify.success({ message: "Redirecting to Stripe…", description: "You'll be taken to a secure checkout page." });
+      window.location.href = r.url;
+    } catch (e) {
+      notify.error({ message: (e as Error).message, description: "Something went wrong." });
+    } finally { setStripeBusinessBusy(false); }
   };
 
   const redeem = useServerFn(redeemVoucher);
@@ -1781,6 +1807,17 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                       )}
 
                       {!me.is_pro && (
+                        <motion.button
+                          whileTap={{ scale: 0.98 }}
+                          disabled={stripeBusy}
+                          onClick={upgradeWithStripe}
+                          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-bold text-[#635BFF] transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {stripeBusy ? <Spin size="small" /> : <>Pay with <span className="font-black">Stripe</span></>}
+                        </motion.button>
+                      )}
+
+                      {!me.is_pro && (
                         <div className="mt-2">
                           <button
                             type="button"
@@ -1914,6 +1951,17 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                               : `${BUSINESS_PRICING.yearly.label}${BUSINESS_PRICING.yearly.per}`}
                           </>
                         )}
+                      </motion.button>
+                    )}
+
+                    {!me.is_business && (
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        disabled={stripeBusinessBusy}
+                        onClick={upgradeBusinessWithStripe}
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-bold text-[#635BFF] transition-all hover:bg-amber-50 dark:hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {stripeBusinessBusy ? <Spin size="small" /> : <>Pay with <span className="font-black">Stripe</span></>}
                       </motion.button>
                     )}
                   </div>
