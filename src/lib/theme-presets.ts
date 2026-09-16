@@ -15,7 +15,8 @@ export type ThemeId =
   | "C"
   | "D"
   | "E"
-  | "F";
+  | "F"
+  | "whatsapp";
 
 export interface ThemePreset {
   id: ThemeId;
@@ -205,6 +206,26 @@ export const THEME_PRESETS: ThemePreset[] = [
     sidebarText: "#FFF1A6",
     sidebarHover: "#6B352A",
     sidebarActive: "#7B4535"
+  },
+  { 
+    id: "whatsapp", 
+    name: "WhatsApp Green", 
+    accent: "#128C7E", 
+    bg: "#DCF8C6", 
+    pro: false,
+    textPrimary: "#111B21",
+    textSecondary: "#667781",
+    border: "#E9EDEF",
+    userBubble: "#DCF8C6",
+    userBubbleText: "#111B21",
+    aiBubble: "#FFFFFF",
+    aiBubbleText: "#111B21",
+    inputBg: "#FFFFFF",
+    hover: "#F5F6F6",
+    sidebar: "#FFFFFF",
+    sidebarText: "#111B21",
+    sidebarHover: "#F5F6F6",
+    sidebarActive: "#F0F2F5"
   },
 ];
 
