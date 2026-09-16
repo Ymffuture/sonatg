@@ -2,16 +2,19 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
-import { capturePaypalOrder } from "@/lib/paypal.functions";
+import { capturePaypalOrder, capturePaypalBusinessOrder } from "@/lib/paypal.functions";
 
 // PayPal redirects the buyer here with ?token=<orderId>&PayerID=... on
 // success, or ?cancelled=1 if they back out of the approval page. `token`
-// IS the order id created by startPaypalCheckout — no need to store it
-// client-side between the two steps.
+// IS the order id created by startPaypalCheckout/startPaypalBusinessCheckout
+// — no need to store it client-side between the two steps. `plan`
+// distinguishes which capture function (and which flag) to call; it's
+// appended to the return_url by whichever start* function created the order.
 export const Route = createFileRoute("/paypal-return")({
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === "string" ? search.token : undefined,
     cancelled: search.cancelled === "1",
+    plan: search.plan === "business" ? ("business" as const) : ("purple" as const),
   }),
   component: PaypalReturnPage,
 });
@@ -19,8 +22,9 @@ export const Route = createFileRoute("/paypal-return")({
 type Status = "capturing" | "success" | "error" | "cancelled";
 
 function PaypalReturnPage() {
-  const { token, cancelled } = useSearch({ from: "/paypal-return" });
+  const { token, cancelled, plan } = useSearch({ from: "/paypal-return" });
   const captureOrder = useServerFn(capturePaypalOrder);
+  const captureBusinessOrder = useServerFn(capturePaypalBusinessOrder);
   const [status, setStatus] = useState<Status>(cancelled ? "cancelled" : "capturing");
   const [message, setMessage] = useState<string>("");
 
@@ -29,7 +33,11 @@ function PaypalReturnPage() {
     let cancelledEffect = false;
     (async () => {
       try {
-        await captureOrder({ data: { orderId: token } });
+        if (plan === "business") {
+          await captureBusinessOrder({ data: { orderId: token } });
+        } else {
+          await captureOrder({ data: { orderId: token } });
+        }
         if (!cancelledEffect) setStatus("success");
       } catch (e) {
         if (!cancelledEffect) {
@@ -41,7 +49,7 @@ function PaypalReturnPage() {
     return () => {
       cancelledEffect = true;
     };
-  }, [token, cancelled, captureOrder]);
+  }, [token, cancelled, plan, captureOrder, captureBusinessOrder]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FFFDF9] px-6 text-center dark:bg-[#0F0F11]">
@@ -54,9 +62,18 @@ function PaypalReturnPage() {
       {status === "success" && (
         <>
           <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-white">You're on Sona Purple 🎉</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Your account has been upgraded.</p>
-          <Link to="/" className="mt-2 rounded-2xl bg-[#8B5CF6] px-5 py-2.5 text-sm font-bold text-white">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
+            {plan === "business" ? "Your business is verified 🎉" : "You're on Sona Purple 🎉"}
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            {plan === "business"
+              ? "You can now send ad messages and your profile shows the verified business badge."
+              : "Your account has been upgraded."}
+          </p>
+          <Link
+            to="/"
+            className={`mt-2 rounded-2xl px-5 py-2.5 text-sm font-bold text-white ${plan === "business" ? "bg-amber-500" : "bg-[#8B5CF6]"}`}
+          >
             Back to Sona
           </Link>
         </>

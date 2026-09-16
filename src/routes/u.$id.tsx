@@ -12,6 +12,7 @@ type PublicProfile = {
   bio: string | null;
   is_pro: boolean | null;
   is_ai: boolean | null;
+  is_business: boolean | null;
   facebook_url: string | null;
   x_url: string | null;
   instagram_url: string | null;
@@ -96,9 +97,11 @@ function PublicProfilePage() {
 
           <div className="mt-4 flex items-center justify-center gap-1.5">
             <h2 className="text-xl font-bold">{profile.display_name}</h2>
-            {(profile.is_ai || profile.is_pro) && (
+            {(profile.is_ai || profile.is_pro || profile.is_business) && (
               profile.is_ai
                 ? <MdVerified style={{ color: "#1877F2", fontSize: 18 }} />
+                : profile.is_business
+                ? <MdVerified style={{ color: "#D4A017", fontSize: 18 }} />
                 : <CheckCircleFilled style={{ color: "#8B5CF6", fontSize: 18 }} />
             )}
           </div>
@@ -108,7 +111,12 @@ function PublicProfilePage() {
               AI ASSISTANT
             </span>
           )}
-          {!profile.is_ai && profile.is_pro && (
+          {!profile.is_ai && profile.is_business && (
+            <span className="mt-1 inline-block rounded-full bg-[#D4A017]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#D4A017]">
+              VERIFIED BUSINESS
+            </span>
+          )}
+          {!profile.is_ai && !profile.is_business && profile.is_pro && (
             <span className="mt-1 inline-block rounded-full bg-[#8B5CF6]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#8B5CF6]">
               Purple
             </span>
