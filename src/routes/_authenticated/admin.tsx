@@ -3,14 +3,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
-  ShieldAlert, Upload, Activity,
+  ShieldAlert, Upload, Activity, Megaphone,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
-import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv } from "@/features/admin";
-import type { ModerationQueueRow, DashboardStats } from "@/features/admin";
+import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, fetchAdMessages, adminDeleteAdMessage } from "@/features/admin";
+import type { ModerationQueueRow, DashboardStats, AdMessageRow } from "@/features/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -54,13 +54,15 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "ads">("dashboard");
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
   const [domains, setDomains] = useState<OrgDomain[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [ads, setAds] = useState<AdMessageRow[]>([]);
+  const [adsBusy, setAdsBusy] = useState(false);
   const [reportCleanupDays, setReportCleanupDays] = useState(30);
   const [flagCleanupDays, setFlagCleanupDays] = useState(30);
   const [cleanupBusy, setCleanupBusy] = useState(false);
@@ -106,6 +108,7 @@ function AdminPage() {
       setReports((r.data ?? []) as Report[]);
       setQueue((q.data ?? []) as ModerationQueueRow[]);
       setStats(s);
+      fetchAdMessages().then(setAds).catch(() => {});
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -173,6 +176,22 @@ function AdminPage() {
       notification.success({ message: "Cleanup complete", description: `Deleted ${data ?? 0} old report${data === 1 ? "" : "s"}.`, placement: "top" });
       loadAll();
     } catch (e) { err(e, "Couldn't delete old reports"); } finally { setCleanupBusy(false); }
+  };
+
+  const removeAd = async (ad: AdMessageRow) => {
+    const ok = await confirm({
+      title: "Take down this ad?",
+      description: "This removes the ad from the chat it was posted in. This cannot be undone.",
+      confirmText: "Take down",
+      danger: true,
+    });
+    if (!ok) return;
+    setAdsBusy(true);
+    try {
+      await adminDeleteAdMessage(ad.id);
+      notification.success({ message: "Ad removed", placement: "top" });
+      setAds((prev) => prev.filter((a) => a.id !== ad.id));
+    } catch (e) { err(e, "Couldn't remove ad"); } finally { setAdsBusy(false); }
   };
 
   const deleteModerationFlag = async (row: ModerationQueueRow) => {
@@ -422,6 +441,7 @@ function AdminPage() {
           ["moderation", "Moderation", ShieldAlert],
           ["orgs", "Organizations", Building2],
           ["invites", "Invites", Mail],
+          ["ads", "Ads", Megaphone],
         ] as const).map(([k, label, Icon]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
@@ -642,6 +662,48 @@ function AdminPage() {
                 );
               })}
               {!reports.length && <p className="px-1 text-sm text-[#8C8C8C]">No reports yet.</p>}
+            </ul>
+          </section>
+        )}
+
+        {tab === "ads" && (
+          <section>
+            <ul className="space-y-2">
+              {ads.map((ad) => {
+                const sender = profileById[ad.sender_id];
+                return (
+                  <li key={ad.id} className="rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+                    <div className="flex items-start gap-3">
+                      {ad.media_url && (
+                        <img src={ad.media_url} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                          {ad.ad_title || "(untitled ad)"}
+                        </p>
+                        <p className="mt-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                          {sender?.display_name ?? "Unknown business"}
+                        </p>
+                        {ad.ad_cta_url && (
+                          <p className="mt-1 truncate text-[11px] text-[#8C8C8C]">
+                            {ad.ad_cta_label} → {ad.ad_cta_url}
+                          </p>
+                        )}
+                        <p className="mt-1 text-[11px] text-[#8C8C8C]">{new Date(ad.created_at).toLocaleString()}</p>
+                      </div>
+                      <button
+                        onClick={() => removeAd(ad)}
+                        disabled={adsBusy}
+                        aria-label="Take down ad"
+                        className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+              {!ads.length && <p className="px-1 text-sm text-[#8C8C8C]">No ads posted yet.</p>}
             </ul>
           </section>
         )}
