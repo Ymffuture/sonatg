@@ -1228,6 +1228,7 @@ export type Database = {
         Returns: number
       }
       admin_delete_ad_message: { Args: { _id: string }; Returns: undefined }
+      admin_set_business: { Args: { _target: string; _value: boolean }; Returns: undefined }
       admin_delete_old_reports: {
         Args: { _older_than_days: number }
         Returns: number
