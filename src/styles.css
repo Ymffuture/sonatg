@@ -259,6 +259,23 @@ body {
   }
 }
 
+/* WhatsApp theme: swap the colorful doodle wallpaper for WhatsApp's real
+   muted grey icon pattern on the tan/beige background, and use WhatsApp's
+   own header teal instead of the accent-tinted default header. Scoped to
+   [data-sona-theme="whatsapp"] (set on the app root in SonaChat.tsx)
+   rather than baked into the shared .chat-pattern rule, so every other
+   preset keeps its current colorful wallpaper untouched. */
+[data-sona-theme="whatsapp"] .chat-pattern {
+  background-color: #ECE5DD;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'><g fill='none' stroke='%23829099' stroke-opacity='0.16' stroke-width='1.6' stroke-linejoin='round' stroke-linecap='round'><circle cx='40' cy='40' r='14'/><path d='M40 26 v-6 M40 60 v-6 M26 40 h-6 M60 40 h-6'/><path d='M120 20 q14 14 0 28 q-14 -14 0 -28z'/><rect x='180' y='16' width='30' height='22' rx='4'/><circle cx='195' cy='27' r='5'/><path d='M60 110 c-8 0 -14 6 -14 13 c0 5 3 9 6 11 l-2 8 l9 -6 c9 0 15 -6 15 -13 c0 -7 -6 -13 -14 -13z'/><path d='M140 100 h32 l6 8 h-44z M138 108 h44 v30 h-44z'/><circle cx='220' cy='115' r='13'/><path d='M214 115 h12 M220 109 v12'/><path d='M30 190 q10 -8 20 0 q10 8 0 18 l-10 8 l-10 -8 q-10 -10 0 -18z'/><rect x='110' y='185' width='26' height='34' rx='3'/><path d='M116 191 h14 v6 h-14z'/><path d='M190 200 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/></g></svg>");
+  background-size: 260px 260px;
+  background-repeat: repeat;
+}
+.dark [data-sona-theme="whatsapp"] .chat-pattern,
+[data-theme="dark"][data-sona-theme="whatsapp"] .chat-pattern {
+  background-color: #0B141A;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'><g fill='none' stroke='%23374045' stroke-opacity='0.5' stroke-width='1.6' stroke-linejoin='round' stroke-linecap='round'><circle cx='40' cy='40' r='14'/><path d='M40 26 v-6 M40 60 v-6 M26 40 h-6 M60 40 h-6'/><path d='M120 20 q14 14 0 28 q-14 -14 0 -28z'/><rect x='180' y='16' width='30' height='22' rx='4'/><circle cx='195' cy='27' r='5'/><path d='M60 110 c-8 0 -14 6 -14 13 c0 5 3 9 6 11 l-2 8 l9 -6 c9 0 15 -6 15 -13 c0 -7 -6 -13 -14 -13z'/><path d='M140 100 h32 l6 8 h-44z M138 108 h44 v30 h-44z'/><circle cx='220' cy='115' r='13'/><path d='M214 115 h12 M220 109 v12'/><path d='M30 190 q10 -8 20 0 q10 8 0 18 l-10 8 l-10 -8 q-10 -10 0 -18z'/><rect x='110' y='185' width='26' height='34' rx='3'/><path d='M116 191 h14 v6 h-14z'/><path d='M190 200 c-6 0 -10 4 -10 10 c0 6 5 10 10 12 c5 -2 10 -6 10 -12 c0 -6 -4 -10 -10 -10z'/></g></svg>");
+}
 
 @keyframes marquee {
   0% { transform: translateX(0); }
