@@ -399,6 +399,9 @@ export type Database = {
       }
       messages: {
         Row: {
+          ad_cta_label: string | null
+          ad_cta_url: string | null
+          ad_title: string | null
           body: string | null
           chat_id: string
           created_at: string
@@ -421,6 +424,9 @@ export type Database = {
           transcript: string | null
         }
         Insert: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id: string
           created_at?: string
@@ -443,6 +449,9 @@ export type Database = {
           transcript?: string | null
         }
         Update: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id?: string
           created_at?: string
@@ -784,6 +793,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_ai: boolean
+          is_business: boolean
           is_pro: boolean
           last_seen: string | null
           theme_id: string | null
@@ -800,6 +810,7 @@ export type Database = {
           id: string
           instagram_url?: string | null
           is_ai?: boolean
+          is_business?: boolean
           is_pro?: boolean
           last_seen?: string | null
           theme_id?: string | null
@@ -816,6 +827,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_ai?: boolean
+          is_business?: boolean
           is_pro?: boolean
           last_seen?: string | null
           theme_id?: string | null
@@ -1215,6 +1227,7 @@ export type Database = {
         Args: { _older_than_days: number }
         Returns: number
       }
+      admin_delete_ad_message: { Args: { _id: string }; Returns: undefined }
       admin_delete_old_reports: {
         Args: { _older_than_days: number }
         Returns: number
@@ -1250,6 +1263,7 @@ export type Database = {
           id: string
           instagram_url: string
           is_ai: boolean
+          is_business: boolean
           is_pro: boolean
           threads_url: string
           x_url: string
