@@ -5,3 +5,4 @@ export { summarizeModerationRow, snippet, groupBySeverity, type ModerationQueueR
 export { fetchDashboardStats, type DashboardStats } from "../adimn/dashboardStats";
 export { importRosterAsInvites, parseRosterCsv, type RosterRow, type RosterImportResult } from "../adimn/rosterImport";
 export { getOrgFileLimits, updateOrgFileLimits, type OrgFileLimits } from "../adimn/fileLimits";
+export { fetchAdMessages, adminDeleteAdMessage, type AdMessageRow } from "../adimn/ads";
