@@ -9,9 +9,8 @@ import {
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { startPaystackCheckout } from "@/lib/paystack.functions";
+import { startPaystackCheckout, startPaystackBusinessCheckout } from "@/lib/paystack.functions";
 import { startPaypalCheckout, startPaypalBusinessCheckout } from "@/lib/paypal.functions";
-import { startStripeCheckout } from "@/lib/stripe.functions";
 import { redeemVoucher } from "@/lib/voucher.functions";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
@@ -1196,13 +1195,12 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   const signOut = async () => { await supabase.auth.signOut(); window.location.href = "/auth"; };
 
   const paystackCheckout = useServerFn(startPaystackCheckout);
+  const paystackBusinessCheckout = useServerFn(startPaystackBusinessCheckout);
   const paypalCheckout = useServerFn(startPaypalCheckout);
   const paypalBusinessCheckout = useServerFn(startPaypalBusinessCheckout);
-  const stripeCheckout = useServerFn(startStripeCheckout);
   const [businessInterval, setBusinessInterval] = useState<BillingInterval>("monthly");
   const [businessBusy, setBusinessBusy] = useState(false);
-  const [stripeBusy, setStripeBusy] = useState(false);
-  const [stripeBusinessBusy, setStripeBusinessBusy] = useState(false);
+  const [paystackBusinessBusy, setPaystackBusinessBusy] = useState(false);
   const deleteAccount = useServerFn(deleteMyAccount);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -1254,45 +1252,59 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     } finally { setBusinessBusy(false); }
   };
 
-  const upgradeWithStripe = async () => {
-    setStripeBusy(true);
+  const upgradeBusinessWithPaystack = async () => {
+    setPaystackBusinessBusy(true);
     try {
-      const r = await stripeCheckout({ data: { plan: "purple", interval } }) as { url: string };
-      notify.success({ message: "Redirecting to Stripe…", description: "You'll be taken to a secure checkout page." });
+      const r = await paystackBusinessCheckout({ data: { interval: businessInterval } }) as { url: string };
+      notify.success({ message: "Redirecting to Paystack…", description: "You'll be taken to a secure checkout page." });
       window.location.href = r.url;
     } catch (e) {
       notify.error({ message: (e as Error).message, description: "Something went wrong." });
-    } finally { setStripeBusy(false); }
+    } finally { setPaystackBusinessBusy(false); }
   };
 
-  const upgradeBusinessWithStripe = async () => {
-    setStripeBusinessBusy(true);
-    try {
-      const r = await stripeCheckout({ data: { plan: "business", interval: businessInterval } }) as { url: string };
-      notify.success({ message: "Redirecting to Stripe…", description: "You'll be taken to a secure checkout page." });
-      window.location.href = r.url;
-    } catch (e) {
-      notify.error({ message: (e as Error).message, description: "Something went wrong." });
-    } finally { setStripeBusinessBusy(false); }
-  };
-
+  // Voucher redemption works for both plans — the code itself carries the
+  // plan (see redeem_voucher() in the DB), so one form + one handler
+  // covers Purple and Business; each plan's card just gets its own
+  // open/closed + input state so the two "Have a voucher code?" toggles
+  // don't fight over the same input.
   const redeem = useServerFn(redeemVoucher);
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherOpen, setVoucherOpen] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
+  const [businessVoucherCode, setBusinessVoucherCode] = useState("");
+  const [businessVoucherOpen, setBusinessVoucherOpen] = useState(false);
+  const [businessRedeeming, setBusinessRedeeming] = useState(false);
 
   const handleRedeem = async () => {
     if (!voucherCode.trim() || redeeming) return;
     setRedeeming(true);
     try {
-      await redeem({ data: { code: voucherCode } });
-      notify.success({ message: "Code redeemed 🎉", description: "You're on Sona Purple now." });
+      const r = await redeem({ data: { code: voucherCode } });
+      notify.success({
+        message: "Code redeemed 🎉",
+        description: r.plan === "business" ? "Your business is verified now." : "You're on Sona Purple now.",
+      });
       setVoucherCode("");
       setVoucherOpen(false);
       window.location.reload();
     } catch (e) {
       notify.error({ message: "Couldn't redeem that code", description: (e as Error).message || "Try again." });
     } finally { setRedeeming(false); }
+  };
+
+  const handleBusinessRedeem = async () => {
+    if (!businessVoucherCode.trim() || businessRedeeming) return;
+    setBusinessRedeeming(true);
+    try {
+      await redeem({ data: { code: businessVoucherCode } });
+      notify.success({ message: "Code redeemed 🎉", description: "Your business is verified now." });
+      setBusinessVoucherCode("");
+      setBusinessVoucherOpen(false);
+      window.location.reload();
+    } catch (e) {
+      notify.error({ message: "Couldn't redeem that code", description: (e as Error).message || "Try again." });
+    } finally { setBusinessRedeeming(false); }
   };
 
   const askNotif = async () => {
@@ -1807,17 +1819,6 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                       )}
 
                       {!me.is_pro && (
-                        <motion.button
-                          whileTap={{ scale: 0.98 }}
-                          disabled={stripeBusy}
-                          onClick={upgradeWithStripe}
-                          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-bold text-[#635BFF] transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {stripeBusy ? <Spin size="small" /> : <>Pay with <span className="font-black">Stripe</span></>}
-                        </motion.button>
-                      )}
-
-                      {!me.is_pro && (
                         <div className="mt-2">
                           <button
                             type="button"
@@ -1957,12 +1958,63 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                     {!me.is_business && (
                       <motion.button
                         whileTap={{ scale: 0.98 }}
-                        disabled={stripeBusinessBusy}
-                        onClick={upgradeBusinessWithStripe}
-                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-bold text-[#635BFF] transition-all hover:bg-amber-50 dark:hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                        disabled={paystackBusinessBusy}
+                        onClick={upgradeBusinessWithPaystack}
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-bold text-emerald-600 transition-all hover:bg-amber-50 dark:hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        {stripeBusinessBusy ? <Spin size="small" /> : <>Pay with <span className="font-black">Stripe</span></>}
+                        {paystackBusinessBusy ? (
+                          <Spin size="small" />
+                        ) : (
+                          <>
+                            Pay with <span className="font-black">Paystack</span>
+                            {" "}—{" "}
+                            {businessInterval === "monthly"
+                              ? `${BUSINESS_PRICING.monthly.label}${BUSINESS_PRICING.monthly.per}`
+                              : `${BUSINESS_PRICING.yearly.label}${BUSINESS_PRICING.yearly.per}`}
+                          </>
+                        )}
                       </motion.button>
+                    )}
+
+                    {!me.is_business && (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setBusinessVoucherOpen((v) => !v)}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs font-bold text-zinc-500 transition-colors hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                        >
+                          <Ticket className="h-3.5 w-3.5" />
+                          Have a voucher code?
+                        </button>
+                        <AnimatePresence>
+                          {businessVoucherOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="flex gap-2 pt-1">
+                                <input
+                                  value={businessVoucherCode}
+                                  onChange={(e) => setBusinessVoucherCode(e.target.value)}
+                                  onKeyDown={(e) => e.key === "Enter" && handleBusinessRedeem()}
+                                  placeholder="BIZ-XXXX-XXXX"
+                                  className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-zinc-900 outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                                />
+                                <button
+                                  type="button"
+                                  disabled={businessRedeeming || !businessVoucherCode.trim()}
+                                  onClick={handleBusinessRedeem}
+                                  className="shrink-0 rounded-xl bg-amber-500 px-4 text-sm font-bold text-white disabled:opacity-50"
+                                >
+                                  {businessRedeeming ? <Spin size="small" /> : "Redeem"}
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     )}
                   </div>
                 </div>
