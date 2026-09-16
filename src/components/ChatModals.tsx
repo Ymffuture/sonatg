@@ -5,12 +5,12 @@ import {
   Ban, Search, Sparkles, Crown, Plus, Users, UserX, User,
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
-  Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX, Link2, Zap, Ticket,
+  Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX, Link2, Zap, Ticket, Megaphone,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { startPaystackCheckout } from "@/lib/paystack.functions";
-import { startPaypalCheckout } from "@/lib/paypal.functions";
+import { startPaypalCheckout, startPaypalBusinessCheckout } from "@/lib/paypal.functions";
 import { redeemVoucher } from "@/lib/voucher.functions";
 import { deleteMyAccount } from "@/lib/account.functions";
 import { unlockChat } from "@/lib/crypto";
@@ -31,7 +31,7 @@ import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, parseAl
 import SoundSettings from "./SoundSettings";
 import { postSystemMessage } from "@/lib/systemMessages";
 import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, FREE_PIN_LIMIT, countMyChats, countMessagesSentToday } from "@/lib/planLimits";
-import { PRICING, type BillingInterval } from "@/lib/pricing";
+import { PRICING, BUSINESS_PRICING, type BillingInterval } from "@/lib/pricing";
 import { PRO_MODELS, DEFAULT_MODEL, isProModelId } from "@/lib/aiModels";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
@@ -1196,6 +1196,9 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
 
   const paystackCheckout = useServerFn(startPaystackCheckout);
   const paypalCheckout = useServerFn(startPaypalCheckout);
+  const paypalBusinessCheckout = useServerFn(startPaypalBusinessCheckout);
+  const [businessInterval, setBusinessInterval] = useState<BillingInterval>("monthly");
+  const [businessBusy, setBusinessBusy] = useState(false);
   const deleteAccount = useServerFn(deleteMyAccount);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -1234,6 +1237,17 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     } catch (e) {
       notify.error({ message: (e as Error).message, description: "Something went wrong." });
     } finally { setBusy(false); }
+  };
+
+  const upgradeBusinessWithPaypal = async () => {
+    setBusinessBusy(true);
+    try {
+      const r = await paypalBusinessCheckout({ data: { interval: businessInterval } }) as { url: string };
+      notify.success({ message: "Redirecting to PayPal…", description: "You'll be taken to a secure checkout page." });
+      window.location.href = r.url;
+    } catch (e) {
+      notify.error({ message: (e as Error).message, description: "Something went wrong." });
+    } finally { setBusinessBusy(false); }
   };
 
   const redeem = useServerFn(redeemVoucher);
@@ -1815,6 +1829,93 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                       </a>
 
                     </div>
+                  </div>
+                </div>
+
+                {/* Sona Business — separate from Purple: verifies the
+                    account with a business badge and unlocks sending "ad"
+                    message cards in chats (see MessageBubble.tsx AdCard). */}
+                <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-orange-500/5 p-6 shadow-lg">
+                  <div className="absolute -top-16 -right-16 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2.5 font-bold text-zinc-900 dark:text-zinc-100 tracking-wide">
+                      <VscVerifiedFilled className="h-5 w-5 text-amber-500 drop-shadow" />
+                      <span>Sona Business</span>
+                      {me.is_business && (
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          Verified
+                        </span>
+                      )}
+                    </div>
+
+                    <ul className="mt-4 space-y-3 text-xs text-zinc-700 dark:text-zinc-300">
+                      <li className="flex items-center gap-2.5">
+                        <VscVerifiedFilled className="h-4 w-4 text-amber-500 drop-shadow" />
+                        <span>Verified business badge on your profile & in chats</span>
+                      </li>
+                      <li className="flex items-center gap-2.5">
+                        <Megaphone className="h-4 w-4 text-amber-500 drop-shadow" />
+                        <span>Send ad cards — image, title & call-to-action button</span>
+                      </li>
+                    </ul>
+
+                    {!me.is_business && (
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {(["monthly", "yearly"] as const).map((iv) => {
+                          const selected = businessInterval === iv;
+                          return (
+                            <button
+                              key={iv}
+                              type="button"
+                              onClick={() => setBusinessInterval(iv)}
+                              className={`rounded-2xl border px-3 py-3 text-left transition ${selected ? "border-amber-500 bg-amber-500/10" : "border-zinc-200/70 dark:border-zinc-700/60 bg-white/40 dark:bg-zinc-900/40"}`}
+                            >
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{iv === "monthly" ? "Monthly" : "Yearly"}</div>
+                              <div className="mt-1 text-sm font-black text-zinc-900 dark:text-zinc-100">
+                                {iv === "monthly" ? BUSINESS_PRICING.monthly.label : BUSINESS_PRICING.yearly.label}
+                                <span className="text-[10px] font-semibold text-zinc-500">{iv === "monthly" ? BUSINESS_PRICING.monthly.per : BUSINESS_PRICING.yearly.per}</span>
+                              </div>
+                              <div className="text-[10px] text-zinc-500">
+                                {iv === "monthly" ? "Billed every month" : `${BUSINESS_PRICING.yearly.perMonthLabel}/mo · save ${BUSINESS_PRICING.yearly.savePercent}%`}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {me.is_business ? (
+                      <div className="mt-4 flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400">
+                        <VscVerifiedFilled className="h-4 w-4 drop-shadow" />
+                        <span>Your business is verified</span>
+                      </div>
+                    ) : (
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        disabled={businessBusy}
+                        onClick={upgradeBusinessWithPaypal}
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {businessBusy ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <Spin size="small" />
+                            Processing…
+                          </span>
+                        ) : (
+                          <>
+                            Pay with{" "}
+                            <span className="font-black italic">
+                              <span className="text-[#003087]">Pay</span>
+                              <span className="text-[#0070E0]">Pal</span>
+                            </span>
+                            {" "}—{" "}
+                            {businessInterval === "monthly"
+                              ? `${BUSINESS_PRICING.monthly.label}${BUSINESS_PRICING.monthly.per}`
+                              : `${BUSINESS_PRICING.yearly.label}${BUSINESS_PRICING.yearly.per}`}
+                          </>
+                        )}
+                      </motion.button>
+                    )}
                   </div>
                 </div>
               </motion.div>

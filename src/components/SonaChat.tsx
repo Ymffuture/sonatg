@@ -121,6 +121,7 @@ import {
   isFreeTierLimitError,
 } from "@/lib/planLimits";
 import { PollComposerModal, canPostInChat } from "@/features/classroom";
+import { AdComposerModal, type CreatedAd } from "@/features/ads/AdComposerModal";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 import { postSystemMessage } from "@/lib/systemMessages";
 import { FaPoll } from "react-icons/fa";
@@ -588,6 +589,7 @@ const handleMenuOpenChange = (open: boolean) => {
     [],
   );
   const [showPollComposer, setShowPollComposer] = useState(false);
+  const [showAdComposer, setShowAdComposer] = useState(false);
   const [broadcastLocked, setBroadcastLocked] = useState(false);
   const [orgFileLimits, setOrgFileLimits] = useState({ maxDocBytes: MAX_DOC_BYTES, maxImageBytes: MAX_IMAGE_BYTES });
   useEffect(() => { getOrgFileLimits().then(setOrgFileLimits).catch(() => {}); }, []);
@@ -605,6 +607,25 @@ const handleMenuOpenChange = (open: boolean) => {
       if (error) throw error;
     } catch (e) {
       toast.error(`Poll created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
+    }
+  };
+
+  const onAdCreated = async (ad: CreatedAd) => {
+    setShowAdComposer(false);
+    if (!me || !activeId) return;
+    try {
+      const { error } = await supabase.from("messages").insert({
+        chat_id: activeId,
+        sender_id: me.id,
+        kind: "ad",
+        media_url: ad.mediaUrl,
+        ad_title: ad.title,
+        ad_cta_label: ad.ctaLabel,
+        ad_cta_url: ad.ctaUrl,
+      });
+      if (error) throw error;
+    } catch (e) {
+      toast.error(`Ad created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
     }
   };
   const [showMsgSearch, setShowMsgSearch] = useState(false);
@@ -2833,6 +2854,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       const isActive = c.id === activeId;
       const ai = isAIChat(c);
       const isSelected = selectedChatIds.has(c.id);
+      // Only meaningful for a 1:1 DM — a group chat's "title" isn't a person,
+      // so there's no single business badge to show next to it.
+      const otherIsBusiness = !c.is_group && !ai
+        && profiles[c.memberIds.find((id) => id !== me.id) ?? ""]?.is_business;
       return (
         <motion.div key={c.id}
           layout
@@ -2924,6 +2949,13 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                       className="h-[15px] w-[15px] shrink-0 text-blue-500"
                       aria-label="Verified Sona AI"
                       title="Verified Sona AI"
+                    />
+                  )}
+                  {otherIsBusiness && (
+                    <VscVerifiedFilled
+                      className="h-[15px] w-[15px] shrink-0 text-amber-500"
+                      aria-label="Verified Business"
+                      title="Verified Business"
                     />
                   )}
                 </span>
@@ -3120,11 +3152,21 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       <h2 className="truncate text-base font-bold tracking-tight text-zinc-900 dark:text-white">
         {(() => {
           const title = chatTitle(active, me.id);
+          const otherId = active.memberIds.find((id) => id !== me.id);
+          const otherIsBusiness = !active.is_group && !isAIChat(active)
+            && otherId && profilesById[otherId]?.is_business;
           return (
             <span className="flex items-center gap-1.5">
               {title}
               {isAIChat(active) && (
                 <VscVerifiedFilled className="h-4 w-4 shrink-0 text-blue-500 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" />
+              )}
+              {otherIsBusiness && (
+                <VscVerifiedFilled
+                  className="h-4 w-4 shrink-0 text-amber-500 drop-shadow-[0_1px_2px_rgba(217,160,23,0.3)]"
+                  aria-label="Verified Business"
+                  title="Verified Business"
+                />
               )}
               {active.is_hidden && (
                 <Lock className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
@@ -3972,6 +4014,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                   videoRef={videoRef}
                   videoUploadPct={videoUploadPct}
                   onCreatePoll={isAIChat(active) ? undefined : () => setShowPollComposer(true)}
+                  onCreateAd={!isAIChat(active) && me.is_business ? () => setShowAdComposer(true) : undefined}
                 />
                 </div>
                 )}
@@ -4043,6 +4086,14 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           chatId={activeId}
           onClose={() => setShowPollComposer(false)}
           onCreated={onPollCreated}
+        />
+      )}
+
+      {showAdComposer && activeId && me && (
+        <AdComposerModal
+          meId={me.id}
+          onClose={() => setShowAdComposer(false)}
+          onCreated={onAdCreated}
         />
       )}
 

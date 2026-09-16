@@ -80,7 +80,7 @@ export function ProfileViewModal({
   )}`;
 
   const hasSocials = socials && (socials.facebook || socials.x || socials.instagram || socials.threads);
-  const isPremium = profile.is_pro || profile.is_ai;
+  const isPremium = profile.is_pro || profile.is_ai || profile.is_business;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-md p-4" onClick={onClose}>
@@ -168,9 +168,9 @@ export function ProfileViewModal({
                 </Title>
 
                 {isPremium && (
-                  <Tooltip title={profile.is_ai ? "Verified AI Assistant" : "Verified Pro Account"}>
-                    <VscVerifiedFilled 
-                      className={`h-5 w-5 drop-shadow-sm ${profile.is_ai ? "text-blue-500" : "text-violet-500"}`} 
+                  <Tooltip title={profile.is_ai ? "Verified AI Assistant" : profile.is_business ? "Verified Business Account" : "Verified Pro Account"}>
+                    <VscVerifiedFilled
+                      className={`h-5 w-5 drop-shadow-sm ${profile.is_ai ? "text-blue-500" : profile.is_business ? "text-amber-500" : "text-violet-500"}`}
                     />
                   </Tooltip>
                 )}

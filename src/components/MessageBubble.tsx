@@ -6,7 +6,7 @@ import {
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
   FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
-  Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff, Info, AlertTriangle,
+  Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff, Info, AlertTriangle, Megaphone,
 } from "lucide-react";
 // "Ask Sona" is eligible on any text message, or a voice note that already has a transcript.
 function isAskSonaEligible(msg: { kind: string; body?: string | null; transcript?: string | null; deleted_at?: string | null }): boolean {
@@ -1335,6 +1335,49 @@ export function MediaViewer({
 const toolBtnClass = "grid h-8 w-8 place-items-center rounded-lg text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none";
 
 
+function AdCard({ msg, mine, sender }: { msg: MessageRow; mine: boolean; sender?: Profile }) {
+  const hasCta = !!msg.ad_cta_url && !!msg.ad_cta_label;
+  return (
+    <div
+      className={`w-full max-w-[320px] overflow-hidden rounded-2xl border shadow-sm ${
+        mine ? "border-white/[0.08] bg-[#18181B]" : "border-black/[0.04] bg-white dark:bg-[#242424]"
+      }`}
+    >
+      {msg.media_url && (
+        <div className="relative w-full aspect-[16/9] overflow-hidden bg-black/5 dark:bg-white/5">
+          <img src={msg.media_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+          <span className="absolute top-2 left-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+            Ad
+          </span>
+        </div>
+      )}
+      <div className="p-4">
+        {sender?.is_business && (
+          <div className="mb-1.5 flex items-center gap-1 text-[11px] font-semibold text-amber-500">
+            <VscVerifiedFilled className="h-3.5 w-3.5" />
+            <span>{sender.display_name}</span>
+          </div>
+        )}
+        {msg.ad_title && (
+          <p className={`text-sm font-bold leading-snug ${mine ? "text-white" : "text-[#151c1c] dark:text-white"}`}>
+            {msg.ad_title}
+          </p>
+        )}
+        {hasCta && (
+          <a
+            href={msg.ad_cta_url!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 block w-full rounded-xl bg-amber-500 px-4 py-2.5 text-center text-sm font-bold text-white transition hover:bg-amber-600"
+          >
+            {msg.ad_cta_label}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   const url = useMemo(() => {
     const re = new RegExp(URL_REGEX.source, URL_REGEX.flags);
@@ -1734,6 +1777,18 @@ export function Bubble({
         className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}
       >
         <PollCard pollId={pollId} meId={me.id} />
+      </motion.div>
+    );
+  }
+
+  if (msg.kind === "ad") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}
+      >
+        <AdCard msg={msg} mine={mine} sender={sender} />
       </motion.div>
     );
   }
@@ -2279,7 +2334,7 @@ export function VoicePlayer({
 /* ─── Composer ─── */
 export function Composer({
   draft, setDraft, showEmoji, setShowEmoji, onPickImages, fileRef, onPickDocs, docRef, onSend, onVoiceUploaded, onRecordingChange,
-  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct, onCreatePoll, hideFileAttachments, inputRef,
+  hasAttachments, sending, onSchedule, onPickVideo, videoRef, videoUploadPct, onCreatePoll, hideFileAttachments, inputRef, onCreateAd,
 }: {
   draft: string; setDraft: (v: string) => void;
   showEmoji: boolean; setShowEmoji: (v: boolean | ((s: boolean) => boolean)) => void;
@@ -2301,6 +2356,8 @@ export function Composer({
   hideFileAttachments?: boolean;
   /** Lets the parent (SonaChat) grab a direct handle to the textarea — used for the "/" focus shortcut. Preferred over an id/getElementById lookup so it always points at the live node, with no DOM-timing or duplicate-id edge cases. */
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;
+  /** Opens the ad-composer modal. Only passed by the parent when the sender is a verified business account (see SonaChat.tsx) — the Composer itself doesn't know or care about account type, same pattern as onCreatePoll. */
+  onCreateAd?: () => void;
 }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -2360,11 +2417,14 @@ export function Composer({
     if (!hideFileAttachments && onCreatePoll) {
       items.push({ id: "poll", label: "poll", hint: "Create a poll", icon: <ListChecks className="h-4.5 w-4.5" />, run: () => { setDraft(""); onCreatePoll(); } });
     }
+    if (onCreateAd) {
+      items.push({ id: "ad", label: "ad", hint: "Create an ad", icon: <Megaphone className="h-4.5 w-4.5" />, run: () => { setDraft(""); onCreateAd(); } });
+    }
     if (onSchedule) {
       items.push({ id: "schedule", label: "schedule", hint: "Schedule this message", icon: <Clock className="h-4.5 w-4.5" />, run: () => { setDraft(""); setShowScheduler(true); } });
     }
     return items;
-  }, [hideFileAttachments, onPickImages, fileRef, onPickVideo, videoRef, onPickDocs, docRef, onCreatePoll, onSchedule, setDraft, setShowEmoji]);
+  }, [hideFileAttachments, onPickImages, fileRef, onPickVideo, videoRef, onPickDocs, docRef, onCreatePoll, onCreateAd, onSchedule, setDraft, setShowEmoji]);
 
   const slashMatch = /^\/(\w*)$/.exec(draft);
   const slashFiltered = slashMatch ? slashCommands.filter((c) => c.label.startsWith(slashMatch[1].toLowerCase())) : [];
@@ -2701,6 +2761,14 @@ export function Composer({
                               label: "Poll",
                               icon: <ListChecks className="h-5 w-5" />,
                               onClick: () => { onCreatePoll(); setShowAttachMenu(false); },
+                            }]
+                          : []),
+                        ...(onCreateAd
+                          ? [{
+                              key: "ad",
+                              label: "Ad",
+                              icon: <Megaphone className="h-5 w-5" />,
+                              onClick: () => { onCreateAd(); setShowAttachMenu(false); },
                             }]
                           : []),
                       ].map((item, i) => (
