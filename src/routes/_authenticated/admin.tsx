@@ -6,10 +6,11 @@ import {
   ShieldAlert, Upload, Activity, Megaphone,
 } from "lucide-react";
 import { notification } from "antd";
+import { VscVerifiedFilled } from "react-icons/vsc";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
-import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, fetchAdMessages, adminDeleteAdMessage } from "@/features/admin";
+import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, fetchAdMessages, adminDeleteAdMessage, adminSetBusiness } from "@/features/admin";
 import type { ModerationQueueRow, DashboardStats, AdMessageRow } from "@/features/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -192,6 +193,16 @@ function AdminPage() {
       notification.success({ message: "Ad removed", placement: "top" });
       setAds((prev) => prev.filter((a) => a.id !== ad.id));
     } catch (e) { err(e, "Couldn't remove ad"); } finally { setAdsBusy(false); }
+  };
+
+  const [businessTogglingId, setBusinessTogglingId] = useState<string | null>(null);
+  const toggleBusiness = async (p: Profile) => {
+    setBusinessTogglingId(p.id);
+    try {
+      await adminSetBusiness(p.id, !p.is_business);
+      notification.success({ message: p.is_business ? "Business verification removed" : "Verified as business", placement: "top" });
+      setProfiles((prev) => prev.map((row) => (row.id === p.id ? { ...row, is_business: !p.is_business } : row)));
+    } catch (e) { err(e, "Couldn't update business status"); } finally { setBusinessTogglingId(null); }
   };
 
   const deleteModerationFlag = async (row: ModerationQueueRow) => {
@@ -539,6 +550,13 @@ function AdminPage() {
                       </button>
                       <button onClick={() => moderate(p, "clear")} className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600">
                         <CheckCircle2 className="h-3 w-3" /> Reinstate
+                      </button>
+                      <button
+                        onClick={() => toggleBusiness(p)}
+                        disabled={businessTogglingId === p.id}
+                        className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${p.is_business ? "bg-amber-500/15 text-amber-700" : "bg-amber-500/10 text-amber-600"}`}
+                      >
+                        <VscVerifiedFilled className="h-3 w-3" /> {p.is_business ? "Remove business" : "Verify business"}
                       </button>
                       <button onClick={() => deleteUser(p)} className="flex items-center gap-1 rounded-full bg-red-600/15 px-3 py-1.5 text-xs font-bold text-red-700">
                         <Trash2 className="h-3 w-3" /> Delete user
