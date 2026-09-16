@@ -3,15 +3,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
-  ShieldAlert, Upload, Activity, Megaphone,
+  ShieldAlert, Upload, Activity, Ticket, Copy,
 } from "lucide-react";
 import { notification } from "antd";
-import { VscVerifiedFilled } from "react-icons/vsc";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
-import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, fetchAdMessages, adminDeleteAdMessage, adminSetBusiness } from "@/features/admin";
-import type { ModerationQueueRow, DashboardStats, AdMessageRow } from "@/features/admin";
+import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, generateVouchers, fetchVouchers } from "@/features/admin";
+import type { ModerationQueueRow, DashboardStats, VoucherRow, VoucherPlan, VoucherInterval } from "@/features/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -55,20 +54,21 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "ads">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "vouchers">("dashboard");
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
   const [domains, setDomains] = useState<OrgDomain[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
-  const [ads, setAds] = useState<AdMessageRow[]>([]);
-  const [adsBusy, setAdsBusy] = useState(false);
-  const [reportCleanupDays, setReportCleanupDays] = useState(30);
-  const [flagCleanupDays, setFlagCleanupDays] = useState(30);
-  const [cleanupBusy, setCleanupBusy] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [queue, setQueue] = useState<ModerationQueueRow[]>([]);
+  const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
+  const [voucherPlan, setVoucherPlan] = useState<VoucherPlan>("purple");
+  const [voucherInterval, setVoucherInterval] = useState<VoucherInterval>("monthly");
+  const [voucherCount, setVoucherCount] = useState(1);
+  const [voucherBusy, setVoucherBusy] = useState(false);
+  const [justGenerated, setJustGenerated] = useState<string[]>([]);
   const [csvBusy, setCsvBusy] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -92,7 +92,7 @@ function AdminPage() {
   const loadAll = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, m, d, i, r, q, s] = await Promise.all([
+      const [p, m, d, i, r, q, s, v] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_moderation").select("*").order("created_at", { ascending: false }),
         supabase.from("org_domains").select("*").order("domain"),
@@ -100,6 +100,7 @@ function AdminPage() {
         supabase.from("reports").select("*").order("created_at", { ascending: false }),
         supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(100),
         fetchDashboardStats().catch(() => null),
+        fetchVouchers().catch(() => []),
       ]);
       if (p.error) throw p.error;
       setProfiles((p.data ?? []) as Profile[]);
@@ -109,7 +110,7 @@ function AdminPage() {
       setReports((r.data ?? []) as Report[]);
       setQueue((q.data ?? []) as ModerationQueueRow[]);
       setStats(s);
-      fetchAdMessages().then(setAds).catch(() => {});
+      setVouchers(v as VoucherRow[]);
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -144,98 +145,6 @@ function AdminPage() {
       if (error) throw error;
       loadAll();
     } catch (e) { err(e, "Couldn't update report"); }
-  };
-
-  const deleteReport = async (rep: Report) => {
-    const ok = await confirm({
-      title: "Delete this report?",
-      description: "This permanently removes the report. This cannot be undone.",
-      confirmText: "Delete",
-      danger: true,
-    });
-    if (!ok) return;
-    try {
-      const { error } = await supabase.rpc("admin_delete_report", { _id: rep.id });
-      if (error) throw error;
-      notification.success({ message: "Report deleted", placement: "top" });
-      loadAll();
-    } catch (e) { err(e, "Couldn't delete report"); }
-  };
-
-  const deleteOldReports = async () => {
-    const ok = await confirm({
-      title: `Delete resolved/dismissed reports older than ${reportCleanupDays} days?`,
-      description: "Open reports are never affected, regardless of age. This cannot be undone.",
-      confirmText: "Delete old reports",
-      danger: true,
-    });
-    if (!ok) return;
-    setCleanupBusy(true);
-    try {
-      const { data, error } = await supabase.rpc("admin_delete_old_reports", { _older_than_days: reportCleanupDays });
-      if (error) throw error;
-      notification.success({ message: "Cleanup complete", description: `Deleted ${data ?? 0} old report${data === 1 ? "" : "s"}.`, placement: "top" });
-      loadAll();
-    } catch (e) { err(e, "Couldn't delete old reports"); } finally { setCleanupBusy(false); }
-  };
-
-  const removeAd = async (ad: AdMessageRow) => {
-    const ok = await confirm({
-      title: "Take down this ad?",
-      description: "This removes the ad from the chat it was posted in. This cannot be undone.",
-      confirmText: "Take down",
-      danger: true,
-    });
-    if (!ok) return;
-    setAdsBusy(true);
-    try {
-      await adminDeleteAdMessage(ad.id);
-      notification.success({ message: "Ad removed", placement: "top" });
-      setAds((prev) => prev.filter((a) => a.id !== ad.id));
-    } catch (e) { err(e, "Couldn't remove ad"); } finally { setAdsBusy(false); }
-  };
-
-  const [businessTogglingId, setBusinessTogglingId] = useState<string | null>(null);
-  const toggleBusiness = async (p: Profile) => {
-    setBusinessTogglingId(p.id);
-    try {
-      await adminSetBusiness(p.id, !p.is_business);
-      notification.success({ message: p.is_business ? "Business verification removed" : "Verified as business", placement: "top" });
-      setProfiles((prev) => prev.map((row) => (row.id === p.id ? { ...row, is_business: !p.is_business } : row)));
-    } catch (e) { err(e, "Couldn't update business status"); } finally { setBusinessTogglingId(null); }
-  };
-
-  const deleteModerationFlag = async (row: ModerationQueueRow) => {
-    const ok = await confirm({
-      title: "Delete this flag?",
-      description: "This permanently removes the moderation flag. This cannot be undone.",
-      confirmText: "Delete",
-      danger: true,
-    });
-    if (!ok) return;
-    try {
-      const { error } = await supabase.rpc("admin_delete_moderation_flag", { _id: row.id });
-      if (error) throw error;
-      notification.success({ message: "Flag deleted", placement: "top" });
-      loadAll();
-    } catch (e) { err(e, "Couldn't delete flag"); }
-  };
-
-  const deleteOldModerationFlags = async () => {
-    const ok = await confirm({
-      title: `Delete reviewed flags older than ${flagCleanupDays} days?`,
-      description: "Unreviewed flags are never affected, regardless of age. This cannot be undone.",
-      confirmText: "Delete old flags",
-      danger: true,
-    });
-    if (!ok) return;
-    setCleanupBusy(true);
-    try {
-      const { data, error } = await supabase.rpc("admin_delete_old_moderation_flags", { _older_than_days: flagCleanupDays });
-      if (error) throw error;
-      notification.success({ message: "Cleanup complete", description: `Deleted ${data ?? 0} old flag${data === 1 ? "" : "s"}.`, placement: "top" });
-      loadAll();
-    } catch (e) { err(e, "Couldn't delete old flags"); } finally { setCleanupBusy(false); }
   };
 
   const activeDomains = useMemo(() => domains.filter((d) => d.is_active).map((d) => d.domain.toLowerCase()), [domains]);
@@ -276,34 +185,6 @@ function AdminPage() {
       notification.success({ message: "Username updated", description: name, placement: "top" });
       loadAll();
     } catch (e) { err(e, "Couldn't update username"); }
-  };
-
-  // Full account wipe: profile, every message they sent, chat memberships,
-  // reactions, statuses, reports, moderation history, roles — everything —
-  // via the admin_delete_user() Postgres function (see the migration for
-  // the exact table-by-table breakdown). This also deletes their actual
-  // login (auth.users row), so it's a real "delete this user" and not a
-  // soft/cosmetic removal.
-  const deleteUser = async (user: Profile) => {
-    const ok = await confirm({
-      title: `Permanently delete ${user.display_name}?`,
-      description: "This deletes their account, every message they sent, and all of their data. This cannot be undone.",
-      confirmText: "Delete everything",
-      danger: true,
-    });
-    if (!ok) return;
-    // Extra friction for a destructive, irreversible action — type-to-confirm.
-    const typed = window.prompt(`Type "${user.display_name}" to confirm permanent deletion`);
-    if (typed !== user.display_name) {
-      if (typed !== null) notification.warning({ message: "Name didn't match", description: "Deletion cancelled.", placement: "top" });
-      return;
-    }
-    try {
-      const { error } = await supabase.rpc("admin_delete_user", { _target: user.id });
-      if (error) throw error;
-      notification.success({ message: "User deleted", description: `${user.display_name} and all of their data are gone.`, placement: "top" });
-      loadAll();
-    } catch (e) { err(e, "Couldn't delete user"); }
   };
 
   const addDomain = async () => {
@@ -409,6 +290,25 @@ function AdminPage() {
     } catch (e) { err(e, "Couldn't revoke invitation"); }
   };
 
+  const handleGenerateVouchers = async () => {
+    setVoucherBusy(true);
+    try {
+      const codes = await generateVouchers(voucherPlan, voucherInterval, voucherCount);
+      setJustGenerated(codes);
+      notification.success({ message: `${codes.length} voucher${codes.length === 1 ? "" : "s"} generated`, placement: "top" });
+      loadAll();
+    } catch (e) {
+      err(e, "Couldn't generate vouchers");
+    } finally {
+      setVoucherBusy(false);
+    }
+  };
+
+  const copyVoucherCodes = (codes: string[]) => {
+    navigator.clipboard?.writeText(codes.join("\n"));
+    notification.success({ message: "Copied to clipboard", placement: "top" });
+  };
+
   /* ── render ── */
   if (checking) {
     return (
@@ -452,7 +352,7 @@ function AdminPage() {
           ["moderation", "Moderation", ShieldAlert],
           ["orgs", "Organizations", Building2],
           ["invites", "Invites", Mail],
-          ["ads", "Ads", Megaphone],
+          ["vouchers", "Vouchers", Ticket],
         ] as const).map(([k, label, Icon]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
@@ -521,20 +421,6 @@ function AdminPage() {
                     {m?.reason && state !== "clear" && (
                       <p className="mt-2 text-xs text-[#8C8C8C]">Reason: {m.reason}</p>
                     )}
-                    {(() => {
-                      // Surfaces how close this member is to the automatic
-                      // 31-day-inactive purge (see purge_inactive_users()),
-                      // so admins aren't surprised when an account vanishes.
-                      const days = p.last_seen ? Math.floor((Date.now() - new Date(p.last_seen).getTime()) / 864e5) : null;
-                      if (days === null) return null;
-                      const near = days >= 25;
-                      return (
-                        <p className={`mt-1 text-[11px] ${near ? "font-semibold text-red-500" : "text-[#8C8C8C]"}`}>
-                          {days === 0 ? "Active today" : `Last active ${days}d ago`}
-                          {near && ` · auto-deletes in ${Math.max(31 - days, 0)}d if still inactive`}
-                        </p>
-                      );
-                    })()}
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button onClick={() => renameUser(p)} className="flex items-center gap-1 rounded-full bg-[#E07A5F]/10 px-3 py-1.5 text-xs font-semibold text-[#E07A5F]">
                         <Pencil className="h-3 w-3" /> Username
@@ -551,16 +437,6 @@ function AdminPage() {
                       <button onClick={() => moderate(p, "clear")} className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600">
                         <CheckCircle2 className="h-3 w-3" /> Reinstate
                       </button>
-                      <button
-                        onClick={() => toggleBusiness(p)}
-                        disabled={businessTogglingId === p.id}
-                        className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${p.is_business ? "bg-amber-500/15 text-amber-700" : "bg-amber-500/10 text-amber-600"}`}
-                      >
-                        <VscVerifiedFilled className="h-3 w-3" /> {p.is_business ? "Remove business" : "Verify business"}
-                      </button>
-                      <button onClick={() => deleteUser(p)} className="flex items-center gap-1 rounded-full bg-red-600/15 px-3 py-1.5 text-xs font-bold text-red-700">
-                        <Trash2 className="h-3 w-3" /> Delete user
-                      </button>
                     </div>
                   </li>
                 );
@@ -571,21 +447,6 @@ function AdminPage() {
 
         {tab === "moderation" && (
           <section>
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
-              <span className="text-xs font-medium text-[#8C8C8C]">Delete reviewed flags older than</span>
-              <input
-                type="number" min={0} value={flagCleanupDays}
-                onChange={(e) => setFlagCleanupDays(Math.max(0, Number(e.target.value) || 0))}
-                className="w-16 rounded-lg bg-[#F0EBE3] px-2 py-1 text-center text-xs outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
-              />
-              <span className="text-xs font-medium text-[#8C8C8C]">days</span>
-              <button
-                onClick={deleteOldModerationFlags} disabled={cleanupBusy}
-                className="ml-auto flex items-center gap-1 rounded-full bg-red-600/15 px-3 py-1.5 text-xs font-bold text-red-700 disabled:opacity-60"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Clean up
-              </button>
-            </div>
             <ul className="space-y-2">
               {queue.map((row) => (
                 <li key={row.id} className={`rounded-2xl bg-white p-3 dark:bg-[#1E1E1E] ${row.reviewed ? "opacity-60" : ""}`}>
@@ -601,9 +462,6 @@ function AdminPage() {
                         <CheckCircle2 className="h-3 w-3" /> Reviewed
                       </button>
                     )}
-                    <button onClick={() => deleteModerationFlag(row)} aria-label="Delete flag" className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-red-500 hover:bg-red-500/10">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
                   </div>
                 </li>
               ))}
@@ -614,21 +472,6 @@ function AdminPage() {
 
         {tab === "reports" && (
           <section>
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
-              <span className="text-xs font-medium text-[#8C8C8C]">Delete resolved/dismissed reports older than</span>
-              <input
-                type="number" min={0} value={reportCleanupDays}
-                onChange={(e) => setReportCleanupDays(Math.max(0, Number(e.target.value) || 0))}
-                className="w-16 rounded-lg bg-[#F0EBE3] px-2 py-1 text-center text-xs outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
-              />
-              <span className="text-xs font-medium text-[#8C8C8C]">days</span>
-              <button
-                onClick={deleteOldReports} disabled={cleanupBusy}
-                className="ml-auto flex items-center gap-1 rounded-full bg-red-600/15 px-3 py-1.5 text-xs font-bold text-red-700 disabled:opacity-60"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Clean up
-              </button>
-            </div>
             <ul className="space-y-2">
               {reports.map((r) => {
                 const reporter = profileById[r.reporter_id];
@@ -647,9 +490,6 @@ function AdminPage() {
                         <p className="mt-1 text-[11px] text-[#8C8C8C]">{new Date(r.created_at).toLocaleString()}</p>
                       </div>
                       <span className="rounded-full bg-[#E07A5F]/10 px-2 py-0.5 text-[10px] font-bold text-[#E07A5F]">{r.status}</span>
-                      <button onClick={() => deleteReport(r)} aria-label="Delete report" className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-red-500 hover:bg-red-500/10">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {reported && (
@@ -680,48 +520,6 @@ function AdminPage() {
                 );
               })}
               {!reports.length && <p className="px-1 text-sm text-[#8C8C8C]">No reports yet.</p>}
-            </ul>
-          </section>
-        )}
-
-        {tab === "ads" && (
-          <section>
-            <ul className="space-y-2">
-              {ads.map((ad) => {
-                const sender = profileById[ad.sender_id];
-                return (
-                  <li key={ad.id} className="rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
-                    <div className="flex items-start gap-3">
-                      {ad.media_url && (
-                        <img src={ad.media_url} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
-                          {ad.ad_title || "(untitled ad)"}
-                        </p>
-                        <p className="mt-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-                          {sender?.display_name ?? "Unknown business"}
-                        </p>
-                        {ad.ad_cta_url && (
-                          <p className="mt-1 truncate text-[11px] text-[#8C8C8C]">
-                            {ad.ad_cta_label} → {ad.ad_cta_url}
-                          </p>
-                        )}
-                        <p className="mt-1 text-[11px] text-[#8C8C8C]">{new Date(ad.created_at).toLocaleString()}</p>
-                      </div>
-                      <button
-                        onClick={() => removeAd(ad)}
-                        disabled={adsBusy}
-                        aria-label="Take down ad"
-                        className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-red-500 hover:bg-red-500/10 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-              {!ads.length && <p className="px-1 text-sm text-[#8C8C8C]">No ads posted yet.</p>}
             </ul>
           </section>
         )}
@@ -810,6 +608,68 @@ function AdminPage() {
                 </li>
               ))}
               {!invites.length && <p className="px-1 text-sm text-[#8C8C8C]">No invitations yet.</p>}
+            </ul>
+          </section>
+        )}
+
+        {tab === "vouchers" && (
+          <section>
+            <div className="rounded-2xl bg-white p-4 dark:bg-[#1E1E1E]">
+              <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Generate voucher codes</p>
+              <p className="mt-1 text-xs text-[#8C8C8C]">
+                Codes redeem for free access in-app (Profile → have a voucher code?). Same generator for
+                Sona Purple and Sona Business — pick the plan below.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <select value={voucherPlan} onChange={(e) => setVoucherPlan(e.target.value as VoucherPlan)}
+                  className="rounded-xl bg-[#F0EBE3] px-3 py-2 text-sm outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]">
+                  <option value="purple">Sona Purple</option>
+                  <option value="business">Sona Business</option>
+                </select>
+                <select value={voucherInterval} onChange={(e) => setVoucherInterval(e.target.value as VoucherInterval)}
+                  className="rounded-xl bg-[#F0EBE3] px-3 py-2 text-sm outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]">
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+                <input type="number" min={1} max={500} value={voucherCount}
+                  onChange={(e) => setVoucherCount(Math.min(500, Math.max(1, Number(e.target.value) || 1)))}
+                  className="rounded-xl bg-[#F0EBE3] px-3 py-2 text-sm outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]" />
+                <button onClick={handleGenerateVouchers} disabled={voucherBusy}
+                  className="flex items-center justify-center gap-1 rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                  {voucherBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ticket className="h-4 w-4" />}
+                  Generate
+                </button>
+              </div>
+
+              {justGenerated.length > 0 && (
+                <div className="mt-3 rounded-xl bg-[#F0EBE3] p-3 dark:bg-[#2A2A2A]">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-[#2D3436] dark:text-[#E8E8E8]">Just generated — copy these now</p>
+                    <button onClick={() => copyVoucherCodes(justGenerated)}
+                      className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold text-[#E07A5F] hover:bg-[#E07A5F]/10">
+                      <Copy className="h-3 w-3" /> Copy all
+                    </button>
+                  </div>
+                  <p className="mt-1.5 break-words font-mono text-xs text-[#2D3436] dark:text-[#E8E8E8]">{justGenerated.join("  ·  ")}</p>
+                </div>
+              )}
+            </div>
+
+            <ul className="mt-3 space-y-2">
+              {vouchers.map((v) => (
+                <li key={v.code} className="flex items-center gap-3 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{v.code}</p>
+                    <p className="text-xs text-[#8C8C8C]">
+                      {v.plan === "business" ? "Sona Business" : "Sona Purple"} · {v.interval} · created {new Date(v.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${v.redeemed_by ? "bg-emerald-500/15 text-emerald-600" : "bg-[#E07A5F]/10 text-[#E07A5F]"}`}>
+                    {v.redeemed_by ? "Redeemed" : "Unused"}
+                  </span>
+                </li>
+              ))}
+              {!vouchers.length && <p className="px-1 text-sm text-[#8C8C8C]">No vouchers generated yet.</p>}
             </ul>
           </section>
         )}
