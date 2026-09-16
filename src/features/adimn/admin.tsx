@@ -3,14 +3,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
-  ShieldAlert, Upload, Activity,
+  ShieldAlert, Upload, Activity, Ticket, Copy,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
-import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv } from "@/features/admin";
-import type { ModerationQueueRow, DashboardStats } from "@/features/admin";
+import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, generateVouchers, fetchVouchers } from "@/features/admin";
+import type { ModerationQueueRow, DashboardStats, VoucherRow, VoucherPlan, VoucherInterval } from "@/features/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -54,7 +54,7 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "vouchers">("dashboard");
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
@@ -63,6 +63,12 @@ function AdminPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [queue, setQueue] = useState<ModerationQueueRow[]>([]);
+  const [vouchers, setVouchers] = useState<VoucherRow[]>([]);
+  const [voucherPlan, setVoucherPlan] = useState<VoucherPlan>("purple");
+  const [voucherInterval, setVoucherInterval] = useState<VoucherInterval>("monthly");
+  const [voucherCount, setVoucherCount] = useState(1);
+  const [voucherBusy, setVoucherBusy] = useState(false);
+  const [justGenerated, setJustGenerated] = useState<string[]>([]);
   const [csvBusy, setCsvBusy] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -86,7 +92,7 @@ function AdminPage() {
   const loadAll = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, m, d, i, r, q, s] = await Promise.all([
+      const [p, m, d, i, r, q, s, v] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_moderation").select("*").order("created_at", { ascending: false }),
         supabase.from("org_domains").select("*").order("domain"),
@@ -94,6 +100,7 @@ function AdminPage() {
         supabase.from("reports").select("*").order("created_at", { ascending: false }),
         supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(100),
         fetchDashboardStats().catch(() => null),
+        fetchVouchers().catch(() => []),
       ]);
       if (p.error) throw p.error;
       setProfiles((p.data ?? []) as Profile[]);
@@ -103,6 +110,7 @@ function AdminPage() {
       setReports((r.data ?? []) as Report[]);
       setQueue((q.data ?? []) as ModerationQueueRow[]);
       setStats(s);
+      setVouchers(v as VoucherRow[]);
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -282,6 +290,25 @@ function AdminPage() {
     } catch (e) { err(e, "Couldn't revoke invitation"); }
   };
 
+  const handleGenerateVouchers = async () => {
+    setVoucherBusy(true);
+    try {
+      const codes = await generateVouchers(voucherPlan, voucherInterval, voucherCount);
+      setJustGenerated(codes);
+      notification.success({ message: `${codes.length} voucher${codes.length === 1 ? "" : "s"} generated`, placement: "top" });
+      loadAll();
+    } catch (e) {
+      err(e, "Couldn't generate vouchers");
+    } finally {
+      setVoucherBusy(false);
+    }
+  };
+
+  const copyVoucherCodes = (codes: string[]) => {
+    navigator.clipboard?.writeText(codes.join("\n"));
+    notification.success({ message: "Copied to clipboard", placement: "top" });
+  };
+
   /* ── render ── */
   if (checking) {
     return (
@@ -325,6 +352,7 @@ function AdminPage() {
           ["moderation", "Moderation", ShieldAlert],
           ["orgs", "Organizations", Building2],
           ["invites", "Invites", Mail],
+          ["vouchers", "Vouchers", Ticket],
         ] as const).map(([k, label, Icon]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
@@ -580,6 +608,68 @@ function AdminPage() {
                 </li>
               ))}
               {!invites.length && <p className="px-1 text-sm text-[#8C8C8C]">No invitations yet.</p>}
+            </ul>
+          </section>
+        )}
+
+        {tab === "vouchers" && (
+          <section>
+            <div className="rounded-2xl bg-white p-4 dark:bg-[#1E1E1E]">
+              <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Generate voucher codes</p>
+              <p className="mt-1 text-xs text-[#8C8C8C]">
+                Codes redeem for free access in-app (Profile → have a voucher code?). Same generator for
+                Sona Purple and Sona Business — pick the plan below.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <select value={voucherPlan} onChange={(e) => setVoucherPlan(e.target.value as VoucherPlan)}
+                  className="rounded-xl bg-[#F0EBE3] px-3 py-2 text-sm outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]">
+                  <option value="purple">Sona Purple</option>
+                  <option value="business">Sona Business</option>
+                </select>
+                <select value={voucherInterval} onChange={(e) => setVoucherInterval(e.target.value as VoucherInterval)}
+                  className="rounded-xl bg-[#F0EBE3] px-3 py-2 text-sm outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]">
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+                <input type="number" min={1} max={500} value={voucherCount}
+                  onChange={(e) => setVoucherCount(Math.min(500, Math.max(1, Number(e.target.value) || 1)))}
+                  className="rounded-xl bg-[#F0EBE3] px-3 py-2 text-sm outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]" />
+                <button onClick={handleGenerateVouchers} disabled={voucherBusy}
+                  className="flex items-center justify-center gap-1 rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                  {voucherBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ticket className="h-4 w-4" />}
+                  Generate
+                </button>
+              </div>
+
+              {justGenerated.length > 0 && (
+                <div className="mt-3 rounded-xl bg-[#F0EBE3] p-3 dark:bg-[#2A2A2A]">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-[#2D3436] dark:text-[#E8E8E8]">Just generated — copy these now</p>
+                    <button onClick={() => copyVoucherCodes(justGenerated)}
+                      className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold text-[#E07A5F] hover:bg-[#E07A5F]/10">
+                      <Copy className="h-3 w-3" /> Copy all
+                    </button>
+                  </div>
+                  <p className="mt-1.5 break-words font-mono text-xs text-[#2D3436] dark:text-[#E8E8E8]">{justGenerated.join("  ·  ")}</p>
+                </div>
+              )}
+            </div>
+
+            <ul className="mt-3 space-y-2">
+              {vouchers.map((v) => (
+                <li key={v.code} className="flex items-center gap-3 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{v.code}</p>
+                    <p className="text-xs text-[#8C8C8C]">
+                      {v.plan === "business" ? "Sona Business" : "Sona Purple"} · {v.interval} · created {new Date(v.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${v.redeemed_by ? "bg-emerald-500/15 text-emerald-600" : "bg-[#E07A5F]/10 text-[#E07A5F]"}`}>
+                    {v.redeemed_by ? "Redeemed" : "Unused"}
+                  </span>
+                </li>
+              ))}
+              {!vouchers.length && <p className="px-1 text-sm text-[#8C8C8C]">No vouchers generated yet.</p>}
             </ul>
           </section>
         )}
