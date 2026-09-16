@@ -161,3 +161,114 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
 
     return { success: true as const };
   });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Business account verification — same self-serve PayPal flow as Sona
+// Purple above (same helpers, same Order/Capture pattern), just a separate
+// price and a different flag flipped on capture: profiles.is_business
+// instead of is_pro. Kept as its own pair of functions rather than
+// parameterizing the Purple ones, so a bug in one plan's pricing/copy can't
+// silently affect the other.
+//
+// Extra required server env vars (same rules as above — server-only, no
+// VITE_ prefix):
+//   PAYPAL_PRICE_BUSINESS_MONTHLY — e.g. "9.99"
+//   PAYPAL_PRICE_BUSINESS_YEARLY  — e.g. "89.99"
+// ─────────────────────────────────────────────────────────────────────────
+
+export const startPaypalBusinessCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { interval?: "monthly" | "yearly" } | undefined) => ({
+    interval: data?.interval === "yearly" ? ("yearly" as const) : ("monthly" as const),
+  }))
+  .handler(async ({ context, data }) => {
+    const amount =
+      data.interval === "yearly"
+        ? process.env.PAYPAL_PRICE_BUSINESS_YEARLY
+        : process.env.PAYPAL_PRICE_BUSINESS_MONTHLY;
+    if (!amount) {
+      throw new Error(
+        `PAYPAL_PRICE_BUSINESS_${data.interval === "yearly" ? "YEARLY" : "MONTHLY"} is not set. Ask the app owner to add it.`
+      );
+    }
+
+    const accessToken = await getPaypalAccessToken();
+    const origin = process.env.APP_ORIGIN || "https://sonatg.lovable.app";
+
+    const res = await fetch(`${paypalBaseUrl()}/v2/checkout/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [
+          {
+            custom_id: context.userId,
+            description: `Sona Business verification — ${data.interval} plan`,
+            amount: { currency_code: "USD", value: amount },
+          },
+        ],
+        application_context: {
+          brand_name: "Sona",
+          user_action: "PAY_NOW",
+          return_url: `${origin}/paypal-return?interval=${data.interval}&plan=business`,
+          cancel_url: `${origin}/paypal-return?cancelled=1&plan=business`,
+        },
+      }),
+    });
+
+    const json = (await res.json()) as {
+      id?: string;
+      links?: { rel: string; href: string }[];
+      message?: string;
+    };
+    if (!res.ok || !json.id) throw new Error(json.message || "PayPal order creation failed");
+
+    const approvalUrl = json.links?.find((l) => l.rel === "approve")?.href;
+    if (!approvalUrl) throw new Error("PayPal did not return an approval link");
+
+    return { orderId: json.id, url: approvalUrl };
+  });
+
+export const capturePaypalBusinessOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string }) => data)
+  .handler(async ({ context, data }) => {
+    const accessToken = await getPaypalAccessToken();
+
+    const res = await fetch(`${paypalBaseUrl()}/v2/checkout/orders/${data.orderId}/capture`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const json = (await res.json()) as {
+      status?: string;
+      purchase_units?: { custom_id?: string; payments?: { captures?: { status?: string }[] } }[];
+      message?: string;
+      name?: string;
+    };
+
+    if (json.name === "UNPROCESSABLE_ENTITY" || !res.ok) {
+      throw new Error(json.message || "PayPal capture failed");
+    }
+
+    const capture = json.purchase_units?.[0]?.payments?.captures?.[0];
+    const paidForThisUser = json.purchase_units?.[0]?.custom_id === context.userId;
+
+    if (json.status !== "COMPLETED" || capture?.status !== "COMPLETED" || !paidForThisUser) {
+      throw new Error("Payment was not completed. No changes were made to your account.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ is_business: true })
+      .eq("id", context.userId);
+    if (error) throw new Error(`Payment succeeded but verifying your business account failed: ${error.message}`);
+
+    return { success: true as const };
+  });

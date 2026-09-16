@@ -25,6 +25,8 @@ export type Profile = {
   avatar_url: string | null;
   is_ai: boolean;
   is_pro?: boolean;
+  /** Self-serve verified business account (see paypal.functions.ts capturePaypalBusinessOrder). Grants the business badge and lets the account send "ad" messages. */
+  is_business?: boolean;
   ai_model?: string | null;
   bio?: string | null;
   last_seen?: string | null;
@@ -40,11 +42,17 @@ export type MessageRow = {
   id: string;
   chat_id: string;
   sender_id: string;
-  kind: "text" | "image" | "voice" | "file" | "call" | "video" | "poll" | "system";
+  kind: "text" | "image" | "voice" | "file" | "call" | "video" | "poll" | "system" | "ad";
   body: string | null;
   media_url: string | null;
   duration_ms: number | null;
   transcript?: string | null;
+  /** Ad card headline. Only set when kind === "ad". */
+  ad_title?: string | null;
+  /** Ad card button label, e.g. "Shop now". Only set when kind === "ad". */
+  ad_cta_label?: string | null;
+  /** Ad card button destination URL. Only set when kind === "ad". */
+  ad_cta_url?: string | null;
   created_at: string;
   is_encrypted?: boolean;
   reply_to_id?: string | null;
