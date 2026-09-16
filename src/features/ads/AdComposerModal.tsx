@@ -24,6 +24,7 @@ export type CreatedAd = {
 
 interface AdComposerModalProps {
   meId: string;
+  chatId: string;
   onClose: () => void;
   onCreated: (ad: CreatedAd) => void;
 }
@@ -34,7 +35,7 @@ function normalizeUrl(raw: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalProps) {
+export function AdComposerModal({ meId, chatId, onClose, onCreated }: AdComposerModalProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -59,7 +60,12 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
     setError(null);
     try {
       const compressed = await compressImageForUpload(imageFile);
-      const path = `${meId}/ads/${crypto.randomUUID()}-${compressed.name}`;
+      // "chat-media" enforces an upload path of <chat_id>/<user_id>/<filename>
+      // via storage RLS (see the "chat media upload by member self" policy) —
+      // the first two path segments are checked as a chat-membership test and
+      // an ownership test, respectively, so both must be real, matching IDs
+      // or the upload itself fails RLS before the message row is ever touched.
+      const path = `${chatId}/${meId}/ad-${crypto.randomUUID()}-${compressed.name}`;
       const { error: upErr } = await supabase.storage.from("chat-media").upload(path, compressed);
       if (upErr) throw upErr;
       const { data: signed, error: signErr } = await supabase.storage
