@@ -35,3 +35,8 @@ export async function adminDeleteAdMessage(id: string): Promise<void> {
   const { error } = await supabase.rpc("admin_delete_ad_message", { _id: id });
   if (error) throw error;
 }
+
+export async function adminSetBusiness(targetUserId: string, value: boolean): Promise<void> {
+  const { error } = await supabase.rpc("admin_set_business", { _target: targetUserId, _value: value });
+  if (error) throw error;
+}
