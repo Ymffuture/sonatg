@@ -1,4 +1,5 @@
-import { MdWifiOff, MdSignalWifiStatusbarConnectedNoInternet4 } from "react-icons/md";
+import { useEffect, useState } from "react";
+import { MdWifiOff, MdSignalWifiStatusbarConnectedNoInternet4, MdClose } from "react-icons/md";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 const COPY = {
@@ -12,10 +13,21 @@ const COPY = {
  * red for "no connection at all" — and disappears the instant the
  * connection recovers. Deliberately renders nothing while online so it
  * never sits on top of the composer during normal use.
+ *
+ * Dismissible via the close button, but the dismissal only lasts for the
+ * current problem: going back online and dropping again (or unstable
+ * flipping to fully offline) clears it, so a still-ongoing or new
+ * connection issue isn't silently hidden for the rest of the session.
  */
 export function NetworkStatusFooter() {
   const status = useNetworkStatus();
-  if (status === "online") return null;
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    setDismissed(false);
+  }, [status]);
+
+  if (status === "online" || dismissed) return null;
 
   const { label, description } = COPY[status];
   const Icon = status === "offline" ? MdWifiOff : MdSignalWifiStatusbarConnectedNoInternet4;
@@ -33,6 +45,14 @@ export function NetworkStatusFooter() {
       <Icon className="h-4 w-4 shrink-0 animate-pulse" />
       <span className="font-semibold">{label}</span>
       <span className="truncate opacity-90">— {description}</span>
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+        className="ml-auto shrink-0 rounded-full p-1 transition-colors hover:bg-black/10"
+      >
+        <MdClose className="h-4 w-4" />
+      </button>
     </div>
   );
 }
