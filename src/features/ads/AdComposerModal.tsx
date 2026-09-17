@@ -25,7 +25,14 @@ export type CreatedAd = {
 interface AdComposerModalProps {
   meId: string;
   onClose: () => void;
-  onCreated: (ad: CreatedAd) => void;
+  // Returns a Promise so the modal can tell success from failure: it only
+  // closes itself once the caller's DB insert actually succeeds. If
+  // onCreated rejects (e.g. the RLS check for is_business fails), the
+  // modal stays open and shows the thrown error's message inline — the
+  // caller is expected to throw a *user-facing* message (see
+  // SonaChat.tsx's onAdCreated, which turns the raw Postgres error into
+  // one via explainSupabaseError before throwing).
+  onCreated: (ad: CreatedAd) => Promise<void>;
 }
 
 function normalizeUrl(raw: string): string {
@@ -67,13 +74,25 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
         .createSignedUrl(path, 60 * 60 * 24 * 365);
       if (signErr || !signed) throw signErr || new Error("Couldn't get a URL for the uploaded image.");
 
-      onCreated({
+      // Image is uploaded — now hand off to the caller to actually insert
+      // the { kind: "ad", ... } message row. Awaiting this (rather than
+      // firing it and closing immediately) is what lets a DB-side
+      // rejection — e.g. the "business accounts can send ad messages" RLS
+      // policy failing because is_business isn't true — land back here as
+      // a normal caught error instead of silently vanishing behind an
+      // already-closed modal.
+      await onCreated({
         mediaUrl: signed.signedUrl,
         title: title.trim(),
         ctaLabel: ctaLabel.trim(),
         ctaUrl: normalizeUrl(ctaUrl),
       });
+      onClose();
     } catch (e) {
+      // Full object (not just .message) so the RLS/Postgres code, details
+      // and hint — everything explainSupabaseError parses out — are
+      // visible in devtools even if the on-screen message stays short.
+      console.error("[AdComposerModal] Failed to post ad:", e);
       setError((e as Error).message || "Something went wrong creating the ad. Try again.");
     } finally {
       setBusy(false);
@@ -150,7 +169,11 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
               </div>
             </div>
 
-            {error && <p className="text-xs font-semibold text-red-500">{error}</p>}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 dark:border-red-900/40 dark:bg-red-950/30">
+                <p className="text-xs font-semibold leading-relaxed text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-2 border-t border-black/5 px-5 py-4 dark:border-white/10">
