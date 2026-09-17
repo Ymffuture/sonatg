@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
-  ShieldAlert, Upload, Activity, Ticket, Copy, Megaphone, ExternalLink,
+  ShieldAlert, Upload, Activity, Ticket, Copy, Megaphone, ExternalLink, Radio,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
 import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, generateVouchers, fetchVouchers, fetchAdMessages, adminDeleteAdMessage } from "@/features/admin";
 import type { ModerationQueueRow, DashboardStats, VoucherRow, VoucherPlan, VoucherInterval, AdMessageRow } from "@/features/admin";
+import { fetchActiveAnnouncement, postAnnouncement, clearActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -54,7 +55,7 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "vouchers" | "ads">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "vouchers" | "ads" | "announcements">("dashboard");
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
@@ -71,6 +72,11 @@ function AdminPage() {
   const [justGenerated, setJustGenerated] = useState<string[]>([]);
   const [ads, setAds] = useState<AdMessageRow[]>([]);
   const [adDeleteBusyId, setAdDeleteBusyId] = useState<string | null>(null);
+  const [announcementHistory, setAnnouncementHistory] = useState<AppAnnouncement[]>([]);
+  const [announcementDraft, setAnnouncementDraft] = useState("");
+  const [announcementNotify, setAnnouncementNotify] = useState(false);
+  const [announcementBusy, setAnnouncementBusy] = useState(false);
+  const [announcementClearBusy, setAnnouncementClearBusy] = useState(false);
   const [csvBusy, setCsvBusy] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -94,7 +100,7 @@ function AdminPage() {
   const loadAll = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, m, d, i, r, q, s, v, a] = await Promise.all([
+      const [p, m, d, i, r, q, s, v, a, an] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_moderation").select("*").order("created_at", { ascending: false }),
         supabase.from("org_domains").select("*").order("domain"),
@@ -104,6 +110,7 @@ function AdminPage() {
         fetchDashboardStats().catch(() => null),
         fetchVouchers().catch(() => []),
         fetchAdMessages().catch(() => []),
+        supabase.from("app_announcements").select("*").order("created_at", { ascending: false }).limit(50),
       ]);
       if (p.error) throw p.error;
       setProfiles((p.data ?? []) as Profile[]);
@@ -115,6 +122,7 @@ function AdminPage() {
       setStats(s);
       setVouchers(v as VoucherRow[]);
       setAds(a as AdMessageRow[]);
+      setAnnouncementHistory((an.data ?? []) as AppAnnouncement[]);
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -333,6 +341,35 @@ function AdminPage() {
     }
   };
 
+  const handlePostAnnouncement = async () => {
+    if (!announcementDraft.trim() || announcementBusy) return;
+    setAnnouncementBusy(true);
+    try {
+      await postAnnouncement(announcementDraft.trim(), announcementNotify);
+      setAnnouncementDraft("");
+      setAnnouncementNotify(false);
+      notification.success({ message: "Announcement posted", placement: "top" });
+      loadAll();
+    } catch (e) {
+      err(e, "Couldn't post that announcement");
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
+
+  const handleClearAnnouncement = async () => {
+    setAnnouncementClearBusy(true);
+    try {
+      await clearActiveAnnouncement();
+      notification.success({ message: "Banner taken down", placement: "top" });
+      loadAll();
+    } catch (e) {
+      err(e, "Couldn't take that banner down");
+    } finally {
+      setAnnouncementClearBusy(false);
+    }
+  };
+
   /* ── render ── */
   if (checking) {
     return (
@@ -378,6 +415,7 @@ function AdminPage() {
           ["invites", "Invites", Mail],
           ["vouchers", "Vouchers", Ticket],
           ["ads", "Ads", Megaphone],
+          ["announcements", "Announcements", Radio],
         ] as const).map(([k, label, Icon]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
@@ -740,6 +778,71 @@ function AdminPage() {
                 </li>
               ))}
               {!ads.length && <p className="px-1 text-sm text-[#8C8C8C]">No ads have been posted yet.</p>}
+            </ul>
+          </section>
+        )}
+
+        {tab === "announcements" && (
+          <section>
+            <div className="rounded-2xl bg-white p-4 dark:bg-[#1E1E1E]">
+              <p className="text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Post a banner</p>
+              <p className="mt-1 text-xs text-[#8C8C8C]">
+                Shows below the search bar for every signed-in user until you take it down or post a new one —
+                only one banner is active at a time.
+              </p>
+              <textarea
+                value={announcementDraft}
+                onChange={(e) => setAnnouncementDraft(e.target.value)}
+                maxLength={280}
+                rows={3}
+                placeholder="e.g. We're updating the app tonight — some features may be briefly unavailable."
+                className="mt-3 w-full resize-none rounded-xl bg-[#F0EBE3] px-3 py-2.5 text-sm outline-none dark:bg-[#2A2A2A] dark:text-[#E8E8E8]"
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                  <input
+                    type="checkbox"
+                    checked={announcementNotify}
+                    onChange={(e) => setAnnouncementNotify(e.target.checked)}
+                    className="h-4 w-4 rounded accent-[#E07A5F]"
+                  />
+                  Also email subscribers
+                </label>
+                <button
+                  onClick={handlePostAnnouncement}
+                  disabled={announcementBusy || !announcementDraft.trim()}
+                  className="flex items-center gap-1.5 rounded-xl bg-[#E07A5F] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {announcementBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+                  Post
+                </button>
+              </div>
+            </div>
+
+            <ul className="mt-3 space-y-2">
+              {announcementHistory.map((a) => (
+                <li key={a.id} className="flex items-start gap-3 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">{a.message}</p>
+                    <p className="mt-0.5 text-xs text-[#8C8C8C]">
+                      {new Date(a.created_at).toLocaleString()}{a.notify_subscribers ? " · emailed subscribers" : ""}
+                    </p>
+                  </div>
+                  {a.is_active ? (
+                    <button
+                      onClick={handleClearAnnouncement}
+                      disabled={announcementClearBusy}
+                      className="shrink-0 flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-600 hover:bg-emerald-500/20 disabled:opacity-50"
+                    >
+                      {announcementClearBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      Live — take down
+                    </button>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-[10px] font-bold text-zinc-500">Past</span>
+                  )}
+                </li>
+              ))}
+              {!announcementHistory.length && <p className="px-1 text-sm text-[#8C8C8C]">No announcements posted yet.</p>}
             </ul>
           </section>
         )}
