@@ -11,7 +11,7 @@ import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
 import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, generateVouchers, fetchVouchers, fetchAdMessages, adminDeleteAdMessage } from "@/features/admin";
 import type { ModerationQueueRow, DashboardStats, VoucherRow, VoucherPlan, VoucherInterval, AdMessageRow } from "@/features/admin";
-import { fetchActiveAnnouncement, postAnnouncement, clearActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
+import { fetchActiveAnnouncement, postAnnouncement, clearActiveAnnouncement, deleteAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -77,6 +77,7 @@ function AdminPage() {
   const [announcementNotify, setAnnouncementNotify] = useState(false);
   const [announcementBusy, setAnnouncementBusy] = useState(false);
   const [announcementClearBusy, setAnnouncementClearBusy] = useState(false);
+  const [announcementDeleteBusyId, setAnnouncementDeleteBusyId] = useState<string | null>(null);
   const [csvBusy, setCsvBusy] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -367,6 +368,28 @@ function AdminPage() {
       err(e, "Couldn't take that banner down");
     } finally {
       setAnnouncementClearBusy(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (a: AppAnnouncement) => {
+    const ok = await confirm({
+      title: "Delete this announcement?",
+      description: a.is_active
+        ? "This one is currently live — deleting it also takes the banner down immediately. This can't be undone."
+        : "This removes it from history permanently. This can't be undone.",
+      confirmText: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    setAnnouncementDeleteBusyId(a.id);
+    try {
+      await deleteAnnouncement(a.id);
+      setAnnouncementHistory((prev) => prev.filter((row) => row.id !== a.id));
+      notification.success({ message: "Announcement deleted", placement: "top" });
+    } catch (e) {
+      err(e, "Couldn't delete that announcement");
+    } finally {
+      setAnnouncementDeleteBusyId(null);
     }
   };
 
@@ -840,6 +863,14 @@ function AdminPage() {
                   ) : (
                     <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-[10px] font-bold text-zinc-500">Past</span>
                   )}
+                  <button
+                    onClick={() => handleDeleteAnnouncement(a)}
+                    disabled={announcementDeleteBusyId === a.id}
+                    aria-label="Delete announcement"
+                    className="shrink-0 grid h-7 w-7 place-items-center rounded-full text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    {announcementDeleteBusyId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </button>
                 </li>
               ))}
               {!announcementHistory.length && <p className="px-1 text-sm text-[#8C8C8C]">No announcements posted yet.</p>}
