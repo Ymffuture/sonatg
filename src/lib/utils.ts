@@ -222,16 +222,48 @@ export const categoryMeta: Record<ChatCategory, { emoji: string; label: string; 
 // Turns cryptic Postgres/PostgREST/Supabase error text into a plain-language
 // explanation, so a failed action shows something actually actionable
 // instead of a raw error string most people can't parse.
-export function explainSupabaseError(err: unknown): { title: string; explanation: string; raw: string } {
-  const raw = (err as { message?: string })?.message || String(err);
+//
+// Supabase/PostgREST errors carry more than just `.message` — `.code` is
+// the Postgres error code (RLS violations are always "42501"), `.details`
+// is Postgres's own explanation, and `.hint` is an optional suggested fix.
+// All four are returned (not just title/explanation/raw) so callers can
+// both show a friendly toast AND console.error() the full structured
+// object for debugging, without re-deriving it themselves.
+export function explainSupabaseError(err: unknown): {
+  title: string;
+  explanation: string;
+  raw: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+} {
+  const e = err as { message?: string; code?: string; details?: string; hint?: string } | undefined;
+  const raw = e?.message || String(err);
   const lower = raw.toLowerCase();
+  const meta = { code: e?.code, details: e?.details, hint: e?.hint };
 
+  // Postgres includes the specific policy name in the message, e.g.:
+  //   new row violates row-level security policy "business accounts can
+  //   send ad messages" for table "messages"
+  // Catch this one by name before the generic RLS branch below, since the
+  // fix ("get verified") is completely different from every other RLS
+  // failure in the app ("you're not a member of this chat yet", etc).
+  if (lower.includes("business accounts can send ad messages")) {
+    return {
+      title: "Business verification required",
+      explanation:
+        "Only verified Sona Business accounts can post ads. If you already paid or redeemed a voucher, try refreshing the app first — verification sometimes needs a fresh session to show up. If it still doesn't work after that, the payment/voucher may not have finished processing; check Settings → Sona Business, or contact support with the details below.",
+      raw,
+      ...meta,
+    };
+  }
   if (lower.includes("column") && lower.includes("does not exist")) {
     return {
       title: "Database is missing a column",
       explanation:
         "The app expects a database column that isn't there yet. This usually means a migration file exists in the repo but hasn't actually been run against your Supabase project. Run `supabase db push`, or paste the migration's SQL into the Supabase SQL Editor and run it manually.",
       raw,
+      ...meta,
     };
   }
   if (lower.includes("row-level security") || lower.includes("row level security") || lower.includes("policy")) {
@@ -240,6 +272,7 @@ export function explainSupabaseError(err: unknown): { title: string; explanation
       explanation:
         "Supabase's Row-Level Security rejected this action — the database doesn't think you're allowed to do this yet (for example, adding people to a chat before you're a confirmed member of it yourself). If you didn't just change any RLS policies, this is likely a bug in the app's request order rather than something wrong on your end.",
       raw,
+      ...meta,
     };
   }
   if (lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("network request failed")) {
@@ -248,6 +281,7 @@ export function explainSupabaseError(err: unknown): { title: string; explanation
       explanation:
         "This looks like a network problem — check your internet connection, and make sure your Supabase project isn't paused (free-tier projects pause after inactivity and need a manual resume from the Supabase dashboard).",
       raw,
+      ...meta,
     };
   }
   if (lower.includes("jwt") || lower.includes("unauthorized") || lower.includes("401")) {
@@ -255,12 +289,14 @@ export function explainSupabaseError(err: unknown): { title: string; explanation
       title: "Your session may have expired",
       explanation: "Try signing out and back in — your login session may no longer be valid.",
       raw,
+      ...meta,
     };
   }
   return {
     title: "Something went wrong",
     explanation: "Here's the exact error from the database, which should help pinpoint the cause:",
     raw,
+    ...meta,
   };
 }
 
