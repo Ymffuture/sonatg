@@ -68,7 +68,18 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
       const compressed = await compressImageForUpload(imageFile);
       const path = `${meId}/ads/${crypto.randomUUID()}-${compressed.name}`;
       const { error: upErr } = await supabase.storage.from("chat-media").upload(path, compressed);
-      if (upErr) throw upErr;
+      if (upErr) {
+        console.error("[AdComposerModal] Storage upload rejected:", {
+          bucket: "chat-media",
+          path,
+          message: upErr.message,
+          // StorageApiError doesn't always carry Postgres's .code/.details/
+          // .hint the way a table insert error does, but log them if present
+          // (some Storage errors do proxy the underlying Postgres error).
+          ...(upErr as unknown as { code?: string; details?: string; hint?: string }),
+        });
+        throw upErr;
+      }
       const { data: signed, error: signErr } = await supabase.storage
         .from("chat-media")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
@@ -93,7 +104,11 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
       // and hint — everything explainSupabaseError parses out — are
       // visible in devtools even if the on-screen message stays short.
       console.error("[AdComposerModal] Failed to post ad:", e);
-      setError((e as Error).message || "Something went wrong creating the ad. Try again.");
+      const raw = (e as Error)?.message || "";
+      const friendly = /row-level security|row level security/i.test(raw)
+        ? "Couldn't upload — your business account isn't verified yet, or verification hasn't finished processing. Try refreshing the app, or check Settings → Sona Business."
+        : raw || "Something went wrong creating the ad. Try again.";
+      setError(friendly);
     } finally {
       setBusy(false);
     }
