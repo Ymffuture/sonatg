@@ -55,6 +55,12 @@ export async function clearActiveAnnouncement(): Promise<void> {
   if (error) throw error;
 }
 
+/** Admin: permanently removes one announcement from history (including the active one, if any — takes the banner down too). */
+export async function deleteAnnouncement(id: string): Promise<void> {
+  const { error } = await supabase.from("app_announcements").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function fetchMyNotificationPreferences(userId: string): Promise<NotificationPreferences> {
   const { data, error } = await supabase
     .from("notification_preferences").select("*").eq("user_id", userId).maybeSingle();
