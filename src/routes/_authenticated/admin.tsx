@@ -3,14 +3,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Shield, Building2, Mail, Users, Plus, Trash2, Ban,
   AlertTriangle, Flag, PauseCircle, CheckCircle2, Search, Loader2, Pencil,
-  ShieldAlert, Upload, Activity, Ticket, Copy,
+  ShieldAlert, Upload, Activity, Ticket, Copy, Megaphone, ExternalLink,
 } from "lucide-react";
 import { notification } from "antd";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import type { Profile } from "@/lib/db";
-import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, generateVouchers, fetchVouchers } from "@/features/admin";
-import type { ModerationQueueRow, DashboardStats, VoucherRow, VoucherPlan, VoucherInterval } from "@/features/admin";
+import { summarizeModerationRow, fetchDashboardStats, importRosterAsInvites, parseRosterCsv, generateVouchers, fetchVouchers, fetchAdMessages, adminDeleteAdMessage } from "@/features/admin";
+import type { ModerationQueueRow, DashboardStats, VoucherRow, VoucherPlan, VoucherInterval, AdMessageRow } from "@/features/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -54,7 +54,7 @@ function AdminPage() {
   const confirm = useConfirm();
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "vouchers">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "members" | "reports" | "moderation" | "orgs" | "invites" | "vouchers" | "ads">("dashboard");
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [mods, setMods] = useState<Moderation[]>([]);
@@ -69,6 +69,8 @@ function AdminPage() {
   const [voucherCount, setVoucherCount] = useState(1);
   const [voucherBusy, setVoucherBusy] = useState(false);
   const [justGenerated, setJustGenerated] = useState<string[]>([]);
+  const [ads, setAds] = useState<AdMessageRow[]>([]);
+  const [adDeleteBusyId, setAdDeleteBusyId] = useState<string | null>(null);
   const [csvBusy, setCsvBusy] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -92,7 +94,7 @@ function AdminPage() {
   const loadAll = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, m, d, i, r, q, s, v] = await Promise.all([
+      const [p, m, d, i, r, q, s, v, a] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_moderation").select("*").order("created_at", { ascending: false }),
         supabase.from("org_domains").select("*").order("domain"),
@@ -101,6 +103,7 @@ function AdminPage() {
         supabase.from("moderation_queue").select("*").order("created_at", { ascending: false }).limit(100),
         fetchDashboardStats().catch(() => null),
         fetchVouchers().catch(() => []),
+        fetchAdMessages().catch(() => []),
       ]);
       if (p.error) throw p.error;
       setProfiles((p.data ?? []) as Profile[]);
@@ -111,6 +114,7 @@ function AdminPage() {
       setQueue((q.data ?? []) as ModerationQueueRow[]);
       setStats(s);
       setVouchers(v as VoucherRow[]);
+      setAds(a as AdMessageRow[]);
     } catch (e) {
       err(e, "Couldn't load admin data");
     } finally {
@@ -309,6 +313,26 @@ function AdminPage() {
     notification.success({ message: "Copied to clipboard", placement: "top" });
   };
 
+  const handleDeleteAd = async (ad: AdMessageRow) => {
+    const ok = await confirm({
+      title: "Remove this ad?",
+      description: "This takes the ad down for everyone who can see it in that chat. This can't be undone.",
+      confirmText: "Remove ad",
+      danger: true,
+    });
+    if (!ok) return;
+    setAdDeleteBusyId(ad.id);
+    try {
+      await adminDeleteAdMessage(ad.id);
+      setAds((prev) => prev.map((row) => (row.id === ad.id ? { ...row, deleted_at: new Date().toISOString() } : row)));
+      notification.success({ message: "Ad removed", placement: "top" });
+    } catch (e) {
+      err(e, "Couldn't remove that ad");
+    } finally {
+      setAdDeleteBusyId(null);
+    }
+  };
+
   /* ── render ── */
   if (checking) {
     return (
@@ -353,6 +377,7 @@ function AdminPage() {
           ["orgs", "Organizations", Building2],
           ["invites", "Invites", Mail],
           ["vouchers", "Vouchers", Ticket],
+          ["ads", "Ads", Megaphone],
         ] as const).map(([k, label, Icon]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
@@ -670,6 +695,51 @@ function AdminPage() {
                 </li>
               ))}
               {!vouchers.length && <p className="px-1 text-sm text-[#8C8C8C]">No vouchers generated yet.</p>}
+            </ul>
+          </section>
+        )}
+
+        {tab === "ads" && (
+          <section>
+            <p className="px-1 text-xs text-[#8C8C8C]">
+              Every "ad" message sent by a verified business account, across all chats — visible here regardless
+              of whether you're a member of that chat.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {ads.map((ad) => (
+                <li key={ad.id} className="flex items-start gap-3 rounded-2xl bg-white p-3 dark:bg-[#1E1E1E]">
+                  {ad.media_url && !ad.deleted_at && (
+                    <img src={ad.media_url} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-[#2D3436] dark:text-[#E8E8E8]">
+                      {ad.deleted_at ? "(removed)" : ad.ad_title || "(untitled ad)"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-[#8C8C8C]">
+                      chat {ad.chat_id.slice(0, 8)}… · sender {ad.sender_id.slice(0, 8)}… · {new Date(ad.created_at).toLocaleDateString()}
+                    </p>
+                    {!ad.deleted_at && ad.ad_cta_url && (
+                      <a href={ad.ad_cta_url} target="_blank" rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[#E07A5F] hover:underline">
+                        {ad.ad_cta_label || "Link"} <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  {ad.deleted_at ? (
+                    <span className="shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-[10px] font-bold text-zinc-500">Removed</span>
+                  ) : (
+                    <button
+                      onClick={() => handleDeleteAd(ad)}
+                      disabled={adDeleteBusyId === ad.id}
+                      className="shrink-0 flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                    >
+                      {adDeleteBusyId === ad.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      Remove
+                    </button>
+                  )}
+                </li>
+              ))}
+              {!ads.length && <p className="px-1 text-sm text-[#8C8C8C]">No ads have been posted yet.</p>}
             </ul>
           </section>
         )}
