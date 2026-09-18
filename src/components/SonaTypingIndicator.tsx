@@ -18,7 +18,7 @@ export function SonaTypingIndicator() {
           ],
         }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className="relative flex items-center gap-3 rounded-3xl border border-[#E07A5F]/20 bg-white/80 dark:bg-zinc-900/80 px-5 py-4 backdrop-blur-xl"
+        className="relative flex items-center gap-3 rounded-3xl px-5 py-4 backdrop-blur-xl"
       >
         {/* Ambient glow backdrop */}
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#E07A5F]/5 via-transparent to-[#F4A261]/5" />
@@ -178,7 +178,7 @@ export function SonaTypingIndicator() {
 
         {/* "Thinking..." label with animated dots */}
         <div className="flex items-center gap-1">
-          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Thinking</span>
+          <span className=" skeleton skeleton-text text-sm font-medium text-zinc-600 dark:text-zinc-400">Thinking</span>
           <motion.span
             animate={{ opacity: [0.3, 1, 0.3] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
