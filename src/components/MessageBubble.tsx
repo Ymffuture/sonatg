@@ -1885,7 +1885,7 @@ function getNameColor(identifier: string) {
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${bubbleRadius} ${tailClass} ${
+            className={`relative cursor-pointer chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${bubbleRadius} ${tailClass} ${
               msg._pending ? "opacity-70" : "opacity-100"
             } ${
               isHighlighted
@@ -1893,6 +1893,7 @@ function getNameColor(identifier: string) {
                 : ""
             }`}
           >
+            
          {!mine && !grouped && (isAI || isGroup) && (
   <div className="mb-1 flex items-center gap-1.5">
     {isAI ? (
