@@ -16,8 +16,39 @@ import { readVideoDurationMs } from "@/utils/cloudinary";
 import { explainSupabaseError } from "@/utils/utils";
 import { Avatar } from "./Avatar";
 import { useConfirm } from "@/hooks/useConfirmDialog";
+import { EmojiReaction } from "@/components/ui/emoji-reaction";
+import type { EmojiData } from "react-apple-emojis";
 
-const STATUS_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
+// Same six reactions as before (❤️😂😮😢👏🔥), now picked via the animated
+// EmojiReaction pill instead of a plain always-visible row of six buttons.
+// react-apple-emojis addresses each emoji by name rather than its raw
+// unicode character, so this maps the two directions: STATUS_REACTION_DATA
+// tells EmojiReaction which named emojis/images to show, and
+// REACTION_NAME_TO_EMOJI translates the name it reports back in onReact
+// into the same unicode character `react()` already stores in
+// status_reactions.emoji — so the database, and every other bit of this
+// file that reads that column expecting a raw emoji character (e.g. the
+// reactors summary in the views footer below), needs no changes at all.
+const STATUS_REACTION_DATA: EmojiData = {
+  baseUrl: "https://em-content.zobj.net/source/apple/419/",
+  emojis: {
+    "red-heart": "red-heart_2764-fe0f.png",
+    "face-with-tears-of-joy": "face-with-tears-of-joy_1f602.png",
+    "face-with-open-mouth": "face-with-open-mouth_1f62e.png",
+    "crying-face": "crying-face_1f622.png",
+    "clapping-hands": "clapping-hands_1f44f.png",
+    fire: "fire_1f525.png",
+  },
+};
+const STATUS_REACTION_NAMES = Object.keys(STATUS_REACTION_DATA.emojis);
+const REACTION_NAME_TO_EMOJI: Record<string, string> = {
+  "red-heart": "❤️",
+  "face-with-tears-of-joy": "😂",
+  "face-with-open-mouth": "😮",
+  "crying-face": "😢",
+  "clapping-hands": "👏",
+  fire: "🔥",
+};
 
 const TEXT_STATUS_MS = 5000;
 
@@ -702,21 +733,22 @@ export function StatusViewer({
 
       {/* Reaction bar (viewers) */}
       {!isSelf && (
-        <div className="flex items-center justify-center gap-2 px-4 py-4" style={{ backgroundColor: THEME.surface }}>
-          {STATUS_REACTIONS.map((emoji) => (
-            <motion.button
-              key={emoji}
-              whileTap={{ scale: 0.85 }}
-              whileHover={{ scale: 1.15 }}
-              onClick={() => react(emoji)}
-              aria-label={`React ${emoji}`}
-              className={`grid h-11 w-11 place-items-center rounded-full text-xl transition-colors ${
-                myReaction === emoji ? "bg-white/20 ring-2 ring-white/40" : "hover:bg-white/10"
-              }`}
+        <div className="flex items-center justify-center gap-3 px-4 py-4" style={{ backgroundColor: THEME.surface }}>
+          {myReaction && (
+            <span
+              className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold"
+              style={{ color: THEME.text }}
             >
-              {emoji}
-            </motion.button>
-          ))}
+              <span className="text-lg leading-none">{myReaction}</span>
+              Reacted
+            </span>
+          )}
+          <EmojiReaction
+            emojis={STATUS_REACTION_NAMES}
+            emojiData={STATUS_REACTION_DATA}
+            size="lg"
+            onReact={(name) => react(REACTION_NAME_TO_EMOJI[name] ?? name)}
+          />
         </div>
       )}
 
