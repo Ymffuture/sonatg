@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-
+@plugin "daisyui";
 @custom-variant dark (&:is(.dark *));
 /* Disable selection for a specific class */
 .unselectable {
