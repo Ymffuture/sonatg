@@ -1844,10 +1844,10 @@ function getNameColor(identifier: string) {
         )}
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
-        <div className={`relative max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[480px] ${selectMode ? "pointer-events-none" : ""}`}>
+        <div className={`relative w-full max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[480px] ${selectMode ? "pointer-events-none" : ""}`}>
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
-              mine ? "-left-8" : "-right-8"
+              mine ? "-left-9" : "-right-9"
             } opacity-0 group-hover:opacity-100 ${actionsOpen ? "opacity-100" : ""}`}
           >
             <button
@@ -1857,28 +1857,7 @@ function getNameColor(identifier: string) {
             >
               <Reply className="h-3.5 w-3.5" />
             </button>
-            {!mine && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onOpenPicker(); }}
-                className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
-                aria-label="React"
-              >
-                <SmilePlus className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (bubbleRef.current) {
-                  const rect = bubbleRef.current.getBoundingClientRect();
-                  setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
-                }
-              }}
-              className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
-              aria-label="More"
-            >
-              <MoreVertical className="h-3.5 w-3.5" />
-            </button>
+            
           </div>
 
           <div
@@ -2257,8 +2236,8 @@ export function VoicePlayer({
   const filledColor = mine ? "bg-amber-300" : "bg-[var(--sona-accent,#E07A5F)]";
   const mutedColor = mine ? "bg-gray-400" : "bg-[var(--sona-accent,#E07A5F)]/25";
 
-  return (
-    <div className="min-w-[260px] py-0.5">
+    return (
+    <div className="w-full max-w-full min-w-0 py-0.5">
       <div className="flex items-center !text-[#8C8C8C] gap-2.5">
         <button
           onClick={toggle}
@@ -2273,9 +2252,10 @@ export function VoicePlayer({
           <span className={`h-2 w-2 shrink-0 rounded-full ${mine ? "bg-[#1E90FF] " : "bg-[#4FA6E0]"}`} />
         )}
 
+        {/* Added min-w-0 and overflow-hidden to allow flex shrinking */}
         <button
           onClick={toggle}
-          className="flex flex-1 items-center gap-[1px] h-9"
+          className="flex flex-1 min-w-0 items-center gap-[1px] h-9 overflow-hidden"
           aria-label={playing ? "Pause" : "Play"}
         >
           {bars.map((h, i) => {
@@ -2284,7 +2264,7 @@ export function VoicePlayer({
             return (
               <span
                 key={i}
-                className={`w-[2px] rounded-full transition-all duration-150 ${isFilled ? filledColor : mutedColor}`}
+                className={`w-[2px] shrink-0 rounded-full transition-all duration-150 ${isFilled ? filledColor : mutedColor}`}
                 style={{ height: `${Math.max(12, Math.round(h * 100))}%` }}
               />
             );
@@ -2304,14 +2284,17 @@ export function VoicePlayer({
       </div>
 
       <div className="mt-1 !text-[#8C8C8C] flex items-center justify-between pl-12 pr-1">
-        <div className="flex items-center gap-1.5">
+        {/* Added min-w-0 and flex-1 to prevent timestamp from being pushed out */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <button
             onClick={handleTranscribeClick}
             disabled={transcribing}
-            className={`inline-flex items-center gap-1 text-[11px] font-medium ${mine ? "text-[#8C8C8C]" : "text-[#151c1c]"} hover:underline disabled:no-underline disabled:opacity-70`}
+            className={`inline-flex items-center gap-1 text-[11px] font-medium hover:underline disabled:no-underline disabled:opacity-70 truncate ${mine ? "text-[#8C8C8C]" : "text-[#151c1c]"}`}
           >
-            {transcribing && <Loader2 className="h-3 w-3 animate-spin" />}
-            {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
+            {transcribing && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
+            <span className="truncate">
+              {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
+            </span>
           </button>
           {transcribeError && (
             <Tooltip title="Transcription failed">
@@ -2319,12 +2302,15 @@ export function VoicePlayer({
             </Tooltip>
           )}
         </div>
-        <span className={`text-[10px] tabular-nums ${mine ? "text-[#8C8C8C] " : "text-amber-400"}`}>
+        {/* Added shrink-0 to timestamp */}
+        <span className={`text-[10px] tabular-nums shrink-0 ${mine ? "text-[#8C8C8C] " : "text-amber-400"}`}>
           {String(Math.floor(secs / 60)).padStart(1, "0")}:{String(secs % 60).padStart(2, "0")}
         </span>
       </div>
+      
+      {/* Added break-words and whitespace-pre-wrap for long transcript text */}
       {showTranscript && transcript && (
-        <p className={`mt-1.5 pl-12 pr-1 text-[12.5px] leading-snug italic ${mine ? "text-[#8C8C8C] " : "text-[#151c1c] dark:text-[#E8E8E8]"}`}>
+        <p className={`mt-1.5 pl-12 pr-1 text-[12.5px] leading-snug italic break-words whitespace-pre-wrap ${mine ? "text-[#8C8C8C] " : "text-[#151c1c] dark:text-[#E8E8E8]"}`}>
           "{transcript}"
         </p>
       )}
