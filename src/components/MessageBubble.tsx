@@ -1676,14 +1676,7 @@ export function Bubble({
     ? "bg-[var(--sona-bubble-mine,#6B352A)] dark:bg-[#1A1A1A] text-[#8C8C8C] dark:text-[#FFFCF4] shadow-md shadow-black/10 dark:shadow-black/30" 
     : "bg-[#FFFCF4] dark:bg-[#1E1E1E] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm shadow-black/[0.02] dark:shadow-black/20 border border-black/[0.04] dark:border-white/[0.06]";
 
-  // daisyUI's .chat-bubble already draws its own tail (a masked ::before,
-  // positioned by whichever of .chat-start/.chat-end it's nested inside —
-  // see the .chat-bubble/.chat-start/.chat-end rules in styles.css). That
-  // replaces the bespoke ::after tail this used to hand-roll. daisyUI has
-  // no "grouped/consecutive message" concept though, so its tail would
-  // show on every bubble in a run from the same sender; this suppresses it
-  // for anything but the last bubble in a group, the same way the old
-  // custom tail only appeared on the final (non-grouped) bubble.
+  
   const groupedTailHide = grouped ? "before:content-none" : "";
 
   if (msg.deleted_at) {
@@ -1696,7 +1689,7 @@ export function Bubble({
         <div
           ref={bubbleRef}
           {...(mine ? longPress : {})}
-          className={`relative chat-bubble flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] select-none transition-colors ${
+          className={`relative chat-bubble flex items-center gap-1.5 rounded-3xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] select-none transition-colors ${
             mine ? "bg-[#eeffde]/50 dark:bg-white/5 cursor-pointer hover:bg-[#eeffde]/70 dark:hover:bg-white/10" : "bg-white/60 dark:bg-white/5"
           }`}
         >
@@ -1844,7 +1837,7 @@ function getNameColor(identifier: string) {
         )}
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
-        <div className={`relative max-w-[85%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[480px] ${selectMode ? "pointer-events-none" : ""}`}>
+        <div className={`relative max-w-[85%] sm:max-w-[80%] md:max-w-[60%] lg:max-w-[480px] ${selectMode ? "pointer-events-none" : ""}`}>
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
               mine ? "-left-8" : "-right-8"
@@ -1857,35 +1850,15 @@ function getNameColor(identifier: string) {
             >
               <Reply className="h-3.5 w-3.5" />
             </button>
-            {!mine && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onOpenPicker(); }}
-                className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
-                aria-label="React"
-              >
-                <SmilePlus className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (bubbleRef.current) {
-                  const rect = bubbleRef.current.getBoundingClientRect();
-                  setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
-                }
-              }}
-              className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
-              aria-label="More"
-            >
-              <MoreVertical className="h-3.5 w-3.5" />
-            </button>
+            
+            
           </div>
 
           <div
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${groupedTailHide} ${
+            className={`relative cursor-pointer rounded-full chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${groupedTailHide} ${
               msg._pending ? "opacity-70" : "opacity-100"
             } ${
               isHighlighted
