@@ -26,7 +26,7 @@ export function NetworkStatusFooter() {
 
   return (
     <div
-      className={`fixed inset-x-0 mt-4 bottom-0 z-[70] flex items-center gap-2 px-3 py-2 text-[7px] shadow-[0_-2px_8px_rgba(0,0,0,0.10)] transition-colors duration-300 ${tone}`}
+      className={`fixed inset-x-0 mt-4 bottom-0 z-[70] flex items-center gap-2 px-3 py-2 text-sm shadow-[0_-2px_8px_rgba(0,0,0,0.10)] transition-colors duration-300 ${tone}`}
       role="status"
       aria-live="polite"
     >
@@ -36,7 +36,7 @@ export function NetworkStatusFooter() {
     <span className="font-semibold">{label}</span>
       <span className="truncate opacity-90">— {description}</span>
       
-    <span className="text-gray-600 animate-pulse" >Connecting... </span>
+    <span className="text-white animate-pulse" >Connecting... </span>
   </span>
 </span>
       
