@@ -1676,27 +1676,27 @@ export function Bubble({
     ? "bg-[var(--sona-bubble-mine,#6B352A)] dark:bg-[#1A1A1A] text-[#8C8C8C] dark:text-[#FFFCF4] shadow-md shadow-black/10 dark:shadow-black/30" 
     : "bg-[#FFFCF4] dark:bg-[#1E1E1E] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm shadow-black/[0.02] dark:shadow-black/20 border border-black/[0.04] dark:border-white/[0.06]";
 
-  const bubbleRadius = mine
-    ? grouped ? "chat chat-end" : "chat chat-start"
-    : grouped ? "chat chat-end" : "chat chat-start";
-
-  const tailClass = !grouped
-    ? mine
-      ? "after:content-[''] after:absolute after:top-0 after:-right-[8px] after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-bl-[16px]"
-      : "after:content-[''] after:absolute after:top-0 after:-left-[8px] after:w-[16px] after:h-[20px] after:bg-inherit after:rounded-br-[16px]"
-    : "";
+  // daisyUI's .chat-bubble already draws its own tail (a masked ::before,
+  // positioned by whichever of .chat-start/.chat-end it's nested inside —
+  // see the .chat-bubble/.chat-start/.chat-end rules in styles.css). That
+  // replaces the bespoke ::after tail this used to hand-roll. daisyUI has
+  // no "grouped/consecutive message" concept though, so its tail would
+  // show on every bubble in a run from the same sender; this suppresses it
+  // for anything but the last bubble in a group, the same way the old
+  // custom tail only appeared on the final (non-grouped) bubble.
+  const groupedTailHide = grouped ? "before:content-none" : "";
 
   if (msg.deleted_at) {
     return (
       <motion.div 
         initial={{ opacity: 0, y: 8 }} 
         animate={{ opacity: 1, y: 0 }} 
-        className={`flex ${mine ? "justify-end" : "justify-start"} mb-1`}
+        className={`flex chat ${mine ? "chat-end" : "chat-start"} ${mine ? "justify-end" : "justify-start"} mb-1`}
       >
         <div
           ref={bubbleRef}
           {...(mine ? longPress : {})}
-          className={`relative flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] select-none transition-colors ${
+          className={`relative chat-bubble flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[13px] italic text-[#8C8C8C] select-none transition-colors ${
             mine ? "bg-[#eeffde]/50 dark:bg-white/5 cursor-pointer hover:bg-[#eeffde]/70 dark:hover:bg-white/10" : "bg-white/60 dark:bg-white/5"
           }`}
         >
@@ -1821,7 +1821,7 @@ function getNameColor(identifier: string) {
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
-        className={`group select-none flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}
+        className={`group select-none chat ${mine ? "chat-end" : "chat-start"} flex items-end gap-1.5 ${mine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}
         onClick={selectMode ? () => onToggleSelect?.() : undefined}
       >
         {selectMode && (
@@ -1885,7 +1885,7 @@ function getNameColor(identifier: string) {
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${bubbleRadius} ${tailClass} ${
+            className={`relative cursor-pointer chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${groupedTailHide} ${
               msg._pending ? "opacity-70" : "opacity-100"
             } ${
               isHighlighted
