@@ -1835,7 +1835,7 @@ function getNameColor(identifier: string) {
         )}
         {!mine && isGroup && grouped && <div className="w-8 shrink-0" />}
 
-        <div className={`relative max-w-[85%] sm:max-w-[80%] md:max-w-[60%] lg:max-w-[480px] ${selectMode ? "pointer-events-none" : ""}`}>
+        <div className={`relative max-w-[85%] sm:max-w-[80%] md:max-w-[70%] lg:max-w-[520px] ${selectMode ? "pointer-events-none" : ""}`}>
           <div
             className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 ${
               mine ? "-left-8" : "-right-8"
