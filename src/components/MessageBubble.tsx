@@ -1639,9 +1639,7 @@ export function Bubble({
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
-  // "Read more" / "Read less" — collapse long text bodies so a wall of text
-  // doesn't dominate the thread; the raw text is only sliced for display,
-  // never mutated, so expanding always shows the exact original message.
+  
   const READ_MORE_CHAR_LIMIT = 620;
   const [textExpanded, setTextExpanded] = useState(false);
   const isLongText = bodyText.length > READ_MORE_CHAR_LIMIT;
@@ -1858,7 +1856,7 @@ function getNameColor(identifier: string) {
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer rounded-xl chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${groupedTailHide} ${
+            className={`relative cursor-pointer chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${groupedTailHide} ${
               msg._pending ? "opacity-70" : "opacity-100"
             } ${
               isHighlighted
@@ -2359,13 +2357,6 @@ export function Composer({
   useEffect(() => { lockedRef.current = locked; }, [locked]);
   useEffect(() => { onRecordingChange?.(recording); }, [recording, onRecordingChange]);
 
-  // ── "/" slash-command menu ──────────────────────────────────────────
-  // Mirrors Claude.ai's own composer: typing "/" as the very first
-  // character (nothing else in the draft yet) opens a filterable command
-  // list; each command runs one of the composer's existing actions
-  // (open the image picker, open the poll modal, etc) instead of adding
-  // any new plumbing. Only matches when the whole draft is "/" plus
-  // word characters — so a "/" typed mid-sentence never triggers it.
   const slashCommands = useMemo(() => {
     const items: { id: string; label: string; hint: string; icon: ReactNode; run: () => void }[] = [
       {
