@@ -1639,9 +1639,7 @@ export function Bubble({
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bodyText = overrideBody ?? msg.body ?? "";
 
-  // "Read more" / "Read less" — collapse long text bodies so a wall of text
-  // doesn't dominate the thread; the raw text is only sliced for display,
-  // never mutated, so expanding always shows the exact original message.
+  
   const READ_MORE_CHAR_LIMIT = 620;
   const [textExpanded, setTextExpanded] = useState(false);
   const isLongText = bodyText.length > READ_MORE_CHAR_LIMIT;
@@ -1857,28 +1855,7 @@ function getNameColor(identifier: string) {
             >
               <Reply className="h-3.5 w-3.5" />
             </button>
-            {!mine && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onOpenPicker(); }}
-                className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
-                aria-label="React"
-              >
-                <SmilePlus className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (bubbleRef.current) {
-                  const rect = bubbleRef.current.getBoundingClientRect();
-                  setContextMenu({ open: true, x: rect.left + rect.width / 2, y: rect.top });
-                }
-              }}
-              className="grid h-7 w-7 place-items-center rounded-full bg-white/80 dark:bg-[#1E1E1E]/80 text-[#5A6062] dark:text-[#8C8C8C] shadow-sm backdrop-blur-sm hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:text-[var(--sona-accent,#E07A5F)] transition active:scale-90"
-              aria-label="More"
-            >
-              <MoreVertical className="h-3.5 w-3.5" />
-            </button>
+            
           </div>
 
           <div
@@ -1986,7 +1963,7 @@ function getNameColor(identifier: string) {
                 }}
                 className={`group/file mb-2 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.98] ${
                   mine
-                    ? "border-black/5 bg-orange-300 text-[#8C8C8C] hover:bg-white/15"
+                    ? "border-black/5 bg-[#FFFCF4] text-[#8C8C8C] hover:bg-white/15"
                     : "border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]"
                 }`}
               >
