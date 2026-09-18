@@ -1858,7 +1858,7 @@ function getNameColor(identifier: string) {
             ref={bubbleRef}
             {...longPress}
             onClick={onToggleActions}
-            className={`relative cursor-pointer rounded-full chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${groupedTailHide} ${
+            className={`relative cursor-pointer rounded-xl chat-bubble select-none px-3.5 py-2.5 mb-3 transition-all duration-300 ${bubbleBase} ${groupedTailHide} ${
               msg._pending ? "opacity-70" : "opacity-100"
             } ${
               isHighlighted
