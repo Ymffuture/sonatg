@@ -1675,7 +1675,7 @@ export function Bubble({
     : "bg-[#FFFCF4] dark:bg-[#1E1E1E] text-[#2D3436] dark:text-[#E8E8E8] shadow-sm shadow-black/[0.02] dark:shadow-black/20 border border-black/[0.04] dark:border-white/[0.06]";
 
   const bubbleRadius = mine
-    ? grouped ? "rounded-[18px] rounded-tr-[4px]" : "rounded-[18px] rounded-tr-[4px]"
+    ? grouped ? "rounded-[18px] rounded-tr-[8px]" : "rounded-[18px] rounded-tr-[4px]"
     : grouped ? "rounded-[18px] rounded-tl-[4px]" : "rounded-[18px] rounded-tl-[4px]";
 
   const tailClass = !grouped
@@ -1963,7 +1963,7 @@ function getNameColor(identifier: string) {
                 }}
                 className={`group/file mb-2 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.98] ${
                   mine
-                    ? "border-black/5 bg-[#FFFCF4] text-[#8C8C8C] hover:bg-white/15"
+                    ? "border-black/5 bg-[#FFFCF4]/5 text-[#8C8C8C] hover:bg-white/15"
                     : "border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]"
                 }`}
               >
@@ -1980,7 +1980,7 @@ function getNameColor(identifier: string) {
                     {msg.file_size ? formatBytes(msg.file_size) : "Unknown size"}
                   </span>
                 </span>
-                <Download className={`h-4 w-4 shrink-0 transition-transform group-hover/file:-translate-y-0.5 group-hover/file:translate-x-0.5 ${mine ? "text-[#5BC0BE]/5" : "text-[#8C8C8C]"}`} />
+                <Download className={`h-4 w-4 shrink-0 transition-transform group-hover/file:-translate-y-0.5 group-hover/file:translate-x-0.5 ${mine ? "text-[#5BC0BE]" : "text-[#8C8C8C]"}`} />
               </button>
             )}
 
