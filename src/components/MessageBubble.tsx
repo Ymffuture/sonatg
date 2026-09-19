@@ -37,6 +37,9 @@ import { IoSend } from "react-icons/io5";
 import { Avatar, TickIcon } from "./Avatar";
 import { LuCalendarClock } from "react-icons/lu";
 import {BrainSparkle} from "./BrainSparkle" 
+import { TbArrowForwardUpDouble } from "react-icons/tb";
+
+
 
 type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
 function parseCallLogMeta(raw: string | null): CallLogMeta {
@@ -881,7 +884,7 @@ function MessageContextMenu({
           onClick={() => { onReply(); onClose(); }}
         />
         <CompactMenuItem
-          icon={<Forward className="h-4 w-4" />}
+          icon={<TbArrowForwardUpDouble className="h-4 w-4" />}
           label="Forward"
           onClick={() => { onForward(); onClose(); }}
         />
@@ -1886,7 +1889,7 @@ function getNameColor(identifier: string) {
 
             {msg.is_forwarded && (
               <div className={`mb-1.5 flex items-center gap-1 text-[11px] italic ${mine ? "text-gray-600" : "text-[#8C8C8C]"}`}>
-                <Forward className="h-3 w-3" /> Forwarded
+                <TbArrowForwardUpDouble className="h-3 w-3" /> Forwarded
               </div>
             )}
 
