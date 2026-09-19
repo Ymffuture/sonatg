@@ -10,13 +10,13 @@ import {
   PictureOutlined,
   LinkOutlined,
   FileTextOutlined,
-  RightOutlined,
+  VideoCameraOutlined,
+  StarOutlined,
   ZoomInOutlined,
   ExclamationCircleOutlined,
   SafetyCertificateOutlined,
   ShareAltOutlined,
-  PhoneOutlined,
-  ShopOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -32,7 +32,6 @@ import {
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
 import { FaFacebookF, FaXTwitter, FaInstagram, FaThreads } from "react-icons/fa6";
-import { LuMessageSquareText } from "react-icons/lu";
 import { VscVerifiedFilled } from "react-icons/vsc";
 
 const { Text, Title } = Typography;
@@ -47,6 +46,7 @@ export function ProfileViewModal({
   profile, isSelf, onClose, onMessage, onEdit, moderation, onReport,
   online, lastSeen, onOpenMedia, isBlocked, onToggleBlock, hasStatus,
   socials, onShareContact, messageDisabled, messageDisabledReason,
+  mediaStats, onOpenBookmarks, bookmarksCount,
 }: {
   profile: Profile;
   isSelf: boolean;
@@ -70,6 +70,11 @@ export function ProfileViewModal({
     threads?: string;
   };
   onShareContact?: () => void;
+  /** Unique feature: quick shared-media counts, shown as a stat strip. */
+  mediaStats?: { photos: number; videos: number; files: number; links: number };
+  /** Unique feature: saved/starred messages for this chat. */
+  onOpenBookmarks?: () => void;
+  bookmarksCount?: number;
 }) {
   const joined = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })
@@ -163,13 +168,15 @@ export function ProfileViewModal({
               transition={{ delay: 0.05, type: "spring", stiffness: 260, damping: 20 }}
               className="relative"
             >
-              <div className={`relative rounded-full p-[3px] ${
+              <div className={
                 isPremium
-                  ? "bg-gradient-to-tr from-amber-300 via-rose-400 to-violet-500 shadow-lg shadow-violet-500/20"
-                  : hasStatus
-                    ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
-                    : "bg-white dark:bg-zinc-950"
-              }`}>
+                  ? `aura ${profile.is_business ? "aura-gold" : "aura-rainbow"} aura-lg [--aura-radius:9999px]`
+                  : `relative rounded-full p-[3px] ${
+                      hasStatus
+                        ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
+                        : "bg-white dark:bg-zinc-950"
+                    }`
+              }>
                 <div className="rounded-full bg-white dark:bg-zinc-950 p-[2px]">
                   <Badge
                     dot
@@ -292,7 +299,7 @@ export function ProfileViewModal({
               )}
             </div>
 
-            {/* ─── Quick action pills (Voice / Catalog / Share style) ─── */}
+            {/* ─── Quick action pills (Message / Media / Share) ─── */}
             <div className="flex items-center justify-center gap-8 mt-6">
               {isSelf ? (
                 <>
@@ -307,14 +314,15 @@ export function ProfileViewModal({
                 <>
                   {!profile.is_ai && onMessage && (
                     <QuickAction
-                      icon={<PhoneOutlined />}
-                      label="Voice"
+                      icon={<MessageOutlined />}
+                      label="Message"
                       onClick={onMessage}
                       disabled={messageDisabled}
+                      tooltip={messageDisabled ? messageDisabledReason : undefined}
                     />
                   )}
                   {onOpenMedia && (
-                    <QuickAction icon={<ShopOutlined />} label="Catalog" onClick={onOpenMedia} />
+                    <QuickAction icon={<PictureOutlined />} label="Media" onClick={onOpenMedia} />
                   )}
                   {onShareContact && (
                     <QuickAction icon={<ShareAltOutlined />} label="Share" onClick={onShareContact} />
@@ -357,11 +365,11 @@ export function ProfileViewModal({
               )}
             </AnimatePresence>
 
-            {/* ─── Smart Info Grid ─── */}
-            <div className={`mt-6 grid gap-3 ${joined ? 'grid-cols-4' : 'grid-cols-1'}`}>
+            {/* ─── Smart Info Grid: Joined + Bookmarks ─── */}
+            <div className={`mt-6 grid gap-3 ${joined && onOpenBookmarks ? "grid-cols-2" : "grid-cols-1"}`}>
               {joined && (
                 <Tooltip title={`Member since ${joined}`} placement="top">
-                  <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 p-3 transition-all duration-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-default group col-span-1">
+                  <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 p-3 transition-all duration-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-default group">
                     <CalendarOutlined className="text-lg text-zinc-400 group-hover:text-rose-500 transition-colors" />
                     <Text className="!text-[9px] !text-zinc-500 dark:!text-zinc-500 uppercase tracking-widest font-semibold">Joined</Text>
                     <Text className="!text-[11px] !font-bold !text-zinc-900 dark:!text-zinc-100">{joined}</Text>
@@ -369,132 +377,33 @@ export function ProfileViewModal({
                 </Tooltip>
               )}
 
-              {!isSelf && onOpenMedia && (
-                <Tooltip title="View shared photos, videos & files" placement="top">
+              {onOpenBookmarks && (
+                <Tooltip title="Saved messages" placement="top">
                   <button
-                    onClick={onOpenMedia}
-                    className={`flex flex-col items-center justify-center gap-2 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 p-3 transition-all duration-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 group w-full ${joined ? 'col-span-3' : 'col-span-4'}`}
+                    onClick={onOpenBookmarks}
+                    className="flex flex-col items-center gap-1.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 p-3 transition-all duration-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 group w-full"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform duration-300">
-                        <PictureOutlined className="text-base" />
-                      </div>
-                      <div className="h-8 w-8 rounded-xl bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center text-violet-500 group-hover:scale-110 transition-transform duration-300">
-                        <LinkOutlined className="text-base" />
-                      </div>
-                      <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform duration-300">
-                        <FileTextOutlined className="text-base" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <Text className="!text-[9px] !text-zinc-500 uppercase tracking-widest font-semibold">Media & Docs</Text>
-                      <Text className="!text-[12px] !font-bold !text-zinc-900 dark:!text-zinc-100 flex items-center gap-1 group-hover:gap-1.5 transition-all">
-                        View all <RightOutlined className="!text-[10px]" />
-                      </Text>
-                    </div>
+                    <StarOutlined className="text-lg text-zinc-400 group-hover:text-amber-500 transition-colors" />
+                    <Text className="!text-[9px] !text-zinc-500 dark:!text-zinc-500 uppercase tracking-widest font-semibold">Bookmarks</Text>
+                    <Text className="!text-[11px] !font-bold !text-zinc-900 dark:!text-zinc-100">
+                      {bookmarksCount != null ? bookmarksCount : "View"}
+                    </Text>
                   </button>
                 </Tooltip>
               )}
             </div>
 
-            <Divider className="!my-6 !border-zinc-200 dark:!border-zinc-800" />
+            {/* ─── Unique feature: shared-media stats strip ─── */}
+            {mediaStats && (
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                <StatTile icon={<PictureOutlined />} value={mediaStats.photos} label="Photos" />
+                <StatTile icon={<VideoCameraOutlined />} value={mediaStats.videos} label="Videos" />
+                <StatTile icon={<FileTextOutlined />} value={mediaStats.files} label="Files" />
+                <StatTile icon={<LinkOutlined />} value={mediaStats.links} label="Links" />
+              </div>
+            )}
 
-            {/* Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              {isSelf ? (
-                <>
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<EditOutlined className="!text-base" />}
-                    onClick={onEdit}
-                    style={{ 
-                      background: "linear-gradient(135deg, #E07A5F 0%, #d4694f 100%)", 
-                      borderColor: "transparent", 
-                      borderRadius: 999, 
-                      height: 48,
-                      boxShadow: "0 4px 14px 0 rgba(224, 122, 95, 0.39)"
-                    }}
-                    className="!font-semibold !text-white hover:!opacity-95 !transition-all active:scale-[0.98] col-span-2"
-                  >
-                    Edit profile
-                  </Button>
-                  {onShareContact && (
-                    <Button
-                      size="large"
-                      icon={<ShareAltOutlined className="!text-base" />}
-                      onClick={onShareContact}
-                      style={{ borderRadius: 999, height: 48 }}
-                      className="!font-semibold !bg-zinc-100 dark:!bg-zinc-900 !text-zinc-900 dark:!text-zinc-100 hover:!bg-zinc-200 dark:hover:!bg-zinc-800 !border-0 !shadow-sm !transition-all active:scale-[0.98] col-span-2"
-                    >
-                      Share my contact
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  {!profile.is_ai && onMessage && (
-                    <Tooltip title={messageDisabled ? messageDisabledReason : undefined} placement="top">
-                      <span className="col-span-2 block">
-                        <Button
-                          type="primary"
-                          size="large"
-                          block
-                          icon={<LuMessageSquareText className="!text-base" />}
-                          onClick={messageDisabled ? undefined : onMessage}
-                          disabled={messageDisabled}
-                          style={{ 
-                            borderRadius: 999, 
-                            height: 48,
-                            boxShadow: profile.is_pro && !messageDisabled ? "0 4px 14px 0 rgba(139, 92, 246, 0.4)" : "0 4px 14px 0 rgba(224, 122, 95, 0.39)"
-                          }}
-                          className={`!font-semibold !text-white hover:!opacity-95 !transition-all active:scale-[0.98] border-0 disabled:!opacity-50 disabled:!cursor-not-allowed disabled:!shadow-none ${
-                            profile.is_pro && !messageDisabled 
-                              ? "bg-gradient-to-r from-violet-600 via-fuchsia-500 to-rose-500" 
-                              : "bg-[#E07A5F] hover:bg-[#d4694f]"
-                          }`}
-                        >
-                          Message
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  )}
-                  {onShareContact && (
-                    <Button
-                      size="large"
-                      icon={<ShareAltOutlined className="!text-base" />}
-                      onClick={onShareContact}
-                      style={{ borderRadius: 999, height: 48 }}
-                      className="!font-semibold !bg-zinc-100 dark:!bg-zinc-900 !text-zinc-900 dark:!text-zinc-100 hover:!bg-zinc-200 dark:hover:!bg-zinc-800 !border-0 !shadow-sm !transition-all active:scale-[0.98]"
-                    >
-                      Share
-                    </Button>
-                  )}
-                  {onToggleBlock && (
-                    <Button
-                      size="large"
-                      icon={isBlocked ? <UnlockOutlined className="!text-base" /> : <BlockOutlined className="!text-base" />}
-                      onClick={onToggleBlock}
-                      style={{ borderRadius: 999, height: 48 }}
-                      className="!font-semibold !bg-zinc-100 dark:!bg-zinc-900 !text-zinc-900 dark:!text-zinc-100 hover:!bg-zinc-200 dark:hover:!bg-zinc-800 !border-0 !shadow-sm !transition-all active:scale-[0.98]"
-                    >
-                      {isBlocked ? "Unblock" : "Block"}
-                    </Button>
-                  )}
-                  {onReport && (
-                    <Button
-                      size="large"
-                      icon={<FlagOutlined className="!text-base" />}
-                      onClick={onReport}
-                      style={{ borderRadius: 999, height: 48 }}
-                      className="!font-semibold !bg-red-50 dark:!bg-red-950/30 !text-red-600 dark:!text-red-400 hover:!bg-red-100 dark:hover:!bg-red-950/50 !border border-red-200 dark:!border-red-900 !shadow-sm !transition-all active:scale-[0.98] col-span-2"
-                    >
-                      Report Account
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
+            <Divider className="!my-6 !border-zinc-200 dark:!border-zinc-800" />
 
             {/* Footer */}
             <div className="mt-8 flex flex-col items-center gap-2 text-center pb-2">
@@ -514,20 +423,21 @@ export function ProfileViewModal({
   );
 }
 
-/** Small round icon-over-label action button, matching the WhatsApp-business
- *  "Voice / Catalog / Share" quick-action row. */
+/** Small round icon-over-label action button (Message / Media / Share, Edit / Share for self). */
 function QuickAction({
   icon,
   label,
   onClick,
   disabled,
+  tooltip,
 }: {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
   disabled?: boolean;
+  tooltip?: string;
 }) {
-  return (
+  const btn = (
     <button
       type="button"
       onClick={disabled ? undefined : onClick}
@@ -539,6 +449,26 @@ function QuickAction({
       </span>
       <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">{label}</span>
     </button>
+  );
+  return tooltip ? <Tooltip title={tooltip}>{btn}</Tooltip> : btn;
+}
+
+/** Unique feature: compact shared-media stat tile (Photos/Videos/Files/Links). */
+function StatTile({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 py-2.5">
+      <span className="text-sm text-zinc-400">{icon}</span>
+      <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{value}</span>
+      <span className="text-[8px] uppercase tracking-widest font-semibold text-zinc-500 dark:text-zinc-500">{label}</span>
+    </div>
   );
 }
 
