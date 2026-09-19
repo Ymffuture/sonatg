@@ -92,7 +92,7 @@ export function NetworkStatusFooter() {
                       {label}
                     </span>
                     <span className="truncate text-[11px] leading-relaxed text-white/85">
-                      — {description}
+                      — <marquee >{description}</marquee>
                     </span>
                     {isOffline && (
                       <motion.span
