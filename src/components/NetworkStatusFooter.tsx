@@ -84,25 +84,27 @@ export function NetworkStatusFooter() {
                 <Icon className="h-5 w-5 text-white" />
               </motion.div>
 
-              {/* Text content */}
+              {/* Text content with text-rotate */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[13px] font-semibold tracking-tight text-white">
-                    {label}
+                <span className="text-rotate">
+                  <span>
+                    <span className="text-[13px] font-semibold tracking-tight text-white">
+                      {label}
+                    </span>
+                    <span className="truncate text-[11px] leading-relaxed text-white/85">
+                      — {description}
+                    </span>
+                    {isOffline && (
+                      <motion.span
+                        animate={{ opacity: [1, 0.5, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="ml-1 text-[11px] font-medium text-white"
+                      >
+                        Connecting...
+                      </motion.span>
+                    )}
                   </span>
-                  {isOffline && (
-                    <motion.span
-                      animate={{ opacity: [1, 0.5, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="text-[11px] font-medium text-white/80"
-                    >
-                      Connecting...
-                    </motion.span>
-                  )}
-                </div>
-                <p className="mt-0.5 truncate text-[11px] leading-relaxed text-white/85">
-                  {description}
-                </p>
+                </span>
               </div>
 
               {/* Dismiss button */}
