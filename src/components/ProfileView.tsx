@@ -110,7 +110,7 @@ export function ProfileViewModal({
     <div className="fixed inset-0 z-50 bg-white dark:bg-zinc-950 overflow-y-auto scrollbar-thin">
       <Watermark
         content={profile.is_pro ? profile.display_name : ""}
-        font={{ color: "rgba(128,128,128,0.06)", fontSize: 10 }}
+        font={{ color: "rgba(128,128,128,0.56)", fontSize: 10 }}
         gap={[300, 240]}
         rotate={-22}
       >
