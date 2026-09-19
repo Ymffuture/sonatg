@@ -53,74 +53,65 @@ export function MediaGalleryModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 16 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 16 }}
-        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="flex h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-white/20 dark:border-white/10 bg-white/95 dark:bg-[#1a1a1a]/95 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#E07A5F]/10">
-          <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Media, links, and docs</h3>
-          <Tooltip title="Close" placement="bottom">
-            <button
-              onClick={onClose}
-              className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20 transition"
-              aria-label="Close"
-            >
-              <CloseOutlined className="text-sm text-[#2D3436] dark:text-[#E8E8E8]" />
-            </button>
-          </Tooltip>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-[#E07A5F]/10 px-2">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 text-xs font-medium border-b-2 transition ${
-                tab === t.key
-                  ? "border-[#E07A5F] text-[#E07A5F]"
-                  : "border-transparent text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-[#E8E8E8]"
-              }`}
-            >
-              <t.icon className="text-sm" />
-              <span>{t.label}</span>
-              <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                tab === t.key ? "bg-[#E07A5F]/15 text-[#E07A5F]" : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C]"
-              }`}>
-                {t.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab + (loading ? "-loading" : "-loaded")}
-            initial={{ opacity: 0, x: 8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -8 }}
-            transition={{ duration: 0.15 }}
-            className="flex-1 overflow-y-auto p-4 scrollbar-thin"
+    <div className="fixed inset-0 z-[110] flex flex-col bg-white dark:bg-[#1a1a1a]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4 border-b border-[#E07A5F]/10">
+        <h3 className="text-base font-semibold text-[#2D3436] dark:text-[#E8E8E8]">Media, links, and docs</h3>
+        <Tooltip title="Close" placement="bottom">
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20 transition"
+            aria-label="Close"
           >
-            {loading ? (
-              <TabSkeleton tab={tab} />
-            ) : tab === "media" ? (
-              <MediaTab media={media} onOpenViewer={onOpenViewer} />
-            ) : tab === "docs" ? (
-              <DocsTab docs={docs} onOpenViewer={onOpenViewer} />
-            ) : (
-              <LinksTab links={links} />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </motion.div>
+            <CloseOutlined className="text-sm text-[#2D3436] dark:text-[#E8E8E8]" />
+          </button>
+        </Tooltip>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-[#E07A5F]/10 px-2">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 text-xs font-medium border-b-2 transition ${
+              tab === t.key
+                ? "border-[#E07A5F] text-[#E07A5F]"
+                : "border-transparent text-[#8C8C8C] hover:text-[#2D3436] dark:hover:text-[#E8E8E8]"
+            }`}
+          >
+            <t.icon className="text-sm" />
+            <span>{t.label}</span>
+            <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+              tab === t.key ? "bg-[#E07A5F]/15 text-[#E07A5F]" : "bg-[#F5F0E8] dark:bg-[#2A2A2A] text-[#8C8C8C]"
+            }`}>
+              {t.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab + (loading ? "-loading" : "-loaded")}
+          initial={{ opacity: 0, x: 8 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -8 }}
+          transition={{ duration: 0.15 }}
+          className="flex-1 overflow-y-auto p-4 scrollbar-thin max-w-2xl w-full mx-auto"
+        >
+          {loading ? (
+            <TabSkeleton tab={tab} />
+          ) : tab === "media" ? (
+            <MediaTab media={media} onOpenViewer={onOpenViewer} />
+          ) : tab === "docs" ? (
+            <DocsTab docs={docs} onOpenViewer={onOpenViewer} />
+          ) : (
+            <LinksTab links={links} />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
