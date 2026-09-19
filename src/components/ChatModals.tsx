@@ -83,34 +83,22 @@ function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: Chat
   }
 }
 
-/* ─── Premium Glass Modal Wrapper ─── */
+/* ─── Full-Screen Modal Wrapper (keeps the slide/fade entrance motion) ─── */
 function GlassSheet({
-  children, onClose, maxHeight = "85vh", className = "",
+  children, onClose, className = "",
 }: {
   children: React.ReactNode; onClose: () => void; maxHeight?: string; className?: string;
 }) {
   useBackToClose(onClose);
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
-        exit={{ opacity: 0 }} 
-        className="absolute inset-0 bg-black/40 backdrop-blur-md" 
-      />
+    <div className="fixed inset-0 z-50 flex flex-col">
       <motion.div
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className={`relative w-full flex flex-col rounded-t-3xl border-t border-white/30 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
-        style={{ maxHeight }}
-        onClick={(e) => e.stopPropagation()}
+        className={`relative flex-1 flex flex-col bg-white dark:bg-zinc-950 ${className}`}
       >
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-zinc-700 pointer-events-none" />
-        <div className="pt-3 pb-1 flex justify-center">
-          <div className="h-1.5 w-12 rounded-full bg-zinc-300/50 dark:bg-zinc-700/50" />
-        </div>
         {children}
       </motion.div>
     </div>
@@ -410,7 +398,7 @@ export function GroupSettingsModal({
   };
 
   return (
-    <GlassSheet onClose={onClose} className="md:mx-auto md:mb-8 md:max-w-md md:rounded-3xl md:border">
+    <GlassSheet onClose={onClose}>
       <div className="px-5 pt-2 pb-4 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50">
         <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">Group settings</h3>
         <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" aria-label="Close">
@@ -770,21 +758,14 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-md" />
+    <div className="fixed inset-0 z-50 flex flex-col">
       <motion.div
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="relative w-full rounded-t-3xl md:rounded-3xl border-t md:border border-white/30 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] md:shadow-2xl md:mx-auto md:mb-8 md:max-w-md max-h-[85vh] flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        className="relative flex-1 flex flex-col bg-white dark:bg-zinc-950 overflow-hidden"
       >
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-zinc-700 pointer-events-none" />
-        <div className="pt-3 pb-1 flex justify-center md:hidden">
-          <div className="h-1.5 w-12 rounded-full bg-zinc-300/50 dark:bg-zinc-700/50" />
-        </div>
-        
         <div className="px-5 pt-3 pb-4 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/10 text-[var(--sona-accent,#E07A5F)]">
@@ -892,7 +873,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
             <div className="px-5 pb-3">
               <div className="flex items-center gap-3 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 px-3 py-2.5 border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-sm focus-within:border-[var(--sona-accent,#E07A5F)] focus-within:ring-2 focus-within:ring-[var(--sona-accent,#E07A5F)]/20 transition-all">
                 <Search className="h-4 w-4 text-zinc-400" />
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400" />
+                <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people…" className="flex-1 bg-transparent text-sm outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400" />
               </div>
             </div>
             <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-4">
@@ -1314,17 +1295,14 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-md sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex flex-col">
       <motion.div
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="flex w-full sm:max-w-md flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl border border-white/30 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl shadow-2xl max-h-[92vh] sm:max-h-[85vh]"
-        onClick={(e) => e.stopPropagation()}
+        className="relative flex-1 flex flex-col overflow-hidden bg-white dark:bg-zinc-950"
       >
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-zinc-700 pointer-events-none" />
-        
         <div className="shrink-0 px-5 pt-5 pb-2">
           <div className="flex items-center gap-2 mb-5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">
@@ -2106,21 +2084,14 @@ export function SavedMessagesModal({
   const chatsById = useMemo(() => new Map(chats.map((c) => [c.id, c])), [chats]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-md" />
+    <div className="fixed inset-0 z-50 flex flex-col">
       <motion.div
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="relative w-full rounded-t-3xl md:rounded-3xl border-t md:border border-zinc-200/50 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] md:shadow-2xl md:mx-auto md:mb-8 md:max-w-md max-h-[85vh] flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        className="relative flex-1 flex flex-col overflow-hidden bg-white dark:bg-zinc-950"
       >
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-zinc-700 pointer-events-none" />
-        <div className="pt-3 pb-1 flex justify-center md:hidden">
-          <div className="h-1.5 w-12 rounded-full bg-zinc-300/50 dark:bg-zinc-700/50" />
-        </div>
-        
         <div className="px-5 pt-3 pb-4 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/10 text-[var(--sona-accent,#E07A5F)]">
