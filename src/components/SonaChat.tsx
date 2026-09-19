@@ -100,6 +100,7 @@ import {
   type ChatWithMeta, type ReadStatus, useTheme, chatTitle, chatAvatarUrl, isAIChat,
   explainSupabaseError, categoryMeta, readStatusFor,
   MAX_IMAGES, MAX_IMAGE_BYTES, MAX_DOCS, MAX_DOC_BYTES, DOC_EXTENSIONS, docExtOf, formatBytes, compressImageForUpload,
+  URL_REGEX,
 } from "@/utils/utils";
 import { Avatar, TickIcon } from "./Avatar";
 import { Bubble, Composer, MediaViewer } from "./MessageBubble";
@@ -2087,6 +2088,35 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       .filter((row): row is MessageRow & { chat_id: string } => !!row);
     setSavedMessages(rows);
   };
+
+  // Quick shared-media counts for the profile view's stats strip — reuses the
+  // same kind/URL_REGEX filters as MediaGalleryModal, computed from the
+  // already-loaded active-chat messages rather than a second query.
+  const profileMediaStats = useMemo(() => {
+    if (!activeId) return undefined;
+    const photos = messages.filter((m) => m.kind === "image" && m.media_url).length;
+    const videos = messages.filter((m) => m.kind === "video" && m.media_url).length;
+    const files = messages.filter((m) => m.kind === "file" && m.media_url).length;
+    const links = messages
+      .filter((m) => m.kind === "text" && m.body && URL_REGEX.test(m.body))
+      .flatMap((m) => m.body!.match(new RegExp(URL_REGEX.source, "g")) ?? []).length;
+    return { photos, videos, files, links };
+  }, [messages, activeId]);
+
+  // Total personal "Saved Messages" count, fetched fresh each time the
+  // viewer opens their own profile (bookmarkedIds only tracks the active
+  // chat's messages, not the global total).
+  const [selfBookmarksCount, setSelfBookmarksCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!me || !viewingProfile || viewingProfile.id !== me.id) return;
+    (async () => {
+      const { count } = await supabase
+        .from("message_bookmarks")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", me.id);
+      setSelfBookmarksCount(count ?? 0);
+    })();
+  }, [me, viewingProfile]);
 
   // Entering select mode from a single bubble's "Select" menu item both
   // turns on the mode and selects that message in one tap; while already
@@ -4237,6 +4267,13 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
               ? () => { setViewingProfile(null); setShowMediaGallery(true); }
               : undefined
           }
+          mediaStats={viewingProfile.id !== me.id ? profileMediaStats : undefined}
+          onOpenBookmarks={
+            viewingProfile.id === me.id
+              ? () => { setViewingProfile(null); setShowSavedMessages(true); loadSavedMessages(); }
+              : undefined
+          }
+          bookmarksCount={viewingProfile.id === me.id ? selfBookmarksCount ?? undefined : undefined}
           isBlocked={viewingProfile.id === activeOtherId ? iBlockedThem : undefined}
           onToggleBlock={
             viewingProfile.id === activeOtherId
