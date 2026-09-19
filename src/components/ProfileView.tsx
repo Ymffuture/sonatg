@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  CloseOutlined,
+  ArrowLeftOutlined,
+  MoreOutlined,
   EditOutlined,
   CalendarOutlined,
   FlagOutlined,
@@ -14,6 +15,8 @@ import {
   ExclamationCircleOutlined,
   SafetyCertificateOutlined,
   ShareAltOutlined,
+  PhoneOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -24,6 +27,7 @@ import {
   Watermark,
   Typography,
   Alert,
+  Dropdown,
 } from "antd";
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
@@ -81,88 +85,119 @@ export function ProfileViewModal({
 
   const hasSocials = socials && (socials.facebook || socials.x || socials.instagram || socials.threads);
   const isPremium = profile.is_pro || profile.is_ai || profile.is_business;
+  const avatarSrc = profile.avatar_url || fallbackSvg;
+
+  const menuItems = [
+    onEdit && isSelf ? { key: "edit", label: "Edit profile", icon: <EditOutlined /> } : null,
+    onShareContact ? { key: "share", label: "Share contact", icon: <ShareAltOutlined /> } : null,
+    !isSelf && onToggleBlock ? { key: "block", label: isBlocked ? "Unblock" : "Block", icon: isBlocked ? <UnlockOutlined /> : <BlockOutlined /> } : null,
+    !isSelf && onReport ? { key: "report", label: "Report account", icon: <FlagOutlined />, danger: true } : null,
+  ].filter(Boolean) as { key: string; label: string; icon: React.ReactNode; danger?: boolean }[];
+
+  const handleMenuClick = (key: string) => {
+    if (key === "edit") onEdit?.();
+    if (key === "share") onShareContact?.();
+    if (key === "block") onToggleBlock?.();
+    if (key === "report") onReport?.();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-md p-4" onClick={onClose}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 20 }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="relative w-full max-w-sm rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.1)_inset] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+    <div className="fixed inset-0 z-50 bg-white dark:bg-zinc-950 overflow-y-auto scrollbar-thin">
+      <Watermark
+        content={profile.is_pro ? profile.display_name : ""}
+        font={{ color: "rgba(128,128,128,0.06)", fontSize: 10 }}
+        gap={[300, 240]}
+        rotate={-22}
       >
-        {/* Subtle ambient background glows */}
-        <div className="absolute -top-20 -right-20 w-64 h-64 bg-rose-500/10 dark:bg-rose-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-violet-500/10 dark:bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
-        
-        {/* Top highlight edge */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-white/20 pointer-events-none" />
+        {/* ─── Cover: blurred/zoomed avatar as backdrop, WhatsApp-business-style ─── */}
+        <div className="relative h-60 sm:h-72 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-900">
+          <div
+            className="absolute inset-0 scale-125 blur-2xl opacity-90"
+            style={{
+              backgroundImage: `url(${avatarSrc})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/5 to-black/40" />
 
-        <Watermark
-          content={profile.is_pro ? profile.display_name : ""}
-          font={{ color: "rgba(128,128,128,0.06)", fontSize: 10 }}
-          gap={[300, 240]}
-          rotate={-22}
-          className="h-full"
-        >
-          <div className="relative max-h-[85vh] overflow-y-auto scrollbar-thin p-6 z-10">
-            {/* Header */}
-            <div className="flex justify-end">
-              <Tooltip title="Close" placement="bottom">
+          {/* Top bar: back + overflow menu */}
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-2 pt-3">
+            <Tooltip title="Back" placement="bottom">
+              <Button
+                type="text"
+                shape="circle"
+                size="large"
+                icon={<ArrowLeftOutlined className="!text-white text-lg" />}
+                onClick={onClose}
+                className="hover:!bg-white/20 !transition-colors"
+              />
+            </Tooltip>
+            {menuItems.length > 0 && (
+              <Dropdown
+                menu={{
+                  items: menuItems,
+                  onClick: ({ key }) => handleMenuClick(key),
+                }}
+                trigger={["click"]}
+                placement="bottomRight"
+              >
                 <Button
                   type="text"
                   shape="circle"
-                  icon={<CloseOutlined className="text-zinc-500 dark:text-zinc-400" />}
-                  onClick={onClose}
-                  className="hover:!bg-zinc-100 dark:hover:!bg-zinc-800 !transition-colors"
+                  size="large"
+                  icon={<MoreOutlined className="!text-white text-lg" />}
+                  className="hover:!bg-white/20 !transition-colors"
                 />
-              </Tooltip>
-            </div>
+              </Dropdown>
+            )}
+          </div>
+        </div>
 
-            {/* Avatar + Name */}
-            <div className="flex flex-col items-center text-center -mt-1">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.05, type: "spring", stiffness: 260, damping: 20 }}
-                className="relative"
-              >
-                <div className={`relative rounded-full p-[2px] ${
-                  isPremium
-                    ? "bg-gradient-to-tr from-amber-300 via-rose-400 to-violet-500 shadow-lg shadow-violet-500/20"
-                    : hasStatus 
-                      ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950" 
-                      : "bg-zinc-200 dark:bg-zinc-800"
-                }`}>
-                  <div className="rounded-full bg-white dark:bg-zinc-950 p-[2px]">
-                    <Badge
-                      dot
-                      color={online ? "#4ade80" : "#8C8C8C"}
-                      offset={[-4, 92]}
-                      style={{ width: 14, height: 14, minWidth: 14 }}
-                    >
-                      <Image
-                        src={profile.avatar_url || fallbackSvg}
-                        width={112}
-                        height={112}
-                        className="object-cover !block rounded-full"
-                        preview={{
-                          mask: (
-                            <div className="flex items-center justify-center w-full h-full bg-black/40 backdrop-blur-sm rounded-full transition-all">
-                              <ZoomInOutlined className="text-white text-xl drop-shadow-md" />
-                            </div>
-                          ),
-                          maskClassName: "rounded-full",
-                        }}
-                      />
-                    </Badge>
-                  </div>
+        <div className="relative max-w-sm mx-auto px-6 pb-10 z-10">
+          {/* Avatar overlapping the cover, WhatsApp business card style */}
+          <div className="flex flex-col items-center text-center -mt-16">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.05, type: "spring", stiffness: 260, damping: 20 }}
+              className="relative"
+            >
+              <div className={`relative rounded-full p-[3px] ${
+                isPremium
+                  ? "bg-gradient-to-tr from-amber-300 via-rose-400 to-violet-500 shadow-lg shadow-violet-500/20"
+                  : hasStatus
+                    ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
+                    : "bg-white dark:bg-zinc-950"
+              }`}>
+                <div className="rounded-full bg-white dark:bg-zinc-950 p-[2px]">
+                  <Badge
+                    dot
+                    color={online ? "#4ade80" : "#8C8C8C"}
+                    offset={[-4, 92]}
+                    style={{ width: 14, height: 14, minWidth: 14 }}
+                  >
+                    <Image
+                      src={avatarSrc}
+                      width={128}
+                      height={128}
+                      className="object-cover !block rounded-full"
+                      preview={{
+                        mask: (
+                          <div className="flex items-center justify-center w-full h-full bg-black/40 backdrop-blur-sm rounded-full transition-all">
+                            <ZoomInOutlined className="text-white text-xl drop-shadow-md" />
+                          </div>
+                        ),
+                        maskClassName: "rounded-full",
+                      }}
+                    />
+                  </Badge>
                 </div>
-              </motion.div>
+              </div>
+            </motion.div>
 
-              {/* Name row with verified badge inline */}
-              <div className="flex items-center justify-center gap-1.5 mt-5">
+            {/* Name row with verified badge inline */}
+            <div className="flex items-center justify-center gap-1.5 mt-5">
                 <Title level={4} className="!m-0 !text-zinc-900 dark:!text-zinc-50 !font-bold !tracking-tight">
                   {profile.display_name}
                 </Title>
@@ -254,6 +289,37 @@ export function ProfileViewModal({
                     </Tooltip>
                   )}
                 </motion.div>
+              )}
+            </div>
+
+            {/* ─── Quick action pills (Voice / Catalog / Share style) ─── */}
+            <div className="flex items-center justify-center gap-8 mt-6">
+              {isSelf ? (
+                <>
+                  {onEdit && (
+                    <QuickAction icon={<EditOutlined />} label="Edit" onClick={onEdit} />
+                  )}
+                  {onShareContact && (
+                    <QuickAction icon={<ShareAltOutlined />} label="Share" onClick={onShareContact} />
+                  )}
+                </>
+              ) : (
+                <>
+                  {!profile.is_ai && onMessage && (
+                    <QuickAction
+                      icon={<PhoneOutlined />}
+                      label="Voice"
+                      onClick={onMessage}
+                      disabled={messageDisabled}
+                    />
+                  )}
+                  {onOpenMedia && (
+                    <QuickAction icon={<ShopOutlined />} label="Catalog" onClick={onOpenMedia} />
+                  )}
+                  {onShareContact && (
+                    <QuickAction icon={<ShareAltOutlined />} label="Share" onClick={onShareContact} />
+                  )}
+                </>
               )}
             </div>
 
@@ -444,7 +510,35 @@ export function ProfileViewModal({
             </div>
           </div>
         </Watermark>
-      </motion.div>
     </div>
   );
 }
+
+/** Small round icon-over-label action button, matching the WhatsApp-business
+ *  "Voice / Catalog / Share" quick-action row. */
+function QuickAction({
+  icon,
+  label,
+  onClick,
+  disabled,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className="flex flex-col items-center gap-1.5 group disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 text-lg transition-all duration-200 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 group-active:scale-95">
+        {icon}
+      </span>
+      <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">{label}</span>
+    </button>
+  );
+}
+
