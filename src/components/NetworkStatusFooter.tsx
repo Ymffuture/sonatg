@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "@heroui/react";
 import { MdWifiOff, MdSignalWifiStatusbarConnectedNoInternet4, MdClose } from "react-icons/md";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
@@ -18,8 +19,39 @@ export function NetworkStatusFooter() {
   const status = useNetworkStatus();
   const [dismissed, setDismissed] = useState(false);
 
+  /**
+   * Pending resolver for the reconnect toast.promise. Created when the
+   * connection drops, resolved when we're back online — the single toast
+   * morphs loading → success without stacking duplicates.
+   */
+  const reconnectResolverRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     setDismissed(false);
+  }, [status]);
+
+  // Fire a HeroUI toast.promise when the connection drops: "Reconnecting…"
+  // with a loading spinner until we're back online, then it flips to success.
+  useEffect(() => {
+    if (status === "online") {
+      // Resolve any pending reconnect promise → success toast
+      reconnectResolverRef.current?.();
+      reconnectResolverRef.current = null;
+      return;
+    }
+
+    // Only start one pending toast across unstable → offline flaps
+    if (reconnectResolverRef.current) return;
+
+    const reconnectPromise = new Promise<void>((resolve) => {
+      reconnectResolverRef.current = resolve;
+    });
+
+    toast.promise(reconnectPromise, {
+      loading: "Reconnecting…",
+      success: "Back online — you're connected again",
+      error: "Connection failed",
+    });
   }, [status]);
 
   if (status === "online" || dismissed) return null;
