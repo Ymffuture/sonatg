@@ -1,4 +1,6 @@
 @import "tailwindcss" source(none);
+@import "tailwindcss";
+@import "@heroui/styles";
 @source "../src";
 @import "tw-animate-css";
 @plugin "daisyui";
