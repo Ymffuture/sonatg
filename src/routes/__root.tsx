@@ -14,7 +14,7 @@ import { reportError } from "../lib/error-reporting";
 import { App as AntApp } from "antd";
 import { ConfirmProvider } from "@/hooks/useConfirmDialog";
 import { SoundsProvider } from "@/hooks/useSounds";
-
+import { HeroUIProvider } from "@heroui/react";
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#2D3436] px-4">
@@ -178,13 +178,15 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AntApp>
-        <ConfirmProvider>
-          <SoundsProvider>
-            <Outlet />
-          </SoundsProvider>
-        </ConfirmProvider>
-      </AntApp>
-    </QueryClientProvider>
+  <HeroUIProvider>
+    <AntApp>
+      <ConfirmProvider>
+        <SoundsProvider>
+          <Outlet />
+        </SoundsProvider>
+      </ConfirmProvider>
+    </AntApp>
+  </HeroUIProvider>
+</QueryClientProvider>
   );
 }
