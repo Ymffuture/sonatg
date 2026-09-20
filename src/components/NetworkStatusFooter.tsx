@@ -47,11 +47,23 @@ export function NetworkStatusFooter() {
             description,
             timeout: 0,
             indicator: <Icon className="h-5 w-5 animate-pulse" />,
+            actionProps: {
+              children: "Retry",
+              variant: "danger",
+              onPress: () => window.location.reload(),
+            },
           })
         : toast.warning(label, {
             description,
             timeout: 0,
             indicator: <Icon className="h-5 w-5 animate-pulse" />,
+            actionProps: {
+              children: "Dismiss",
+              className: "bg-warning text-warning-foreground",
+              onPress: () => {
+                if (toastIdRef.current) toast.close(toastIdRef.current);
+              },
+            },
           });
 
     toastIdRef.current = id ?? null;
