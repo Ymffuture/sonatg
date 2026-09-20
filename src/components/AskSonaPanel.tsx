@@ -1,21 +1,39 @@
-import { useMemo, useState } from "react";
+// src/components/AskSonaPanel.tsx
+//
+// The "Ask Sona" panel — a full-screen page that opens when a user picks
+// "Ask Sona" on a message. Shows exactly which message is being analyzed,
+// a row of intelligent actions, and renders the result inline. Nothing here
+// is written back into the chat until the user explicitly chooses to use it.
+//
+// Two extras worth knowing about: a session history rail so every result
+// computed this session stays one tap away (no re-running the AI to flip
+// back to an earlier answer), and a "Read aloud" control on text results
+// using the browser's built-in speech synthesis — no server round-trip.
+
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Sparkles,
-  X,
+  ArrowLeft,
   MessageSquareText,
   Reply as ReplyIcon,
   PenLine,
   Languages,
   ListTree,
   ScanSearch,
+  Smile,
+  ShieldCheck,
+  MessagesSquare,
   Send,
   Copy,
   Check,
   RotateCcw,
   AlertCircle,
+  History,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
@@ -31,16 +49,23 @@ type ActionDef = {
   label: string;
   icon: React.ReactNode;
   useContext?: boolean;
+  /** Renders its result as tappable reply chips instead of a plain text block. */
+  listStyle?: boolean;
 };
 
 const ACTIONS: ActionDef[] = [
   { id: "explain", label: "Explain", icon: <MessageSquareText className="h-4 w-4" />, useContext: true },
-  { id: "suggest_reply", label: "Suggest reply", icon: <ReplyIcon className="h-4 w-4" />, useContext: true },
+  { id: "suggest_reply", label: "Suggest reply", icon: <ReplyIcon className="h-4 w-4" />, useContext: true, listStyle: true },
   { id: "rewrite", label: "Rewrite", icon: <PenLine className="h-4 w-4" /> },
   { id: "translate", label: "Translate", icon: <Languages className="h-4 w-4" /> },
   { id: "summarize", label: "Summarize", icon: <ListTree className="h-4 w-4" /> },
   { id: "extract", label: "Extract info", icon: <ScanSearch className="h-4 w-4" /> },
+  { id: "tone_check", label: "Tone check", icon: <Smile className="h-4 w-4" />, useContext: true },
+  { id: "fact_check", label: "Fact check", icon: <ShieldCheck className="h-4 w-4" /> },
+  { id: "follow_up", label: "Follow-ups", icon: <MessagesSquare className="h-4 w-4" />, useContext: true, listStyle: true },
 ];
+
+const ACTIONS_BY_ID = new Map(ACTIONS.map((a) => [a.id, a]));
 
 const REWRITE_TONES: { id: RewriteTone; label: string }[] = [
   { id: "professional", label: "Professional" },
@@ -52,6 +77,17 @@ const REWRITE_TONES: { id: RewriteTone; label: string }[] = [
 const LANGUAGE_PRESETS = [
   "English", "Spanish", "French", "Portuguese", "Zulu", "Xhosa", "Afrikaans", "isiZulu",
 ];
+
+const MAX_HISTORY = 8;
+
+type HistoryEntry = {
+  id: string;
+  action: MessageIntelAction;
+  /** Short chip label, e.g. "Rewrite · Casual" or "Translate · Spanish". */
+  chipLabel: string;
+  result: string | null;
+  replyOptions: string[] | null;
+};
 
 function messagePreviewText(msg: MessageRow): string {
   if (msg.kind === "text") return msg.body || "";
@@ -91,7 +127,7 @@ function SonaThinkingLoader() {
           transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
-      
+
       {/* Animated text dots */}
       <div className="flex items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">
         <span>Sona is analyzing</span>
@@ -129,26 +165,41 @@ export function AskSonaPanel({
   const [result, setResult] = useState<string | null>(null);
   const [replyOptions, setReplyOptions] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
 
   const [tone, setTone] = useState<RewriteTone>("clear");
   const [language, setLanguage] = useState("English");
   const [question, setQuestion] = useState("");
 
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+
   const isEligible = message.kind === "text" || (message.kind === "voice" && !!message.transcript);
   const preview = useMemo(() => messagePreviewText(message), [message]);
+
+  // Stop any in-flight speech synthesis the moment the panel unmounts, so
+  // audio never keeps playing after the user has moved on.
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+  }, []);
 
   async function run(
     action: MessageIntelAction,
     extra?: { tone?: RewriteTone; language?: string; question?: string },
+    chipLabelOverride?: string,
   ) {
     setActiveAction(action);
+    setActiveHistoryId(null);
     setLoading(true);
     setError(null);
     setResult(null);
     setReplyOptions(null);
     setCopied(false);
+    stopSpeaking();
     try {
-      const def = ACTIONS.find((a) => a.id === action);
+      const def = ACTIONS_BY_ID.get(action);
       const res = (await askSona({
         data: {
           chatId,
@@ -159,11 +210,24 @@ export function AskSonaPanel({
         },
       })) as { result: string };
 
-      if (action === "suggest_reply") {
-        setReplyOptions(parseReplyOptions(res.result));
+      const entry: HistoryEntry = {
+        id: `${Date.now()}`,
+        action,
+        chipLabel: chipLabelOverride ?? def?.label ?? action,
+        result: null,
+        replyOptions: null,
+      };
+
+      if (def?.listStyle) {
+        const opts = parseReplyOptions(res.result);
+        setReplyOptions(opts);
+        entry.replyOptions = opts;
       } else {
         setResult(res.result);
+        entry.result = res.result;
       }
+      setActiveHistoryId(entry.id);
+      setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY));
     } catch (e) {
       const msg = (e as Error).message || "Sona couldn't process that. Try again.";
       setError(msg);
@@ -173,9 +237,18 @@ export function AskSonaPanel({
     }
   }
 
+  function openHistoryEntry(entry: HistoryEntry) {
+    stopSpeaking();
+    setActiveAction(entry.action);
+    setActiveHistoryId(entry.id);
+    setResult(entry.result);
+    setReplyOptions(entry.replyOptions);
+    setError(null);
+  }
+
   function runAsk() {
     if (!question.trim()) return;
-    run("ask", { question: question.trim() });
+    run("ask", { question: question.trim() }, `Asked: "${question.trim().slice(0, 24)}${question.trim().length > 24 ? "…" : ""}"`);
   }
 
   function copyResult() {
@@ -186,61 +259,74 @@ export function AskSonaPanel({
     });
   }
 
+  function stopSpeaking() {
+    if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }
+
+  function toggleSpeak() {
+    if (!result || typeof window === "undefined" || !window.speechSynthesis) return;
+    if (speaking) {
+      stopSpeaking();
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(result);
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+    setSpeaking(true);
+  }
+
   function reset() {
     setActiveAction(null);
+    setActiveHistoryId(null);
     setResult(null);
     setReplyOptions(null);
     setError(null);
+    stopSpeaking();
   }
 
+  const canSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
+
   return (
-    <div
-      className="fixed inset-0 z-[110] flex flex-col justify-end bg-black/60 backdrop-blur-md"
-      onClick={onClose}
+    <motion.div
+      initial={{ y: "100%", opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="fixed inset-0 z-[110] flex flex-col overflow-hidden bg-white dark:bg-zinc-950"
     >
-      <motion.div
-        initial={{ y: "100%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="relative flex max-h-[88vh] w-full flex-col rounded-t-[2rem] md:rounded-3xl border-t md:border border-white/30 dark:border-white/10 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.15)_inset] md:shadow-2xl md:mx-auto md:mb-8 md:max-w-lg overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Ambient background glow */}
-        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[var(--sona-accent,#E07A5F)]/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-white/20 pointer-events-none" />
+      {/* Ambient background glow */}
+      <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[var(--sona-accent,#E07A5F)]/10 blur-3xl" />
 
-        {/* Drag Handle (Mobile) */}
-        <div className="flex justify-center pt-3 pb-1 md:hidden">
-          <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-        </div>
+      {/* Header */}
+      <div className="relative flex items-center gap-3 px-4 py-4 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
+        <motion.button
+          whileHover={{ scale: 1.05, backgroundColor: "rgba(0,0,0,0.05)" }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onClose}
+          aria-label="Back"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full dark:hover:bg-zinc-800 transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+        </motion.button>
+        <h3 className="flex items-center gap-2.5 text-base font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--sona-accent,#E07A5F)]/20 to-[var(--sona-accent,#E07A5F)]/5 text-[var(--sona-accent,#E07A5F)] ring-1 ring-[var(--sona-accent,#E07A5F)]/20">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <span className="inline-flex items-center gap-1.5">
+            Ask Sona
+            <VscVerifiedFilled className="h-4 w-4 text-blue-500" />
+          </span>
+        </h3>
+      </div>
 
-        {/* Header */}
-        <div className="relative flex items-center justify-between px-6 py-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
-          <h3 className="flex items-center gap-2.5 text-base font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--sona-accent,#E07A5F)]/20 to-[var(--sona-accent,#E07A5F)]/5 text-[var(--sona-accent,#E07A5F)] ring-1 ring-[var(--sona-accent,#E07A5F)]/20">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <span className="inline-flex items-center gap-1.5">
-              Ask Sona 
-              <VscVerifiedFilled className="h-4 w-4 text-blue-500" />
-            </span>
-          </h3>
-          <motion.button
-            whileHover={{ scale: 1.05, backgroundColor: "rgba(0,0,0,0.05)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-full dark:hover:bg-zinc-800 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
-          </motion.button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
+      <div className="relative flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
+        <div className="mx-auto w-full max-w-2xl">
           {/* Selected message preview */}
-          <div className="px-6 pt-5 pb-2">
-            <motion.div 
+          <div className="px-5 pt-5 pb-2">
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="group relative rounded-2xl border border-[var(--sona-accent,#E07A5F)]/15 bg-[var(--sona-accent,#E07A5F)]/5 px-4 py-3.5 transition-colors hover:border-[var(--sona-accent,#E07A5F)]/30"
@@ -262,6 +348,27 @@ export function AskSonaPanel({
             </div>
           ) : (
             <>
+              {/* Session history rail — every result computed this session, one tap away */}
+              {history.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto px-5 pb-1 pt-1 scrollbar-thin">
+                  <History className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                  {history.map((h) => (
+                    <motion.button
+                      key={h.id}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => openHistoryEntry(h)}
+                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                        activeHistoryId === h.id
+                          ? "border-[var(--sona-accent,#E07A5F)]/60 bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent,#E07A5F)]"
+                          : "border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                      }`}
+                    >
+                      {h.chipLabel}
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+
               {/* Action grid */}
               <div className="grid grid-cols-3 gap-2.5 px-6 py-5">
                 {ACTIONS.map((a) => (
@@ -279,7 +386,7 @@ export function AskSonaPanel({
                     }`}
                   >
                     {a.icon}
-                    {a.label}
+                    <span className="text-center leading-tight">{a.label}</span>
                   </motion.button>
                 ))}
               </div>
@@ -299,7 +406,7 @@ export function AskSonaPanel({
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           setTone(t.id);
-                          run("rewrite", { tone: t.id });
+                          run("rewrite", { tone: t.id }, `Rewrite · ${t.label}`);
                         }}
                         className="rounded-full border border-[var(--sona-accent,#E07A5F)]/30 px-4 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:border-[var(--sona-accent,#E07A5F)]/60 transition-colors"
                       >
@@ -326,7 +433,7 @@ export function AskSonaPanel({
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
                             setLanguage(l);
-                            run("translate", { language: l });
+                            run("translate", { language: l }, `Translate · ${l}`);
                           }}
                           className="rounded-full border border-[var(--sona-accent,#E07A5F)]/30 px-3.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-[var(--sona-accent,#E07A5F)]/10 hover:border-[var(--sona-accent,#E07A5F)]/60 transition-colors"
                         >
@@ -343,7 +450,7 @@ export function AskSonaPanel({
                       />
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => run("translate", { language })}
+                        onClick={() => run("translate", { language }, `Translate · ${language}`)}
                         disabled={!language.trim()}
                         className="rounded-full bg-[var(--sona-accent,#E07A5F)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--sona-accent,#E07A5F)]/20 disabled:opacity-40 disabled:shadow-none transition-all"
                       >
@@ -371,7 +478,7 @@ export function AskSonaPanel({
                 )}
               </AnimatePresence>
 
-              {/* Reply suggestions */}
+              {/* Reply / follow-up suggestions */}
               <AnimatePresence>
                 {replyOptions && !loading && (
                   <motion.div
@@ -411,7 +518,7 @@ export function AskSonaPanel({
                       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--sona-accent,#E07A5F)]/40 to-transparent" />
                       {result}
                     </div>
-                    
+
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -422,7 +529,19 @@ export function AskSonaPanel({
                         {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                         {copied ? "Copied" : "Copy"}
                       </motion.button>
-                      
+
+                      {canSpeak && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={toggleSpeak}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                          {speaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                          {speaking ? "Stop" : "Read aloud"}
+                        </motion.button>
+                      )}
+
                       {(activeAction === "rewrite" || activeAction === "translate") && (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -436,7 +555,7 @@ export function AskSonaPanel({
                           <Send className="h-3.5 w-3.5" /> Use in composer
                         </motion.button>
                       )}
-                      
+
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -481,7 +600,7 @@ export function AskSonaPanel({
             </>
           )}
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 }
