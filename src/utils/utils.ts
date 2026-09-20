@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@heroui/react";
 import {
   GraduationCap, Users, Briefcase, LifeBuoy, PartyPopper, Tag,
   Gamepad2, Heart, Music, Plane, Newspaper,
@@ -183,7 +183,7 @@ export async function downloadFile(url: string, filename: string) {
     a.remove();
     URL.revokeObjectURL(objectUrl);
   } catch (e) {
-    toast.error("Couldn't download file");
+    toast.danger("Couldn't download file");
     console.error("downloadFile failed", e);
   }
 }
