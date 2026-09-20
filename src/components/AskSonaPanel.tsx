@@ -33,6 +33,7 @@ import {
 } from "@/lib/messageIntelligence.functions";
 import type { MessageRow } from "@/lib/db";
 import { useBackToClose } from "@/hooks/useBackStack";
+import {Spinner} from "@heroui/react";
 
 type ActionDef = {
   id: MessageIntelAction;
@@ -418,7 +419,7 @@ export function AskSonaPanel({
             <Sparkles className="h-4 w-4" />
           </div>
           <span className="inline-flex items-center gap-1.5">
-            Ask Sona
+            Ask Sona AI
             <VscVerifiedFilled className="h-4 w-4 text-blue-500" />
           </span>
         </h3>
@@ -564,7 +565,7 @@ export function AskSonaPanel({
               </AnimatePresence>
 
               {/* Unique Loading Animation */}
-              {loading && <SonaThinkingLoader />}
+              {loading && <Spinner size="xl" />}
 
               {/* Error */}
               <AnimatePresence>
