@@ -33,7 +33,7 @@ import {
 } from "@/lib/messageIntelligence.functions";
 import type { MessageRow } from "@/lib/db";
 import { useBackToClose } from "@/hooks/useBackStack";
-import {Spinner} from "@heroui/react";
+import { Spinner } from "@heroui/react";
 
 type ActionDef = {
   id: MessageIntelAction;
@@ -523,7 +523,11 @@ export function AskSonaPanel({
               </AnimatePresence>
 
               {/* Unique Loading Animation */}
-              {loading && <Spinner size="xl" className="inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-white/80 dark:bg-zinc-950/80" />}
+              {loading && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm">
+                  <Spinner size="xl" />
+                </div>
+              )}
 
               {/* Error */}
               <AnimatePresence>
