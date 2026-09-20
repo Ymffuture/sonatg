@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@heroui/react";
 import { Mail, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/forgot-password")({
@@ -35,7 +35,7 @@ function ForgotPasswordPage() {
       setSent(true);
       toast.success("Reset link sent — check your inbox.");
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.danger((err as Error).message);
     } finally {
       setLoading(false);
     }
