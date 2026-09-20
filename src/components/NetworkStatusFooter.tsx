@@ -1,18 +1,10 @@
 import { useEffect, useRef } from "react";
 import { toast } from "@heroui/react";
-import { MdWifiOff, MdSignalWifiStatusbarConnectedNoInternet4 } from "react-icons/md";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 const COPY = {
-  unstable: {
-    label: "Network unstable",
-    description: "Your connection is weak — messages may be delayed.",
-  },
-  offline: {
-    label: "Not connected",
-    description:
-      "Check your internet connection. Messages will send once you're back online.",
-  },
+  unstable: "Network unstable — your connection is weak, messages may be delayed.",
+  offline: "Not connected — check your internet connection.",
 } as const;
 
 export function NetworkStatusFooter() {
@@ -28,12 +20,6 @@ export function NetworkStatusFooter() {
       return;
     }
 
-    const { label, description } = COPY[status];
-    const Icon =
-      status === "offline"
-        ? MdWifiOff
-        : MdSignalWifiStatusbarConnectedNoInternet4;
-
     if (toastIdRef.current) {
       // HeroUI's toast has no `.update` — close the old one and recreate it
       // when switching offline ↔ unstable.
@@ -42,19 +28,7 @@ export function NetworkStatusFooter() {
     }
 
     const id =
-      status === "offline"
-        ? toast.danger(label, {
-            description,
-            timeout: 0,
-            indicator: <Icon className="h-5 w-5 animate-pulse" />,
-            
-          })
-        : toast.warning(label, {
-            description,
-            timeout: 0,
-            indicator: <Icon className="h-5 w-5 animate-pulse" />,
-            
-          });
+      status === "offline" ? toast.danger(COPY.offline) : toast.warning(COPY.unstable);
 
     toastIdRef.current = id ?? null;
 
