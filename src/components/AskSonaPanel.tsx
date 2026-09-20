@@ -24,6 +24,8 @@ import {
   VolumeX,
 } from "lucide-react";
 import { VscVerifiedFilled } from "react-icons/vsc";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   askSonaAboutMessage,
   type MessageIntelAction,
@@ -89,6 +91,118 @@ function parseReplyOptions(raw: string): string[] {
     .map((l) => l.replace(/^\s*[-*\d.)]+\s*/, "").trim())
     .filter(Boolean)
     .slice(0, 5);
+}
+
+// --- Markdown styling for Sona's responses (headings, bold, tables, lists, quotes, code) ---
+const MARKDOWN_COMPONENTS: Components = {
+  h1: ({ children }) => (
+    <h1 className="mb-3 mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-50 first:mt-0">{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="mb-2.5 mt-4 text-base font-bold text-zinc-900 dark:text-zinc-50 first:mt-0">{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="mb-2 mt-3 text-sm font-bold text-zinc-900 dark:text-zinc-50 first:mt-0">{children}</h3>
+  ),
+  h4: ({ children }) => (
+    <h4 className="mb-1.5 mt-2 text-[13px] font-bold text-zinc-900 dark:text-zinc-50 first:mt-0">{children}</h4>
+  ),
+  h5: ({ children }) => (
+    <h5 className="mb-1 mt-2 text-[13px] font-semibold text-zinc-900 dark:text-zinc-50 first:mt-0">{children}</h5>
+  ),
+  h6: ({ children }) => (
+    <h6 className="mb-1 mt-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 first:mt-0">{children}</h6>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-bold text-zinc-900 dark:text-zinc-50">{children}</strong>
+  ),
+  em: ({ children }) => (
+    <em className="italic text-zinc-700 dark:text-zinc-200">{children}</em>
+  ),
+  del: ({ children }) => (
+    <del className="opacity-50 line-through">{children}</del>
+  ),
+  p: ({ children }) => (
+    <p className="mb-3 last:mb-0 text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="mb-3 list-disc space-y-1.5 pl-5 last:mb-0 marker:text-[var(--sona-accent,#E07A5F)]">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="mb-3 list-decimal space-y-1.5 pl-5 last:mb-0 marker:text-[var(--sona-accent,#E07A5F)]">{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">{children}</li>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="mb-3 border-l-[3px] border-[var(--sona-accent,#E07A5F)]/50 bg-[var(--sona-accent,#E07A5F)]/5 px-3.5 py-2.5 last:mb-0 rounded-r-xl">
+      {children}
+    </blockquote>
+  ),
+  hr: () => (
+    <hr className="my-4 border-zinc-200 dark:border-zinc-700" />
+  ),
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-[var(--sona-accent,#E07A5F)] underline underline-offset-2 hover:opacity-80 transition-opacity"
+    >
+      {children}
+    </a>
+  ),
+  table: ({ children }) => (
+    <div className="mb-3 last:mb-0 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+      <table className="w-full border-collapse text-xs">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => (
+    <thead className="bg-zinc-100 dark:bg-zinc-800/70">{children}</thead>
+  ),
+  tbody: ({ children }) => <tbody>{children}</tbody>,
+  th: ({ children }) => (
+    <th className="border-b border-zinc-200 dark:border-zinc-700 px-3 py-2.5 text-left font-bold text-zinc-900 dark:text-zinc-100">
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td className="border-b border-zinc-100 dark:border-zinc-800/60 px-3 py-2.5 align-top text-zinc-700 dark:text-zinc-300">
+      {children}
+    </td>
+  ),
+  code: ({ className, children, ...props }) => {
+    const isBlock = /language-/.test(className || "");
+    if (isBlock) {
+      return (
+        <code className={`${className} block font-mono text-xs`} {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className="rounded-md bg-zinc-200/70 dark:bg-zinc-800 px-1.5 py-0.5 font-mono text-[0.85em] text-[var(--sona-accent,#E07A5F)]" {...props}>
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children }) => (
+    <pre className="mb-3 last:mb-0 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800/70 p-3">{children}</pre>
+  ),
+  img: ({ src, alt }) => (
+    <img src={src} alt={alt} className="my-3 max-w-full rounded-xl border border-zinc-200 dark:border-zinc-800" />
+  ),
+};
+
+/** Renders Sona's free-text output as styled markdown (headings, bold, tables, lists, quotes, code). */
+function MarkdownResult({ content }: { content: string }) {
+  return (
+    <div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
 // --- Premium Loading Animation Component ---
@@ -501,10 +615,10 @@ export function AskSonaPanel({
                     animate={{ opacity: 1, y: 0 }}
                     className="px-6 pb-4"
                   >
-                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-50/80 dark:bg-zinc-900/80 px-4 py-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap">
+                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-50/80 dark:bg-zinc-900/80 px-4 py-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">
                       {/* Subtle top gradient accent */}
                       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--sona-accent,#E07A5F)]/40 to-transparent" />
-                      {result}
+                      <MarkdownResult content={result} />
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
