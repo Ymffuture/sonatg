@@ -4344,6 +4344,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           reads={reads}
           deliveries={deliveries}
           memberIds={active.memberIds}
+          members={active.members}
+          isGroup={active.is_group}
+          decrypted={decrypted}
           meId={me.id}
           onClose={() => setMessageInfoTarget(null)}
           onRetry={() => { retryMessage(messageInfoTarget.id); setMessageInfoTarget(null); }}
