@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+7 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -14,6 +14,11 @@ import { reportError } from "../lib/error-reporting";
 import { App as AntApp } from "antd";
 import { ConfirmProvider } from "@/hooks/useConfirmDialog";
 import { SoundsProvider } from "@/hooks/useSounds";
+import { Toast } from "@heroui/react";
+
+
+
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#2D3436] px-4">
@@ -176,8 +181,8 @@ function RootComponent() {
   }, [router, queryClient]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-  
+  <QueryClientProvider client={queryClient}>
+    <Toast.Provider placement="bottom" />
     <AntApp>
       <ConfirmProvider>
         <SoundsProvider>
@@ -185,7 +190,6 @@ function RootComponent() {
         </SoundsProvider>
       </ConfirmProvider>
     </AntApp>
-  
-</QueryClientProvider>
-  );
+  </QueryClientProvider>
+);
 }
