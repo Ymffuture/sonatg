@@ -1,15 +1,3 @@
-// src/components/AskSonaPanel.tsx
-//
-// The "Ask Sona" panel — a full-screen page that opens when a user picks
-// "Ask Sona" on a message. Shows exactly which message is being analyzed,
-// a row of intelligent actions, and renders the result inline. Nothing here
-// is written back into the chat until the user explicitly chooses to use it.
-//
-// Two extras worth knowing about: a session history rail so every result
-// computed this session stays one tap away (no re-running the AI to flip
-// back to an earlier answer), and a "Read aloud" control on text results
-// using the browser's built-in speech synthesis — no server round-trip.
-
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
