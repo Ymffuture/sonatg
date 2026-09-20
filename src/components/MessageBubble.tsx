@@ -15,7 +15,7 @@ function isAskSonaEligible(msg: { kind: string; body?: string | null; transcript
   if (msg.kind === "voice") return !!msg.transcript;
   return false;
 }
-import { toast } from "sonner";
+import { toast } from "@heroui/react";
 import { PollCard } from "@/features/classroom";
 import { motion, AnimatePresence } from "framer-motion";
 import EmojiPicker, { Theme as EmojiTheme, EmojiStyle, type EmojiClickData } from "emoji-picker-react";
@@ -1111,7 +1111,7 @@ export function MediaViewer({
       await navigator.clipboard.writeText(current.url);
       toast.success("Link copied");
     } catch {
-      toast.error("Couldn't copy");
+      toast.danger("Couldn't copy");
     }
   };
 
@@ -1541,13 +1541,13 @@ function SonaListenButton({ chatId, text }: { chatId: string; text: string }) {
       const { audioBase64, mimeType } = await speak({ data: { chatId, text } }) as { audioBase64: string; mimeType: string };
       const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
       audio.onended = () => setStatus("idle");
-      audio.onerror = () => { setStatus("idle"); toast.error("Couldn't play that audio."); };
+      audio.onerror = () => { setStatus("idle"); toast.danger("Couldn't play that audio."); };
       audioRef.current = audio;
       await audio.play();
       setStatus("playing");
     } catch (e) {
       setStatus("idle");
-      toast.error((e as Error).message || "Text-to-speech failed.");
+      toast.danger((e as Error).message || "Text-to-speech failed.");
     }
   };
 

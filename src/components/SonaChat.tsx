@@ -15,7 +15,7 @@ import { CiTimer } from "react-icons/ci";
 import { fetchActiveAnnouncement, type AppAnnouncement } from "@/lib/announcements";
 import { notifyOfflineMessage } from "@/lib/notifications.functions";
 import { buildTranscript, exportChatAsJSON, exportChatAsPDF } from "@/lib/export-chat";
-import { Watermark, message as antMessage, Tooltip } from "antd";
+import { Watermark, Tooltip } from "antd";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,7 +49,7 @@ import { PurpleBadge } from "./PurpleBadge";
 import {MdDiamond} from "react-icons/md";
 import { IoMdArrowDropleft } from "react-icons/io";
 import { IoMdArrowDropright } from "react-icons/io";
-import { Toast } from "@heroui/react";
+import { toast } from "@heroui/react";
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -85,7 +85,6 @@ import {
 } from "@/lib/db";
 import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
 import { playSendSound, playReceiveSound } from "@/lib/sounds";
-import { toast } from "sonner";
 import sonaLogo from "@/assets/sona-logo.png";
 import sonaAi from "@/assets/sona02.png";
 import { VscVerifiedFilled } from "react-icons/vsc";
@@ -485,7 +484,7 @@ function SonaChatInner() {
     if (!me) return;
     setMe((prev) => (prev ? { ...prev, theme_id: id } : prev));
     supabase.from("profiles").update({ theme_id: id }).eq("id", me.id).then(({ error }) => {
-      if (error) toast.error("Couldn't sync theme to your account");
+      if (error) toast.danger("Couldn't sync theme to your account");
     });
   });
   const [chats, setChats] = useState<ChatWithMeta[]>([]);
@@ -608,7 +607,7 @@ const handleMenuOpenChange = (open: boolean) => {
       });
       if (error) throw error;
     } catch (e) {
-      toast.error(`Poll created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
+      toast.danger(`Poll created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
     }
   };
 
@@ -627,7 +626,7 @@ const handleMenuOpenChange = (open: boolean) => {
       });
       if (error) throw error;
     } catch (e) {
-      toast.error(`Ad created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
+      toast.danger(`Ad created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
     }
   };
   const [showMsgSearch, setShowMsgSearch] = useState(false);
@@ -1083,18 +1082,17 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       msg.kind === "call" ? "your call" :
       msg.body ? `"${msg.body.length > 40 ? msg.body.slice(0, 40) + "…" : msg.body}"` : "your message";
 
-    toast.custom(() => (
-      <div className="flex items-center gap-3 rounded-2xl border border-[var(--sona-accent,#E07A5F)]/20 bg-white/90 dark:bg-[#242424]/90 backdrop-blur-xl px-3.5 py-3 shadow-xl w-[320px]">
-        <Avatar url={reactor!.avatar_url} name={reactor!.display_name} size={38} />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">
-            <span className="font-semibold">{reactor!.display_name}</span> reacted{" "}
-            <span className="text-base">{r.emoji}</span>
-          </p>
-          <p className="truncate text-xs text-[#8C8C8C]">to {snippet}</p>
-        </div>
-      </div>
-    ), { duration: 4000 });
+    toast(
+      <>
+        <span className="font-semibold">{reactor!.display_name}</span> reacted{" "}
+        <span className="text-base">{r.emoji}</span>
+      </>,
+      {
+        indicator: <Avatar url={reactor!.avatar_url} name={reactor!.display_name} size={38} />,
+        description: `to ${snippet}`,
+        timeout: 4000,
+      }
+    );
   }, [me, profiles]);
 
   // Realtime: messages, reactions, reads, member changes
@@ -1383,9 +1381,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   // empty-state CTA so free-plan users see one consistent upsell instead
   // of getting all the way to NewChatModal before finding out it's blocked.
   const openNewChat = useCallback(() => {
-    if (accountRestricted) { toast.error(composerNotice ?? "Your account is restricted."); return; }
+    if (accountRestricted) { toast.danger(composerNotice ?? "Your account is restricted."); return; }
     if (!canCreateChat) {
-      antMessage.error(FREE_CHAT_LIMIT_MESSAGE);
+      toast.danger(FREE_CHAT_LIMIT_MESSAGE);
       setShowSettings(true);
       return;
     }
@@ -1459,10 +1457,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       const id = `custom:${Date.now()}`;
       persistFolders([...customFolders, { id, name }]);
       setActiveFolder(id);
-      antMessage.success(`Folder "${name}" created`);
+      toast.success(`Folder "${name}" created`);
     } else if (folderModal.id) {
       persistFolders(customFolders.map((f) => (f.id === folderModal.id ? { ...f, name } : f)));
-      antMessage.success("Folder renamed");
+      toast.success("Folder renamed");
     }
     setFolderModal(null);
   };
@@ -1484,7 +1482,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     persistFolderMap(nextMap);
     if (activeFolder === id) setActiveFolder("all");
     setFolderModal(null);
-    antMessage.success(`Folder "${name}" deleted`);
+    toast.success(`Folder "${name}" deleted`);
   };
 
   const toggleChatInFolder = (chatId: string, folderId: string) => {
@@ -1551,9 +1549,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   const cancelScheduled = async (messageId: string) => {
     const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me?.id ?? "");
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setScheduledMessages((prev) => prev.filter((m) => m.id !== messageId));
-    antMessage.success("Scheduled message canceled");
+    toast.success("Scheduled message canceled");
   };
 
   const togglePin = async (e: React.MouseEvent, chat: ChatWithMeta) => {
@@ -1563,7 +1561,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (next && !me.is_pro) {
       const pinnedCount = chats.filter((c) => c.isPinned).length;
       if (pinnedCount >= FREE_PIN_LIMIT) {
-        antMessage.error(`Free plan lets you pin ${FREE_PIN_LIMIT} chats. Unpin one, or upgrade to Sona Purple for unlimited pins.`);
+        toast.danger(`Free plan lets you pin ${FREE_PIN_LIMIT} chats. Unpin one, or upgrade to Sona Purple for unlimited pins.`);
         return;
       }
     }
@@ -1579,11 +1577,11 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       .eq("user_id", me.id)
       .select("chat_id");
     if (error || !data?.length) {
-      toast.error(error?.message ?? "Couldn't update the pin. Please try again.");
+      toast.danger(error?.message ?? "Couldn't update the pin. Please try again.");
       loadChats();
       return;
     }
-    antMessage.success(next ? "Chat pinned" : "Chat unpinned");
+    toast.success(next ? "Chat pinned" : "Chat unpinned");
   };
 
 
@@ -1613,7 +1611,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       setViewingProfile(null);
       loadChats();
     } catch (e) {
-      toast.error(explainSupabaseError(e).title);
+      toast.danger(explainSupabaseError(e).title);
     }
   };
 
@@ -1623,7 +1621,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     // Post the notice while still a member — afterwards the write is blocked.
     await postSystemMessage(chatId, `${me.display_name} left the group`);
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", me.id);
-    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    if (error) { toast.danger(explainSupabaseError(error).title); return; }
     toast.success("You left the group");
     setShowMemberList(false);
     if (activeId === chatId) setActiveId(null);
@@ -1632,7 +1630,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   const removeMember = async (chatId: string, member: Profile) => {
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", member.id);
-    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    if (error) { toast.danger(explainSupabaseError(error).title); return; }
     await postSystemMessage(chatId, `${member.display_name} was removed from the group`);
     toast.success(`Removed ${member.display_name}`);
     loadChats();
@@ -1641,7 +1639,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const deleteGroup = async (chatId: string) => {
     if (!(await confirm({ title: "Delete this group for everyone?", description: "This can't be undone.", confirmText: "Delete", danger: true }))) return;
     const { error } = await supabase.from("chats").delete().eq("id", chatId);
-    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    if (error) { toast.danger(explainSupabaseError(error).title); return; }
     toast.success("Group deleted");
     setShowGroupSettings(false);
     setShowMemberList(false);
@@ -1676,11 +1674,11 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     loadChats();
 
     if (failed === 0) {
-      antMessage.success(count === 1 ? "Chat deleted" : `${count} chats deleted`);
+      toast.success(count === 1 ? "Chat deleted" : `${count} chats deleted`);
     } else if (failed === count) {
-      antMessage.error(count === 1 ? "Couldn't delete chat" : "Couldn't delete any of the selected chats");
+      toast.danger(count === 1 ? "Couldn't delete chat" : "Couldn't delete any of the selected chats");
     } else {
-      antMessage.warning(`Deleted ${count - failed} of ${count} chats — ${failed} failed`);
+      toast.warning(`Deleted ${count - failed} of ${count} chats — ${failed} failed`);
     }
   };
 
@@ -1692,7 +1690,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   // Send
   const send = async (scheduledFor?: Date) => {
     if (!me || !activeId) return;
-    if (composerNotice) { toast.error(composerNotice); return; }
+    if (composerNotice) { toast.danger(composerNotice); return; }
 
 
     if (editing) {
@@ -1707,7 +1705,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         .from("messages")
         .update({ body, edited_at: new Date().toISOString() })
         .eq("id", editing.id).eq("sender_id", me.id);
-      if (error) { toast.error(error.message); return; }
+      if (error) { toast.danger(error.message); return; }
       setMessages((prev) => prev.map((m) => m.id === editing.id ? { ...m, body, edited_at: new Date().toISOString() } : m));
       setEditing(null); setDraft(""); setShowEmoji(false);
       return;
@@ -1728,7 +1726,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (plaintext && me) {
       const verdict = await checkMessage(plaintext, activeId, me.id, null);
       if (!verdict.allowed) {
-        toast.error("This message can't be sent — it looks like it violates community guidelines.");
+        toast.danger("This message can't be sent — it looks like it violates community guidelines.");
         void logModerationFlag(verdict, activeId, me.id, plaintext, null);
         return;
       }
@@ -1744,14 +1742,14 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         const compressed = await compressImageForUpload(img);
         const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${compressed.name}`;
         const { error: upErr } = await supabase.storage.from("chat-media").upload(path, compressed);
-        if (upErr) { toast.error(`Couldn't upload ${img.name}: ${explainSupabaseError(upErr).title}`); continue; }
+        if (upErr) { toast.danger(`Couldn't upload ${img.name}: ${explainSupabaseError(upErr).title}`); continue; }
         const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
         outgoing.push({ kind: "image", media_url: signed?.signedUrl ?? null });
       }
       for (const doc of pendingDocs) {
         const path = `${activeId}/${me.id}/${crypto.randomUUID()}-${doc.name}`;
         const { error: upErr } = await supabase.storage.from("chat-media").upload(path, doc, { contentType: doc.type || "application/octet-stream" });
-        if (upErr) { antMessage.error(`Couldn't upload ${doc.name}: ${explainSupabaseError(upErr).title}`); continue; }
+        if (upErr) { toast.danger(`Couldn't upload ${doc.name}: ${explainSupabaseError(upErr).title}`); continue; }
         const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
         outgoing.push({ kind: "file", media_url: signed?.signedUrl ?? null, file_name: doc.name, file_size: doc.size });
       }
@@ -1763,7 +1761,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         // no text to fall back to sending on its own. Keep the picked
         // files in place so the user can just hit send again — don't
         // silently drop what they attached.
-        toast.error("Couldn't upload — check your connection and try again.");
+        toast.danger("Couldn't upload — check your connection and try again.");
         return;
       }
 
@@ -1805,7 +1803,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
         const { data: inserted, error } = await supabase.from("messages").insert(payload).select().single();
         if (error) {
-          toast.error(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
+          toast.danger(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
           // Keep the bubble (instead of deleting it) so the real "failed to
           // send" state is visible and retryable from Message info — never
           // silently drop a message the user believed they sent.
@@ -1830,7 +1828,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         }
       }
       if (scheduledFor) {
-        antMessage.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);
+        toast.success(`Message scheduled for ${scheduledFor.toLocaleString()}`);
       } else if (anySucceeded) {
         playSendSound();
         refreshMessagesSentToday();
@@ -1849,7 +1847,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         // draft text and any picked images/docs exactly as they were, so
         // the user can just hit send again once they're back online —
         // the debounced localStorage effect already has this text saved.
-        toast.error("Couldn't send — your message is saved as a draft, try again when you're back online.");
+        toast.danger("Couldn't send — your message is saved as a draft, try again when you're back online.");
         return;
       }
 
@@ -1877,7 +1875,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         const isAI = isAIChat(active);
         const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
         if ((isAI || mentionsSona) && (prompt || attachedImageUrl || attachedFileUrl)) {
-          toast.loading("Sona is thinking…", { id: "sona-ai" });
+          const sonaToastId = toast("Sona is thinking…", { isLoading: true });
           setSonaTyping(true);
           askAI({
             data: {
@@ -1888,8 +1886,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
               fileName: attachedFileName,
             },
           })
-            .then(() => toast.dismiss("sona-ai"))
-            .catch((e) => toast.error(e.message, { id: "sona-ai" }))
+            .then(() => toast.close(sonaToastId))
+            .catch((e) => { toast.close(sonaToastId); toast.danger(e.message); })
             .finally(() => setSonaTyping(false));
         }
       }
@@ -1907,7 +1905,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _failed: false, _pending: true } : m)));
     const { data: inserted, error } = await supabase.from("messages").insert(payload as never).select().single();
     if (error) {
-      toast.error(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
+      toast.danger(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _pending: false, _failed: true } : m)));
       return;
     }
@@ -1932,12 +1930,12 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const incoming = Array.from(files);
     const oversized = incoming.filter((f) => f.size > orgFileLimits.maxImageBytes);
     const valid = incoming.filter((f) => f.size <= orgFileLimits.maxImageBytes);
-    if (oversized.length) toast.error(`${oversized.length} image${oversized.length === 1 ? "" : "s"} skipped — over ${formatBytes(orgFileLimits.maxImageBytes)}`);
+    if (oversized.length) toast.danger(`${oversized.length} image${oversized.length === 1 ? "" : "s"} skipped — over ${formatBytes(orgFileLimits.maxImageBytes)}`);
 
     setPendingImages((prev) => {
       const combined = [...prev, ...valid];
       if (combined.length > MAX_IMAGES) {
-        toast.error(`Max ${MAX_IMAGES} images at once — extra ones skipped`);
+        toast.danger(`Max ${MAX_IMAGES} images at once — extra ones skipped`);
         return combined.slice(0, MAX_IMAGES);
       }
       return combined;
@@ -1950,13 +1948,13 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const wrongType = incoming.filter((f) => !DOC_EXTENSIONS.includes(docExtOf(f.name)));
     const oversized = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size > orgFileLimits.maxDocBytes);
     const valid = incoming.filter((f) => DOC_EXTENSIONS.includes(docExtOf(f.name)) && f.size <= orgFileLimits.maxDocBytes);
-    if (wrongType.length) toast.error(`Unsupported file type: ${wrongType.map((f) => f.name).join(", ")}`);
-    if (oversized.length) toast.error(`${oversized.length} file${oversized.length === 1 ? "" : "s"} skipped — over ${formatBytes(orgFileLimits.maxDocBytes)}`);
+    if (wrongType.length) toast.danger(`Unsupported file type: ${wrongType.map((f) => f.name).join(", ")}`);
+    if (oversized.length) toast.danger(`${oversized.length} file${oversized.length === 1 ? "" : "s"} skipped — over ${formatBytes(orgFileLimits.maxDocBytes)}`);
 
     setPendingDocs((prev) => {
       const combined = [...prev, ...valid];
       if (combined.length > MAX_DOCS) {
-        toast.error(`Max ${MAX_DOCS} files at once — extra ones skipped`);
+        toast.danger(`Max ${MAX_DOCS} files at once — extra ones skipped`);
         return combined.slice(0, MAX_DOCS);
       }
       return combined;
@@ -1966,8 +1964,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // Cloudinary free tier cap — comfortably covers 50MB+ videos
   const onPickVideo = async (file?: File | null) => {
     if (!file || !me || !activeId) return;
-    if (!file.type.startsWith("video/")) { toast.error("Please choose a video file"); return; }
-    if (file.size > MAX_VIDEO_BYTES) { toast.error(`Video is too large — max ${formatBytes(MAX_VIDEO_BYTES)}`); return; }
+    if (!file.type.startsWith("video/")) { toast.danger("Please choose a video file"); return; }
+    if (file.size > MAX_VIDEO_BYTES) { toast.danger(`Video is too large — max ${formatBytes(MAX_VIDEO_BYTES)}`); return; }
 
     setVideoUploadPct(0);
     try {
@@ -1987,7 +1985,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       if (error) throw error;
       playSendSound();
     } catch (e) {
-      toast.error((e as Error).message || "Couldn't upload video");
+      toast.danger((e as Error).message || "Couldn't upload video");
     } finally {
       setVideoUploadPct(null);
     }
@@ -2019,7 +2017,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       .update({ deleted_at: new Date().toISOString(), body: null, media_url: null, file_name: null, file_size: null, duration_ms: null })
       .eq("id", messageId)
       .eq("sender_id", me.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setMessages((prev) => prev.map((m) => m.id === messageId
       ? { ...m, deleted_at: new Date().toISOString(), body: null, media_url: null, file_name: null, file_size: null, duration_ms: null }
       : m));
@@ -2035,7 +2033,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const hardDeleteMessage = async (messageId: string) => {
     if (!me) return;
     const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
     loadChats();
   };
@@ -2048,7 +2046,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const { error } = await supabase.from("messages")
       .update({ pinned_by: pinning ? me.id : null, pinned_at: pinning ? new Date().toISOString() : null })
       .eq("id", m.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setMessages((prev) => prev.map((row) => row.id === m.id
       ? { ...row, pinned_by: pinning ? me.id : null, pinned_at: pinning ? new Date().toISOString() : null }
       : row));
@@ -2062,13 +2060,13 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const bookmarked = bookmarkedIds.has(m.id);
     if (bookmarked) {
       const { error } = await supabase.from("message_bookmarks").delete().eq("user_id", me.id).eq("message_id", m.id);
-      if (error) { toast.error(error.message); return; }
+      if (error) { toast.danger(error.message); return; }
       setBookmarkedIds((prev) => { const next = new Set(prev); next.delete(m.id); return next; });
       setSavedMessages((prev) => prev.filter((row) => row.id !== m.id));
       toast.success("Removed from Saved Messages");
     } else {
       const { error } = await supabase.from("message_bookmarks").insert({ user_id: me.id, message_id: m.id, chat_id: m.chat_id });
-      if (error) { toast.error(error.message); return; }
+      if (error) { toast.danger(error.message); return; }
       setBookmarkedIds((prev) => new Set(prev).add(m.id));
       toast.success("Saved");
     }
@@ -2083,7 +2081,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       .eq("user_id", me.id)
       .order("created_at", { ascending: false });
     setLoadingSaved(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     const rows = (data ?? [])
       .map((row) => row.messages ? { ...(row.messages as unknown as MessageRow), chat_id: row.chat_id as string } : null)
       .filter((row): row is MessageRow & { chat_id: string } => !!row);
@@ -2140,7 +2138,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const now = new Date().toISOString();
     const { error } = await supabase.from("messages").update({ pinned_by: me.id, pinned_at: now })
       .in("id", Array.from(selectedMsgIds));
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setMessages((prev) => prev.map((m) => selectedMsgIds.has(m.id) ? { ...m, pinned_by: me.id, pinned_at: now } : m));
     toast.success(`Pinned ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
     exitMsgSelectMode();
@@ -2150,7 +2148,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (!me || selectedMsgs.length === 0) return;
     const inserts = selectedMsgs.map((m) => ({ user_id: me.id, message_id: m.id, chat_id: m.chat_id }));
     const { error } = await supabase.from("message_bookmarks").upsert(inserts, { onConflict: "user_id,message_id" });
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setBookmarkedIds((prev) => { const next = new Set(prev); selectedMsgs.forEach((m) => next.add(m.id)); return next; });
     toast.success(`Saved ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
     exitMsgSelectMode();
@@ -2159,7 +2157,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const bulkDelete = async () => {
     if (!me || selectedMsgs.length === 0) return;
     const mine = selectedMsgs.filter((m) => m.sender_id === me.id);
-    if (mine.length === 0) { toast.error("You can only delete your own messages"); return; }
+    if (mine.length === 0) { toast.danger("You can only delete your own messages"); return; }
     if (!(await confirm({
       title: `Delete ${mine.length} message${mine.length === 1 ? "" : "s"} for everyone?`,
       confirmText: "Delete", danger: true,
@@ -2168,7 +2166,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const { error } = await supabase.from("messages")
       .update({ deleted_at: now, body: null, media_url: null, file_name: null, file_size: null, duration_ms: null })
       .in("id", mine.map((m) => m.id)).eq("sender_id", me.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     const ids = new Set(mine.map((m) => m.id));
     setMessages((prev) => prev.map((m) => ids.has(m.id)
       ? { ...m, deleted_at: now, body: null, media_url: null, file_name: null, file_size: null, duration_ms: null }
@@ -2185,9 +2183,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const blockOther = async () => {
     if (!me || !active) return;
     const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
-    if (!other) { toast.error("Can't block in this chat."); return; }
+    if (!other) { toast.danger("Can't block in this chat."); return; }
     const { error } = await supabase.from("blocks").insert({ blocker_id: me.id, blocked_id: other });
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setBlockedIds((prev) => new Set(prev).add(other));
     toast.success("User blocked");
     setShowHeaderMenu(false);
@@ -2198,7 +2196,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const other = active.memberIds.find((id) => id !== me.id && id !== SONA_AI_ID);
     if (!other) return;
     const { error } = await supabase.from("blocks").delete().eq("blocker_id", me.id).eq("blocked_id", other);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     setBlockedIds((prev) => { const n = new Set(prev); n.delete(other); return n; });
     toast.success("User unblocked");
   };
@@ -2217,15 +2215,15 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       // almost always means the "reports" table migration was never
       // applied to this Supabase project. 42501 = RLS/permission denied.
       if (error.code === "42P01") {
-        antMessage.error("Reporting isn't set up yet — the reports table is missing from the database. Ask an admin to run the pending Supabase migrations.");
+        toast.danger("Reporting isn't set up yet — the reports table is missing from the database. Ask an admin to run the pending Supabase migrations.");
       } else if (error.code === "42501") {
-        antMessage.error("You don't have permission to submit a report — check the reports table's row-level security policies.");
+        toast.danger("You don't have permission to submit a report — check the reports table's row-level security policies.");
       } else {
-        antMessage.error(error.message);
+        toast.danger(error.message);
       }
       return;
     }
-    antMessage.success("Report sent to the Sona team");
+    toast.success("Report sent to the Sona team");
     setReportTarget(null);
     setReportDetails("");
   };
@@ -2233,7 +2231,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   const requirePro = (feature: string): boolean => {
     if (me?.is_pro) return true;
-    antMessage.error(`${feature} is a Sona Pro feature — upgrade in Settings → Subscription.`);
+    toast.danger(`${feature} is a Sona Pro feature — upgrade in Settings → Subscription.`);
     setShowHeaderMenu(false);
     setShowSettings(true);
     return false;
@@ -2242,7 +2240,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const setDisappearing = async (seconds: number | null) => {
     if (!active) return;
     const { error } = await supabase.from("chats").update({ disappearing_seconds: seconds }).eq("id", active.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     toast.success(seconds ? `Disappearing messages: ${disappearingLabel(seconds)}` : "Disappearing messages turned off");
     setShowDisappearingMenu(false);
     setShowHeaderMenu(false);
@@ -2254,7 +2252,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (!active.is_hidden && !requirePro("Hide & encrypt")) return;
     const next = !active.is_hidden;
     const { error } = await supabase.from("chats").update({ is_hidden: next }).eq("id", active.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.danger(error.message); return; }
     toast.success(next ? "Chat hidden — set a passcode to unlock" : "Chat is no longer hidden");
     setShowHeaderMenu(false);
     loadChats();
@@ -2268,9 +2266,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       const entries = buildTranscript(messages, profilesById, me.id, decrypted);
       if (format === "json") exportChatAsJSON(active, entries);
       else exportChatAsPDF(active, entries);
-      antMessage.success(format === "json" ? "Chat exported as JSON" : "Opening print dialog — choose \"Save as PDF\"");
+      toast.success(format === "json" ? "Chat exported as JSON" : "Opening print dialog — choose \"Save as PDF\"");
     } catch (e) {
-      antMessage.error((e as Error).message || "Couldn't export chat");
+      toast.danger((e as Error).message || "Couldn't export chat");
     }
   };
 
@@ -2288,7 +2286,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const { error } = await supabase
       .from("chat_clears")
       .upsert({ chat_id: active.id, user_id: me.id, cleared_before: clearedBefore }, { onConflict: "chat_id,user_id" });
-    if (error) { toast.error(explainSupabaseError(error).title); return; }
+    if (error) { toast.danger(explainSupabaseError(error).title); return; }
     // Instant local feedback — don't wait on a refetch to reflect the clear.
     chatClearsRef.current[active.id] = clearedBefore;
     setMessages([]);
@@ -2305,13 +2303,19 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (!requirePro("AI chat summary")) return;
     setShowHeaderMenu(false);
     setIsSummarized(true) ;
-    toast.loading("Summarizing…", { id: "sum" });
+    const summaryPromise = askSummary({ data: { chatId: activeId } }) as Promise<{ summary: string }>;
+    toast.promise(summaryPromise, {
+      loading: "Summarizing…",
+      success: "Summary ready",
+      error: (e) => e.message,
+    });
     try {
-      const r = await askSummary({ data: { chatId: activeId } }) as { summary: string };
+      const r = await summaryPromise;
       setSummary(r.summary);
-      toast.success("Summary ready", { id: "sum" });
       setIsSummarized(false) ;
-    } catch (e) { toast.error((e as Error).message, { id: "sum" }); }
+    } catch {
+      // error toast already shown by toast.promise above
+    }
   };
 
   const startCall = (kind: "voice" | "video") => {
@@ -2515,7 +2519,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         navigator.share({ title: "Sona", text: "Chat with me on Sona!", url: shareUrl }).catch(() => {});
       } else {
         navigator.clipboard.writeText(shareUrl);
-        antMessage.success("App link copied to clipboard!");
+        toast.success("App link copied to clipboard!");
       }
     }}
     className="grid h-9 w-9 place-items-center rounded-full text-gray-600 dark:text-white transition-colors"
@@ -3116,7 +3120,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 <button
   data-tour="new-chat-fab"
   onClick={() => {
-    if (accountRestricted) { toast.error(composerNotice ?? "Your account is restricted."); return; }
+    if (accountRestricted) { toast.danger(composerNotice ?? "Your account is restricted."); return; }
     setShowNewChat(true);
   }}
   aria-label="New chat"
@@ -4032,7 +4036,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                     if (!me || !activeId) return;
                     const path = `${activeId}/${me.id}/${crypto.randomUUID()}.webm`;
                     const { error: upErr } = await supabase.storage.from("chat-media").upload(path, blob, { contentType: blob.type });
-                    if (upErr) { toast.error(upErr.message); return; }
+                    if (upErr) { toast.danger(upErr.message); return; }
                     const { data: signed } = await supabase.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 365);
                     await supabase.from("messages").insert({
                       chat_id: activeId, sender_id: me.id, kind: "voice",
@@ -4072,7 +4076,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                   const { error } = await supabase.from("messages").insert({
                     chat_id: activeId!, sender_id: me.id, kind: "text", body: text, reply_to_id: threadRootId!,
                   });
-                  if (error) toast.error(error.message);
+                  if (error) toast.danger(error.message);
                 }}
               />
             )}
@@ -4300,7 +4304,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                 await navigator.share(shareData);
               } else {
                 await navigator.clipboard.writeText(shareUrl);
-                antMessage.success("Contact link copied");
+                toast.success("Contact link copied");
               }
             } catch {
               // user dismissed the native share sheet — nothing to do
@@ -4507,7 +4511,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
       {showTour && <OnboardingTour steps={ONBOARDING_STEPS} onFinish={() => setShowTour(false)} />}
       </Watermark>
-      <Toast.Provider placement="top" />
     </div>
   );
 }

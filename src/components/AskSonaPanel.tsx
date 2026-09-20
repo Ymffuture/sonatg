@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
+import { toast } from "@heroui/react";
 import {
   Sparkles,
   ArrowLeft,
@@ -333,7 +333,7 @@ export function AskSonaPanel({
     } catch (e) {
       const msg = (e as Error).message || "Sona couldn't process that. Try again.";
       setError(msg);
-      toast.error(msg);
+      toast.danger(msg);
     } finally {
       setLoading(false);
     }

@@ -35,14 +35,10 @@ export function NetworkStatusFooter() {
         : MdSignalWifiStatusbarConnectedNoInternet4;
 
     if (toastIdRef.current) {
-      // Update in place when switching offline ↔ unstable
-      toast.update(toastIdRef.current, label, {
-        description,
-        variant: status === "offline" ? "danger" : "warning",
-        timeout: 0, // persistent
-        indicator: <Icon className="h-5 w-5 animate-pulse" />,
-      });
-      return;
+      // HeroUI's toast has no `.update` — close the old one and recreate it
+      // when switching offline ↔ unstable.
+      toast.close(toastIdRef.current);
+      toastIdRef.current = null;
     }
 
     const id =
