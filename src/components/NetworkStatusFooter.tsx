@@ -3,7 +3,7 @@ import { toast } from "@heroui/react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 const COPY = {
-  unstable: "Network unstable — your connection is weak, messages may be delayed.",
+  unstable: "Network unstable — your connection is weak.",
   offline: "Not connected — check your internet connection.",
 } as const;
 
