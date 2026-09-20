@@ -612,3 +612,63 @@ body {
     filter: blur(1.5rem);
   }
     }
+
+/* =========================================================
+   HeroUI Toast surface
+   Prevent transparent toast backgrounds
+   ========================================================= */
+
+@layer components {
+  .toast {
+    background-color: var(--color-card) !important;
+    color: var(--color-card-foreground) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: 0.9rem;
+    box-shadow:
+      0 10px 30px oklch(0 0 0 / 0.14),
+      0 2px 8px oklch(0 0 0 / 0.08);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .toast__content {
+    color: inherit;
+  }
+
+  .toast__title {
+    color: inherit;
+    font-weight: 600;
+  }
+
+  .toast__description {
+    color: var(--color-muted-foreground);
+  }
+
+  /* Warning */
+  .toast.toast--warning {
+    background-color: var(--color-card) !important;
+    border-color: oklch(0.78 0.16 75) !important;
+  }
+
+  /* Danger */
+  .toast.toast--danger {
+    background-color: var(--color-card) !important;
+    border-color: var(--color-destructive) !important;
+  }
+
+  /* Dark mode */
+  .dark .toast,
+  [data-theme="dark"] .toast {
+    background-color: var(--color-card) !important;
+    color: var(--color-card-foreground) !important;
+    border-color: var(--color-border) !important;
+    box-shadow:
+      0 10px 30px oklch(0 0 0 / 0.4),
+      0 2px 8px oklch(0 0 0 / 0.25);
+  }
+
+  .dark .toast__description,
+  [data-theme="dark"] .toast__description {
+    color: var(--color-muted-foreground);
+  }
+}
