@@ -18,7 +18,8 @@ import { resolveModel } from "@/lib/aiModels";
 import { SONA_AI_ID } from "@/lib/db";
 
 export type MessageIntelAction =
-  "explain" | "suggest_reply" | "rewrite" | "translate" | "summarize" | "extract" | "ask";
+  "explain" | "suggest_reply" | "rewrite" | "translate" | "summarize" | "extract" |
+  "tone_check" | "fact_check" | "follow_up" | "ask";
 
 export type RewriteTone = "professional" | "casual" | "clear" | "concise";
 
@@ -79,6 +80,12 @@ function instructionFor(input: {
       return "Summarize this message in 1-2 short sentences, keeping only the essential point.";
     case "extract":
       return "Extract any concrete details from this message: dates, times, names, tasks/action items, locations, links, and other important specifics. Return a short bulleted list grouped by category. If nothing concrete is present, say so in one line.";
+    case "tone_check":
+      return "Analyze how this message is likely to come across emotionally to the person receiving it. In 2-3 short sentences: name the dominant tone (e.g. friendly, blunt, sarcastic, anxious, cold, urgent, passive-aggressive), and flag anything that risks being misread or landing worse than intended. If the tone seems fine and low-risk, say so plainly.";
+    case "fact_check":
+      return "Identify any concrete, checkable factual claims in this message (dates, statistics, events, quotes, named facts). For each one, briefly note your confidence and whether it seems plausible, outdated, or questionable based on what you know, and why. If the message contains no checkable factual claims (e.g. it's an opinion, a greeting, a plan), say so in one line instead of forcing an answer.";
+    case "follow_up":
+      return "Suggest exactly 3 short, thoughtful follow-up questions the recipient could send back to keep this conversation going naturally. Make them genuinely curious and specific to what was said, not generic. Return them as a plain numbered list with nothing else before or after.";
     case "ask":
       return (
         (input.question || "").trim().slice(0, 500) ||
