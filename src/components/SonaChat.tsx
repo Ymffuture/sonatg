@@ -4506,6 +4506,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
       {showTour && <OnboardingTour steps={ONBOARDING_STEPS} onFinish={() => setShowTour(false)} />}
       </Watermark>
+      <Toast.Provider placement="top" />
     </div>
   );
 }
