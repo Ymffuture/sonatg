@@ -524,7 +524,7 @@ export function AskSonaPanel({
 
               {/* Unique Loading Animation */}
               {loading && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm">
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-white/5 dark:bg-zinc-950/80 backdrop-blur-sm">
                   <Spinner size="xl" />
                 </div>
               )}
