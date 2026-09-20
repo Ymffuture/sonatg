@@ -49,6 +49,7 @@ import { PurpleBadge } from "./PurpleBadge";
 import {MdDiamond} from "react-icons/md";
 import { IoMdArrowDropleft } from "react-icons/io";
 import { IoMdArrowDropright } from "react-icons/io";
+import { Toast } from "@heroui/react";
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
