@@ -206,48 +206,6 @@ function MarkdownResult({ content }: { content: string }) {
   );
 }
 
-// --- Premium Loading Animation Component ---
-function SonaThinkingLoader() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-5 py-10">
-      <div className="relative flex h-16 w-16 items-center justify-center">
-        {/* Outer orbital ring */}
-        <motion.div
-          className="absolute inset-0 rounded-full border-2 border-transparent border-t-[var(--sona-accent,#E07A5F)] border-r-[var(--sona-accent,#E07A5F)]/30"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        />
-        {/* Inner counter-rotating ring */}
-        <motion.div
-          className="absolute inset-2 rounded-full border-2 border-transparent border-b-[var(--sona-accent,#E07A5F)]/60 border-l-[var(--sona-accent,#E07A5F)]"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-        />
-        {/* Pulsing core */}
-        <motion.div
-          className="h-3 w-3 rounded-full bg-[var(--sona-accent,#E07A5F)] shadow-[0_0_20px_rgba(224,122,95,0.6)]"
-          animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-
-      {/* Animated text dots */}
-      <div className="flex items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-        <span>Sona is analyzing</span>
-        {[0, 0.2, 0.4].map((delay, i) => (
-          <motion.span
-            key={i}
-            animate={{ opacity: [0.2, 1, 0.2] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay, ease: "easeInOut" }}
-          >
-            .
-          </motion.span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function AskSonaPanel({
   chatId,
   message,
