@@ -33,6 +33,7 @@ import { postSystemMessage } from "@/lib/systemMessages";
 import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, FREE_PIN_LIMIT, countMyChats, countMessagesSentToday } from "@/lib/planLimits";
 import { PRICING, BUSINESS_PRICING, type BillingInterval } from "@/lib/pricing";
 import { PRO_MODELS, DEFAULT_MODEL, isProModelId } from "@/lib/aiModels";
+import {Spinner} from "@heroui/react";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
@@ -509,7 +510,7 @@ export function GroupSettingsModal({
                         disabled={addBusy || addSelected.size === 0}
                         className="w-full py-3 text-sm font-semibold text-white bg-[var(--sona-accent,#E07A5F)] disabled:opacity-50 hover:bg-[#d4694f] transition-colors flex items-center justify-center gap-2"
                       >
-                        {addBusy ? <><Spin size="small" /> Adding…</> : "Add selected"}
+                        {addBusy ? <><Spinner /> Adding…</> : "Add selected"}
                       </button>
                     </>
                   )}
@@ -559,7 +560,7 @@ export function GroupSettingsModal({
               disabled={classroomBusy}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--sona-accent,#E07A5F)]/10 px-3 py-3 text-sm font-semibold text-[var(--sona-accent,#E07A5F)] disabled:opacity-60 hover:bg-[var(--sona-accent,#E07A5F)]/15 transition-colors"
             >
-              {classroomBusy ? <Spin size="small" /> : <KeyRound className="h-4 w-4" />}
+              {classroomBusy ?<Spinner /> : <KeyRound className="h-4 w-4" />}
               Generate join code
             </motion.button>
           )}
@@ -591,7 +592,7 @@ export function GroupSettingsModal({
             disabled={inviteBusy}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--sona-accent,#E07A5F)]/10 px-3 py-2.5 text-sm font-semibold text-[var(--sona-accent,#E07A5F)] disabled:opacity-60 hover:bg-[var(--sona-accent,#E07A5F)]/15 transition-colors"
           >
-            {inviteBusy ? <Spin size="small" /> : <Link2 className="h-4 w-4" />}
+            {inviteBusy ? <Spinner /> : <Link2 className="h-4 w-4" />}
             Create invite link
           </motion.button>
 
@@ -643,7 +644,7 @@ export function GroupSettingsModal({
           disabled={saving}
           className="w-full rounded-xl bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--sona-accent,#E07A5F)]/20 hover:opacity-95 disabled:opacity-60 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
-          {saving ? <><Spin size="small" /> Saving…</> : "Save changes"}
+          {saving ? <><Spinner /> Saving…</> : "Save changes"}
         </motion.button>
       </div>
     </GlassSheet>
@@ -832,7 +833,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
               disabled={joiningClass || !classCode.trim()}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--sona-accent,#E07A5F)] py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--sona-accent,#E07A5F)]/20 hover:opacity-95 disabled:opacity-60 transition-all active:scale-[0.98]"
             >
-              {joiningClass ? <><Spin size="small" /> Joining…</> : "Join class"}
+              {joiningClass ? <><Spinner /> Joining…</> : "Join class"}
             </motion.button>
           </motion.div>
         )}
@@ -917,7 +918,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                           <div className="truncate text-xs text-zinc-500">{usernameFromEmail(u.display_name, u.email)}</div>
                         </div>
                         {mode === "direct" ? (
-                          busyId === u.id ? <Spin size="small" /> : <Plus className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
+                          busyId === u.id ? <Spinner />: <Plus className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
                         ) : selectedIds.has(u.id) ? (
                           <CheckSquare className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
                         ) : (
