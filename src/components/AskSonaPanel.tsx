@@ -523,7 +523,7 @@ export function AskSonaPanel({
               </AnimatePresence>
 
               {/* Unique Loading Animation */}
-              {loading && <Spinner size="xl" />}
+              {loading && <Spinner size="xl" className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-white/80 dark:bg-zinc-950/80" />}
 
               {/* Error */}
               <AnimatePresence>
