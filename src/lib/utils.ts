@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@heroui/react";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import {
@@ -193,7 +193,7 @@ export async function downloadFile(url: string, filename: string) {
     a.remove();
     URL.revokeObjectURL(objectUrl);
   } catch (e) {
-    toast.error("Couldn't download file");
+    toast.danger("Couldn't download file");
     console.error("downloadFile failed", e);
   }
 }
