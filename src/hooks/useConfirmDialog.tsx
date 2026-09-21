@@ -54,11 +54,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 </AlertDialog.Body>
               )}
               <AlertDialog.Footer>
-                <Button slot="close" variant="tertiary" onPress={() => close(false)}>
+                <Button variant="tertiary" onPress={() => close(false)}>
                   {state.cancelText ?? "Cancel"}
                 </Button>
                 <Button
-                  slot="close"
                   variant={state.danger ? "danger" : "primary"}
                   onPress={() => close(true)}
                 >
