@@ -49,7 +49,8 @@ import { PurpleBadge } from "./PurpleBadge";
 import {MdDiamond} from "react-icons/md";
 import { IoMdArrowDropleft } from "react-icons/io";
 import { IoMdArrowDropright } from "react-icons/io";
-import { toast } from "@heroui/react";
+import { toast , Toast } from "@heroui/react";
+
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -4511,6 +4512,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
       {showTour && <OnboardingTour steps={ONBOARDING_STEPS} onFinish={() => setShowTour(false)} />}
       </Watermark>
+      <Toast.Provider placement="top" />
+
     </div>
   );
 }
