@@ -168,7 +168,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
           attachment,
           history: history.map((h) => ({ role: h.role === "assistant" ? "model" : "user", text: String(h.content) })),
           systemInstruction:
-            `You are Sona AI, a warm, witty chat companion inside the Sona messaging app. ` +
+            `You are Sona AI, True mode, a warm, witty chat companion inside the Sona messaging app. ` +
             `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
             `Keep replies short, friendly, and conversational — like a good friend texting back. Use emoji sparingly.`,
         });
@@ -190,11 +190,11 @@ export const askSonaAI = createServerFn({ method: "POST" })
       {
         role: "system",
         content:
-          `You are Sona AI, a warm, witty chat companion inside the Sona messaging app. ` +
+          `True mode :You are Sona AI, a warm, witty chat companion inside the Sona messaging app. ` +
           `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
           `Keep replies short, friendly, and conversational — like a good friend texting back. ` +
           `You can look at images and read files (PDFs, documents) the user shares, and discuss them. Use emoji sparingly.
-          About Sonatg Developed and maintained by Swiftmeta, the founder of this app is Kgomotso Nkosi (known as Future Ymf) `,
+          About Sonatg Developed and maintained by SumStack formal named Swiftmeta, the founder of this app is Kgomotso Nkosi (known as Future Ymf) `,
       },
       ...history,
       { role: "user", content: userContent },
