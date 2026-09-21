@@ -34,6 +34,7 @@ import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DA
 import { PRICING, BUSINESS_PRICING, type BillingInterval } from "@/lib/pricing";
 import { PRO_MODELS, DEFAULT_MODEL, isProModelId } from "@/lib/aiModels";
 import {Spinner} from "@heroui/react";
+import { toast} from "@heroui/react";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
@@ -54,14 +55,14 @@ const MILKY_CLASS =
 
 const notify = {
   success: ({ message, description }: { message: string; description?: string }) =>
-    notification.success({
+    toast({
       message,
       description,
       placement: "top",
       className: `${MILKY_CLASS} [&_.ant-notification-notice-icon]:!text-[var(--sona-accent,#E07A5F)]`,
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
-    notification.error({
+    toast.info({
       message,
       description,
       placement: "top",
