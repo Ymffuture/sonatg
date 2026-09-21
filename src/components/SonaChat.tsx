@@ -169,7 +169,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     targetSelector: '[data-tour="status-bar"]',
     title: "Share a status",
     description: "Post a photo, video, or text update that disappears after 24 hours — just like a story.",
-    placement: "bottom",
+    placement: "top",
   },
   {
     targetSelector: '[data-tour="settings-btn"]',
