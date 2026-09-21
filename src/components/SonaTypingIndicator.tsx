@@ -10,15 +10,8 @@ export function SonaTypingIndicator() {
     >
       {/* Glassmorphic bubble container */}
       <motion.div
-        animate={{
-          boxShadow: [
-            "0 4px 20px -4px rgba(224, 122, 95, 0.15)",
-            "0 8px 30px -4px rgba(224, 122, 95, 0.25)",
-            "0 4px 20px -4px rgba(224, 122, 95, 0.15)",
-          ],
-        }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className="relative flex items-center gap-3 rounded-3xl px-5 py-4 backdrop-blur-xl"
+        className="relative flex items-center gap-3 rounded-3xl px-5 py-4"
       >
         {/* Ambient glow backdrop */}
         <div className="absolute inset-0 rounded-3xl" />
