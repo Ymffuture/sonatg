@@ -2709,8 +2709,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         className={`
           group relative h-8 shrink-0 flex items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition-all duration-200 ease-out
           ${isActive 
-            ? "bg-[var(--sona-accent,#E07A5F)] text-white shadow-md shadow-[var(--sona-accent,#E07A5F)]/20 hover:brightness-105 active:scale-[0.97]" 
-            : "bg-[#F5F0E8] text-[#5A6062] hover:bg-[#EBE5DC] hover:text-[#2D3436] dark:bg-white/[0.04] dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-200 border border-transparent dark:border-white/5"
+            ? "bg-[var(--sona-accent,#E07A5F)]/5 text-white shadow-md shadow-[var(--sona-accent,#E07A5F)]/20 hover:brightness-105 active:scale-[0.97]" 
+            : "bg-transparent text-[#5A6062] hover:bg-[#EBE5DC] hover:text-[#2D3436] dark:bg-white/[0.04] dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-200 border border-gray-300 dark:border-white/5"
           }
           ${!me.is_pro && !isActive ? "opacity-75 hover:opacity-100" : ""}
         `}
@@ -2736,8 +2736,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         className={`
           group relative h-8 shrink-0 flex items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition-all duration-200 ease-out
           ${isActive 
-            ? "bg-[var(--sona-accent,#E07A5F)] text-white shadow-md shadow-[var(--sona-accent,#E07A5F)]/20 hover:brightness-105 active:scale-[0.97]" 
-            : "bg-[#F5F0E8] text-[#5A6062] hover:bg-[#EBE5DC] hover:text-[#2D3436] dark:bg-white/[0.04] dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-200 border border-transparent dark:border-white/5"
+            ? "bg-[var(--sona-accent,#E07A5F)]/5 text-white shadow-md shadow-[var(--sona-accent,#E07A5F)]/20 hover:brightness-105 active:scale-[0.97]" 
+            : "bg-transparent text-[#5A6062] hover:bg-[#EBE5DC] hover:text-[#2D3436] dark:bg-white/[0.04] dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-200 border border-gray-300 dark:border-white/5"
           }
           ${!me.is_pro && !isActive ? "opacity-75 hover:opacity-100" : ""}
         `}
