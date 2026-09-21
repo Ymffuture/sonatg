@@ -23,10 +23,6 @@ body {
   user-select: none;
 }
 
-.toast-region{ width:calc(100vw - 2rem); position:fixed; ... }
-@media (min-width:40rem){ .toast-region{ width:auto; min-width:var(--toast-width) } }
-.toast-region--bottom{ bottom:1rem; left:50%; translate:-50% 0 }
-
 
 /* Target the element you want to hide the scrollbar for */
 .hide-scrollbar {
