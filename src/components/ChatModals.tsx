@@ -62,7 +62,7 @@ const notify = {
   error: ({ message, description }: { message: string; description?: string }) =>
     toast(message, {
       description,
-      variant: "info",
+      variant: "warning",
     }),
 };
 
