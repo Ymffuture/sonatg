@@ -185,7 +185,7 @@ function RootComponent() {
     <AntApp>
       <ConfirmProvider>
         <SoundsProvider>
-          <Toast.Provider placement="bottom" />
+          <Toast.Provider placement="top" />
           <Outlet />
         </SoundsProvider>
       </ConfirmProvider>
