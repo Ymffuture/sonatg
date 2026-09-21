@@ -57,12 +57,12 @@ const notify = {
   success: ({ message, description }: { message: string; description?: string }) =>
     toast(message, {
       description,
-      variant: "success",
+      variant: "default",
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
     toast(message, {
       description,
-      variant: "danger",
+      variant: "info",
     }),
 };
 
