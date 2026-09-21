@@ -671,4 +671,35 @@ body {
   [data-theme="dark"] .toast__description {
     color: var(--color-muted-foreground);
   }
+
+  /* -------------------------------------------------------
+     daisyUI also ships a component literally named ".toast"
+     (a fixed bottom-right container: position:fixed;
+     width:max-content; inset-inline:auto 1rem). It lives in
+     Tailwind's "utilities" layer, which beats HeroUI's
+     ".toast" in the "components" layer for equal specificity
+     — so daisyUI's positioning silently wins and every HeroUI
+     toast collapses to a small chip pinned bottom-right,
+     ignoring whatever placement Toast.Provider was given.
+     daisyUI's toast-* classes aren't used anywhere in this
+     app, so it's safe to force HeroUI's own layout back. ---- */
+  .toast {
+    position: absolute !important;
+    inset-inline: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    translate: none !important;
+  }
+  .toast--bottom,
+  .toast--bottom-start,
+  .toast--bottom-end {
+    top: auto !important;
+    bottom: 0 !important;
+  }
+  .toast--top,
+  .toast--top-start,
+  .toast--top-end {
+    top: 0 !important;
+    bottom: auto !important;
+  }
 }
