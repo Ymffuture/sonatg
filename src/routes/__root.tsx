@@ -14,6 +14,9 @@ import { reportError } from "../lib/error-reporting";
 import { App as AntApp } from "antd";
 import { ConfirmProvider } from "@/hooks/useConfirmDialog";
 import { SoundsProvider } from "@/hooks/useSounds";
+import { Toast} from '@heroui/react';
+
+
 
 function NotFoundComponent() {
   return (
@@ -182,6 +185,7 @@ function RootComponent() {
     <AntApp>
       <ConfirmProvider>
         <SoundsProvider>
+          <Toast.Provider placement="top" />
           <Outlet />
         </SoundsProvider>
       </ConfirmProvider>
