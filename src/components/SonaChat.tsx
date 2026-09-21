@@ -2671,7 +2671,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
             )}
 
             <div className="px-3 py-2 pb-3 pt-3">
-              <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8]/80 dark:bg-[#2A2A2A]/50 px-4 py-3 border border-[var(--sona-accent,#E07A5F)]/80">
+              <div className="flex items-center gap-2 rounded-full bg-[transparent] dark:bg-[#2A2A2A]/5 px-4 py-3 border border-[var(--sona-accent,#E07A5F)]/5">
                 <Search className="h-8 w-8 text-[#8C8C8C]" />
                 <input data-tour="search-chats" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask Sona AI or Search"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-[#8C8C8C] text-[#2D3436] dark:text-[#E8E8E8]" />
