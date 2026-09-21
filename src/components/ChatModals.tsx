@@ -33,8 +33,7 @@ import { postSystemMessage } from "@/lib/systemMessages";
 import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DAILY_MESSAGE_LIMIT, FREE_PIN_LIMIT, countMyChats, countMessagesSentToday } from "@/lib/planLimits";
 import { PRICING, BUSINESS_PRICING, type BillingInterval } from "@/lib/pricing";
 import { PRO_MODELS, DEFAULT_MODEL, isProModelId } from "@/lib/aiModels";
-import {Spinner} from "@heroui/react";
-import { toast} from "@heroui/react";
+import { Spinner, toast } from "@heroui/react";
 
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
@@ -53,20 +52,17 @@ const MILKY_CLASS =
   "[&_.ant-notification-notice-message]:!text-zinc-900 dark:[&_.ant-notification-notice-message]:!text-zinc-100 " +
   "[&_.ant-notification-notice-description]:!text-zinc-600 dark:[&_.ant-notification-notice-description]:!text-zinc-400";
 
+/* ─── Themed Notification Helper ─── */
 const notify = {
   success: ({ message, description }: { message: string; description?: string }) =>
-    toast({
-      message,
+    toast(message, {
       description,
-      placement: "top",
-      className: `${MILKY_CLASS} [&_.ant-notification-notice-icon]:!text-[var(--sona-accent,#E07A5F)]`,
+      variant: "success",
     }),
   error: ({ message, description }: { message: string; description?: string }) =>
-    toast.info({
-      message,
+    toast(message, {
       description,
-      placement: "top",
-      className: `${MILKY_CLASS} [&_.ant-notification-notice-icon]:!text-red-500`,
+      variant: "danger",
     }),
 };
 
