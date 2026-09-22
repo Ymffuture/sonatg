@@ -2,25 +2,20 @@ import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { Alert, notification } from "antd";
-import {
-  Input,
-  Button,
-  Checkbox,
-} from "@heroui/react";
+import { notification } from "antd";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
-  Sparkles, Shield, Zap, CheckCircle2, ChevronDown,
-  Eye, EyeOff,
+  Sparkles, Shield, Zap, CheckCircle2, ChevronDown, Loader2,
 } from "lucide-react";
 import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
+import { Input, Button, Checkbox, Spinner } from "@heroui/react";
 
 type AuthMethod = "email" | "google" | "facebook" | "github" | "spotify";
 const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
   return (
-    <span className="ml-auto rounded-full bg-[#E07A5F]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
+    <span className="rounded-full bg-[#E07A5F]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
       Last used
     </span>
   );
@@ -101,30 +96,12 @@ function BrandLogo({ className = "" }: { className?: string }) {
   );
 }
 
-/*
- * Shared HeroUI Input styling so every field (name/email/password) looks
- * identical to your original glassy inputs — bordered variant, rounded-xl,
- * orange focus ring, dark-mode aware. Passed via `classNames` because HeroUI
- * inputs are slot-based (no single className covers the whole control).
- */
-const inputClassNames = {
-  inputWrapper:
-    "rounded-xl border border-zinc-200/60 bg-zinc-50/50 data-[hover=true]:border-[#E07A5F]/40 data-[hover=true]:bg-white " +
-    "group-data-[focus=true]:border-[#E07A5F]/40 group-data-[focus=true]:bg-white group-data-[focus=true]:ring-2 group-data-[focus=true]:ring-[#E07A5F]/10 " +
-    "dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:data-[hover=true]:border-[#E07A5F]/40 dark:data-[hover=true]:bg-zinc-900 " +
-    "dark:group-data-[focus=true]:border-[#E07A5F]/40 dark:group-data-[focus=true]:bg-zinc-900 shadow-none h-[52px] px-1",
-  input:
-    "text-sm placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100",
-  label: "hidden",
-};
-
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [lastUsed, setLastUsed] = useState<AuthMethod | null>(null);
@@ -245,6 +222,12 @@ function AuthPage() {
     }
   };
 
+  // Shared premium smooth wire classNames for HeroUI Inputs
+  const inputClassNames = {
+    inputWrapper: "border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/50 data-[hover=true]:border-[#E07A5F]/40 group-data-[focus=true]:border-[#E07A5F] group-data-[focus=true]:ring-2 group-data-[focus=true]:ring-[#E07A5F]/10 transition-all duration-200 rounded-xl",
+    input: "text-sm placeholder:text-zinc-400 dark:text-zinc-100",
+  };
+
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#FFFDF9] p-4 text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
       {/* Ambient background blobs */}
@@ -290,7 +273,7 @@ function AuthPage() {
         className="relative z-10 w-full max-w-5xl overflow-hidden rounded-3xl border border-zinc-200/60 bg-white/70 shadow-2xl backdrop-blur-2xl dark:border-zinc-800/60 dark:bg-zinc-900/70 dark:shadow-black/40"
       >
         <div className="flex min-h-[640px] flex-col lg:flex-row">
-
+          
           {/* Left panel — Form */}
           <div className="flex flex-col justify-center p-6 sm:p-10 lg:w-1/2 lg:py-12 lg:px-16 xl:px-20">
             <div className="mb-8 flex items-center gap-3">
@@ -327,87 +310,80 @@ function AuthPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="mb-6"
+                className="mb-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400 flex items-start gap-3 backdrop-blur-sm"
               >
-                <Alert
-                  message={errorMsg}
-                  type="error"
-                  showIcon
-                  closable
-                  onClose={() => setErrorMsg(null)}
-                  className="rounded-xl border-red-500/20 bg-red-500/5 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-                />
+                <svg className="h-5 w-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">{errorMsg}</div>
+                <button onClick={() => setErrorMsg(null)} className="shrink-0 opacity-70 hover:opacity-100 transition-opacity">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </motion.div>
             )}
 
             <form onSubmit={submit} className="space-y-4">
               {mode === "signup" && (
                 <Input
-                  aria-label="Display name"
-                  value={name}
-                  onValueChange={setName}
+                  size="lg"
+                  type="text"
                   placeholder="Display name"
                   variant="bordered"
-                  radius="lg"
-                  startContent={<User className="h-4 w-4 text-zinc-400" />}
+                  value={name}
+                  onValueChange={setName}
                   classNames={inputClassNames}
+                  startContent={<User className="h-4 w-4 text-zinc-400" />}
                 />
               )}
-
+              
               <Input
-                aria-label="Email address"
+                size="lg"
                 type="email"
-                isRequired
-                value={email}
-                onValueChange={setEmail}
                 placeholder="Email address"
                 variant="bordered"
-                radius="lg"
-                startContent={<Mail className="h-4 w-4 text-zinc-400" />}
-                classNames={inputClassNames}
-              />
-
-              <Input
-                aria-label="Password"
-                type={showPassword ? "text" : "password"}
+                value={email}
+                onValueChange={setEmail}
                 isRequired
-                minLength={6}
-                value={password}
-                onValueChange={setPassword}
+                classNames={inputClassNames}
+                startContent={<Mail className="h-4 w-4 text-zinc-400" />}
+              />
+              
+              <Input
+                size="lg"
+                type="password"
                 placeholder="Password"
                 variant="bordered"
-                radius="lg"
-                startContent={<Lock className="h-4 w-4 text-zinc-400" />}
-                endContent={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="text-zinc-400 transition-colors hover:text-[#E07A5F] focus:outline-none"
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                }
+                value={password}
+                onValueChange={setPassword}
+                isRequired
+                minLength={6}
                 classNames={inputClassNames}
+                startContent={<Lock className="h-4 w-4 text-zinc-400" />}
               />
 
               {mode === "signup" && (
-                <div className="flex items-start gap-1 pt-1">
+                <div className="flex items-start gap-3 pt-1">
                   <Checkbox
                     isSelected={acceptTerms}
                     onValueChange={setAcceptTerms}
-                    size="sm"
-                    radius="sm"
                     classNames={{
-                      wrapper: "before:border-zinc-300 dark:before:border-zinc-700 after:bg-[#E07A5F]",
+                      wrapper: "before:border-zinc-300 dark:before:border-zinc-700 group-data-[selected=true]:before:bg-[#E07A5F] group-data-[selected=true]:before:border-[#E07A5F] transition-all duration-200",
+                      label: "text-sm text-zinc-500 dark:text-zinc-400 cursor-pointer",
+                      icon: "text-white"
                     }}
                   >
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                    <span>
                       I agree to the{" "}
-                      <Link to="/terms" className="font-semibold text-[#E07A5F] hover:underline">Terms of Service</Link>{" "}
+                      <Link to="/terms" className="font-semibold text-[#E07A5F] hover:underline">
+                        Terms of Service
+                      </Link>{" "}
                       and{" "}
-                      <Link to="/privacy" className="font-semibold text-[#E07A5F] hover:underline">Privacy Policy</Link>.
+                      <Link to="/privacy" className="font-semibold text-[#E07A5F] hover:underline">
+                        Privacy Policy
+                      </Link>
+                      .
                     </span>
                   </Checkbox>
                 </div>
@@ -416,26 +392,23 @@ function AuthPage() {
               <Button
                 type="submit"
                 isLoading={loading}
-                radius="lg"
-                className="group w-full bg-zinc-900 py-6 text-sm font-bold text-white shadow-lg shadow-zinc-900/20 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 dark:bg-white dark:text-zinc-900 dark:shadow-white/20"
+                spinner={<Spinner size="sm" color="current" />}
+                className="w-full h-12 rounded-xl bg-zinc-900 text-white font-bold text-sm shadow-lg shadow-zinc-900/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:shadow-white/20"
+                endContent={!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               >
-                {!loading && (
-                  <>
-                    {mode === "signin" ? "Sign in" : "Get started"}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
-                )}
+                {mode === "signin" ? "Sign in" : "Get started"}
               </Button>
             </form>
 
             {mode === "signin" && (
               <div className="mt-4 text-center">
-                <button
-                  onClick={() => navigate({ to: "/forgot-password" })}
-                  className="text-sm font-medium text-zinc-500 transition-colors hover:text-[#E07A5F] dark:text-zinc-400"
+                <Button
+                  variant="light"
+                  className="text-sm font-medium text-zinc-500 transition-colors hover:text-[#E07A5F] dark:text-zinc-400 h-auto py-2"
+                  onPress={() => navigate({ to: "/forgot-password" })}
                 >
                   Forgot password?
-                </button>
+                </Button>
               </div>
             )}
 
@@ -448,49 +421,45 @@ function AuthPage() {
             {/* ─── Smart Social Login Buttons ─── */}
             <div className="grid grid-cols-1 gap-3">
               <Button
-                onPress={() => oauth("google")}
-                isDisabled={loading || !!oauthLoading}
-                isLoading={oauthLoading === "google"}
-                radius="lg"
                 variant="bordered"
-                className="group relative w-full justify-start gap-3 border-zinc-200/60 bg-white py-6 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                isLoading={oauthLoading === "google"}
+                spinner={<Loader2 className="h-4 w-4 animate-spin" />}
+                className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                startContent={<GoogleIcon className="h-5 w-5" />}
+                onPress={() => oauth("google")}
               >
-                {oauthLoading !== "google" && (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                    <GoogleIcon className="h-5 w-5" />
-                  </div>
-                )}
-                <span className="flex-1 text-left">{oauthLoading === "google" ? "Redirecting to Google…" : "Continue with Google"}</span>
-                {lastUsed === "google" && <LastUsed />}
+                <div className="flex flex-1 items-center justify-between">
+                  <span>{oauthLoading === "google" ? "Redirecting to Google…" : "Continue with Google"}</span>
+                  {lastUsed === "google" && <LastUsed />}
+                </div>
               </Button>
 
               <Button
-                onPress={() => oauth("facebook")}
-                isDisabled={loading || !!oauthLoading}
-                isLoading={oauthLoading === "facebook"}
-                radius="lg"
                 variant="bordered"
-                className="group relative w-full justify-start gap-3 border-zinc-200/60 bg-white py-6 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                isLoading={oauthLoading === "facebook"}
+                spinner={<Loader2 className="h-4 w-4 animate-spin" />}
+                className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                startContent={<FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
+                onPress={() => oauth("facebook")}
               >
-                {oauthLoading !== "facebook" && (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                    <FacebookIcon className="h-5 w-5 text-[#1877F2]" />
-                  </div>
-                )}
-                <span className="flex-1 text-left">{oauthLoading === "facebook" ? "Redirecting to Facebook…" : "Continue with Facebook"}</span>
-                {lastUsed === "facebook" && <LastUsed />}
+                <div className="flex flex-1 items-center justify-between">
+                  <span>{oauthLoading === "facebook" ? "Redirecting to Facebook…" : "Continue with Facebook"}</span>
+                  {lastUsed === "facebook" && <LastUsed />}
+                </div>
               </Button>
             </div>
 
             {/* ─── More login options (collapsed by default) ─── */}
-            <button
-              type="button"
-              onClick={() => setShowMoreMethods((v) => !v)}
-              className="mt-4 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-zinc-400 transition-colors hover:text-[#E07A5F]"
+            <Button
+              variant="light"
+              onPress={() => setShowMoreMethods((v) => !v)}
+              className="mt-4 w-full h-auto py-2 text-xs font-semibold text-zinc-400 transition-colors hover:text-[#E07A5F]"
+              endContent={
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${showMoreMethods ? "rotate-180" : ""}`} />
+              }
             >
               {showMoreMethods ? "Fewer options" : "More login options"}
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${showMoreMethods ? "rotate-180" : ""}`} />
-            </button>
+            </Button>
 
             <AnimatePresence initial={false}>
               {showMoreMethods && (
@@ -502,37 +471,31 @@ function AuthPage() {
                   className="overflow-hidden"
                 >
                   <Button
-                    onPress={() => oauth("github")}
-                    isDisabled={loading || !!oauthLoading}
-                    isLoading={oauthLoading === "github"}
-                    radius="lg"
                     variant="bordered"
-                    className="group relative mt-2 w-full justify-start gap-3 border-zinc-200/60 bg-white py-6 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                    isLoading={oauthLoading === "github"}
+                    spinner={<Loader2 className="h-4 w-4 animate-spin" />}
+                    className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                    startContent={<GitHubIcon className="h-5 w-5 text-zinc-900 dark:text-white" />}
+                    onPress={() => oauth("github")}
                   >
-                    {oauthLoading !== "github" && (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                        <GitHubIcon className="h-5 w-5 text-zinc-900 dark:text-white" />
-                      </div>
-                    )}
-                    <span className="flex-1 text-left">{oauthLoading === "github" ? "Redirecting to GitHub…" : "Continue with GitHub"}</span>
-                    {lastUsed === "github" && <LastUsed />}
+                    <div className="flex flex-1 items-center justify-between">
+                      <span>{oauthLoading === "github" ? "Redirecting to GitHub…" : "Continue with GitHub"}</span>
+                      {lastUsed === "github" && <LastUsed />}
+                    </div>
                   </Button>
 
                   <Button
-                    onPress={() => oauth("spotify")}
-                    isDisabled={loading || !!oauthLoading}
-                    isLoading={oauthLoading === "spotify"}
-                    radius="lg"
                     variant="bordered"
-                    className="group relative mt-2 w-full justify-start gap-3 border-zinc-200/60 bg-white py-6 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                    isLoading={oauthLoading === "spotify"}
+                    spinner={<Loader2 className="h-4 w-4 animate-spin" />}
+                    className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                    startContent={<SpotifyIcon className="h-5 w-5" />}
+                    onPress={() => oauth("spotify")}
                   >
-                    {oauthLoading !== "spotify" && (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                        <SpotifyIcon className="h-5 w-5" />
-                      </div>
-                    )}
-                    <span className="flex-1 text-left">{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
-                    {lastUsed === "spotify" && <LastUsed />}
+                    <div className="flex flex-1 items-center justify-between">
+                      <span>{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
+                      {lastUsed === "spotify" && <LastUsed />}
+                    </div>
                   </Button>
                 </motion.div>
               )}
