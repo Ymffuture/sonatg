@@ -8,7 +8,7 @@ import {
   Sparkles, Shield, Zap, CheckCircle2, ChevronDown, Loader2,
 } from "lucide-react";
 import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
-
+import { Spinner } from '@heroui/react';
 type AuthMethod = "email" | "google" | "facebook" | "github" | "spotify";
 const LAST_USED_KEY = "sona-last-auth-method";
 
@@ -216,7 +216,6 @@ function AuthPage() {
   return (
     <>
       {/* Toast Provider for HeroUI toast notifications */}
-      <Toast.Provider placement="top end" />
       
       <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#FFFDF9] p-4 text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
         {/* Ambient background blobs */}
@@ -374,7 +373,7 @@ function AuthPage() {
                   className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-zinc-900 py-3.5 text-sm font-bold text-white shadow-lg shadow-zinc-900/20 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 dark:bg-white dark:text-zinc-900 dark:shadow-white/20"
                 >
                   {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
                       {mode === "signin" ? "Sign in" : "Get started"}
@@ -409,7 +408,7 @@ function AuthPage() {
                   className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                    {oauthLoading === "google" ? <Loader2 className="h-5 w-5 animate-spin text-[#4285F4]" /> : <GoogleIcon className="h-5 w-5" />}
+                    {oauthLoading === "google" ? <Spinner className="h-5 w-5 animate-spin text-[#4285F4]" /> : <GoogleIcon className="h-5 w-5" />}
                   </div>
                   <span className="flex-1 text-left">{oauthLoading === "google" ? "Redirecting to Google…" : "Continue with Google"}</span>
                   {lastUsed === "google" && <LastUsed />}
@@ -421,7 +420,7 @@ function AuthPage() {
                   className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                    {oauthLoading === "facebook" ? <Loader2 className="h-5 w-5 animate-spin text-[#1877F2]" /> : <FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
+                    {oauthLoading === "facebook" ? <Spinner className="h-5 w-5 animate-spin text-[#1877F2]" /> : <FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
                   </div>
                   <span className="flex-1 text-left">{oauthLoading === "facebook" ? "Redirecting to Facebook…" : "Continue with Facebook"}</span>
                   {lastUsed === "facebook" && <LastUsed />}
@@ -453,7 +452,7 @@ function AuthPage() {
                       className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
                     >
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                        {oauthLoading === "github" ? <Loader2 className="h-5 w-5 animate-spin text-zinc-900 dark:text-white" /> : <GitHubIcon className="h-5 w-5 text-zinc-900 dark:text-white" />}
+                        {oauthLoading === "github" ? <Spinner className="h-5 w-5 animate-spin text-zinc-900 dark:text-white" /> : <GitHubIcon className="h-5 w-5 text-zinc-900 dark:text-white" />}
                       </div>
                       <span className="flex-1 text-left">{oauthLoading === "github" ? "Redirecting to GitHub…" : "Continue with GitHub"}</span>
                       {lastUsed === "github" && <LastUsed />}
@@ -465,7 +464,7 @@ function AuthPage() {
                       className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
                     >
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                        {oauthLoading === "spotify" ? <Loader2 className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
+                        {oauthLoading === "spotify" ? <Spinner className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
                       </div>
                       <span className="flex-1 text-left">{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
                       {lastUsed === "spotify" && <LastUsed />}
@@ -542,6 +541,7 @@ function AuthPage() {
             protected by database-level access control by default, and Sona Pro adds fully
             encrypted, hidden chats for conversations where privacy matters most.
           </p>
+          
           <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs font-semibold text-zinc-400">
             <Link to="/blog" className="transition-colors hover:text-[#E07A5F]">Blog</Link>
             <Link to="/help" className="transition-colors hover:text-[#E07A5F]">Help Center</Link>
