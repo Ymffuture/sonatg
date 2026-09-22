@@ -2,20 +2,19 @@ import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { notification } from "antd";
+import { Alert, Toast, toast, CloseButton } from "@heroui/react";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
   Sparkles, Shield, Zap, CheckCircle2, ChevronDown, Loader2,
 } from "lucide-react";
 import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
-import { Input, Button, Checkbox, Spinner } from "@heroui/react";
 
 type AuthMethod = "email" | "google" | "facebook" | "github" | "spotify";
 const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
   return (
-    <span className="rounded-full bg-[#E07A5F]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
+    <span className="ml-auto rounded-full bg-[#E07A5F]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E07A5F] ring-1 ring-inset ring-[#E07A5F]/20">
       Last used
     </span>
   );
@@ -149,10 +148,8 @@ function AuthPage() {
 
         const chosenName = isReservedSonaName(name) ? fallbackNameFromEmail(email) : (name || email.split("@")[0]);
         if (isReservedSonaName(name)) {
-          notification.info({
-            message: "\"Sona\" is a reserved name",
+          toast.info("\"Sona\" is a reserved name", {
             description: `We've set your display name to "${chosenName}" instead — you can change it later from Settings.`,
-            placement: "top",
           });
         }
 
@@ -171,17 +168,13 @@ function AuthPage() {
 
         if (alreadyRegistered) {
           setErrorMsg("An account with this email already exists. Try signing in instead.");
-          notification.error({
-            message: "Account already exists",
+          toast.danger("Account already exists", {
             description: "Try signing in instead, or use 'Forgot password?' if you don't remember it.",
-            placement: "topRight",
           });
         } else if (!data.session) {
-          notification.success({
-            message: "Verification email sent",
+          toast.success("Verification email sent", {
             description: `We sent a confirmation link to ${email}. Check your inbox (and spam folder) to finish creating your account.`,
-            placement: "topRight",
-            duration: 6,
+            timeout: 6000,
           });
           setErrorMsg(null);
         }
@@ -193,10 +186,8 @@ function AuthPage() {
     } catch (err) {
       const msg = (err as Error).message;
       setErrorMsg(msg);
-      notification.error({
-        message: mode === "signup" ? "Couldn't create account" : "Couldn't sign in",
+      toast.danger(mode === "signup" ? "Couldn't create account" : "Couldn't sign in", {
         description: msg,
-        placement: "topRight",
       });
     } finally {
       setLoading(false);
@@ -222,372 +213,355 @@ function AuthPage() {
     }
   };
 
-  // Shared premium smooth wire classNames for HeroUI Inputs
-  const inputClassNames = {
-    inputWrapper: "border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/50 data-[hover=true]:border-[#E07A5F]/40 group-data-[focus=true]:border-[#E07A5F] group-data-[focus=true]:ring-2 group-data-[focus=true]:ring-[#E07A5F]/10 transition-all duration-200 rounded-xl",
-    input: "text-sm placeholder:text-zinc-400 dark:text-zinc-100",
-  };
-
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#FFFDF9] p-4 text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
-      {/* Ambient background blobs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-purple-100/40 blur-[120px] dark:bg-purple-900/10" />
-        <div className="absolute top-1/3 -right-32 h-[500px] w-[500px] rounded-full bg-[#E07A5F]/10 blur-[120px]" />
-        <div className="absolute -bottom-32 left-1/4 h-[500px] w-[500px] rounded-full bg-[#F4A261]/10 blur-[120px]" />
-      </div>
+    <>
+      {/* Toast Provider for HeroUI toast notifications */}
+      <Toast.Provider placement="top end" />
+      
+      <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#FFFDF9] p-4 text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
+        {/* Ambient background blobs */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-purple-100/40 blur-[120px] dark:bg-purple-900/10" />
+          <div className="absolute top-1/3 -right-32 h-[500px] w-[500px] rounded-full bg-[#E07A5F]/10 blur-[120px]" />
+          <div className="absolute -bottom-32 left-1/4 h-[500px] w-[500px] rounded-full bg-[#F4A261]/10 blur-[120px]" />
+        </div>
 
-      {/* Floating glass bubbles — desktop only */}
-      <div className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
-        <div className="absolute top-[18%] left-[8%] animate-float rounded-2xl rounded-bl-sm border border-zinc-200/60 bg-white/60 px-4 py-3 shadow-xl backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/60">
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            <MessageCircle className="h-4 w-4 text-[#E07A5F]" />
-            <span>Hey! Welcome to Sona</span>
-          </div>
-        </div>
-        <div className="absolute top-[30%] right-[10%] animate-float rounded-2xl rounded-br-sm border border-[#E07A5F]/20 bg-[#E07A5F]/10 px-4 py-3 shadow-xl backdrop-blur-xl" style={{ animationDelay: '1.5s' }}>
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            <Sparkles className="h-4 w-4 text-[#E07A5F]" />
-            <span>AI-powered chats</span>
-          </div>
-        </div>
-        <div className="absolute bottom-[22%] left-[12%] animate-float rounded-2xl rounded-bl-sm border border-zinc-200/60 bg-white/60 px-4 py-3 shadow-xl backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/60" style={{ animationDelay: '3s' }}>
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            <Shield className="h-4 w-4 text-[#E07A5F]" />
-            <span>End-to-end encrypted</span>
-          </div>
-        </div>
-        <div className="absolute bottom-[35%] right-[8%] animate-float rounded-2xl rounded-br-sm border border-[#E07A5F]/20 bg-[#E07A5F]/10 px-4 py-3 shadow-xl backdrop-blur-xl" style={{ animationDelay: '2.5s' }}>
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            <Zap className="h-4 w-4 text-[#E07A5F]" />
-            <span>Talk gold</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main glass card */}
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.985 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-5xl overflow-hidden rounded-3xl border border-zinc-200/60 bg-white/70 shadow-2xl backdrop-blur-2xl dark:border-zinc-800/60 dark:bg-zinc-900/70 dark:shadow-black/40"
-      >
-        <div className="flex min-h-[640px] flex-col lg:flex-row">
-          
-          {/* Left panel — Form */}
-          <div className="flex flex-col justify-center p-6 sm:p-10 lg:w-1/2 lg:py-12 lg:px-16 xl:px-20">
-            <div className="mb-8 flex items-center gap-3">
-              <BrandLogo className="h-10 w-auto" />
+        {/* Floating glass bubbles — desktop only */}
+        <div className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
+          <div className="absolute top-[18%] left-[8%] animate-float rounded-2xl rounded-bl-sm border border-zinc-200/60 bg-white/60 px-4 py-3 shadow-xl backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/60">
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <MessageCircle className="h-4 w-4 text-[#E07A5F]" />
+              <span>Hey! Welcome to Sona</span>
             </div>
+          </div>
+          <div className="absolute top-[30%] right-[10%] animate-float rounded-2xl rounded-br-sm border border-[#E07A5F]/20 bg-[#E07A5F]/10 px-4 py-3 shadow-xl backdrop-blur-xl" style={{ animationDelay: '1.5s' }}>
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+              <Sparkles className="h-4 w-4 text-[#E07A5F]" />
+              <span>AI-powered chats</span>
+            </div>
+          </div>
+          <div className="absolute bottom-[22%] left-[12%] animate-float rounded-2xl rounded-bl-sm border border-zinc-200/60 bg-white/60 px-4 py-3 shadow-xl backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-900/60" style={{ animationDelay: '3s' }}>
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <Shield className="h-4 w-4 text-[#E07A5F]" />
+              <span>End-to-end encrypted</span>
+            </div>
+          </div>
+          <div className="absolute bottom-[35%] right-[8%] animate-float rounded-2xl rounded-br-sm border border-[#E07A5F]/20 bg-[#E07A5F]/10 px-4 py-3 shadow-xl backdrop-blur-xl" style={{ animationDelay: '2.5s' }}>
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+              <Zap className="h-4 w-4 text-[#E07A5F]" />
+              <span>Talk gold</span>
+            </div>
+          </div>
+        </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={mode}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-                className="mb-8"
-              >
-                <h2 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
-                  {mode === "signin" ? "Welcome back" : "Create account"}
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-                  {mode === "signin"
-                    ? "Sign in to continue your conversations."
-                    : "Join the community and start talking gold."}
-                </p>
-                {lastUsed === "email" && mode === "signin" && (
-                  <p className="mt-3 inline-flex items-center rounded-full bg-[#E07A5F]/10 px-3 py-1 text-xs font-semibold text-[#E07A5F]">
-                    You last signed in with your email
-                  </p>
-                )}
-              </motion.div>
-            </AnimatePresence>
-
-            {errorMsg && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className="mb-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400 flex items-start gap-3 backdrop-blur-sm"
-              >
-                <svg className="h-5 w-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="flex-1">{errorMsg}</div>
-                <button onClick={() => setErrorMsg(null)} className="shrink-0 opacity-70 hover:opacity-100 transition-opacity">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </motion.div>
-            )}
-
-            <form onSubmit={submit} className="space-y-4">
-              {mode === "signup" && (
-                <Input
-                  size="lg"
-                  type="text"
-                  placeholder="Display name"
-                  variant="bordered"
-                  value={name}
-                  onValueChange={setName}
-                  classNames={inputClassNames}
-                  startContent={<User className="h-4 w-4 text-zinc-400" />}
-                />
-              )}
-              
-              <Input
-                size="lg"
-                type="email"
-                placeholder="Email address"
-                variant="bordered"
-                value={email}
-                onValueChange={setEmail}
-                isRequired
-                classNames={inputClassNames}
-                startContent={<Mail className="h-4 w-4 text-zinc-400" />}
-              />
-              
-              <Input
-                size="lg"
-                type="password"
-                placeholder="Password"
-                variant="bordered"
-                value={password}
-                onValueChange={setPassword}
-                isRequired
-                minLength={6}
-                classNames={inputClassNames}
-                startContent={<Lock className="h-4 w-4 text-zinc-400" />}
-              />
-
-              {mode === "signup" && (
-                <div className="flex items-start gap-3 pt-1">
-                  <Checkbox
-                    isSelected={acceptTerms}
-                    onValueChange={setAcceptTerms}
-                    classNames={{
-                      wrapper: "before:border-zinc-300 dark:before:border-zinc-700 group-data-[selected=true]:before:bg-[#E07A5F] group-data-[selected=true]:before:border-[#E07A5F] transition-all duration-200",
-                      label: "text-sm text-zinc-500 dark:text-zinc-400 cursor-pointer",
-                      icon: "text-white"
-                    }}
-                  >
-                    <span>
-                      I agree to the{" "}
-                      <Link to="/terms" className="font-semibold text-[#E07A5F] hover:underline">
-                        Terms of Service
-                      </Link>{" "}
-                      and{" "}
-                      <Link to="/privacy" className="font-semibold text-[#E07A5F] hover:underline">
-                        Privacy Policy
-                      </Link>
-                      .
-                    </span>
-                  </Checkbox>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                isLoading={loading}
-                spinner={<Spinner size="sm" color="current" />}
-                className="w-full h-12 rounded-xl bg-zinc-900 text-white font-bold text-sm shadow-lg shadow-zinc-900/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:shadow-white/20"
-                endContent={!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
-              >
-                {mode === "signin" ? "Sign in" : "Get started"}
-              </Button>
-            </form>
-
-            {mode === "signin" && (
-              <div className="mt-4 text-center">
-                <Button
-                  variant="light"
-                  className="text-sm font-medium text-zinc-500 transition-colors hover:text-[#E07A5F] dark:text-zinc-400 h-auto py-2"
-                  onPress={() => navigate({ to: "/forgot-password" })}
-                >
-                  Forgot password?
-                </Button>
+        {/* Main glass card */}
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 w-full max-w-5xl overflow-hidden rounded-3xl border border-zinc-200/60 bg-white/70 shadow-2xl backdrop-blur-2xl dark:border-zinc-800/60 dark:bg-zinc-900/70 dark:shadow-black/40"
+        >
+          <div className="flex min-h-[640px] flex-col lg:flex-row">
+            
+            {/* Left panel — Form */}
+            <div className="flex flex-col justify-center p-6 sm:p-10 lg:w-1/2 lg:py-12 lg:px-16 xl:px-20">
+              <div className="mb-8 flex items-center gap-3">
+                <BrandLogo className="h-10 w-auto" />
               </div>
-            )}
 
-            <div className="my-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
-              <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-              OR
-              <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-            </div>
-
-            {/* ─── Smart Social Login Buttons ─── */}
-            <div className="grid grid-cols-1 gap-3">
-              <Button
-                variant="bordered"
-                isLoading={oauthLoading === "google"}
-                spinner={<Loader2 className="h-4 w-4 animate-spin" />}
-                className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
-                startContent={<GoogleIcon className="h-5 w-5" />}
-                onPress={() => oauth("google")}
-              >
-                <div className="flex flex-1 items-center justify-between">
-                  <span>{oauthLoading === "google" ? "Redirecting to Google…" : "Continue with Google"}</span>
-                  {lastUsed === "google" && <LastUsed />}
-                </div>
-              </Button>
-
-              <Button
-                variant="bordered"
-                isLoading={oauthLoading === "facebook"}
-                spinner={<Loader2 className="h-4 w-4 animate-spin" />}
-                className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
-                startContent={<FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
-                onPress={() => oauth("facebook")}
-              >
-                <div className="flex flex-1 items-center justify-between">
-                  <span>{oauthLoading === "facebook" ? "Redirecting to Facebook…" : "Continue with Facebook"}</span>
-                  {lastUsed === "facebook" && <LastUsed />}
-                </div>
-              </Button>
-            </div>
-
-            {/* ─── More login options (collapsed by default) ─── */}
-            <Button
-              variant="light"
-              onPress={() => setShowMoreMethods((v) => !v)}
-              className="mt-4 w-full h-auto py-2 text-xs font-semibold text-zinc-400 transition-colors hover:text-[#E07A5F]"
-              endContent={
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${showMoreMethods ? "rotate-180" : ""}`} />
-              }
-            >
-              {showMoreMethods ? "Fewer options" : "More login options"}
-            </Button>
-
-            <AnimatePresence initial={false}>
-              {showMoreMethods && (
+              <AnimatePresence mode="wait">
                 <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                  className="overflow-hidden"
+                  key={mode}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-8"
                 >
-                  <Button
-                    variant="bordered"
-                    isLoading={oauthLoading === "github"}
-                    spinner={<Loader2 className="h-4 w-4 animate-spin" />}
-                    className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
-                    startContent={<GitHubIcon className="h-5 w-5 text-zinc-900 dark:text-white" />}
-                    onPress={() => oauth("github")}
-                  >
-                    <div className="flex flex-1 items-center justify-between">
-                      <span>{oauthLoading === "github" ? "Redirecting to GitHub…" : "Continue with GitHub"}</span>
-                      {lastUsed === "github" && <LastUsed />}
-                    </div>
-                  </Button>
+                  <h2 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+                    {mode === "signin" ? "Welcome back" : "Create account"}
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    {mode === "signin"
+                      ? "Sign in to continue your conversations."
+                      : "Join the community and start talking gold."}
+                  </p>
+                  {lastUsed === "email" && mode === "signin" && (
+                    <p className="mt-3 inline-flex items-center rounded-full bg-[#E07A5F]/10 px-3 py-1 text-xs font-semibold text-[#E07A5F]">
+                      You last signed in with your email
+                    </p>
+                  )}
+                </motion.div>
+              </AnimatePresence>
 
-                  <Button
-                    variant="bordered"
-                    isLoading={oauthLoading === "spotify"}
-                    spinner={<Loader2 className="h-4 w-4 animate-spin" />}
-                    className="w-full h-12 rounded-xl border-zinc-200/60 bg-white text-zinc-700 font-semibold text-sm transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
-                    startContent={<SpotifyIcon className="h-5 w-5" />}
-                    onPress={() => oauth("spotify")}
+              {errorMsg && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="mb-6"
+                >
+                  <Alert 
+                    status="danger" 
+                    className="rounded-xl border border-red-500/20 bg-red-500/5 dark:bg-red-500/10 dark:border-red-500/20 backdrop-blur-sm"
                   >
-                    <div className="flex flex-1 items-center justify-between">
-                      <span>{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
-                      {lastUsed === "spotify" && <LastUsed />}
-                    </div>
-                  </Button>
+                    <Alert.Content>
+                      <Alert.Description className="text-sm font-medium text-red-600 dark:text-red-400">
+                        {errorMsg}
+                      </Alert.Description>
+                    </Alert.Content>
+                    <CloseButton 
+                      onPress={() => setErrorMsg(null)} 
+                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" 
+                    />
+                  </Alert>
                 </motion.div>
               )}
-            </AnimatePresence>
 
-            <p className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              {mode === "signin" ? "New to Sona?" : "Already have an account?"} {" "}
-              <button
-                className="font-bold text-[#E07A5F] transition-colors hover:text-[#C45D43]"
-                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              >
-                {mode === "signin" ? "Create one" : "Sign in"}
-              </button>
-            </p>
-
-            {/* Trust badges */}
-            <div className="mt-8 flex items-center justify-center gap-6 text-[11px] font-semibold text-zinc-400">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#E07A5F]" /> Free forever
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#E07A5F]" /> No credit card
-              </span>
-            </div>
-          </div>
-
-          {/* Right panel — Branding */}
-          <div className="relative flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#E07A5F] to-[#C45D43] p-8 text-white lg:w-1/2 lg:p-12">
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full border border-white/10" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full border border-white/10" />
-            </div>
-
-            <div className="relative z-10 mb-10 text-center lg:text-left">
-              <h2 className="mb-4 text-4xl font-black leading-[1.1] tracking-tight lg:text-5xl">
-                Connect with<br className="hidden lg:block" /> people who<br className="hidden lg:block" /> matter.
-              </h2>
-              <p className="mx-auto max-w-[320px] text-sm leading-relaxed text-white/80 lg:mx-0">
-                Join thousands of conversations. Chat smart, stay private, and express yourself freely with Sona.
-              </p>
-            </div>
-
-            <div className="relative z-10 flex flex-col gap-3">
-              {[
-                { icon: MessageCircle, label: "Smart Messaging", desc: "AI-powered conversations" },
-                { icon: Shield, label: "Private & Secure", desc: "Encrypted by default" },
-                { icon: Zap, label: "Lightning Fast", desc: "Real-time sync across devices" },
-              ].map((feature) => (
-                <div key={feature.label} className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md transition-all hover:bg-white/15">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
-                    <feature.icon className="h-5 w-5" />
+              <form onSubmit={submit} className="space-y-4">
+                {mode === "signup" && (
+                  <div className="relative group">
+                    <User className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Display name"
+                      className="w-full rounded-xl border border-zinc-200/60 bg-zinc-50/50 px-11 py-3.5 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[#E07A5F]/40 focus:bg-white focus:ring-2 focus:ring-[#E07A5F]/10 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:focus:border-[#E07A5F]/40 dark:focus:bg-zinc-900"
+                    />
                   </div>
-                  <div className="text-sm">
-                    <div className="font-bold">{feature.label}</div>
-                    <div className="text-xs text-white/70">{feature.desc}</div>
-                  </div>
+                )}
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email address"
+                    className="w-full rounded-xl border border-zinc-200/60 bg-zinc-50/50 px-11 py-3.5 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[#E07A5F]/40 focus:bg-white focus:ring-2 focus:ring-[#E07A5F]/10 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:focus:border-[#E07A5F]/40 dark:focus:bg-zinc-900"
+                  />
                 </div>
-              ))}
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                    className="w-full rounded-xl border border-zinc-200/60 bg-zinc-50/50 px-11 py-3.5 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[#E07A5F]/40 focus:bg-white focus:ring-2 focus:ring-[#E07A5F]/10 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:focus:border-[#E07A5F]/40 dark:focus:bg-zinc-900"
+                  />
+                </div>
+
+                {mode === "signup" && (
+                  <div className="flex items-start gap-3 pt-1">
+                    <input
+                      id="acceptTerms"
+                      type="checkbox"
+                      checked={acceptTerms}
+                      onChange={(e) => setAcceptTerms(e.target.checked)}
+                      className="mt-1 h-4 w-4 cursor-pointer rounded border-zinc-300 text-[#E07A5F] focus:ring-[#E07A5F]/20 dark:border-zinc-700 dark:bg-zinc-800"
+                    />
+                    <label htmlFor="acceptTerms" className="cursor-pointer text-sm text-zinc-500 dark:text-zinc-400">
+                      I agree to the <Link to="/terms" className="font-semibold text-[#E07A5F] hover:underline">Terms of Service</Link> and <Link to="/privacy" className="font-semibold text-[#E07A5F] hover:underline">Privacy Policy</Link>.
+                    </label>
+                  </div>
+                )}
+
+                <button
+                  disabled={loading}
+                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-zinc-900 py-3.5 text-sm font-bold text-white shadow-lg shadow-zinc-900/20 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 dark:bg-white dark:text-zinc-900 dark:shadow-white/20"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {mode === "signin" ? "Sign in" : "Get started"}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {mode === "signin" && (
+                <div className="mt-4 text-center">
+                  <button
+                    onClick={() => navigate({ to: "/forgot-password" })}
+                    className="text-sm font-medium text-zinc-500 transition-colors hover:text-[#E07A5F] dark:text-zinc-400"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              <div className="my-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+                <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                OR
+                <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+              </div>
+
+              {/* ─── Smart Social Login Buttons ─── */}
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={() => oauth("google")}
+                  disabled={loading || !!oauthLoading}
+                  className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                    {oauthLoading === "google" ? <Loader2 className="h-5 w-5 animate-spin text-[#4285F4]" /> : <GoogleIcon className="h-5 w-5" />}
+                  </div>
+                  <span className="flex-1 text-left">{oauthLoading === "google" ? "Redirecting to Google…" : "Continue with Google"}</span>
+                  {lastUsed === "google" && <LastUsed />}
+                </button>
+
+                <button
+                  onClick={() => oauth("facebook")}
+                  disabled={loading || !!oauthLoading}
+                  className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                    {oauthLoading === "facebook" ? <Loader2 className="h-5 w-5 animate-spin text-[#1877F2]" /> : <FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
+                  </div>
+                  <span className="flex-1 text-left">{oauthLoading === "facebook" ? "Redirecting to Facebook…" : "Continue with Facebook"}</span>
+                  {lastUsed === "facebook" && <LastUsed />}
+                </button>
+              </div>
+
+              {/* ─── More login options (collapsed by default) ─── */}
+              <button
+                type="button"
+                onClick={() => setShowMoreMethods((v) => !v)}
+                className="mt-4 flex w-full items-center justify-center gap-1.5 py-2 text-xs font-semibold text-zinc-400 transition-colors hover:text-[#E07A5F]"
+              >
+                {showMoreMethods ? "Fewer options" : "More login options"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${showMoreMethods ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence initial={false}>
+                {showMoreMethods && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <button
+                      onClick={() => oauth("github")}
+                      disabled={loading || !!oauthLoading}
+                      className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                        {oauthLoading === "github" ? <Loader2 className="h-5 w-5 animate-spin text-zinc-900 dark:text-white" /> : <GitHubIcon className="h-5 w-5 text-zinc-900 dark:text-white" />}
+                      </div>
+                      <span className="flex-1 text-left">{oauthLoading === "github" ? "Redirecting to GitHub…" : "Continue with GitHub"}</span>
+                      {lastUsed === "github" && <LastUsed />}
+                    </button>
+
+                    <button
+                      onClick={() => oauth("spotify")}
+                      disabled={loading || !!oauthLoading}
+                      className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                        {oauthLoading === "spotify" ? <Loader2 className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
+                      </div>
+                      <span className="flex-1 text-left">{oauthLoading === "spotify" ? "Redirecting to Spotify…" : "Continue with Spotify"}</span>
+                      {lastUsed === "spotify" && <LastUsed />}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <p className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                {mode === "signin" ? "New to Sona?" : "Already have an account?"} {" "}
+                <button
+                  className="font-bold text-[#E07A5F] transition-colors hover:text-[#C45D43]"
+                  onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                >
+                  {mode === "signin" ? "Create one" : "Sign in"}
+                </button>
+              </p>
+
+              {/* Trust badges */}
+              <div className="mt-8 flex items-center justify-center gap-6 text-[11px] font-semibold text-zinc-400">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#E07A5F]" /> Free forever
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#E07A5F]" /> No credit card
+                </span>
+              </div>
+            </div>
+
+            {/* Right panel — Branding */}
+            <div className="relative flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#E07A5F] to-[#C45D43] p-8 text-white lg:w-1/2 lg:p-12">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+                <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full border border-white/10" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full border border-white/10" />
+              </div>
+
+              <div className="relative z-10 mb-10 text-center lg:text-left">
+                <h2 className="mb-4 text-4xl font-black leading-[1.1] tracking-tight lg:text-5xl">
+                  Connect with<br className="hidden lg:block" /> people who<br className="hidden lg:block" /> matter.
+                </h2>
+                <p className="mx-auto max-w-[320px] text-sm leading-relaxed text-white/80 lg:mx-0">
+                  Join thousands of conversations. Chat smart, stay private, and express yourself freely with Sona.
+                </p>
+              </div>
+
+              <div className="relative z-10 flex flex-col gap-3">
+                {[
+                  { icon: MessageCircle, label: "Smart Messaging", desc: "AI-powered conversations" },
+                  { icon: Shield, label: "Private & Secure", desc: "Encrypted by default" },
+                  { icon: Zap, label: "Lightning Fast", desc: "Real-time sync across devices" },
+                ].map((feature) => (
+                  <div key={feature.label} className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md transition-all hover:bg-white/15">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
+                      <feature.icon className="h-5 w-5" />
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-bold">{feature.label}</div>
+                      <div className="text-xs text-white/70">{feature.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* Public content footer */}
+        <div className="relative z-10 mt-10 w-full max-w-3xl text-center">
+          <p className="mx-auto max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Sona is a private messaging app with real-time chat, voice and video calls, and an
+            AI assistant you can bring into any conversation with an @sona mention. Messages are
+            protected by database-level access control by default, and Sona Pro adds fully
+            encrypted, hidden chats for conversations where privacy matters most.
+          </p>
+          <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs font-semibold text-zinc-400">
+            <Link to="/blog" className="transition-colors hover:text-[#E07A5F]">Blog</Link>
+            <Link to="/help" className="transition-colors hover:text-[#E07A5F]">Help Center</Link>
+            <Link to="/faq" className="transition-colors hover:text-[#E07A5F]">FAQ</Link>
+            <Link to="/learn" className="transition-colors hover:text-[#E07A5F]">How Sona works</Link>
+            <Link to="/privacy" className="transition-colors hover:text-[#E07A5F]">Privacy</Link>
+            <Link to="/terms" className="transition-colors hover:text-[#E07A5F]">Terms</Link>
+          </nav>
         </div>
-      </motion.div>
 
-      {/* Public content footer */}
-      <div className="relative z-10 mt-10 w-full max-w-3xl text-center">
-        <p className="mx-auto max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Sona is a private messaging app with real-time chat, voice and video calls, and an
-          AI assistant you can bring into any conversation with an @sona mention. Messages are
-          protected by database-level access control by default, and Sona Pro adds fully
-          encrypted, hidden chats for conversations where privacy matters most.
-        </p>
-        <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs font-semibold text-zinc-400">
-          <Link to="/blog" className="transition-colors hover:text-[#E07A5F]">Blog</Link>
-          <Link to="/help" className="transition-colors hover:text-[#E07A5F]">Help Center</Link>
-          <Link to="/faq" className="transition-colors hover:text-[#E07A5F]">FAQ</Link>
-          <Link to="/learn" className="transition-colors hover:text-[#E07A5F]">How Sona works</Link>
-          <Link to="/privacy" className="transition-colors hover:text-[#E07A5F]">Privacy</Link>
-          <Link to="/terms" className="transition-colors hover:text-[#E07A5F]">Terms</Link>
-        </nav>
+        <style>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(1deg); }
+          }
+          .animate-float {
+            animation: float 6s ease-in-out infinite;
+          }
+        `}</style>
       </div>
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-12px) rotate(1deg); }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
