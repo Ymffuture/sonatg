@@ -373,7 +373,7 @@ function AuthPage() {
                   className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-zinc-900 py-3.5 text-sm font-bold text-white shadow-lg shadow-zinc-900/20 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 dark:bg-white dark:text-zinc-900 dark:shadow-white/20"
                 >
                   {loading ? (
-                    <Spinner className="h-4 w-4 animate-spin" />
+                    <Spinner className="h-6 w-6 animate-spin" />
                   ) : (
                     <>
                       {mode === "signin" ? "Sign in" : "Get started"}
