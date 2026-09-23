@@ -172,7 +172,7 @@ export function ProfileViewModal({
               <div className={
                 isPremium
                   ? `aura ${profile.is_business ? "aura-gold" : "aura-rainbow"} aura-lg [--aura-radius:9999px]`
-                  : `relative rounded-full p-[3px] ${
+                  : `relative rounded-full p-[4px] ${
                       hasStatus
                         ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
                         : "bg-white dark:bg-zinc-950"
@@ -187,8 +187,8 @@ export function ProfileViewModal({
                   >
                     <Image
                       src={profile.is_ai ? sonaAi : avatarSrc}
-                      width={128}
-                      height={128}
+                      width={132}
+                      height={132}
                       className="object-cover !block rounded-full"
                       preview={{
                         mask: (
@@ -211,14 +211,18 @@ export function ProfileViewModal({
                 </Title>
 
                 {isPremium && (
-                  <Tooltip title={profile.is_ai ? "Verified AI Assistant" : profile.is_business ? "Verified Business Account" : "Verified Pro Account"}>
+                  <Tooltip title={profile.is_ai ? "Verified AI Assistant" : profile.is_business ? "Verified Business Account" : "Verified Purple Account"}>
                     <VscVerifiedFilled
                       className={`h-5 w-5 drop-shadow-sm ${profile.is_ai ? "text-blue-500" : profile.is_business ? "text-amber-500" : "text-violet-500"}`}
                     />
                   </Tooltip>
                 )}
               </div>
-
+            
+            {profile.is_ai &&
+<Title level={2} className="text-gray-600 flex gap-2 " >
+  Sona AI <VscVerifiedFilled className={`h-5 w-5 drop-shadow-sm text-white`} /> --- is the AI assistant, it can make mistakes check the output. 
+</Title>} 
               {/* Presence */}
               {!isSelf && !profile.is_ai && (online !== undefined || lastSeen !== undefined) && (
                 <Text className="!mt-1.5 !text-xs !font-medium block">
