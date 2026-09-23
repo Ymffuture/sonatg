@@ -3286,7 +3286,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   <span className="justify-items-center">
   <span> {fmtLastSeen(other.last_seen)}
 </span>
-  <span className="font-bold italic px-2">{chatTitle(c, c.memberIds.includes(me.id)} </span>
+  <span className="font-bold italic px-2">{chatTitle(c, c.memberIds.includes(me.id)) } </span>
   </span>
 </span>
             </span>
