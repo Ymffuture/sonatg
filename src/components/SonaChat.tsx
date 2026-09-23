@@ -3279,16 +3279,16 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         }
         if (other?.last_seen) {
           return (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600"></span>
-             
-              <span className="text-rotate text-7xl duration-6000">
-  <span className="justify-items-center">
-  <span> {fmtLastSeen(other.last_seen)}
-</span>
-  <span className="font-bold italic px-2">{chatTitle(c, c.memberIds.includes(me.id)) } </span>
-  </span>
-</span>
+            <span className="inline-flex items-center gap-1.5 min-w-0 truncate">
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600 shrink-0"></span>
+              <span className="truncate">{fmtLastSeen(other.last_seen)}</span>
+              <span className="opacity-50 shrink-0">•</span>
+              <span className="inline-flex items-center gap-1 font-semibold italic truncate">
+                {other.display_name}
+                {other.is_pro && (
+                  <MdVerified className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Pro" title="Pro" />
+                )}
+              </span>
             </span>
           );
         }
