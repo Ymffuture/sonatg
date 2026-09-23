@@ -2,7 +2,7 @@ import sonaAi from "@/assets/sona01.jpg";
 import { Check, CheckCheck, User } from "lucide-react";
 import type { ReadStatus } from "@/utils/utils";
 
-export function Avatar({ url, name, size = 46, ai = false }: { url?: string | null; name: string; size?: number; ai?: boolean }) {
+export function Avatar({ url, name, size = 40, ai = false }: { url?: string | null; name: string; size?: number; ai?: boolean }) {
   if (ai) {
     return (
       <img

@@ -169,15 +169,18 @@ export function ProfileViewModal({
               transition={{ delay: 0.05, type: "spring", stiffness: 260, damping: 20 }}
               className="relative"
             >
-              <div className={
-                isPremium
-                  ? `aura ${profile.is_business ? "aura-gold" : "aura-rainbow"} aura-lg [--aura-radius:9999px]`
-                  : `relative rounded-full p-[4px] ${
-                      hasStatus
-                        ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
-                        : "bg-white dark:bg-zinc-950"
-                    }`
-              }>
+              <div
+                className={
+                  isPremium
+                    ? `aura ${profile.is_business ? "aura-gold" : "aura-rainbow"} aura-lg [--aura-radius:9999px]`
+                    : `relative rounded-full p-[3px] ${
+                        hasStatus
+                          ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
+                          : "bg-white dark:bg-zinc-950"
+                      }`
+                }
+                style={{ ["--avatar-size" as string]: "128px" }}
+              >
                 <div className="rounded-full bg-white dark:bg-zinc-950 p-[2px]">
                   <Badge
                     dot
@@ -187,9 +190,8 @@ export function ProfileViewModal({
                   >
                     <Image
                       src={profile.is_ai ? sonaAi : avatarSrc}
-                      width={132}
-                      height={132}
-                      className="object-cover !block rounded-full"
+                      className="object-cover !block rounded-full aspect-square"
+                      style={{ width: "var(--avatar-size)", height: "var(--avatar-size)" }}
                       preview={{
                         mask: (
                           <div className="flex items-center justify-center w-full h-full bg-black/40 backdrop-blur-sm rounded-full transition-all">
@@ -211,18 +213,26 @@ export function ProfileViewModal({
                 </Title>
 
                 {isPremium && (
-                  <Tooltip title={profile.is_ai ? "Verified AI Assistant" : profile.is_business ? "Verified Business Account" : "Verified Purple Account"}>
+                  <Tooltip title={profile.is_ai ? "Verified AI Assistant" : profile.is_business ? "Verified Business Account" : "Verified Pro Account"}>
                     <VscVerifiedFilled
                       className={`h-5 w-5 drop-shadow-sm ${profile.is_ai ? "text-blue-500" : profile.is_business ? "text-amber-500" : "text-violet-500"}`}
                     />
                   </Tooltip>
                 )}
               </div>
-            
-            {profile.is_ai &&
-<Title level={2} className="dark:text-white flex gap-2 " >
-  Sona AI <VscVerifiedFilled className={`h-6 w-6 drop-shadow-sm text-white`} /> --- is the AI assistant, it can make mistakes check the output. 
-</Title>} 
+
+              {/* AI disclaimer — compact badge, not a heading */}
+              {profile.is_ai && (
+                <Tooltip title="Sona AI can produce inaccurate responses — please verify important information.">
+                  <div className="mt-2 inline-flex items-center gap-1.5 max-w-[260px] rounded-full border border-blue-200/70 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 px-3 py-1">
+                    <ExclamationCircleOutlined className="text-blue-500 text-[11px] shrink-0" />
+                    <Text className="!text-[10px] !leading-snug !text-blue-700 dark:!text-blue-300 !font-medium text-left">
+                      Sona AI may make mistakes — verify important info.
+                    </Text>
+                  </div>
+                </Tooltip>
+              )}
+
               {/* Presence */}
               {!isSelf && !profile.is_ai && (online !== undefined || lastSeen !== undefined) && (
                 <Text className="!mt-1.5 !text-xs !font-medium block">
