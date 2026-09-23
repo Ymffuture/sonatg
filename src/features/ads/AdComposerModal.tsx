@@ -1,14 +1,4 @@
 // src/features/ads/AdComposerModal.tsx
-//
-// Lets a verified business account (profiles.is_business — see the
-// 20260915090000_business_accounts_and_ads.sql migration) build an ad
-// message: an image, a headline, and a call-to-action button. The modal
-// does its own image upload (same "chat-media" bucket and compression
-// helper the regular image-attachment flow in SonaChat.tsx uses) and hands
-// the finished fields back via onCreated — the caller is responsible for
-// actually inserting the { kind: "ad", ... } message row, same split of
-// responsibility as PollComposerModal (modal creates the poll row itself,
-// but the caller still posts the "poll" message that references it).
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Megaphone, ImagePlus, Loader2 } from "lucide-react";
@@ -25,13 +15,7 @@ export type CreatedAd = {
 interface AdComposerModalProps {
   meId: string;
   onClose: () => void;
-  // Returns a Promise so the modal can tell success from failure: it only
-  // closes itself once the caller's DB insert actually succeeds. If
-  // onCreated rejects (e.g. the RLS check for is_business fails), the
-  // modal stays open and shows the thrown error's message inline — the
-  // caller is expected to throw a *user-facing* message (see
-  // SonaChat.tsx's onAdCreated, which turns the raw Postgres error into
-  // one via explainSupabaseError before throwing).
+
   onCreated: (ad: CreatedAd) => Promise<void>;
 }
 
@@ -73,9 +57,7 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
           bucket: "chat-media",
           path,
           message: upErr.message,
-          // StorageApiError doesn't always carry Postgres's .code/.details/
-          // .hint the way a table insert error does, but log them if present
-          // (some Storage errors do proxy the underlying Postgres error).
+          
           ...(upErr as unknown as { code?: string; details?: string; hint?: string }),
         });
         throw upErr;
@@ -84,14 +66,7 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
         .from("chat-media")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
       if (signErr || !signed) throw signErr || new Error("Couldn't get a URL for the uploaded image.");
-
-      // Image is uploaded — now hand off to the caller to actually insert
-      // the { kind: "ad", ... } message row. Awaiting this (rather than
-      // firing it and closing immediately) is what lets a DB-side
-      // rejection — e.g. the "business accounts can send ad messages" RLS
-      // policy failing because is_business isn't true — land back here as
-      // a normal caught error instead of silently vanishing behind an
-      // already-closed modal.
+      
       await onCreated({
         mediaUrl: signed.signedUrl,
         title: title.trim(),
@@ -100,9 +75,6 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
       });
       onClose();
     } catch (e) {
-      // Full object (not just .message) so the RLS/Postgres code, details
-      // and hint — everything explainSupabaseError parses out — are
-      // visible in devtools even if the on-screen message stays short.
       console.error("[AdComposerModal] Failed to post ad:", e);
       const raw = (e as Error)?.message || "";
       const friendly = /row-level security|row level security/i.test(raw)
