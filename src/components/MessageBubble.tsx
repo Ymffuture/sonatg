@@ -1876,7 +1876,7 @@ function getNameColor(identifier: string) {
          {!mine && !grouped && (isAI || isGroup) && (
   <div className="mb-1 flex items-center gap-1.5">
     {isAI ? (
-      <span className="flex items-center gap-1 text-[7px] text-gray-600 dark:text-white dark:text-emerald-400">
+      <span className="flex items-center gap-1 text-[9px] text-gray-600 dark:text-white dark:text-emerald-400">
         Sona AI <VscVerifiedFilled className="h-3 w-3 text-white " />
       </span>
     ) : (
