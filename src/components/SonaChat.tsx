@@ -2983,9 +2983,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                   </span>
                   {ai && (
                     <MdVerified
-                      className="h-[15px] w-[15px] shrink-0 text-blue-500"
+                      className="h-[15px] w-[15px] shrink-0 dark:text-white text-[#202124] "
                       aria-label="Verified Sona AI"
-                      title="Verified Sona AI"
+                      title="Verified Sona AI premium "
                     />
                   )}
                   {otherIsBusiness && (
@@ -3244,7 +3244,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         </span>
       ) : isAIChat(active) ? (
         <span className="inline-flex items-center gap-1.5">
-          Sona AI <MdVerified className= " w-4 h-4 text-blue-600" />
+          By SumStack
         </span>
       ) : active.is_group ? (() => {
         const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
