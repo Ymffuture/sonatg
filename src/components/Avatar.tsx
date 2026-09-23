@@ -1,4 +1,4 @@
-import sonaAi from "@/assets/sona01.png";
+import sonaAi from "@/assets/sona01.jpg";
 import { Check, CheckCheck, User } from "lucide-react";
 import type { ReadStatus } from "@/utils/utils";
 
