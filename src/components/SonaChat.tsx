@@ -2988,13 +2988,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                       title="Verified Sona AI premium "
                     />
                   )}
-                  {otherIsBusiness && (
-                    <VscVerifiedFilled
-                      className="h-[15px] w-[15px] shrink-0 text-amber-500"
-                      aria-label="Verified Business"
-                      title="Verified Business"
-                    />
-                  )}
+                  
                 </span>
                 {c.is_group && c.category && c.category !== "general" && (
                   <span className="shrink-0 text-[var(--sona-accent,#E07A5F)]" title={categoryMeta[c.category].label}>
@@ -3289,6 +3283,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                     {other.is_pro && (
                       <MdVerified className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Pro" title="Pro" />
                     )}
+                    {otherIsBusiness && <span className="text-[#202124] dark:text-blue-600 " > • Business account </span>
                   </span>
                 </span>
               </span>
