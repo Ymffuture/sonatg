@@ -3279,15 +3279,18 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         }
         if (other?.last_seen) {
           return (
-            <span className="inline-flex items-center gap-1.5 min-w-0 truncate">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600 shrink-0"></span>
-              <span className="truncate">{fmtLastSeen(other.last_seen)}</span>
-              <span className="opacity-50 shrink-0">•</span>
-              <span className="inline-flex items-center gap-1 font-semibold italic truncate">
-                {other.display_name}
-                {other.is_pro && (
-                  <MdVerified className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Pro" title="Pro" />
-                )}
+              <span className="text-rotate duration-[6s] min-w-0 max-w-full">
+                <span className="justify-items-center">
+                  <span className="truncate">{fmtLastSeen(other.last_seen)}</span>
+                  <span className="inline-flex items-center gap-1 font-semibold italic truncate">
+                    {other.display_name}
+                    {other.is_pro && (
+                      <MdVerified className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Pro" title="Pro" />
+                    )}
+                  </span>
+                </span>
               </span>
             </span>
           );
