@@ -3280,8 +3280,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         if (other?.last_seen) {
           return (
             <span className="inline-flex items-center gap-1.5 min-w-0">
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600 shrink-0"></span>
-              <span className="text-rotate duration-[6s] min-w-0 max-w-full">
+            
+              <span className="text-rotate duration-[8s] min-w-0 max-w-full">
                 <span className="justify-items-center">
                   <span className="truncate">{fmtLastSeen(other.last_seen)}</span>
                   <span className="inline-flex items-center gap-1 font-semibold italic truncate">
