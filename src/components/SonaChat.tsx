@@ -87,7 +87,7 @@ import {
 import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
 import { playSendSound, playReceiveSound } from "@/lib/sounds";
 import sonaLogo from "@/assets/sona-logo.png";
-import sonaAi from "@/assets/sona02.png";
+import sonaAi from "@/assets/sona01.jpg";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
