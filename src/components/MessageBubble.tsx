@@ -1876,12 +1876,12 @@ function getNameColor(identifier: string) {
          {!mine && !grouped && (isAI || isGroup) && (
   <div className="mb-1 flex items-center gap-1.5">
     {isAI ? (
-      <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500 dark:text-emerald-400">
-        Sona AI <VscVerifiedFilled className="h-3 w-3 text-blue-500" />
+      <span className="flex items-center gap-1 text-[7px] text-gray-600 dark:text-white dark:text-emerald-400">
+        Sona AI <VscVerifiedFilled className="h-3 w-3 text-white " />
       </span>
     ) : (
-      <span className={`text-[11px] font-semibold tracking-wide ${getNameColor(sender?.id ?? sender?.display_name ?? "Unknown")}`}>
-        {sender?.display_name ?? "Unknown"}
+      <span className={`text-[8px] atilic flex gap-2 tracking-wide ${getNameColor(sender?.id ?? sender?.display_name ?? "Unknown")}`}>
+       ~ {sender?.display_name ?? "Unknown"} {sender?.is_business && <VscVerifiedFilled className="h-3 w-3 text-gold " />} 
       </span>
     )}
   </div>
