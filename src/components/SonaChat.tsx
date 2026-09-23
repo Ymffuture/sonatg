@@ -614,22 +614,27 @@ const handleMenuOpenChange = (open: boolean) => {
   };
 
   const onAdCreated = async (ad: CreatedAd) => {
-    setShowAdComposer(false);
-    if (!me || !activeId) return;
-    try {
-      const { error } = await supabase.from("messages").insert({
-        chat_id: activeId,
-        sender_id: me.id,
-        kind: "ad",
-        media_url: ad.mediaUrl,
-        ad_title: ad.title,
-        ad_cta_label: ad.ctaLabel,
-        ad_cta_url: ad.ctaUrl,
-      });
-      if (error) throw error;
-    } catch (e) {
-      toast.danger(`Ad created but couldn't post it to the chat: ${explainSupabaseError(e).title}`);
+    // Must match AdComposerModal's documented contract: only resolve (so the
+    // modal closes itself) once the message row is actually inserted, and
+    // throw a user-facing error otherwise so the modal stays open and shows
+    // it inline — closing early / swallowing the error here is what let ads
+    // silently fail to post (image uploaded, modal closed, but no message
+    // ever made it into the chat, e.g. when the "business accounts can send
+    // ad messages" RLS check rejects an unverified account).
+    if (!me || !activeId) {
+      throw new Error("No active chat to post this ad to. Open a chat and try again.");
     }
+    const { error } = await supabase.from("messages").insert({
+      chat_id: activeId,
+      sender_id: me.id,
+      kind: "ad",
+      media_url: ad.mediaUrl,
+      ad_title: ad.title,
+      ad_cta_label: ad.ctaLabel,
+      ad_cta_url: ad.ctaUrl,
+    });
+    if (error) throw new Error(explainSupabaseError(error).title);
+    setShowAdComposer(false);
   };
   const [showMsgSearch, setShowMsgSearch] = useState(false);
   const [descOpen, setDescOpen] = useState(false);
