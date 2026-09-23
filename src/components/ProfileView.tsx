@@ -33,6 +33,7 @@ import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
 import { FaFacebookF, FaXTwitter, FaInstagram, FaThreads } from "react-icons/fa6";
 import { VscVerifiedFilled } from "react-icons/vsc";
+import sonaAi from "@/assets/sona01.jpg";
 
 const { Text, Title } = Typography;
 
@@ -117,9 +118,9 @@ export function ProfileViewModal({
         {/* ─── Cover: blurred/zoomed avatar as backdrop, WhatsApp-business-style ─── */}
         <div className="relative h-60 sm:h-72 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-900">
           <div
-            className="absolute inset-0 scale-125 blur-2xl opacity-90"
+            className="absolute inset-0 scale-125 blur-xl opacity-90"
             style={{
-              backgroundImage: `url(${avatarSrc})`,
+              backgroundImage: `url(${profile.is_ai ? sonaAi : avatarSrc})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
@@ -185,7 +186,7 @@ export function ProfileViewModal({
                     style={{ width: 14, height: 14, minWidth: 14 }}
                   >
                     <Image
-                      src={avatarSrc}
+                      src={profile.is_ai ? sonaAi : avatarSrc}
                       width={128}
                       height={128}
                       className="object-cover !block rounded-full"
