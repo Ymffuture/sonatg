@@ -3283,7 +3283,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                     {other.is_pro && (
                       <MdVerified className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Pro" title="Pro" />
                     )}
-                    {otherIsBusiness && <span className="text-[#202124] dark:text-blue-600 " > • Business account </span>
+                    {otherIsBusiness && <span className="text-[#202124] dark:text-blue-600 " > • Business account </span>} 
                   </span>
                 </span>
               </span>
