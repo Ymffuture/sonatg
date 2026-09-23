@@ -222,8 +222,8 @@ function AuthPage() {
     }
   };
   
-  const strings = mode === "signup" ? "Signing up with" : "Signing in with"; 
-  const strg = mode === "signin" ? "Continue with" : "Signing up with"; 
+  const strings = mode === "signup" ? "Sign up with" : "Sign in with"; 
+  const strg = mode === "signin" ? "Continue with" : "Sign up with"; 
   
   return (
     <>
