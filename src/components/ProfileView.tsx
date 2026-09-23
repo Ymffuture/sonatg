@@ -172,14 +172,14 @@ export function ProfileViewModal({
               <div
                 className={
                   isPremium
-                    ? `aura ${profile.is_business ? "aura-gold" : "aura-rainbow"} aura-lg [--aura-radius:9999px]`
-                    : `relative rounded-full p-[3px] ${
+                    ? `aura ${profile.is_business ? "aura-gold" : profile.is_ai ? "aura-dual" : "aura-rainbow"} aura-lg [--aura-radius:9999px]`
+                    : `relative rounded-full p-[4px] ${
                         hasStatus
-                          ? "ring-[3px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
+                          ? "ring-[4px] ring-[#25D366] ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
                           : "bg-white dark:bg-zinc-950"
                       }`
                 }
-                style={{ ["--avatar-size" as string]: "128px" }}
+                style={{ ["--avatar-size" as string]: "132px" }}
               >
                 <div className="rounded-full bg-white dark:bg-zinc-950 p-[2px]">
                   <Badge
