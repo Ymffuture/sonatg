@@ -2,13 +2,14 @@ import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { Alert, Toast, toast, CloseButton } from "@heroui/react";
+import { Alert, toast, CloseButton } from "@heroui/react";
 import {
   Mail, Lock, User, ArrowRight, MessageCircle,
   Sparkles, Shield, Zap, CheckCircle2, ChevronDown, Loader2,
 } from "lucide-react";
 import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
 import { Spinner } from '@heroui/react';
+
 type AuthMethod = "email" | "google" | "facebook" | "github" | "spotify";
 const LAST_USED_KEY = "sona-last-auth-method";
 
@@ -136,6 +137,13 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ MOVED: Validate inputs before proceeding
+    if (!email || !password) {
+      setErrorMsg("Input fields can't be empty");
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -195,8 +203,6 @@ function AuthPage() {
     }
   };
 
-  if(!email || !password) setErrorMsg(" Inputs fields can't be empty") 
-
   const oauth = async (provider: "google" | "facebook" | "github" | "spotify") => {
     setLoading(true);
     setOauthLoading(provider);
@@ -216,14 +222,11 @@ function AuthPage() {
     }
   };
   
-const strings = mode === "signup" ? "Signing up with" :"Signing in with" 
-const strg = mode === "signin" ? "Continue with" : "Signing up with" 
-
+  const strings = mode === "signup" ? "Signing up with" : "Signing in with"; 
+  const strg = mode === "signin" ? "Continue with" : "Signing up with"; 
   
   return (
     <>
-      {/* Toast Provider for HeroUI toast notifications */}
-      
       <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#FFFDF9] p-4 text-zinc-900 transition-colors duration-300 dark:bg-[#0F0F11] dark:text-zinc-100">
         {/* Ambient background blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -340,7 +343,6 @@ const strg = mode === "signin" ? "Continue with" : "Signing up with"
                   <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
                   <input
                     type="email"
-                    
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email address"
@@ -351,7 +353,6 @@ const strg = mode === "signin" ? "Continue with" : "Signing up with"
                   <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[#E07A5F]" />
                   <input
                     type="password"
-                    
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
