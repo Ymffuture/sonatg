@@ -46,10 +46,11 @@ import {EmptyChatState} from "./EmptyChatState";
 import {SonaAIGreeting} from "./SonaAIGreeting";
 import {SonaTypingIndicator} from "./SonaTypingIndicator";
 import { PurpleBadge } from "./PurpleBadge";
-import {MdDiamond, MdVerified} from "react-icons/md";
+import {MdDiamond} from "react-icons/md";
 import { IoMdArrowDropleft } from "react-icons/io";
 import { IoMdArrowDropright } from "react-icons/io";
 import { toast , Toast } from "@heroui/react";
+import { MdVerified } from "react-icons/md";
 
 /* Shows an "Admin console" entry only for accounts with the admin role. */
 function AdminLink({ onNavigate }: { onNavigate: () => void }) {
@@ -2981,7 +2982,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                     {title}
                   </span>
                   {ai && (
-                    <VscVerifiedFilled
+                    <MdVerified
                       className="h-[15px] w-[15px] shrink-0 text-blue-500"
                       aria-label="Verified Sona AI"
                       title="Verified Sona AI"
@@ -3189,27 +3190,19 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         {(() => {
           const title = chatTitle(active, me.id);
           const otherId = active.memberIds.find((id) => id !== me.id);
-          const otherProfile = otherId ? profilesById[otherId] : undefined;
-          const otherIsBusiness = !active.is_group && !isAIChat(active) && otherProfile?.is_business;
-          const otherIsPro = !active.is_group && !isAIChat(active) && !otherIsBusiness && otherProfile?.is_pro;
+          const otherIsBusiness = !active.is_group && !isAIChat(active)
+            && otherId && profilesById[otherId]?.is_business;
           return (
             <span className="flex items-center gap-1.5">
               {title}
               {isAIChat(active) && (
-                <VscVerifiedFilled className="h-4 w-4 shrink-0 text-blue-500 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" />
+                <MdVerified className="h-4 w-4 shrink-0 dark:text-white text-[#202124] drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" />
               )}
               {otherIsBusiness && (
-                <VscVerifiedFilled
+                <MdVerified
                   className="h-4 w-4 shrink-0 text-amber-500 drop-shadow-[0_1px_2px_rgba(217,160,23,0.3)]"
                   aria-label="Verified Business"
                   title="Verified Business"
-                />
-              )}
-              {otherIsPro && (
-                <MdVerified
-                  className="h-4 w-4 shrink-0 text-blue-500 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]"
-                  aria-label="Pro"
-                  title="Pro"
                 />
               )}
               {active.is_hidden && (
@@ -3251,7 +3244,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         </span>
       ) : isAIChat(active) ? (
         <span className="inline-flex items-center gap-1.5">
-          <Sparkles className="h-3 w-3 text-[#E07A5F]" /> By Sona AI
+          Sona AI <MdVerified className= " w-4 h-4 text-blue-600" />
         </span>
       ) : active.is_group ? (() => {
         const onlineCount = active.members.filter((m) => onlineIds.has(m.id)).length;
@@ -3259,41 +3252,15 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           <div className="flex w-full items-center gap-2 overflow-hidden">
             {onlineCount > 0 && (
               <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                
                 {onlineCount} Online
               </span>
             )}
             <div className="relative flex-1 overflow-hidden">
-              <div className="whitespace-nowrap animate-marquee flex items-center text-zinc-500 dark:text-zinc-400">
-                {[...active.members, "sep", ...active.members].map((m, i) =>
-                  m === "sep" ? (
-                    <span key="sep" className="opacity-50 mx-1">•</span>
-                  ) : (
-                    (() => {
-                      const isOnline = onlineIds.has((m as typeof active.members[number]).id);
-                      const member = m as typeof active.members[number];
-                      const status = isOnline ? "Online" : member.last_seen ? fmtLastSeen(member.last_seen) : "Offline";
-                      return (
-                        <span key={`${member.id}-${i}`} className="mx-2 inline-flex items-center gap-1 shrink-0">
-                          <span className={isOnline ? "text-emerald-500" : "text-zinc-400 dark:text-zinc-600"}>
-                            {status}
-                          </span>
-                          <span className="opacity-50">·</span>
-                          <span className="inline-flex items-center gap-0.5">
-                            {member.display_name}
-                            {member.is_pro && (
-                              <MdVerified
-                                className="h-3 w-3 shrink-0 text-blue-500 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]"
-                                aria-label="Pro"
-                                title="Pro"
-                              />
-                            )}
-                          </span>
-                        </span>
-                      );
-                    })()
-                  )
-                )}
+              <div className="whitespace-nowrap animate-marquee flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                <span className="mx-2">{active.members.map((m) => m.display_name).join(", ")}</span>
+                <span className="opacity-50">•</span>
+                <span className="mx-2">{active.members.map((m) => m.display_name).join(", ")}</span>
               </div>
             </div>
           </div>
@@ -3314,7 +3281,14 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           return (
             <span className="inline-flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600"></span>
-              {fmtLastSeen(other.last_seen)}
+             
+              <span className="text-rotate text-7xl duration-6000">
+  <span className="justify-items-center">
+  <span> {fmtLastSeen(other.last_seen)}
+</span>
+  <span className="font-bold italic px-2">{chatTitle(c, c.memberIds.includes(me.id)) } </span>
+  </span>
+</span>
             </span>
           );
         }
