@@ -220,8 +220,8 @@ export function ProfileViewModal({
               </div>
             
             {profile.is_ai &&
-<Title level={2} className="text-gray-600 flex gap-2 " >
-  Sona AI <VscVerifiedFilled className={`h-5 w-5 drop-shadow-sm text-white`} /> --- is the AI assistant, it can make mistakes check the output. 
+<Title level={2} className="dark:text-white flex gap-2 " >
+  Sona AI <VscVerifiedFilled className={`h-6 w-6 drop-shadow-sm text-white`} /> --- is the AI assistant, it can make mistakes check the output. 
 </Title>} 
               {/* Presence */}
               {!isSelf && !profile.is_ai && (online !== undefined || lastSeen !== undefined) && (
