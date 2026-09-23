@@ -3263,6 +3263,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         const otherId = active.memberIds.find((id) => id !== me.id);
         const other = otherId ? profilesById[otherId] : undefined;
         const online = otherId ? onlineIds.has(otherId) : false;
+      const otherIsBusiness = !active.is_group && !isAIChat(active)
+            && otherId && profilesById[otherId]?.is_business;
+      
         if (online) {
           return (
             <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
