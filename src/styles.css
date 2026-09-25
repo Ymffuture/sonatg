@@ -672,17 +672,30 @@ body {
     color: var(--color-muted-foreground);
   }
 
-  /* -------------------------------------------------------
-     daisyUI also ships a component literally named ".toast"
-     (a fixed bottom-right container: position:fixed;
-     width:max-content; inset-inline:auto 1rem). It lives in
-     Tailwind's "utilities" layer, which beats HeroUI's
-     ".toast" in the "components" layer for equal specificity
-     — so daisyUI's positioning silently wins and every HeroUI
-     toast collapses to a small chip pinned bottom-right,
-     ignoring whatever placement Toast.Provider was given.
-     daisyUI's toast-* classes aren't used anywhere in this
-     app, so it's safe to force HeroUI's own layout back. ---- */
+  /* CSS for the animated check circle */
+@keyframes draw-circle {
+  0% { stroke-dashoffset: 63; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes draw-check {
+  0% { stroke-dashoffset: 12; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-draw-circle {
+  stroke-dasharray: 63;
+  stroke-dashoffset: 63;
+  animation: draw-circle 0.4s ease-out forwards;
+}
+
+.animate-draw-check {
+  stroke-dasharray: 12;
+  stroke-dashoffset: 12;
+  animation: draw-check 0.3s 0.3s ease-out forwards; /* 0.3s delay to start after circle */
+}
+
+  
   .toast {
     position: absolute !important;
     inset-inline: 0 !important;
