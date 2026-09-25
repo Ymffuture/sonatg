@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { recordSubscriptionPeriod } from "@/lib/subscriptionPeriod";
 
 // ─────────────────────────────────────────────────────────────────────────
 // PayPal checkout for Sona Purple, alongside the existing Paystack flow
@@ -118,7 +119,10 @@ export const startPaypalCheckout = createServerFn({ method: "POST" })
 // the signed-in user to Purple.
 export const capturePaypalOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { orderId: string }) => data)
+  .inputValidator((data: { orderId: string; interval?: "monthly" | "yearly" }) => ({
+    orderId: data.orderId,
+    interval: data.interval === "yearly" ? ("yearly" as const) : ("monthly" as const),
+  }))
   .handler(async ({ context, data }) => {
     const accessToken = await getPaypalAccessToken();
 
@@ -131,7 +135,7 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
     });
     const json = (await res.json()) as {
       status?: string;
-      purchase_units?: { custom_id?: string; payments?: { captures?: { status?: string }[] } }[];
+      purchase_units?: { custom_id?: string; payments?: { captures?: { id?: string; status?: string }[] } }[];
       message?: string;
       name?: string;
     };
@@ -158,6 +162,15 @@ export const capturePaypalOrder = createServerFn({ method: "POST" })
       .update({ is_pro: true })
       .eq("id", context.userId);
     if (error) throw new Error(`Payment succeeded but upgrading your account failed: ${error.message}`);
+
+    // Best-effort — see recordSubscriptionPeriod's own comment for why a
+    // failure here never fails the upgrade itself.
+    await recordSubscriptionPeriod({
+      userId: context.userId,
+      provider: "paypal",
+      interval: data.interval,
+      providerCustomerId: capture?.id ?? null,
+    });
 
     return { success: true as const };
   });

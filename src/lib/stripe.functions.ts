@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { recordSubscriptionPeriod } from "@/lib/subscriptionPeriod";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Stripe Checkout — a second payment method alongside the PayPal flow in
@@ -129,10 +130,12 @@ export const captureStripeSession = createServerFn({ method: "POST" })
     const session = await stripeRequest<{
       payment_status?: string;
       client_reference_id?: string;
-      metadata?: { plan?: string };
+      customer?: string | null;
+      metadata?: { plan?: string; interval?: string };
     }>(`checkout/sessions/${data.sessionId}`, {}, "GET");
 
     const plan: Plan = session.metadata?.plan === "business" ? "business" : "purple";
+    const interval: Interval = session.metadata?.interval === "yearly" ? "yearly" : "monthly";
     const paidForThisUser = session.client_reference_id === context.userId;
 
     if (session.payment_status !== "paid" || !paidForThisUser) {
@@ -145,6 +148,18 @@ export const captureStripeSession = createServerFn({ method: "POST" })
       .update(plan === "business" ? { is_business: true } : { is_pro: true })
       .eq("id", context.userId);
     if (error) throw new Error(`Payment succeeded but updating your account failed: ${error.message}`);
+
+    // Business isn't tracked in `subscriptions` (that table's tier column
+    // is Purple/free only — see the 20260715014025 migration) — only
+    // record a renewal date for Purple.
+    if (plan === "purple") {
+      await recordSubscriptionPeriod({
+        userId: context.userId,
+        provider: "stripe",
+        interval,
+        providerCustomerId: session.customer ?? null,
+      });
+    }
 
     return { success: true as const, plan };
   });
