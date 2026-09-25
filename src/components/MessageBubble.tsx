@@ -38,7 +38,8 @@ import { Avatar, TickIcon } from "./Avatar";
 import { LuCalendarClock } from "react-icons/lu";
 import {BrainSparkle} from "./BrainSparkle" 
 import { TbArrowForwardUpDouble } from "react-icons/tb";
-
+import {UncheckedCircle, AnimatedCheckCircle} from "./checkedCircle";
+/* ─── Themed Notification Helper ─── */
 
 
 type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
@@ -1832,9 +1833,9 @@ function getNameColor(identifier: string) {
             className="mb-1 grid h-6 w-6 shrink-0 place-items-center self-center transition-transform active:scale-90"
           >
             {selected ? (
-              <CheckCircle2 className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
+              <AnimatedCheckCircle className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
             ) : (
-              <Circle className="h-5 w-5 text-[#8C8C8C]" />
+              <UncheckedCircle className="h-5 w-5 text-[#8C8C8C]" />
             )}
           </button>
         )}
