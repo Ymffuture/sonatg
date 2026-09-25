@@ -15,6 +15,7 @@ export const Route = createFileRoute("/paypal-return")({
     token: typeof search.token === "string" ? search.token : undefined,
     cancelled: search.cancelled === "1",
     plan: search.plan === "business" ? ("business" as const) : ("purple" as const),
+    interval: search.interval === "yearly" ? ("yearly" as const) : ("monthly" as const),
   }),
   component: PaypalReturnPage,
 });
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/paypal-return")({
 type Status = "capturing" | "success" | "error" | "cancelled";
 
 function PaypalReturnPage() {
-  const { token, cancelled, plan } = useSearch({ from: "/paypal-return" });
+  const { token, cancelled, plan, interval } = useSearch({ from: "/paypal-return" });
   const captureOrder = useServerFn(capturePaypalOrder);
   const captureBusinessOrder = useServerFn(capturePaypalBusinessOrder);
   const [status, setStatus] = useState<Status>(cancelled ? "cancelled" : "capturing");
@@ -36,7 +37,7 @@ function PaypalReturnPage() {
         if (plan === "business") {
           await captureBusinessOrder({ data: { orderId: token } });
         } else {
-          await captureOrder({ data: { orderId: token } });
+          await captureOrder({ data: { orderId: token, interval } });
         }
         if (!cancelledEffect) setStatus("success");
       } catch (e) {
@@ -49,7 +50,7 @@ function PaypalReturnPage() {
     return () => {
       cancelledEffect = true;
     };
-  }, [token, cancelled, plan, captureOrder, captureBusinessOrder]);
+  }, [token, cancelled, plan, interval, captureOrder, captureBusinessOrder]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FFFDF9] px-6 text-center dark:bg-[#0F0F11]">
