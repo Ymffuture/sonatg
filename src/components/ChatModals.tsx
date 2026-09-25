@@ -35,7 +35,7 @@ import { isFreeTierLimitError, FREE_CHAT_LIMIT_MESSAGE, FREE_CHAT_LIMIT, FREE_DA
 import { PRICING, BUSINESS_PRICING, type BillingInterval } from "@/lib/pricing";
 import { PRO_MODELS, DEFAULT_MODEL, isProModelId } from "@/lib/aiModels";
 import { Spinner, toast } from "@heroui/react";
-
+import { MdVerified } from "react-icons/md";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import {
   MdDiamond,
@@ -46,7 +46,7 @@ import {
   MdFileDownload,
   MdCloudUpload,
 } from "react-icons/md";
-
+import {UncheckedCircle, AnimatedCheckCircle} from "./checkedCircle";
 /* ─── Themed Notification Helper ─── */
 const MILKY_CLASS =
   "!bg-white/80 dark:!bg-zinc-950/80 !backdrop-blur-2xl !rounded-2xl !border !border-white/40 dark:!border-zinc-800/60 !shadow-2xl " +
@@ -904,24 +904,29 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                             <div className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{u.display_name}</div>
                             {u.is_ai && (
                               <Tooltip title="AI Assistant">
-                                <VscVerifiedFilled className="h-4 w-4 text-blue-500 shrink-0 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" />
+                                <MdVerified className="h-4 w-4 text-[#202124] dark:text-white shrink-0 drop-shadow-[0_1px_2px_rgba(59,130,246,0.3)]" />
                               </Tooltip>
                             )}
                             {u.is_pro && (
                               <Tooltip title="Pro Account">
-                                <MdDiamond className="h-4 w-4 text-[#8B5CF6] drop-shadow" />
+                                <MdDiamond className="h-4 w-4 text-[#8B5CF6] shadow-lg drop-shadow" />
                               </Tooltip>
                             )}
                           </div>
                           <div className="truncate text-xs text-zinc-500">{usernameFromEmail(u.display_name, u.email)}</div>
                         </div>
                         {mode === "direct" ? (
-                          busyId === u.id ? <Spinner />: <Plus className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
-                        ) : selectedIds.has(u.id) ? (
-                          <CheckSquare className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
-                        ) : (
-                          <Square className="h-5 w-5 text-zinc-400" />
-                        )}
+  busyId === u.id ? (
+    <Spinner />
+  ) : (
+    <Plus className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
+  )
+) : selectedIds.has(u.id) ? (
+  // Replaced CheckSquare with AnimatedCheckCircle
+  <AnimatedCheckCircle className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
+) : (
+   <UncheckedCircle className="h-5 w-5 text-zinc-400" />
+)}
                       </motion.button>
                     ))}
                   </AnimatePresence>
