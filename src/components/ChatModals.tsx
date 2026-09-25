@@ -6,6 +6,7 @@ import {
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
   Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX, Link2, Zap, Ticket, Megaphone,
+  Calendar, CreditCard,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +18,7 @@ import { unlockChat } from "@/lib/crypto";
 import { useBackToClose } from "@/hooks/useBackStack";
 import { useConfirm } from "@/hooks/useConfirmDialog";
 import {
-  CHAT_CATEGORIES, type Profile, type ChatCategory, type MessageRow,
+  CHAT_CATEGORIES, type Profile, type ChatCategory, type MessageRow, type SubscriptionRow,
 } from "@/lib/db";
 import { type ChatWithMeta, explainSupabaseError, usernameFromEmail, isReservedSonaName, fallbackNameFromEmail, chatTitle } from "@/utils/utils";
 import { MessagePreview } from "./SonaChatParts";
@@ -1106,6 +1107,24 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     return () => { alive = false; };
   }, [me.id]);
 
+  // Renewal date + payment provider shown on the Purple card. Only
+  // populated for upgrades that went through a server-verified capture
+  // (PayPal, Stripe) — see subscriptionPeriod.ts's comment on why the
+  // existing Paystack Purple flow doesn't write this row yet. `loading`
+  // starts true only while actually pro, so free users never see a
+  // pointless spinner for a row that will never exist.
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(!!me.is_pro);
+  useEffect(() => {
+    if (!me.is_pro) { setSubscription(null); setSubscriptionLoading(false); return; }
+    let alive = true;
+    setSubscriptionLoading(true);
+    supabase.from("subscriptions").select("*").eq("user_id", me.id).maybeSingle()
+      .then(({ data }) => { if (alive) { setSubscription(data as SubscriptionRow | null); setSubscriptionLoading(false); } })
+      .catch(() => { if (alive) setSubscriptionLoading(false); });
+    return () => { alive = false; };
+  }, [me.id, me.is_pro]);
+
   const toggleEmailPref = async (key: "notify_app_updates" | "notify_offline_messages") => {
     if (!emailPrefs) return;
     const next = { ...emailPrefs, [key]: !emailPrefs[key] };
@@ -1747,6 +1766,48 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
                             <Zap className="h-4 w-4 drop-shadow" />
                             <span>You’re on Purple</span>
                           </div>
+
+                          {/* Renewal date + payment method */}
+                          <div className="rounded-2xl border border-zinc-200/70 dark:border-zinc-700/60 bg-white/50 dark:bg-zinc-900/50 divide-y divide-zinc-200/70 dark:divide-zinc-700/60 overflow-hidden">
+                            {subscriptionLoading ? (
+                              <div className="flex items-center gap-2 px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                                <Spin size="small" /> Loading billing details…
+                              </div>
+                            ) : subscription?.current_period_end ? (
+                              <>
+                                <div className="flex items-center gap-3 px-4 py-3">
+                                  <Calendar className="h-4 w-4 shrink-0 text-zinc-400" />
+                                  <div className="min-w-0">
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                                      {new Date(subscription.current_period_end) < new Date() ? "Renewed" : "Renews"}
+                                    </div>
+                                    <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                                      {new Date(subscription.current_period_end).toLocaleDateString(undefined, {
+                                        month: "long", day: "numeric", year: "numeric",
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 px-4 py-3">
+                                  <CreditCard className="h-4 w-4 shrink-0 text-zinc-400" />
+                                  <div className="min-w-0">
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Payment method</div>
+                                    <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                                      {subscription.provider === "paypal" && "PayPal"}
+                                      {subscription.provider === "stripe" && "Card (via Stripe)"}
+                                      {subscription.provider === "paystack" && "Card (via Paystack)"}
+                                      {!subscription.provider && "Unknown"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="px-4 py-3 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                                Billing details aren’t available for this upgrade — manage or check your renewal date directly with whichever provider you paid through (PayPal, Stripe, or Paystack).
+                              </div>
+                            )}
+                          </div>
+
                           <a
                             href="/pricing#cancel"
                             className="block w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 px-4 py-3 text-center text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
