@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  X, Plus, Type, Image as ImageIcon, Video, Send, Eye, Trash2, RotateCw,
+  X, Plus, Type, Image as ImageIcon, Video, Send, Eye, RotateCw,
   ChevronLeft, ChevronRight, Users, Clock,
 } from "lucide-react";
 import { Skeleton, Badge, notification, Spin, Alert, Progress, Tooltip } from "antd";
@@ -15,7 +15,7 @@ import {
 import { readVideoDurationMs } from "@/utils/cloudinary";
 import { explainSupabaseError } from "@/utils/utils";
 import { Avatar } from "./Avatar";
-import { useConfirm } from "@/hooks/useConfirmDialog";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { EmojiReaction } from "@/components/ui/emoji-reaction";
 import type { EmojiData } from "react-apple-emojis";
 
@@ -520,7 +520,6 @@ export function StatusViewer({
 }: {
   userId: string; meId: string; profilesById: Record<string, Profile>; onClose: () => void;
 }) {
-  const confirm = useConfirm();
   const [statuses, setStatuses] = useState<StatusRow[]>([]);
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -532,6 +531,9 @@ export function StatusViewer({
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const pausedRef = useRef(false);
+  // True while the inline delete confirmation is open — pauses the story timer
+  // and stops Escape from closing the whole viewer instead of just the prompt.
+  const confirmOpenRef = useRef(false);
   const isSelf = userId === meId;
 
   useEffect(() => {
@@ -601,7 +603,7 @@ export function StatusViewer({
     const durationMs = current.kind === "video" && current.duration_ms ? current.duration_ms : TEXT_STATUS_MS;
 
     const tick = (now: number) => {
-      if (!pausedRef.current) {
+      if (!pausedRef.current && !confirmOpenRef.current) {
         const elapsed = now - startRef.current;
         const pct = Math.min(1, elapsed / durationMs);
         setProgress(pct);
@@ -627,6 +629,7 @@ export function StatusViewer({
       } else if (e.key === "ArrowLeft") {
         if (index > 0) setIndex((i) => i - 1); else onClose();
       } else if (e.key === "Escape") {
+        if (confirmOpenRef.current) return; // DeleteButton handles its own Escape
         onClose();
       }
     };
@@ -635,7 +638,8 @@ export function StatusViewer({
   }, [index, statuses.length, onClose]);
 
   const deleteCurrent = async () => {
-    if (!current || !(await confirm({ title: "Delete this status?", description: "This cannot be undone.", confirmText: "Delete", danger: true }))) return;
+    // Confirmation now happens inline in <DeleteButton>, so no modal here.
+    if (!current) return;
     const { error } = await supabase.from("statuses").delete().eq("id", current.id);
     if (error) {
       const explained = explainSupabaseError(error);
@@ -674,9 +678,14 @@ export function StatusViewer({
           </p>
         </div>
         {isSelf && (
-          <motion.button whileTap={{ scale: 0.9 }} onClick={deleteCurrent} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/10 transition-colors" style={{ color: THEME.textMuted }} aria-label="Delete">
-            <Trash2 className="h-4 w-4" />
-          </motion.button>
+          // Forced `dark` so the button matches this always-dark viewer even in light mode.
+          <div className="dark -my-1.5 shrink-0">
+            <DeleteButton
+              className="scale-90 origin-right"
+              onOpenChange={(open) => { confirmOpenRef.current = open; }}
+              onConfirm={deleteCurrent}
+            />
+          </div>
         )}
         <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/10 transition-colors" style={{ color: THEME.text }} aria-label="Close">
           <X className="h-5 w-5" />
