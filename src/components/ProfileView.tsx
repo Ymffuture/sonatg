@@ -51,10 +51,12 @@ export function ProfileViewModal({
   online, lastSeen, onOpenMedia, isBlocked, onToggleBlock, hasStatus,
   socials, onShareContact, messageDisabled, messageDisabledReason,
   mediaStats, onOpenBookmarks, bookmarksCount,
+  nickname, onSetNickname, onClearNickname, // <-- ADD THESE THREE
 }: {
   profile: Profile;
   isSelf: boolean;
   onClose: () => void;
+  // ... rest of the type definition remains the same
   onMessage?: () => void;
   onEdit?: () => void;
   moderation?: { action: string; reason: string | null; expires_at: string | null } | null;
@@ -130,6 +132,9 @@ export function ProfileViewModal({
     else onSetNickname?.(trimmed);
     setEditingNickname(false);
   };
+     useEffect(() => {
+     setNicknameDraft(nickname ?? "");
+   }, [nickname]);
 
   return (
     <div className="fixed inset-0 z-50 bg-white dark:bg-zinc-950 overflow-y-auto scrollbar-thin">
