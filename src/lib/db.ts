@@ -118,6 +118,16 @@ export type SubscriptionRow = {
   current_period_end: string | null;
 };
 
+// A private, owner-only rename of a contact — see the
+// 20260929120000_contact_nicknames migration. Never changes
+// profiles.display_name; only how that contact's name renders to the
+// owner (useContactNicknames applies it locally).
+export type ContactNicknameRow = {
+  owner_id: string;
+  contact_id: string;
+  nickname: string;
+};
+
 export const fmtTime = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
