@@ -45,7 +45,15 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
+@layer components {
+  .spinner {
+    @apply animate-spin;
+  }
 
+  .spinner--accent {
+    color: var(--accent);
+  }
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
