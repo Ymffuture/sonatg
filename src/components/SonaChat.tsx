@@ -5,8 +5,8 @@ import {
   MessageSquarePlus, Settings, PhoneMissed, Shield, Sparkles, Lock,
   Ban, Reply, Pencil, Crown, Users, Phone, Video, CheckSquare, Square, BookOpen, Check, ChevronUp, ChevronDown, Clock, Pin, Send,
   Share2, BadgeCheck, FileText, DoorOpen, Download,
-  Tag, Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Loader2,
-  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Link2, Megaphone, Radio,
+  Tag, Loader2,
+  AlertTriangle, FolderPlus, FolderCog, Flag, ListChecks, Megaphone, Radio,
   Bookmark, Forward,
 } from "lucide-react";
 import { LuCircleFadingPlus } from "react-icons/lu";
@@ -40,7 +40,6 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import { pushBackLayer } from "@/hooks/useBackStack";
-import { FaSquareThreads } from "react-icons/fa6";
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import {SonaAIGreeting} from "./SonaAIGreeting";
@@ -52,33 +51,13 @@ import { IoMdArrowDropright } from "react-icons/io";
 import { toast , Toast } from "@heroui/react";
 import { MdVerified } from "react-icons/md";
 
-/* Shows an "Admin console" entry only for accounts with the admin role. */
-function AdminLink({ onNavigate }: { onNavigate: () => void }) {
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return;
-      const { data } = await supabase
-        .from("user_roles").select("role")
-        .eq("user_id", auth.user.id).eq("role", "admin").maybeSingle();
-      if (alive) setIsAdmin(!!data);
-    })();
-    return () => { alive = false; };
-  }, []);
-  if (!isAdmin) return null;
-  return (
-    <Link
-      to="/admin"
-      onClick={onNavigate}
-      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm !text-[#2D3436] dark:!text-[#E8E8E8] hover:bg-[#F4A261]/10 transition-colors"
-    >
-      
-      Admin console
-    </Link>
-  );
-}
+import { AdminLink } from "@/components/chat/AdminLink";
+import { CategoryIcon } from "@/components/chat/CategoryIcon";
+import { MessagePreview } from "@/components/chat/MessagePreview";
+import { ThreadPanel } from "@/components/chat/ThreadPanel";
+import { saveDraftToStorage, loadDraftFromStorage, clearDraftFromStorage } from "@/utils/chatDrafts";
+import { DISAPPEARING_OPTIONS, disappearingLabel, fmtChatTimestamp } from "@/utils/chatFormatting";
+
 import { OnboardingTour, hasSeenOnboarding, type TourStep } from "./OnboardingTour";
 import {
   SONA_AI_ID, fmtTime, fmtLastSeen, fmtDateLabel, CHAT_CATEGORIES,
@@ -129,24 +108,6 @@ import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 import { postSystemMessage } from "@/lib/systemMessages";
 import { FaPoll } from "react-icons/fa";
 
-// Call-log messages store their metadata as JSON in the file_name column
-// (body stays null so MessagePreview's switch renders it, rather than the
-// raw JSON, when there's no body text).
-type CallLogMeta = { kind: "voice" | "video"; outcome: "answered" | "missed" | "declined"; durationMs: number };
-function parseCallBody(raw: string | null): CallLogMeta {
-  try {
-    const parsed = raw ? JSON.parse(raw) : null;
-    if (parsed && (parsed.kind === "voice" || parsed.kind === "video")) {
-      return {
-        kind: parsed.kind,
-        outcome: parsed.outcome === "missed" || parsed.outcome === "declined" ? parsed.outcome : "answered",
-        durationMs: typeof parsed.durationMs === "number" ? parsed.durationMs : 0,
-      };
-    }
-  } catch { /* fall through to default */ }
-  return { kind: "voice", outcome: "answered", durationMs: 0 };
-}
-
 const ONBOARDING_STEPS: TourStep[] = [
   {
     targetSelector: '[data-tour="new-chat-fab"]',
@@ -179,292 +140,6 @@ const ONBOARDING_STEPS: TourStep[] = [
     placement: "left",
   },
 ];
-
-const DISAPPEARING_OPTIONS: { label: string; seconds: number | null }[] = [
-  { label: "Off", seconds: null },
-  { label: "24 hours", seconds: 24 * 60 * 60 },
-  { label: "7 days", seconds: 7 * 24 * 60 * 60 },
-  { label: "90 days", seconds: 90 * 24 * 60 * 60 },
-];
-function disappearingLabel(seconds?: number | null) {
-  return DISAPPEARING_OPTIONS.find((o) => o.seconds === (seconds ?? null))?.label ?? "Off";
-}
-
-function fmtDuration(ms?: number | null) {
-  const totalSec = Math.max(0, Math.round((ms ?? 0) / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function fmtChatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const t = d.getTime();
-  if (t >= startOfToday) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-  }
-  if (t >= startOfToday - 86_400_000) return "Yesterday";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}/${mm}/${dd}`;
-}
-
-// ─── Per-chat draft persistence ────────────────────────────────
-// Keeps an unsent message from being lost if you switch chats, close the
-// tab, or the send fails (e.g. no network) — same idea as WhatsApp/Slack
-// remembering what you were mid-typing. Scoped per chat id in
-// localStorage; failures (private browsing, storage disabled, quota) are
-// swallowed since a draft is a nice-to-have, never worth crashing over.
-
-
-const draftKey = (chatId: string) => `sona:draft:${chatId}`;
-
-function saveDraftToStorage(chatId: string, text: string) {
-  try {
-    if (text) localStorage.setItem(draftKey(chatId), text);
-    else localStorage.removeItem(draftKey(chatId));
-  } catch { /* storage unavailable — draft just won't persist, not fatal */ }
-}
-
-function loadDraftFromStorage(chatId: string): string {
-  try {
-    return localStorage.getItem(draftKey(chatId)) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function clearDraftFromStorage(chatId: string) {
-  try { localStorage.removeItem(draftKey(chatId)); } catch { /* no-op */ }
-}
-
-function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; decrypted?: Record<string, string> }) {
-  if (!msg) return null; // ← add this guard
-
-  if (msg.deleted_at) {
-    return <span className="italic opacity-70">Message was deleted</span>;
-  }
-
-  if (msg.is_encrypted) {
-    return (
-      <span className="inline-flex items-center gap-1 opacity-70">
-        <FaLock className="h-4 w-4 shrink-0 text-red-500 " /> Locked
-      </span>
-    );
-  }
-
-  // Poll bodies store raw JSON ({"pollId": "..."}), so this must be
-  // checked before the generic `msg.body` fallback below — otherwise a
-  // reply/quote preview would show the JSON blob instead of "Poll".
-  if (msg.kind === "poll") {
-    return (
-      <span className="inline-flex items-center gap-1">
-        <FaPoll className="h-4 w-4 shrink-0" /> Poll
-      </span>
-    );
-  }
-
-  if (msg.body) {
-    // A plain text message whose body is (or starts with) a link gets a
-    // link-style preview, same treatment photos/videos already get. The
-    // URL itself is a real clickable link — tapping it opens the page
-    // directly from the preview instead of only being able to jump to
-    // the original message first.
-    const linkMatch = msg.body.match(/https?:\/\/\S+/i);
-    if (linkMatch) {
-      const url = linkMatch[0];
-      return (
-        <span className="inline-flex min-w-0 items-center gap-1">
-          <Link2 className="h-4 w-4 shrink-0 text-[#4FA6E0]" />
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="truncate text-[#4FA6E0] underline decoration-[#4FA6E0]/40 underline-offset-2 hover:decoration-[#4FA6E0]"
-          >
-            {msg.body}
-          </a>
-        </span>
-      );
-    }
-    return <span className="truncate">{msg.body}</span>;
-  }
-
-  switch (msg.kind) {
-    case "image":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <MdInsertPhoto className="h-4 w-4 shrink-0" /> Photo
-        </span>
-      );
-    case "voice":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <IoMdMic className="h-4 w-4 shrink-0 text-blue-500" /> Voice message ({fmtDuration(msg.duration_ms)})
-        </span>
-      );
-    case "video":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <Video className="h-4 w-4 shrink-0" /> Video
-        </span>
-      );
-    case "file":
-      return (
-        <span className="inline-flex items-center gap-1">
-          <FaFileLines className="h-4 w-4 shrink-0" /> {msg.file_name || "File"}
-        </span>
-      );
-    case "call": {
-      const call = parseCallBody(msg.file_name ?? null);
-      return (
-        <span className="inline-flex items-center gap-1">
-          {call.kind === "video" ? <Video className="h-4 w-4 shrink-0" /> : <PhoneMissed className="h-4 text-red-600 w-4 shrink-0" />}
-          {call.outcome === "missed" || call.outcome === "declined"
-            ? `${call.outcome === "missed" ? "Missed" : "Declined"} ${call.kind === "video" ? "video call" : "call"}`
-            : `${call.kind === "video" ? "Video call" : "Voice call"} · ${fmtDuration(call.durationMs)}`}
-        </span>
-      );
-    }
-    default:
-      return (<span className="flex gap-2 items-center "> <Ban className="h-4 text-red-600/10 w-4 shrink-0"/>This message was deleted</span>) ;
-  }
-}
-
-/* ─── Category Icons (no emojis) ─── */
-function CategoryIcon({ category, className = "h-3.5 w-3.5" }: { category?: string; className?: string }) {
-  switch (category) {
-    case "business": return <Briefcase className={className} />;
-    case "gaming": return <Gamepad2 className={className} />;
-    case "education": return <GraduationCap className={className} />;
-    case "lifestyle": return <Heart className={className} />;
-    case "entertainment": return <Music className={className} />;
-    case "travel": return <Plane className={className} />;
-    case "news": return <Newspaper className={className} />;
-    case "support": return <HelpCircle className={className} />;
-    default: return <Users className={className} />;
-  }
-}
-
-function ThreadPanel({
-  root, replies, me, profiles, decrypted, onClose, onSendReply,
-}: {
-  root: MessageRow | null;
-  replies: MessageRow[];
-  me: Profile;
-  profiles: Record<string, Profile>;
-  decrypted: Record<string, string>;
-  onClose: () => void;
-  onSendReply: (text: string) => Promise<void>;
-}) {
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-
-  const bodyOf = (m: MessageRow) => (m.is_encrypted ? decrypted[m.id] ?? "Locked message" : m.body ?? "");
-  const nameOf = (senderId: string) => (senderId === me.id ? "You" : profiles[senderId]?.display_name ?? "…");
-
-  const send = async () => {
-    const t = text.trim();
-    if (!t || sending) return;
-    setSending(true);
-    try {
-      await onSendReply(t);
-      setText("");
-    } finally {
-      setSending(false);
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      className="absolute inset-0 z-40 flex justify-end bg-black/20 w-full"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 380, damping: 38 }}
-        className="flex h-full w-full max-w-sm flex-col border-l border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#242424] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-[var(--sona-accent,#E07A5F)]/10 px-4 py-3">
-          <h3 className="text-sm flex gap-2 font-semibold text-[#2D3436] dark:text-[#E8E8E8]"><FaSquareThreads className="text-[purple]" /> Threads</h3>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[#F4A261]/20" aria-label="Close thread">
-            <X className="h-4 w-4 text-[#2D3436] dark:text-[#E8E8E8]" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
-          {root && (
-            <div className="mb-3 rounded-xl border border-[var(--sona-accent,#E07A5F)]/15 bg-[#F5F0E8] dark:bg-[#2A2A2A] p-3">
-              <div className="flex items-center gap-2">
-                <Avatar url={profiles[root.sender_id]?.avatar_url} name={nameOf(root.sender_id)} size={24} />
-                <span className="text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{nameOf(root.sender_id)}</span>
-                <span className="text-[10px] text-[#8C8C8C]">{fmtTime(root.created_at)}</span>
-              </div>
-              <p className="mt-1.5 text-sm text-[#2D3436] dark:text-[#E8E8E8]">
-                {bodyOf(root) || (root.kind === "image" ? "Photo" : root.kind === "voice" ? "Voice message" : root.kind === "file" ? root.file_name || "File" : "…")}
-              </p>
-            </div>
-          )}
-
-          <div className="mb-2 text-xs font-medium text-[#8C8C8C]">
-            {replies.length} {replies.length === 1 ? "reply" : "replies"}
-          </div>
-
-          <div className="space-y-3">
-            {replies.map((r) => (
-              <div key={r.id} className="flex items-start gap-3 m-2">
-                <Avatar url={profiles[r.sender_id]?.avatar_url} name={nameOf(r.sender_id)} size={28} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xs font-semibold text-[#2D3436] dark:text-[#E8E8E8]">{nameOf(r.sender_id)}</span>
-                    <span className="text-[10px] text-[#8C8C8C]">{fmtTime(r.created_at)}</span>
-                  </div>
-                  <p className="text-sm text-[#2D3436] dark:text-[#E8E8E8]">
-                    {bodyOf(r) || (r.kind === "image" ? "Photo" : r.kind === "voice" ? "Voice message" : r.kind === "file" ? r.file_name || "File" : "…")}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {replies.length === 0 && (
-              <p className="text-sm text-[#8C8C8C]">No replies yet — start the thread below.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="border-t border-[var(--sona-accent,#E07A5F)]/10 p-3">
-          <div className="flex items-center gap-2 rounded-full bg-[#F5F0E8] dark:bg-[#2A2A2A] px-3 py-2">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-              placeholder="Reply in thread…"
-              className="flex-1 bg-transparent text-sm outline-none text-[#2D3436] dark:text-[#E8E8E8] placeholder:text-[#8C8C8C]"
-            />
-            <button
-              onClick={send}
-              disabled={!text.trim() || sending}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--sona-accent,#E07A5F)] text-white disabled:opacity-40 transition"
-              aria-label="Send reply"
-            >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 export default function SonaChat() {
   return (
@@ -504,7 +179,6 @@ function SonaChatInner() {
 const [menuOpen, setMenuOpen] = useState(false);
 const [menuView, setMenuView] = useState<"root" | "more" | "disappearing" | "export">("root");
 
-// reset the drill-down whenever the menu closes, so it doesn't reopen mid-flow
 const handleMenuOpenChange = (open: boolean) => {
   setMenuOpen(open);
   if (!open) setMenuView("root");
@@ -518,7 +192,7 @@ const handleMenuOpenChange = (open: boolean) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "app_announcements" }, () => {
         fetchActiveAnnouncement().then((a) => {
           setAnnouncement(a);
-          setAnnouncementDismissed(false); // a new/changed announcement should be seen again even if a prior one was dismissed
+          setAnnouncementDismissed(false);
         }).catch(() => {});
       })
       .subscribe();
@@ -527,16 +201,11 @@ const handleMenuOpenChange = (open: boolean) => {
 
   const [draft, setDraft] = useState("");
 
-  // Restore a saved draft (from a prior visit, or one preserved after a
-  // failed send) whenever you switch into a chat — mirrors how WhatsApp
-  // remembers what you were mid-typing per conversation.
   useEffect(() => {
     if (!activeId) return;
     setDraft(loadDraftFromStorage(activeId));
   }, [activeId]);
 
-  // Persist as you type (debounced) so the draft survives a chat switch,
-  // tab close, or crash — not just an explicit send failure.
   useEffect(() => {
     if (!activeId) return;
     const t = setTimeout(() => saveDraftToStorage(activeId, draft), 400);
@@ -554,19 +223,10 @@ const handleMenuOpenChange = (open: boolean) => {
   }, [pendingImageUrls]);
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
-  // True while waiting on askAI() for a reply — drives the animated
-  // typing indicator in the Sona AI chat (see the SonaTypingIndicator
-  // render below the message list) and resets on both success and error.
   const [sonaTyping, setSonaTyping] = useState(false);
-  // Direct handle to the composer's <textarea>, for the "/" focus shortcut.
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const { checkMessage, lastResult: moderationResult } = useMessageModeration();
 
-  // Writes a row into moderation_flags so it shows up in the admin queue.
-  // The RLS policy only lets a sender insert their own flag (sender_id =
-  // auth.uid()), which is exactly what this does — the client logs its own
-  // moderation result at send time. Never blocks/throws into the send flow;
-  // a failure here shouldn't stop the message from having already sent.
   const logModerationFlag = useCallback(
     async (
       verdict: ModerationResult,
@@ -614,13 +274,6 @@ const handleMenuOpenChange = (open: boolean) => {
   };
 
   const onAdCreated = async (ad: CreatedAd) => {
-    // Must match AdComposerModal's documented contract: only resolve (so the
-    // modal closes itself) once the message row is actually inserted, and
-    // throw a user-facing error otherwise so the modal stays open and shows
-    // it inline — closing early / swallowing the error here is what let ads
-    // silently fail to post (image uploaded, modal closed, but no message
-    // ever made it into the chat, e.g. when the "business accounts can send
-    // ad messages" RLS check rejects an unverified account).
     if (!me || !activeId) {
       throw new Error("No active chat to post this ad to. Open a chat and try again.");
     }
@@ -654,11 +307,6 @@ const handleMenuOpenChange = (open: boolean) => {
   const msgRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [showSidebarMobile, setShowSidebarMobile] = useState(true);
 
-  // Let the device/browser "back" gesture close an open chat (return to the
-  // chat list) instead of leaving the app entirely. Uses the shared
-  // back-navigation stack (src/hooks/useBackStack.ts) — critically, the
-  // SAME stack modals use, so closing a modal opened on top of a chat only
-  // ever pops the modal's own layer, never this one underneath it.
   const popChatLayerRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!showSidebarMobile) {
@@ -666,18 +314,12 @@ const handleMenuOpenChange = (open: boolean) => {
       return () => { popChatLayerRef.current?.(); popChatLayerRef.current = null; };
     }
   }, [showSidebarMobile]);
-  // Close a chat the same way a device back-press would — just flips the
-  // state; the effect's cleanup above consumes the shared history layer
-  // automatically, whether closed this way or via a real back press.
   const closeActiveChat = useCallback(() => {
     setShowSidebarMobile(true);
   }, []);
 
   const [showNewChat, setShowNewChat] = useState(false);
 
-  // Free-plan ("not Purple") usage tracking — see src/lib/planLimits.ts.
-  // The DB triggers are the real enforcement; this is just so the UI can
-  // show a friendly upsell before hitting send/create instead of after.
   const [messagesSentToday, setMessagesSentToday] = useState(0);
   const refreshMessagesSentToday = useCallback(() => {
     if (!me || me.is_pro) return;
@@ -724,7 +366,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const [openMessageMenu, setOpenMessageMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const closeMessageMenu = useCallback(() => setOpenMessageMenu(null), []);
   const openMessageMenuFor = useCallback((id: string, x: number, y: number) => {
-    // Opening a message menu always wins over any other open menu/popover.
     setShowHeaderMenu(false);
     setShowDisappearingMenu(false);
     setChatLongPressMenu(null);
@@ -733,7 +374,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   const handleHeaderMenuOpenChange = (open: boolean) => {
   setShowHeaderMenu(open);
-  if (!open) setHeaderMenuView("root"); // Reset to root when menu closes
+  if (!open) setHeaderMenuView("root");
 };
 
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
@@ -741,8 +382,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const [savedMessages, setSavedMessages] = useState<(MessageRow & { chat_id: string })[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
 
-  // Bulk message selection within the open chat (distinct from selectMode
-  // above, which bulk-selects whole chats in the sidebar).
   const [msgSelectMode, setMsgSelectMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState<Set<string>>(new Set());
   const [forwardingMessages, setForwardingMessages] = useState<MessageRow[] | null>(null);
@@ -752,13 +391,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const { canInstall, promptInstall } = useInstallPrompt();
   const callManagerRef = useRef<CallManagerHandle>(null);
 
-  // Chat selection for bulk delete
   const [selectMode, setSelectMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(new Set());
   const [chatLongPressMenu, setChatLongPressMenu] = useState<{ chatId: string; x: number; y: number } | null>(null);
 
-  // Which user IDs currently have an active (non-expired) status — drives
-  // the status ring shown around chat-list avatars.
   const [usersWithStatus, setUsersWithStatus] = useState<Set<string>>(new Set());
   useEffect(() => {
     const load = async () => {
@@ -776,9 +412,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const chatCacheRef = useRef<Record<string, { messages: MessageRow[]; reactions: ReactionRow[]; reads: MessageReadRow[]; deliveries: MessageDeliveryRow[] }>>({});
-  // Holds the exact insert payload for a message whose send failed, keyed by
-  // its optimistic temp id, so "Retry" (surfaced from the Message info
-  // panel) can re-attempt the identical insert without the user retyping.
   const failedPayloadsRef = useRef<Record<string, Record<string, unknown>>>({});
   
   const chatClearsRef = useRef<Record<string, string>>({});
@@ -790,7 +423,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   
     
 
-  // Bootstrap: current user + profile
   useEffect(() => {
     (async () => {
       const { data: u } = await supabase.auth.getUser();
@@ -800,7 +432,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     })();
   }, [navigate]);
 
-  // Load chats + members + latest messages + unread counts
   const loadChats = useCallback(async () => {
     if (!me) return;
     setLoadingChats(true);
@@ -836,15 +467,11 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     });
     const lastByChat: Record<string, MessageRow> = {};
     const primingByChat: Record<string, MessageRow[]> = {};
-    // rows is newest-first across all chats — walk it and bucket per chat,
-    // then flip each bucket back to chronological order for priming.
     rows.forEach((m) => {
       if (!lastByChat[m.chat_id]) lastByChat[m.chat_id] = m;
       (primingByChat[m.chat_id] ||= []).push(m);
     });
     for (const [chatId, msgs] of Object.entries(primingByChat)) {
-      // Never overwrite a fuller cache from having actually opened the
-      // chat — this is just a head start for chats not yet opened.
       if (!chatCacheRef.current[chatId]) {
         chatCacheRef.current[chatId] = { messages: msgs.slice().reverse(), reactions: [], reads: [], deliveries: [] };
       }
@@ -911,8 +538,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   useEffect(() => { loadChats(); }, [loadChats]);
 
-  // A group joined from an invite link hands its id over here so the chat
-  // list opens straight into the new group once it has loaded.
   useEffect(() => {
     if (chats.length === 0) return;
     let pending: string | null = null;
@@ -924,7 +549,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     }
   }, [chats]);
 
-  // Load my blocks (both directions) and my moderation state
   useEffect(() => {
     if (!me) return;
     (async () => {
@@ -955,7 +579,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     return () => { cancelled = true; };
   }, [viewingProfile, me]);
 
-  // Prompt to unlock when opening a hidden chat
   useEffect(() => {
     if (!activeId) return;
     const c = chats.find((x) => x.id === activeId);
@@ -963,7 +586,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     else setNeedsUnlock(false);
   }, [activeId, chats]);
 
-  // Decrypt encrypted messages we have keys for
   useEffect(() => {
     if (!activeId || !isUnlocked(activeId)) return;
     (async () => {
@@ -987,7 +609,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     return () => clearInterval(id);
   }, [messages]);
 
-  // Load messages + reactions + read receipts for active chat
   useEffect(() => {
     if (!activeId) return;
     const activeChat = chats.find((c) => c.id === activeId);
@@ -995,9 +616,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       supabase.rpc("cleanup_expired_messages").then(() => {});
     }
 
-    // Instant path: render whatever we already have for this chat —
-    // either from a prior visit this session, or the head-start batch
-    // primed in loadChats() — synchronously, before any network call.
     const cached = chatCacheRef.current[activeId];
     if (cached) {
       setMessages(cached.messages);
@@ -1017,7 +635,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       const { data: msgs } = await query
         .order("created_at", { ascending: false })
         .limit(100);
-      const rows = ((msgs ?? []) as MessageRow[]).reverse(); // fetched newest-first for the LIMIT, flip back to chronological
+      const rows = ((msgs ?? []) as MessageRow[]).reverse();
       setMessages(rows);
       const ids = rows.map((m) => m.id);
       if (ids.length && me) {
@@ -1042,10 +660,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         setReads(rd);
         setDeliveries(dl);
 
-        // Catch-up delivery: any message from someone else that reached my
-        // client just now (via this fetch) but has no delivery receipt from
-        // me yet — e.g. it arrived while I was offline — gets marked
-        // delivered right away, same as the realtime path below.
         if (me) {
           const haveDelivery = new Set(dl.filter((d) => d.user_id === me.id).map((d) => d.message_id));
           const toMark = rows.filter((m) => m.sender_id !== me.id && !m._pending && !haveDelivery.has(m.id)).map((m) => m.id);
@@ -1066,8 +680,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   }, [activeId, messages, reactions, reads, deliveries]);
 
   const notifyReaction = useCallback(async (r: ReactionRow) => {
-    // Only notify when it's a reaction to MY message, not just any
-    // reaction I happen to be subscribed to.
     const { data: msg } = await supabase
       .from("messages")
       .select("sender_id, kind, body")
@@ -1102,7 +714,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     );
   }, [me, profiles]);
 
-  // Realtime: messages, reactions, reads, member changes
   useEffect(() => {
     if (!me) return;
     const channel = supabase
@@ -1115,11 +726,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           if (m.sender_id !== me.id) playReceiveSound();
         }
         if (!notYetDue) loadChats();
-        // Real delivery signal: this event only reaches my client once the
-        // message has actually arrived here over realtime. Mark it
-        // delivered-by-me immediately, for every chat I'm in — not just the
-        // one currently open — mirroring how a messaging client's "delivered"
-        // tick reflects the message reaching a recipient's device.
         if (!notYetDue && m.sender_id !== me.id) {
           supabase.from("message_deliveries")
             .upsert({ message_id: m.id, user_id: me.id }, { onConflict: "message_id,user_id", ignoreDuplicates: true })
@@ -1131,15 +737,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         if (m.chat_id === activeId) {
           setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, ...m } : x));
         }
-        // Keep the chat-list preview in sync too — this fires for every
-        // participant, not just the person who made the edit/delete.
         loadChats();
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (p) => {
-        // Fires for both sides when cleanup_expired_messages() (or a
-        // manual delete) removes a row — without this, a chat that's
-        // already open just keeps showing the message until the next
-        // full reload, even though it's gone server-side.
         const m = p.old as MessageRow;
         setMessages((prev) => prev.filter((x) => x.id !== m.id));
         loadChats();
@@ -1170,7 +770,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     return () => { supabase.removeChannel(channel); };
   }, [me, activeId, loadChats]);
 
-  // Typing indicator
   useEffect(() => {
     if (!me || !activeId) return;
     const chan = supabase.channel(`typing:${activeId}`, { config: { broadcast: { self: false } } });
@@ -1201,9 +800,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     };
   }, [me, activeId]);
 
-  // Typing/recording indicators for chats OTHER than the currently-open
-  // one, so the chat list ("outside") can show "typing…" / "recording
-  // audio…" the same way WhatsApp does, not just inside an open chat.
   useEffect(() => {
     if (!me) return;
     const otherChatIds = chats.map((c) => c.id).filter((id) => id !== activeId);
@@ -1245,7 +841,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     };
   }, [me, activeId, chats.map((c) => c.id).join(",")]);
 
-  // Global presence
   useEffect(() => {
     if (!me) return;
     const chan = supabase.channel("sona-presence", { config: { presence: { key: me.id } } });
@@ -1258,15 +853,12 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     return () => { supabase.removeChannel(chan); };
   }, [me]);
 
-  // Keep last_seen fresh while active, so it means something more useful than
-  // "whenever I last clicked Sign out" — was previously only written on
-  // explicit sign-out, so the "Last seen ..." label was almost always stale.
   useEffect(() => {
     if (!me) return;
     const bumpLastSeen = () => {
       supabase.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", me.id).then();
     };
-    bumpLastSeen(); // on mount / session start
+    bumpLastSeen();
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") bumpLastSeen();
     }, 45_000);
@@ -1280,10 +872,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     };
   }, [me]);
 
-  // Live-sync other users' profile changes (last_seen, avatar, bio, etc.) —
-  // profiles were previously only fetched once per loadChats() call, so
-  // "Last seen" never updated in an open chat until something unrelated
-  // (a new message, membership change) happened to trigger a refetch.
   useEffect(() => {
     if (!me) return;
     const chan = supabase
@@ -1312,17 +900,12 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     chan.send({ type: "broadcast", event: "recording", payload: { user_id: me.id, recording } });
   }, [me]);
 
-  // Snapshot the unread count the instant a chat is opened — must run
-  // before the auto-mark-as-read effect below flips it back to 0, so the
-  // in-thread "N unread messages" divider has something to show.
   useEffect(() => {
     if (!activeId) { setUnreadSnapshot(0); return; }
     const c = chats.find((x) => x.id === activeId);
     setUnreadSnapshot(c?.unread ?? 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
 
-  // Auto-mark unread messages as read
   useEffect(() => {
     if (!me || !activeId || messages.length === 0) return;
     const toMark = messages.filter((m) => m.sender_id !== me.id).map((m) => m.id);
@@ -1345,9 +928,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   const active = chats.find((c) => c.id === activeId);
 
-  // The message id the "N unread messages" divider renders before —
-  // the Nth-from-last message authored by someone else, where N is the
-  // snapshot captured when this chat was opened.
   const unreadDividerId = useMemo(() => {
     if (unreadSnapshot <= 0 || !me) return null;
     const fromOthers = messages.filter((m) => m.sender_id !== me.id);
@@ -1384,9 +964,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
             ? FREE_MESSAGE_LIMIT_MESSAGE
             : null;
 
-  // Gate for opening the "New chat" flow — used by both the FAB and the
-  // empty-state CTA so free-plan users see one consistent upsell instead
-  // of getting all the way to NewChatModal before finding out it's blocked.
   const openNewChat = useCallback(() => {
     if (accountRestricted) { toast.danger(composerNotice ?? "Your account is restricted."); return; }
     if (!canCreateChat) {
@@ -1403,12 +980,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     for (const c of chats) for (const m of c.members) map[m.id] = m;
     return map;
   }, [chats, me]);
-  // "all" | "unread" | "groups" | "pinned" | a custom folder id (e.g. "custom:1699999999")
   const [activeFolder, setActiveFolder] = useState<string>("all");
   const [joinLinkOpen, setJoinLinkOpen] = useState(false);
   const [joinLink, setJoinLink] = useState("");
 
-  // Accepts a full invite URL or a bare token and opens the /invite page.
   const openInviteLink = () => {
     const raw = joinLink.trim();
     if (!raw) return;
@@ -1420,13 +995,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   };
 
 
-  // Custom folders (e.g. "Work", "Family", "Close friends") the user can create,
-  // rename, and delete to group chats however they like. Purely client-side,
-  // persisted per-account in localStorage — no server/schema changes needed.
   type CustomFolder = { id: string; name: string };
   const [customFolders, setCustomFolders] = useState<CustomFolder[]>([]);
-  const [chatFolderMap, setChatFolderMap] = useState<Record<string, string[]>>({}); // chatId -> folderId[]
-  const [assigningFolders, setAssigningFolders] = useState(false); // shows the "add selected chats to folder" panel
+  const [chatFolderMap, setChatFolderMap] = useState<Record<string, string[]>>({});
+  const [assigningFolders, setAssigningFolders] = useState(false);
 
   useEffect(() => {
     if (!me) return;
@@ -1441,7 +1013,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     }
   }, [me?.id]);
 
-  // Drives the "New folder" / "Rename folder" modal (replaces window.prompt).
   const [folderModal, setFolderModal] = useState<{ mode: "create" | "rename"; id?: string; value: string } | null>(null);
 
   const persistFolders = (next: CustomFolder[]) => {
@@ -1507,12 +1078,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (activeFolder.startsWith("custom:") && !(chatFolderMap[c.id] ?? []).includes(activeFolder)) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    // WhatsApp-style search: match the chat title as well as the last message's
-    // decrypted preview text, so results surface even when the query only
-    // appears inside a message rather than the chat/contact name.
     if (chatTitle(c, me.id).toLowerCase().includes(q)) return true;
-    // Only plain (unencrypted) last messages can be matched client-side —
-    // encrypted previews stay "Locked" until opened, same as elsewhere in the app.
     const last = c.lastMessage;
     if (last && !last.is_encrypted && last.kind !== "poll" && last.body) {
       return last.body.toLowerCase().includes(q);
@@ -1520,9 +1086,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     return false;
   }), [chats, query, me, blockedIds, activeFolder, chatFolderMap]);
 
-  // "Ask Sona AI" entry shown above results, WhatsApp/Meta-AI style, whenever
-  // there's a non-empty search query. Opens (or starts) the Sona AI chat and
-  // hands the typed query over as the draft so the user can review before sending.
   const askSonaAIFromSearch = () => {
     const q = query.trim();
     if (!q) return;
@@ -1539,7 +1102,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const groupsFolderCount = chats.filter((c) => c.is_group).length;
   const favoritesFolderCount = chats.filter((c) => c.isPinned).length;
 
-  // Selection handlers
   const openScheduledList = async () => {
     if (!me || !activeId) return;
     const { data } = await supabase
@@ -1603,7 +1165,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
   const messageProfile = async (profile: Profile) => {
     if (!me) return;
-    // Reuse an existing 1:1 chat if one's already loaded
     const existing = chats.find((c) => !c.is_group && c.memberIds.includes(profile.id));
     if (existing) { setActiveId(existing.id); setViewingProfile(null); return; }
 
@@ -1625,7 +1186,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   const leaveGroup = async (chatId: string) => {
     if (!me) return;
     if (!(await confirm({ title: "Leave this group?", description: "You'll need to be re-added to rejoin.", confirmText: "Leave", danger: true }))) return;
-    // Post the notice while still a member — afterwards the write is blocked.
     await postSystemMessage(chatId, `${me.display_name} left the group`);
     const { error } = await supabase.from("chat_members").delete().eq("chat_id", chatId).eq("user_id", me.id);
     if (error) { toast.danger(explainSupabaseError(error).title); return; }
@@ -1694,7 +1254,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     setSelectedChatIds(new Set());
   };
 
-  // Send
   const send = async (scheduledFor?: Date) => {
     if (!me || !activeId) return;
     if (composerNotice) { toast.danger(composerNotice); return; }
@@ -1764,10 +1323,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
       const hadAttachmentsPicked = pendingImages.length > 0 || pendingDocs.length > 0;
       if (outgoing.length === 0 && hadAttachmentsPicked) {
-        // Every upload failed (most commonly: no network) and there was
-        // no text to fall back to sending on its own. Keep the picked
-        // files in place so the user can just hit send again — don't
-        // silently drop what they attached.
         toast.danger("Couldn't upload — check your connection and try again.");
         return;
       }
@@ -1798,8 +1353,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           scheduled_at: scheduledAt,
         };
 
-        // Scheduled messages shouldn't show up in the feed now — they're
-        // not due yet — so only optimistically render immediate sends.
         const tempId = `optimistic:${crypto.randomUUID()}`;
         if (!scheduledFor) {
           setMessages((prev) => [
@@ -1811,9 +1364,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         const { data: inserted, error } = await supabase.from("messages").insert(payload).select().single();
         if (error) {
           toast.danger(isFreeTierLimitError(error) ? FREE_MESSAGE_LIMIT_MESSAGE : error.message);
-          // Keep the bubble (instead of deleting it) so the real "failed to
-          // send" state is visible and retryable from Message info — never
-          // silently drop a message the user believed they sent.
           if (!scheduledFor) {
             failedPayloadsRef.current[tempId] = payload;
             setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _pending: false, _failed: true } : m)));
@@ -1825,10 +1375,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         if (i === 0 && inserted) firstInsertedMessageId = (inserted as MessageRow).id;
         if (!scheduledFor && inserted) {
           setMessages((prev) => {
-            // If the realtime echo of this same insert already arrived
-            // (rare, but possible under high latency), drop that copy
-            // before swapping the temp bubble for the real row, so we
-            // don't end up with the same message twice.
             const withoutRealtimeDupe = prev.filter((m) => m.id !== (inserted as MessageRow).id);
             return withoutRealtimeDupe.map((m) => (m.id === tempId ? (inserted as MessageRow) : m));
           });
@@ -1841,19 +1387,11 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         refreshMessagesSentToday();
       }
 
-      // Message was allowed to send but still flagged (e.g. profanity that
-      // isn't severe enough to block) — log it now that we have a real
-      // message id, so it actually shows up in the admin moderation queue
-      // instead of only flashing a local alert to the sender.
       if (anySucceeded && !scheduledFor && plaintext && me && sentMessageVerdict?.shouldLog) {
         void logModerationFlag(sentMessageVerdict, activeId, me.id, plaintext, firstInsertedMessageId);
       }
 
       if (outgoing.length > 0 && !anySucceeded && !scheduledFor) {
-        // Every attempt failed (most commonly: no network). Keep the
-        // draft text and any picked images/docs exactly as they were, so
-        // the user can just hit send again once they're back online —
-        // the debounced localStorage effect already has this text saved.
         toast.danger("Couldn't send — your message is saved as a draft, try again when you're back online.");
         return;
       }
@@ -1865,9 +1403,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       setDraft(""); setPendingImages([]); setPendingDocs([]); setShowEmoji(false); setReplyTo(null);
       if (activeId) clearDraftFromStorage(activeId);
 
-      // Let any offline recipient know by email — fire-and-forget, never
-      // blocks the send UI. The server figures out who's actually
-      // offline and opted in before sending anything.
       if (anySucceeded && !scheduledFor && active && !isAIChat(active)) {
         notifyOfflineMessage({
           data: {
@@ -1875,7 +1410,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
             senderName: me.display_name || "Someone",
             messageBody: prompt || (attachedImageUrl ? "Sent a photo" : attachedFileUrl ? "Sent a file" : "Sent a message"),
           },
-        }).catch(() => {}); // best-effort — a failed notification shouldn't surface as a send error
+        }).catch(() => {});
       }
 
       if (!scheduledFor && active && !active.is_hidden) {
@@ -1903,9 +1438,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     }
   };
 
-  // Re-attempts a failed send using the exact payload that failed, keyed by
-  // the message's optimistic temp id. Surfaced only from the Message info
-  // panel's "Retry" button — never automatic/timer-driven.
   const retryMessage = useCallback(async (tempId: string) => {
     const payload = failedPayloadsRef.current[tempId];
     if (!payload) return;
@@ -1968,7 +1500,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     });
   };
 
-  const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // Cloudinary free tier cap — comfortably covers 50MB+ videos
+  const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
   const onPickVideo = async (file?: File | null) => {
     if (!file || !me || !activeId) return;
     if (!file.type.startsWith("video/")) { toast.danger("Please choose a video file"); return; }
@@ -1998,10 +1530,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     }
   };
 
-  // One reaction per user per message: tapping the emoji you already
-  // reacted with clears it; tapping a different one replaces it (updates
-  // the existing row's emoji instead of adding a second row alongside
-  // it). Matches the DB's unique(message_id, user_id) constraint.
   const toggleReaction = async (messageId: string, emoji: string) => {
     if (!me) return;
     const existing = reactions.find((r) => r.message_id === messageId && r.user_id === me.id);
@@ -2028,15 +1556,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     setMessages((prev) => prev.map((m) => m.id === messageId
       ? { ...m, deleted_at: new Date().toISOString(), body: null, media_url: null, file_name: null, file_size: null, duration_ms: null }
       : m));
-    // The chat list's last-message preview is a separate query result
-    // (loadChats), not derived from `messages` — without this it kept
-    // showing the pre-deletion content until the next full reload.
     loadChats();
   };
 
-  // Permanently removes an already-soft-deleted message's row — separate
-  // from deleteMessage() above, which only clears content and leaves the
-  // "This message was deleted" placeholder in place for everyone.
   const hardDeleteMessage = async (messageId: string) => {
     if (!me) return;
     const { error } = await supabase.from("messages").delete().eq("id", messageId).eq("sender_id", me.id);
@@ -2045,8 +1567,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     loadChats();
   };
 
-  // Pinning is shared: any member of the chat can pin/unpin, and everyone
-  // sees the same pinned banner. Toggled straight on the messages row.
   const togglePinMessage = async (m: MessageRow) => {
     if (!me || !active) return;
     const pinning = !m.pinned_by;
@@ -2060,8 +1580,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     toast.success(pinning ? "Message pinned" : "Message unpinned");
   };
 
-  // Bookmarks are personal — only ever visible to me, regardless of who
-  // sent the message or what chat it's in.
   const toggleBookmark = async (m: MessageRow) => {
     if (!me) return;
     const bookmarked = bookmarkedIds.has(m.id);
@@ -2095,9 +1613,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     setSavedMessages(rows);
   };
 
-  // Quick shared-media counts for the profile view's stats strip — reuses the
-  // same kind/URL_REGEX filters as MediaGalleryModal, computed from the
-  // already-loaded active-chat messages rather than a second query.
   const profileMediaStats = useMemo(() => {
     if (!activeId) return undefined;
     const photos = messages.filter((m) => m.kind === "image" && m.media_url).length;
@@ -2109,9 +1624,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     return { photos, videos, files, links };
   }, [messages, activeId]);
 
-  // Total personal "Saved Messages" count, fetched fresh each time the
-  // viewer opens their own profile (bookmarkedIds only tracks the active
-  // chat's messages, not the global total).
   const [selfBookmarksCount, setSelfBookmarksCount] = useState<number | null>(null);
   useEffect(() => {
     if (!me || !viewingProfile || viewingProfile.id !== me.id) return;
@@ -2124,9 +1636,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     })();
   }, [me, viewingProfile]);
 
-  // Entering select mode from a single bubble's "Select" menu item both
-  // turns on the mode and selects that message in one tap; while already
-  // in select mode, the same handler just toggles that one message.
   const toggleSelectMessage = (id: string) => {
     setMsgSelectMode(true);
     setSelectedMsgIds((prev) => {
@@ -2218,9 +1727,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       details: reportDetails.trim() || null,
     });
     if (error) {
-      // Postgrest error codes: 42P01 = relation (table) doesn't exist —
-      // almost always means the "reports" table migration was never
-      // applied to this Supabase project. 42501 = RLS/permission denied.
       if (error.code === "42P01") {
         toast.danger("Reporting isn't set up yet — the reports table is missing from the database. Ask an admin to run the pending Supabase migrations.");
       } else if (error.code === "42501") {
@@ -2294,7 +1800,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       .from("chat_clears")
       .upsert({ chat_id: active.id, user_id: me.id, cleared_before: clearedBefore }, { onConflict: "chat_id,user_id" });
     if (error) { toast.danger(explainSupabaseError(error).title); return; }
-    // Instant local feedback — don't wait on a refetch to reflect the clear.
     chatClearsRef.current[active.id] = clearedBefore;
     setMessages([]);
     setReactions([]);
@@ -2321,7 +1826,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       setSummary(r.summary);
       setIsSummarized(false) ;
     } catch {
-      // error toast already shown by toast.promise above
     }
   };
 
@@ -2415,7 +1919,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       const alreadyTyping = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
       if (alreadyTyping) return;
       const composer = composerInputRef.current;
-      if (!composer) return; // no chat open / composer not mounted right now
+      if (!composer) return;
       e.preventDefault();
       setDraft("/");
       composer.focus();
@@ -2431,8 +1935,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [msgSearchIndex, msgSearchMatches, showMsgSearch]);
 
-  // Tapping a reply's quoted preview scrolls to the original message it
-  // replied to, WhatsApp-style, and briefly highlights it so it's easy to spot.
   const [jumpHighlightId, setJumpHighlightId] = useState<string | null>(null);
   const jumpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const jumpToMessage = (messageId: string) => {
@@ -2457,12 +1959,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (!messages.some((m) => m.id === pendingJumpId)) return;
     const id = pendingJumpId;
     setPendingJumpId(null);
-    // Wait a frame for the newly-switched chat's bubbles to actually paint.
     requestAnimationFrame(() => jumpToMessage(id));
   }, [messages, pendingJumpId]);
 
     
-  /* ─── Main Page Loader + Nav Skeleton ─── */
   if (!me) {
     return(
     
@@ -2502,9 +2002,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
         
         <div className="flex h-full w-full overflow-hidden rounded-none bg-white shadow-2xl md:rounded-3xl md:border border-[var(--sona-accent,#E07A5F)]/20 dark:bg-[#242424] dark:border-[var(--sona-accent,#E07A5F)]/10">
-          {/* Sidebar */}
           <aside className={`${showSidebarMobile ? "flex" : "hidden"} relative h-full w-full flex-col border-r border-[var(--sona-accent,#E07A5F)]/10 bg-[#FFFDF9] dark:bg-[#1E1E1E] dark:text-[#E8E8E8] md:flex md:w-[32%] md:min-w-[300px] md:max-w-[420px]`}>
-            {/* Header */}
             <div className="flex items-center justify-between gap-2 px-2 py-3 bg-transparent dark:text-white text-gray-600">
               <div className="flex items-center gap-2 min-w-0 select-none cursor-default">
   <div className="leading-none min-w-0 flex items-baseline gap-0">
@@ -2516,9 +2014,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     </span>
   </div>
 </div>
-              {/* Header toolbar: Share + More dropdown */}
 <div className="flex items-center gap-1 dark:text-white text-gray-600 shrink-0 rounded-md px-1 py-1">
-  {/* Share — always visible */}
   <button
     onClick={() => {
       const shareUrl = window.location.origin;
@@ -2550,10 +2046,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   className="hidden"
   onChange={(e) => { onPickImages(e.target.files); e.target.value = ""; }}
 />
-  {/* Divider */}
   <div className="w-px h-6 bg-slate-300 dark:bg-slate-600" />
 
-  {/* More options dropdown */}
 
 <DropdownMenu open={showHeaderMenu} onOpenChange={handleHeaderMenuOpenChange}>
   <DropdownMenuTrigger asChild>
@@ -2571,7 +2065,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   </DropdownMenuTrigger>
   
   <DropdownMenuContent align="end" className="w-56">
-    {/* ── Root View ── */}
     {headerMenuView === "root" && (
       <>
         <DropdownMenuItem onClick={() => { setShowSavedMessages(true); setShowHeaderMenu(false); loadSavedMessages(); }}>
@@ -2583,7 +2076,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={(e) => {
-            e.preventDefault(); // Keeps menu open while drilling in
+            e.preventDefault();
             setHeaderMenuView("more");
           }}
           className="flex items-center justify-between"
@@ -2594,7 +2087,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       </>
     )}
 
-    {/* ── More View ── */}
     {headerMenuView === "more" && (
       <>
         <DropdownMenuItem
@@ -2634,7 +2126,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           </Link>
         </DropdownMenuItem>
         
-        {/* AdminLink renders its own <Link> with admin-check logic, so we render it directly */}
         <AdminLink onNavigate={() => setShowHeaderMenu(false)} />
         
         <DropdownMenuItem onClick={() => { setShowTour(true); setShowHeaderMenu(false); }}>
@@ -2647,7 +2138,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 </div>
             </div>
 
-            {/* Selection mode bar */}
             {selectMode && (
               <div className="flex items-center justify-between gap-2 px-4 py-2 bg-[transparent] border-b border-[var(--sona-accent,#E07A5F)]/10">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[var(--sona-accent,#E07A5F)]">
@@ -2700,7 +2190,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
             <div data-tour="folder-tabs" className="flex items-center gap-2 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-hiding">
                
-  {/* --- Default Folders --- */}
   {([
     { key: "all", label: "All" },
     { key: "unread", label: `Unread ${unreadFolderCount ? unreadFolderCount : ""}` },
@@ -2726,7 +2215,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     );
   })}
 
-  {/* --- Custom Folders --- */}
   {customFolders.map((f) => {
     const isActive = activeFolder === f.id;
     return (
@@ -2748,7 +2236,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           ${!me.is_pro && !isActive ? "opacity-75 hover:opacity-100" : ""}
         `}
       >
-        {/* Subtle folder icon for custom folders to distinguish them */}
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-3.5 w-3.5 transition-colors ${isActive ? "text-white/90" : "text-[#8C8C8C] dark:text-zinc-500"}`}>
           <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
         </svg>
@@ -2757,7 +2244,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     );
   })}
 
-  {/* --- Action Buttons (Visually separated by a subtle divider) --- */}
   <div className="flex items-center gap-2 pl-2 border-l border-[#E0D8CC] dark:border-white/10 ml-1">
     <button
       onClick={openCreateFolderModal}
@@ -2790,7 +2276,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   </div>
 </div>
 
-{/* --- Join Link Input (Smoothly expands) --- */}
 {joinLinkOpen && (
   <div className="flex items-center gap-2.5 px-3 pb-3 pt-1 transition-all duration-200 ease-out">
     <div className="relative min-w-0 flex-1 group">
@@ -2863,10 +2348,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         dark:hover:shadow-[0_12px_24px_-4px_rgba(0,0,0,0.5)]
         active:translate-y-0.5 active:scale-95 active:shadow-inner"
     >
-      {/* Subtle ambient glow behind the icon */}
       <span className="absolute inset-0 rounded-2xl bg-[#E07A5F]/10 blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       
-      {/* Icon with premium hover interaction */}
       <LuCircleFadingPlus className="relative z-10 h-7 w-7 text-[#E07A5F] transition-transform duration-300 drop-shadow-[0_2px_4px_rgba(224,122,95,0.3)] group-hover:scale-110 group-hover:rotate-12 dark:text-[#F4A261]" />
     </button>
   </div>
@@ -2896,8 +2379,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       const isActive = c.id === activeId;
       const ai = isAIChat(c);
       const isSelected = selectedChatIds.has(c.id);
-      // Only meaningful for a 1:1 DM — a group chat's "title" isn't a person,
-      // so there's no single business badge to show next to it.
       const otherIsBusiness = !c.is_group && !ai
         && profiles[c.memberIds.find((id) => id !== me.id) ?? ""]?.is_business;
       return (
@@ -2917,10 +2398,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
             }
           }}
           onContextMenu={(e) => {
-            // Long-press (and desktop right-click) opens a small WhatsApp-style
-            // popup with Pin/Unpin instead of immediately dropping into
-            // multi-select — matching what a long-press on a chat does in
-            // WhatsApp, rather than Gmail-style bulk selection.
             e.preventDefault();
             if (selectMode) return;
             closeMessageMenu();
@@ -3059,7 +2536,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                </AnimatePresence>
 </div>
 
-            {/* Long-press popup — WhatsApp-style Pin/Unpin */}
             <AnimatePresence>
               {chatLongPressMenu && (() => {
                 const chat = chats.find((c) => c.id === chatLongPressMenu.chatId);
@@ -3116,8 +2592,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                 );
               })()}
             </AnimatePresence>
-            {/* Floating New-Chat FAB */}
-            {/* Floating New-Chat FAB */}
 <button
   data-tour="new-chat-fab"
   onClick={() => {
@@ -3138,25 +2612,20 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     dark:hover:shadow-[0_12px_24px_-4px_rgba(0,0,0,0.5)]
     active:translate-y-0.5 active:scale-95 active:shadow-inner"
 >
-  {/* Premium ambient hover glow */}
   <span className="absolute inset-0 rounded-2xl bg-[#E07A5F]/10 blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
   
-  {/* Icon with playful micro-interaction */}
   <BiSolidMessageSquareAdd className="relative z-10 h-8 w-8 text-zinc-800 dark:text-white rotate-90 drop-shadow-[0_2px_4px_rgba(224,122,95,0.3)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[100deg] group-active:scale-90" />
 </button>
           </aside>
 
-          {/* Chat panel */}
           <section className={`${showSidebarMobile ? "hidden" : "flex"} relative h-full min-w-0 flex-1 flex-col md:flex bg-[#F0EBE3] dark:bg-[#1A1A1A]`}>
             {active ? (
               <>
                 <header className="relative z-10 flex items-center gap-3 border-b border-zinc-200/60 bg-white/80 px-2 py-3 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-[#0F0F11]/80 md:px-5">
-  {/* Back Button (Mobile) */}
   <button onClick={closeActiveChat} className="group grid h-10 w-10 place-items-center rounded-full border border-zinc-200/60 bg-white/50 text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 md:hidden" aria-label="Back">
     <RiArrowLeftWideFill className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
   </button>
 
-  {/* Avatar */}
   <button
     onClick={() => {
       if (active.is_group) { setShowMemberList(true); return; }
@@ -3179,7 +2648,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     )}
   </button>
 
-  {/* Title & Subtitle */}
   <div className="min-w-0 flex-1">
     <button
       onClick={() => active.is_group && setShowMemberList(true)}
@@ -3308,7 +2776,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     </button>
   </div>
 
-  {/* Action Buttons */}
   <div className="flex items-center gap-1.5 shrink-0">
     {!isAIChat(active) && (
       <>
@@ -3332,7 +2799,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         
 
   <DropdownMenuContent align="end" className="w-64">
-    {/* ── Root ── */}
     {menuView === "root" && (
       <>
         <DropdownMenuItem
@@ -3380,7 +2846,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
         <DropdownMenuItem
           onSelect={(e) => {
-            e.preventDefault(); // keep menu open while drilling in
+            e.preventDefault();
             setMenuView("more");
           }}
           className="flex items-center justify-between"
@@ -3391,7 +2857,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       </>
     )}
 
-    {/* ── More ── */}
     {menuView === "more" && (
       <>
         <DropdownMenuItem
@@ -3489,7 +2954,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       </>
     )}
 
-    {/* ── Disappearing messages ── */}
     {menuView === "disappearing" && (
       <>
         <DropdownMenuItem
@@ -3524,7 +2988,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       </>
     )}
 
-    {/* ── Export ── */}
     {menuView === "export" && (
       <>
         <DropdownMenuItem
@@ -3706,7 +3169,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
                         return (
                           <div key={m.id} className="contents">
-                            {/* Premium Date Separator */}
                             {showDateSeparator && (
                               <motion.div 
                                 initial={{ opacity: 0, y: -8 }} 
@@ -3719,7 +3181,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                               </motion.div>
                             )}
                             
-                            {/* Premium Unread Divider */}
                             {m.id === unreadDividerId && (
                               <motion.div 
                                 initial={{ opacity: 0, scale: 0.95 }} 
@@ -3734,7 +3195,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                               </motion.div>
                             )}
                             
-                            {/* Message Bubble Wrapper */}
                             <motion.div
                               layout="position"
                               initial={{ opacity: 0, y: 16 }}
@@ -3803,7 +3263,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
                     {typingNames.length > 0 && (
   <>
-    {/* Inject smooth wave animation (avoids needing tailwind.config.js changes) */}
     <style>{`
       @keyframes typingWave {
         0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
@@ -3814,14 +3273,12 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     <div className="flex items-end gap-2 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="group relative flex items-center gap-2 rounded-2xl rounded-bl-sm bg-white/95 dark:bg-[#1A1A1A]/95 px-3.5 py-2.5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.08),0_2px_6px_-2px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5)] border border-black/[0.04] dark:border-white/[0.06] backdrop-blur-md transition-all duration-300">
         
-        {/* Optional: Elegant text label for context */}
         <span className="text-[10px] font-semibold uppercase tracking-wider text-[#8C8C8C] dark:text-zinc-500 mr-1">
           {typingNames.length === 1 
             ? `${typingNames[0]} is typing` 
             : `${typingNames.length} people are typing`}
         </span>
 
-        {/* Smooth Wave Dots */}
         <div className="flex items-center gap-1.5 pl-1 border-l border-black/5 dark:border-white/5">
           <span 
             className="h-1.5 w-1.5 rounded-full bg-[var(--sona-accent,#E07A5F)] shadow-[0_0_6px_var(--sona-accent,#E07A5F)]"
@@ -3844,23 +3301,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                   </div>
                 </div>
 
-                {/* Floating Sona AI 
-                
-                {active && !isAIChat(active) && (
-                  <button
-                    onClick={() => {
-                      setDraft((d) => {
-                        const prefix = d && !d.endsWith(' ') ? ' ' : '';
-                        return d + prefix + '@sona ';
-                      });
-                    }}
-                    className="absolute bottom-24 right-6 z-30 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[var(--sona-accent,#E07A5F)] to-[#F4A261] text-white shadow-xl hover:scale-110 transition-all duration-200 border-2 border-white dark:border-[#2A2A2A]"
-                    title="Ask Sona AI"
-                  >
-                    <Sparkles className="h-6 w-6" />
-                  </button>
-                )}
-*/} 
                 {(replyTo || editing) && (
   <div className="border-t border-[var(--sona-accent,#E07A5F)]/10 chat-pattern dark:bg-[#242424] px-3 py-2 md:px-6">
     <div className="mx-auto flex max-w-3xl items-center gap-2">
@@ -4322,7 +3762,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                 toast.success("Contact link copied");
               }
             } catch {
-              // user dismissed the native share sheet — nothing to do
             }
           }}
         />
