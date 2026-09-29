@@ -40,6 +40,7 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { CallManager, type CallManagerHandle } from "./CallManager";
 import { ConfirmProvider, useConfirm } from "@/hooks/useConfirmDialog";
 import { pushBackLayer } from "@/hooks/useBackStack";
+import { useContactNicknames } from "@/hooks/useContactNicknames";
 import Lottie from "lottie-react";
 import {EmptyChatState} from "./EmptyChatState";
 import {SonaAIGreeting} from "./SonaAIGreeting";
@@ -157,6 +158,14 @@ function SonaChatInner() {
   const askSummary = useServerFn(summarizeChat);
   const [isSummarized, setIsSummarized] =useState(false) ;
   const [me, setMe] = useState<Profile | null>(null);
+
+  // Private per-contact renames (see useContactNicknames + the
+  // contact_nicknames migration). Applied as a display-only overlay on top
+  // of `profilesRaw`/`chatsRaw` below — never written back to `profiles`,
+  // so a contact's real registered name is untouched and nobody else can
+  // ever see the nickname.
+  const { nicknames, setNickname: setContactNickname, clearNickname: clearContactNickname } = useContactNicknames(me?.id);
+
   const sonaTheme = useSonaTheme(!!me?.is_pro, me?.theme_id, (id) => {
     if (!me) return;
     setMe((prev) => (prev ? { ...prev, theme_id: id } : prev));
@@ -164,7 +173,15 @@ function SonaChatInner() {
       if (error) toast.danger("Couldn't sync theme to your account");
     });
   });
-  const [chats, setChats] = useState<ChatWithMeta[]>([]);
+  const [chatsRaw, setChatsRaw] = useState<ChatWithMeta[]>([]);
+  const chats = useMemo(() => {
+    if (!Object.keys(nicknames).length) return chatsRaw;
+    return chatsRaw.map((c) => ({
+      ...c,
+      members: c.members.map((m) => (nicknames[m.id] ? { ...m, display_name: nicknames[m.id] } : m)),
+    }));
+  }, [chatsRaw, nicknames]);
+
   const [loadingChats, setLoadingChats] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [unreadSnapshot, setUnreadSnapshot] = useState(0);
@@ -172,7 +189,16 @@ function SonaChatInner() {
   const [reactions, setReactions] = useState<ReactionRow[]>([]);
   const [reads, setReads] = useState<MessageReadRow[]>([]);
   const [deliveries, setDeliveries] = useState<MessageDeliveryRow[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [profilesRaw, setProfilesRaw] = useState<Record<string, Profile>>({});
+  const profiles = useMemo(() => {
+    if (!Object.keys(nicknames).length) return profilesRaw;
+    const merged: Record<string, Profile> = {};
+    for (const [id, p] of Object.entries(profilesRaw)) {
+      merged[id] = nicknames[id] ? { ...p, display_name: nicknames[id] } : p;
+    }
+    return merged;
+  }, [profilesRaw, nicknames]);
+
   const [query, setQuery] = useState("");
   const [announcement, setAnnouncement] = useState<AppAnnouncement | null>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
@@ -438,7 +464,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const { data: memberships } = await supabase
       .from("chat_members").select("chat_id").eq("user_id", me.id);
     const chatIds = (memberships ?? []).map((m: { chat_id: string }) => m.chat_id);
-    if (chatIds.length === 0) { setChats([]); setLoadingChats(false); return; }
+    if (chatIds.length === 0) { setChatsRaw([]); setLoadingChats(false); return; }
 
     const [{ data: chatRows }, { data: allMembers }] = await Promise.all([
       supabase.from("chats").select("*").in("id", chatIds).order("last_message_at", { ascending: false }),
@@ -458,7 +484,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
 
     const profMap: Record<string, Profile> = {};
     (profs ?? []).forEach((p) => { profMap[(p as Profile).id] = p as Profile; });
-    setProfiles((prev) => ({ ...prev, ...profMap }));
+    setProfilesRaw((prev) => ({ ...prev, ...profMap }));
 
   
     const rows = ((latest ?? []) as MessageRow[]).filter((m) => {
@@ -532,7 +558,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       };
     });
     result.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
-    setChats(result);
+    setChatsRaw(result);
     setLoadingChats(false);
   }, [me, activeId]);
 
@@ -881,7 +907,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload) => {
           const row = payload.new as Profile;
-          setProfiles((prev) => (prev[row.id] ? { ...prev, [row.id]: { ...prev[row.id], ...row } } : prev));
+          setProfilesRaw((prev) => (prev[row.id] ? { ...prev, [row.id]: { ...prev[row.id], ...row } } : prev));
         }
       )
       .subscribe();
@@ -1134,7 +1160,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         return;
       }
     }
-    setChats((prev) => {
+    setChatsRaw((prev) => {
       const updated = prev.map((c) => (c.id === chat.id ? { ...c, isPinned: next } : c));
       updated.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
       return updated;
@@ -2631,7 +2657,11 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       if (active.is_group) { setShowMemberList(true); return; }
       const otherId = active.memberIds.find((id) => id !== me.id);
       const other = otherId ? profilesById[otherId] : undefined;
-      if (other) setViewingProfile(other);
+      // Resolve back to the real registered profile — profilesById can
+      // carry a nickname overlay (see the `profiles`/`chats` memos above),
+      // but the profile page itself must always show the account's actual
+      // registered name, never the viewer's private rename for them.
+      if (other) setViewingProfile((otherId && profilesRaw[otherId]) || other);
     }}
     className="group relative shrink-0 transition-transform hover:scale-105"
   >
@@ -3556,7 +3586,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           onClose={() => setShowMemberList(false)}
           onOpenSettings={() => { setShowMemberList(false); setShowGroupSettings(true); }}
           onLeave={() => leaveGroup(active.id)}
-          onViewProfile={(m) => { setShowMemberList(false); setViewingProfile(m); }}
+          onViewProfile={(m) => { setShowMemberList(false); setViewingProfile(profilesRaw[m.id] || m); }}
           onRemoveMember={(m) => removeMember(active.id, m)}
         />
       )}
@@ -3709,6 +3739,17 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
           isSelf={viewingProfile.id === me.id}
           onClose={() => setViewingProfile(null)}
           onMessage={() => messageProfile(viewingProfile)}
+          nickname={viewingProfile.id !== me.id ? nicknames[viewingProfile.id] : undefined}
+          onSetNickname={
+            viewingProfile.id !== me.id
+              ? (name) => setContactNickname(viewingProfile.id, name).catch(() => toast.danger("Couldn't save that nickname — try again."))
+              : undefined
+          }
+          onClearNickname={
+            viewingProfile.id !== me.id
+              ? () => clearContactNickname(viewingProfile.id).catch(() => toast.danger("Couldn't remove that nickname — try again."))
+              : undefined
+          }
           onEdit={() => { setViewingProfile(null); setShowSettings(true); }}
           moderation={viewingProfile.id === me.id ? myModeration : otherModeration}
           messageDisabled={viewingProfile.id !== me.id && (otherModeration?.action === "ban" || otherModeration?.action === "suspend")}
@@ -3867,7 +3908,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         <SettingsModal
           me={me}
           onClose={() => setShowSettings(false)}
-          onSaved={(p) => { setMe(p); setProfiles((prev) => ({ ...prev, [p.id]: p })); }}
+          onSaved={(p) => { setMe(p); setProfilesRaw((prev) => ({ ...prev, [p.id]: p })); }}
         />
       )}
 

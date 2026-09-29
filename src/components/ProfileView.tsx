@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeftOutlined,
@@ -28,7 +29,9 @@ import {
   Typography,
   Alert,
   Dropdown,
+  Input,
 } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import type { Profile } from "@/lib/db";
 import { fmtLastSeen } from "@/lib/db";
 import { FaFacebookF, FaXTwitter, FaInstagram, FaThreads } from "react-icons/fa6";
@@ -76,6 +79,14 @@ export function ProfileViewModal({
   /** Unique feature: saved/starred messages for this chat. */
   onOpenBookmarks?: () => void;
   bookmarksCount?: number;
+  /**
+   * Private, viewer-only rename for this contact (never `isSelf`). Only
+   * changes what the viewer sees — `profile.display_name` above always
+   * stays this account's real registered name.
+   */
+  nickname?: string;
+  onSetNickname?: (name: string) => void;
+  onClearNickname?: () => void;
 }) {
   const joined = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })
@@ -93,8 +104,13 @@ export function ProfileViewModal({
   const isPremium = profile.is_pro || profile.is_ai || profile.is_business;
   const avatarSrc = profile.avatar_url || fallbackSvg;
 
+  const canNickname = !isSelf && !profile.is_ai && !!onSetNickname;
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState(nickname ?? "");
+
   const menuItems = [
     onEdit && isSelf ? { key: "edit", label: "Edit profile", icon: <EditOutlined /> } : null,
+    canNickname ? { key: "nickname", label: nickname ? "Edit nickname" : "Set nickname", icon: <EditOutlined /> } : null,
     onShareContact ? { key: "share", label: "Share contact", icon: <ShareAltOutlined /> } : null,
     !isSelf && onToggleBlock ? { key: "block", label: isBlocked ? "Unblock" : "Block", icon: isBlocked ? <UnlockOutlined /> : <BlockOutlined /> } : null,
     !isSelf && onReport ? { key: "report", label: "Report account", icon: <FlagOutlined />, danger: true } : null,
@@ -102,9 +118,17 @@ export function ProfileViewModal({
 
   const handleMenuClick = (key: string) => {
     if (key === "edit") onEdit?.();
+    if (key === "nickname") { setNicknameDraft(nickname ?? ""); setEditingNickname(true); }
     if (key === "share") onShareContact?.();
     if (key === "block") onToggleBlock?.();
     if (key === "report") onReport?.();
+  };
+
+  const saveNickname = () => {
+    const trimmed = nicknameDraft.trim();
+    if (!trimmed) onClearNickname?.();
+    else onSetNickname?.(trimmed);
+    setEditingNickname(false);
   };
 
   return (
@@ -228,6 +252,54 @@ export function ProfileViewModal({
                     </Tooltip>
                     } 
               </div>
+
+              {/* Private, viewer-only nickname — profile.display_name above is
+                  always this account's real registered name; this row is the
+                  only place the rename shows, and only to the person who set it. */}
+              {canNickname && (
+                editingNickname ? (
+                  <div className="mt-2 flex w-full max-w-[260px] items-center gap-1.5">
+                    <Input
+                      autoFocus
+                      size="small"
+                      value={nicknameDraft}
+                      maxLength={60}
+                      placeholder={`Nickname for ${profile.display_name}`}
+                      onChange={(e) => setNicknameDraft(e.target.value)}
+                      onPressEnter={saveNickname}
+                      onBlur={saveNickname}
+                      className="!rounded-full"
+                    />
+                    <Tooltip title="Cancel">
+                      <Button
+                        type="text"
+                        size="small"
+                        shape="circle"
+                        icon={<CloseOutlined className="!text-xs" />}
+                        onMouseDown={(e) => { e.preventDefault(); setEditingNickname(false); }}
+                      />
+                    </Tooltip>
+                  </div>
+                ) : nickname ? (
+                  <button
+                    type="button"
+                    onClick={() => { setNicknameDraft(nickname); setEditingNickname(true); }}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 px-3 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    <Text className="!text-[11px] !text-zinc-500 dark:!text-zinc-400">You call them</Text>
+                    <Text className="!text-[11px] !font-semibold !text-zinc-900 dark:!text-zinc-100">{nickname}</Text>
+                    <EditOutlined className="!text-[10px] !text-zinc-400" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setNicknameDraft(""); setEditingNickname(true); }}
+                    className="mt-2 text-[11px] font-medium text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 underline decoration-dotted underline-offset-2"
+                  >
+                    Set a nickname (only visible to you)
+                  </button>
+                )
+              )}
 
               {/* AI disclaimer — compact badge, not a heading */}
               {profile.is_ai && (
