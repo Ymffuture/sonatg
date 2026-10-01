@@ -321,6 +321,27 @@ export type Database = {
           },
         ]
       }
+      contact_nicknames: {
+        Row: {
+          contact_id: string
+          nickname: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          nickname: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          nickname?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_bookmarks: {
         Row: {
           chat_id: string
@@ -357,6 +378,39 @@ export type Database = {
           },
           {
             foreignKeyName: "message_bookmarks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "visible_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_deliveries: {
+        Row: {
+          delivered_at: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          delivered_at?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          delivered_at?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_deliveries_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_deliveries_message_id_fkey"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "visible_messages"
@@ -823,6 +877,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_model: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -840,6 +895,7 @@ export type Database = {
           x_url: string | null
         }
         Insert: {
+          ai_model?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -857,6 +913,7 @@ export type Database = {
           x_url?: string | null
         }
         Update: {
+          ai_model?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -1134,6 +1191,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vouchers: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          interval: string
+          plan: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          interval: string
+          plan: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          interval?: string
+          plan?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       admin_dashboard_stats: {
@@ -1305,6 +1395,15 @@ export type Database = {
       }
       generate_chat_invite_token: { Args: never; Returns: string }
       generate_class_join_code: { Args: never; Returns: string }
+      generate_vouchers: {
+        Args: {
+          _count: number
+          _expires_at?: string
+          _interval: string
+          _plan: string
+        }
+        Returns: string[]
+      }
       get_public_profile: {
         Args: { profile_id: string }
         Returns: {
@@ -1346,6 +1445,13 @@ export type Database = {
           is_valid: boolean
           reason: string
           title: string
+        }[]
+      }
+      redeem_voucher: {
+        Args: { _code: string }
+        Returns: {
+          interval: string
+          plan: string
         }[]
       }
     }
