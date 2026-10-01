@@ -44,6 +44,23 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
     setImagePreview(URL.createObjectURL(file));
   };
 
+  // Builds the exact same string that gets console.error'd, so whatever
+  // shows up in devtools is byte-for-byte what shows up in the UI below —
+  // no separately-worded "friendly" paraphrase that can drift out of sync
+  // with what's actually happening.
+  const describeError = (e: unknown, context: Record<string, unknown> = {}): string => {
+    const err = e as { message?: string; code?: string; details?: string; hint?: string } | null;
+    const payload = {
+      message: err?.message || String(e) || "Unknown error",
+      ...(err?.code ? { code: err.code } : {}),
+      ...(err?.details ? { details: err.details } : {}),
+      ...(err?.hint ? { hint: err.hint } : {}),
+      ...context,
+    };
+    console.error("[AdComposerModal]", payload);
+    return JSON.stringify(payload, null, 2);
+  };
+
   const submit = async () => {
     if (!canSubmit || !imageFile || busy) return;
     setBusy(true);
@@ -53,20 +70,17 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
       const path = `${meId}/ads/${crypto.randomUUID()}-${compressed.name}`;
       const { error: upErr } = await supabase.storage.from("chat-media").upload(path, compressed);
       if (upErr) {
-        console.error("[AdComposerModal] Storage upload rejected:", {
-          bucket: "chat-media",
-          path,
-          message: upErr.message,
-          
-          ...(upErr as unknown as { code?: string; details?: string; hint?: string }),
-        });
-        throw upErr;
+        setError(describeError(upErr, { stage: "upload", bucket: "chat-media", path }));
+        return;
       }
       const { data: signed, error: signErr } = await supabase.storage
         .from("chat-media")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (signErr || !signed) throw signErr || new Error("Couldn't get a URL for the uploaded image.");
-      
+      if (signErr || !signed) {
+        setError(describeError(signErr || new Error("Couldn't get a URL for the uploaded image."), { stage: "sign-url", bucket: "chat-media", path }));
+        return;
+      }
+
       await onCreated({
         mediaUrl: signed.signedUrl,
         title: title.trim(),
@@ -75,12 +89,7 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
       });
       onClose();
     } catch (e) {
-      console.error("[AdComposerModal] Failed to post ad:", e);
-      const raw = (e as Error)?.message || "";
-      const friendly = /row-level security|row level security/i.test(raw)
-        ? "Couldn't upload — your business account isn't verified yet, or verification hasn't finished processing. Try refreshing the app, or check Settings → Sona Business."
-        : raw || "Something went wrong creating the ad. Try again.";
-      setError(friendly);
+      setError(describeError(e, { stage: "post" }));
     } finally {
       setBusy(false);
     }
@@ -158,7 +167,12 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
 
             {error && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 dark:border-red-900/40 dark:bg-red-950/30">
-                <p className="text-xs font-semibold leading-relaxed text-red-600 dark:text-red-400">{error}</p>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-red-500 dark:text-red-400/80">
+                  Error (also logged to console)
+                </p>
+                <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-red-600 dark:text-red-400">
+                  {error}
+                </pre>
               </div>
             )}
           </div>
