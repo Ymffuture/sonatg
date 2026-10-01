@@ -30,7 +30,7 @@ export async function generateVouchers(
     _plan: plan,
     _interval: interval,
     _count: count,
-    _expires_at: expiresAt ? expiresAt.toISOString() : null,
+    _expires_at: expiresAt ? expiresAt.toISOString() : undefined,
   });
   if (error) throw error;
   return (data as string[] | null) ?? [];

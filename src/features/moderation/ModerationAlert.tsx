@@ -17,13 +17,13 @@ const containerVariants = {
     opacity: 1, 
     y: 0, 
     scale: 1,
-    transition: { type: "spring", stiffness: 400, damping: 30, mass: 0.8 }
+    transition: { type: "spring" as const, stiffness: 400, damping: 30, mass: 0.8 }
   },
   exit: { 
     opacity: 0, 
     y: -8, 
     scale: 0.98,
-    transition: { duration: 0.2, ease: "easeInOut" }
+    transition: { duration: 0.2, ease: "easeInOut" as const }
   }
 };
 
@@ -32,7 +32,7 @@ const iconVariants = {
   visible: { 
     scale: 1, 
     rotate: 0,
-    transition: { delay: 0.05, type: "spring", stiffness: 400, damping: 20 }
+    transition: { delay: 0.05, type: "spring" as const, stiffness: 400, damping: 20 }
   }
 };
 
@@ -41,7 +41,7 @@ const contentVariants = {
   visible: (i: number) => ({
     opacity: 1,
     x: 0,
-    transition: { delay: 0.05 * i, duration: 0.3, ease: "easeOut" }
+    transition: { delay: 0.05 * i, duration: 0.3, ease: "easeOut" as const }
   })
 };
 
@@ -165,7 +165,7 @@ export function ModerationAlert({ result, onDismiss, autoDismissMs }: Moderation
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ delay: 0.25, duration: 0.4, ease: "easeOut" }}
+          transition={{ delay: 0.25, duration: 0.4, ease: "easeOut" as const }}
           className={`absolute bottom-0 left-0 right-0 h-[2px] origin-left ${theme.accent}`}
         />
       </motion.div>

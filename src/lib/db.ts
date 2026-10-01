@@ -115,6 +115,7 @@ export type BlockRow = {
 export type SubscriptionRow = {
   user_id: string;
   tier: "free" | "pro";
+  provider?: string | null;
   current_period_end: string | null;
 };
 
