@@ -399,6 +399,9 @@ export type Database = {
       }
       messages: {
         Row: {
+          ad_cta_label: string | null
+          ad_cta_url: string | null
+          ad_title: string | null
           body: string | null
           chat_id: string
           created_at: string
@@ -421,6 +424,9 @@ export type Database = {
           transcript: string | null
         }
         Insert: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id: string
           created_at?: string
@@ -443,6 +449,9 @@ export type Database = {
           transcript?: string | null
         }
         Update: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id?: string
           created_at?: string
@@ -641,6 +650,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount_cents: number
+          billing_interval: string
+          created_at: string
+          currency: string
+          id: string
+          plan: string
+          provider: string
+          reference: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan?: string
+          provider: string
+          reference?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan?: string
+          provider?: string
+          reference?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       poll_options: {
         Row: {
           id: string
@@ -784,6 +832,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_ai: boolean
+          is_business: boolean
           is_pro: boolean
           last_seen: string | null
           theme_id: string | null
@@ -800,6 +849,7 @@ export type Database = {
           id: string
           instagram_url?: string | null
           is_ai?: boolean
+          is_business?: boolean
           is_pro?: boolean
           last_seen?: string | null
           theme_id?: string | null
@@ -816,6 +866,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_ai?: boolean
+          is_business?: boolean
           is_pro?: boolean
           last_seen?: string | null
           theme_id?: string | null
@@ -1207,6 +1258,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_ad_message: { Args: { _id: string }; Returns: undefined }
       admin_delete_moderation_flag: {
         Args: { _id: string }
         Returns: undefined
@@ -1221,6 +1273,10 @@ export type Database = {
       }
       admin_delete_report: { Args: { _id: string }; Returns: undefined }
       admin_delete_user: { Args: { _target: string }; Returns: undefined }
+      admin_set_business: {
+        Args: { _target: string; _value: boolean }
+        Returns: undefined
+      }
       can_post_in_chat: {
         Args: { _chat_id: string; _user_id: string }
         Returns: boolean
@@ -1250,6 +1306,7 @@ export type Database = {
           id: string
           instagram_url: string
           is_ai: boolean
+          is_business: boolean
           is_pro: boolean
           threads_url: string
           x_url: string
