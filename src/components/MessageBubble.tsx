@@ -8,6 +8,9 @@ import {
   FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
   Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff, Info, AlertTriangle, Megaphone,
 } from "lucide-react";
+
+
+
 // "Ask Sona" is eligible on any text message, or a voice note that already has a transcript.
 function isAskSonaEligible(msg: { kind: string; body?: string | null; transcript?: string | null; deleted_at?: string | null }): boolean {
   if (msg.deleted_at) return false;
@@ -1339,45 +1342,94 @@ export function MediaViewer({
 const toolBtnClass = "grid h-8 w-8 place-items-center rounded-lg text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none";
 
 
-function AdCard({ msg, mine, sender }: { msg: MessageRow; mine: boolean; sender?: Profile }) {
+export function AdCard({ msg, mine, sender }: { msg: any; mine: boolean; sender?: any }) {
   const hasCta = !!msg.ad_cta_url && !!msg.ad_cta_label;
+  
+  // Detect if the media is a video (motion picture)
+  const isVideo = msg.media_url?.match(/\.(mp4|webm|mov|gif)$/i);
+
   return (
     <div
-      className={`w-full max-w-[320px] overflow-hidden rounded-2xl border shadow-sm ${
-        mine ? "border-white/[0.08] bg-[#18181B]" : "border-black/[0.04] bg-white dark:bg-[#242424]"
+      className={`group w-full overflow-hidden rounded-3xl border shadow-xl transition-all duration-300 hover:shadow-2xl ${
+        mine
+          ? "border-white/10 bg-gradient-to-br from-zinc-900 to-black shadow-black/40"
+          : "border-black/5 bg-white/80 backdrop-blur-xl shadow-black/5 dark:border-white/10 dark:bg-white/5 dark:shadow-black/20"
       }`}
     >
+      {/* Media / Motion Picture Section */}
       {msg.media_url && (
-        <div className="relative w-full aspect-[16/9] overflow-hidden bg-black/5 dark:bg-white/5">
-          <img src={msg.media_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-          <span className="absolute top-2 left-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
-            Ad
-          </span>
+        <div className="relative w-full aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+          {isVideo ? (
+            <video
+              src={msg.media_url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src={msg.media_url}
+              alt={msg.ad_title || "Ad media"}
+              className="h-full w-full object-cover animate-[slow-zoom_20s_ease-in-out_infinite_alternate]"
+              loading="lazy"
+            />
+          )}
+          
+          {/* Cinematic Overlay Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+
+          {/* Premium Ad Badge */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md ring-1 ring-white/20">
+            <Sparkles className="h-3 w-3 text-amber-300" />
+            <span>Sponsored</span>
+          </div>
         </div>
       )}
-      <div className="p-4">
+
+      {/* Content Section */}
+      <div className="p-4 space-y-3">
         {sender?.is_business && (
-          <div className="mb-1.5 flex items-center gap-1 text-[11px] font-semibold text-amber-500">
-            <VscVerifiedFilled className="h-3.5 w-3.5" />
-            <span>{sender.display_name}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm">
+              <VscVerifiedFilled className="h-3.5 w-3.5" />
+            </div>
+            <span className={`text-xs font-semibold tracking-wide ${mine ? "text-zinc-300" : "text-zinc-600 dark:text-zinc-300"}`}>
+              {sender.display_name}
+            </span>
           </div>
         )}
+
         {msg.ad_title && (
-          <p className={`text-sm font-bold leading-snug ${mine ? "text-white" : "text-[#151c1c] dark:text-white"}`}>
+          <h3 className={`text-[15px] font-bold leading-snug tracking-tight ${mine ? "text-white" : "text-zinc-900 dark:text-white"}`}>
             {msg.ad_title}
-          </p>
+          </h3>
         )}
+
         {hasCta && (
           <a
             href={msg.ad_cta_url!}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 block w-full rounded-xl bg-amber-500 px-4 py-2.5 text-center text-sm font-bold text-white transition hover:bg-amber-600"
+            className="group/btn relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md"
           >
-            {msg.ad_cta_label}
+            <span className="relative z-10">{msg.ad_cta_label}</span>
+            <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+            
+            {/* Shimmer Effect */}
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-1000 group-hover/btn:translate-x-full" />
           </a>
         )}
       </div>
+
+      {/* Custom Keyframes for the cinematic slow-zoom */}
+      <style>{`
+        @keyframes slow-zoom {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.08); }
+        }
+      `}</style>
     </div>
   );
 }
