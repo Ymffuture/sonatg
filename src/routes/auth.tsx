@@ -21,7 +21,7 @@ function LastUsed() {
   );
 }
 
-export const Route = createFileRoute("/v0/__/auth") ({
+export const Route = createFileRoute("/auth") ({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();

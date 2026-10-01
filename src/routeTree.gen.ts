@@ -10,8 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as StripeReturnRouteImport } from './routes/stripe-return'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PaystackReturnRouteImport } from './routes/paystack-return'
+import { Route as PaypalReturnRouteImport } from './routes/paypal-return'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -33,6 +36,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StripeReturnRoute = StripeReturnRouteImport.update({
+  id: '/stripe-return',
+  path: '/stripe-return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -41,6 +49,16 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaystackReturnRoute = PaystackReturnRouteImport.update({
+  id: '/paystack-return',
+  path: '/paystack-return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaypalReturnRoute = PaypalReturnRouteImport.update({
+  id: '/paypal-return',
+  path: '/paypal-return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LearnRoute = LearnRouteImport.update({
@@ -126,8 +144,11 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/learn': typeof LearnRoute
+  '/paypal-return': typeof PaypalReturnRoute
+  '/paystack-return': typeof PaystackReturnRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/stripe-return': typeof StripeReturnRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/status': typeof AuthenticatedStatusRoute
@@ -143,8 +164,11 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/learn': typeof LearnRoute
+  '/paypal-return': typeof PaypalReturnRoute
+  '/paystack-return': typeof PaystackReturnRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/stripe-return': typeof StripeReturnRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/status': typeof AuthenticatedStatusRoute
@@ -164,8 +188,11 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/learn': typeof LearnRoute
+  '/paypal-return': typeof PaypalReturnRoute
+  '/paystack-return': typeof PaystackReturnRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/stripe-return': typeof StripeReturnRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/status': typeof AuthenticatedStatusRoute
@@ -186,8 +213,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/help'
     | '/learn'
+    | '/paypal-return'
+    | '/paystack-return'
     | '/pricing'
     | '/privacy'
+    | '/stripe-return'
     | '/terms'
     | '/admin'
     | '/status'
@@ -203,8 +233,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/help'
     | '/learn'
+    | '/paypal-return'
+    | '/paystack-return'
     | '/pricing'
     | '/privacy'
+    | '/stripe-return'
     | '/terms'
     | '/admin'
     | '/status'
@@ -223,8 +256,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/help'
     | '/learn'
+    | '/paypal-return'
+    | '/paystack-return'
     | '/pricing'
     | '/privacy'
+    | '/stripe-return'
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/status'
@@ -244,8 +280,11 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpRoute: typeof HelpRoute
   LearnRoute: typeof LearnRoute
+  PaypalReturnRoute: typeof PaypalReturnRoute
+  PaystackReturnRoute: typeof PaystackReturnRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  StripeReturnRoute: typeof StripeReturnRoute
   TermsRoute: typeof TermsRoute
   InviteTokenRoute: typeof InviteTokenRoute
   UIdRoute: typeof UIdRoute
@@ -260,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stripe-return': {
+      id: '/stripe-return'
+      path: '/stripe-return'
+      fullPath: '/stripe-return'
+      preLoaderRoute: typeof StripeReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -272,6 +318,20 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paystack-return': {
+      id: '/paystack-return'
+      path: '/paystack-return'
+      fullPath: '/paystack-return'
+      preLoaderRoute: typeof PaystackReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paypal-return': {
+      id: '/paypal-return'
+      path: '/paypal-return'
+      fullPath: '/paypal-return'
+      preLoaderRoute: typeof PaypalReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learn': {
@@ -427,8 +487,11 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpRoute: HelpRoute,
   LearnRoute: LearnRoute,
+  PaypalReturnRoute: PaypalReturnRoute,
+  PaystackReturnRoute: PaystackReturnRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  StripeReturnRoute: StripeReturnRoute,
   TermsRoute: TermsRoute,
   InviteTokenRoute: InviteTokenRoute,
   UIdRoute: UIdRoute,
