@@ -1167,6 +1167,9 @@ export type Database = {
       }
       visible_messages: {
         Row: {
+          ad_cta_label: string | null
+          ad_cta_url: string | null
+          ad_title: string | null
           body: string | null
           chat_id: string | null
           created_at: string | null
@@ -1189,6 +1192,9 @@ export type Database = {
           transcript: string | null
         }
         Insert: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id?: string | null
           created_at?: string | null
@@ -1211,6 +1217,9 @@ export type Database = {
           transcript?: string | null
         }
         Update: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id?: string | null
           created_at?: string | null
