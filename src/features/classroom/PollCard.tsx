@@ -36,8 +36,8 @@ const CHART_COLORS = ["#10b981", "#06b6d4", "#8b5cf6", "#f59e0b", "#f43f5e", "#1
 /* ─── Animation Variants ─── */
 const containerVariants = {
   hidden: { opacity: 0, y: 12, scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30, mass: 0.8 } },
-  exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.2, ease: "easeInOut" } }
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 400, damping: 30, mass: 0.8 } },
+  exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.2, ease: "easeInOut" as const } }
 };
 
 const backdropVariants = {
@@ -48,8 +48,8 @@ const backdropVariants = {
 
 const modalVariants = {
   hidden: { opacity: 0, y: "100%", scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 35, mass: 0.8 } },
-  exit: { opacity: 0, y: "100%", scale: 0.98, transition: { duration: 0.2, ease: "easeInOut" } }
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 400, damping: 35, mass: 0.8 } },
+  exit: { opacity: 0, y: "100%", scale: 0.98, transition: { duration: 0.2, ease: "easeInOut" as const } }
 };
 
 /* ─── Mini Donut Chart (SVG) ─── */
@@ -101,7 +101,7 @@ function PollDonut({
               strokeDasharray={`${dash} ${gap}`}
               initial={{ strokeDashoffset: circumference, opacity: 0 }}
               animate={{ strokeDashoffset: offset, opacity: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 + i * 0.05 }}
+              transition={{ duration: 0.8, ease: "easeOut" as const, delay: 0.1 + i * 0.05 }}
             />
           );
         })}
@@ -168,7 +168,7 @@ function OptionRow({
       onClick={onToggle}
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: idx * 0.04, type: "spring", stiffness: 400, damping: 25 }}
+      transition={{ delay: idx * 0.04, type: "spring" as const, stiffness: 400, damping: 25 }}
       whileTap={{ scale: 0.98 }}
       className={`group relative w-full overflow-hidden rounded-xl border text-left transition-all disabled:cursor-not-allowed ${
         mine
@@ -184,7 +184,7 @@ function OptionRow({
           }`}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+          transition={{ duration: 0.7, ease: "easeOut" as const, delay: 0.1 }}
         />
       )}
 
@@ -214,7 +214,7 @@ function OptionRow({
               </span>
             )}
             {isLeader && !closed && !resultsHiddenFromMe && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" as const, stiffness: 500, damping: 25 }}>
                 <Crown className="h-3.5 w-3.5 shrink-0 text-amber-500" />
               </motion.div>
             )}
@@ -228,7 +228,7 @@ function OptionRow({
                   className="h-full rounded-full bg-zinc-900 dark:bg-zinc-100"
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.6, ease: "easeOut", delay: 0.12 }}
+                  transition={{ duration: 0.6, ease: "easeOut" as const, delay: 0.12 }}
                 />
               </div>
               <span className="shrink-0 text-[11px] tabular-nums font-semibold text-zinc-500 dark:text-zinc-400">

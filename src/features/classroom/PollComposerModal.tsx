@@ -28,13 +28,13 @@ const modalVariants = {
     opacity: 1, 
     y: 0, 
     scale: 1,
-    transition: { type: "spring", stiffness: 400, damping: 35, mass: 0.8 }
+    transition: { type: "spring" as const, stiffness: 400, damping: 35, mass: 0.8 }
   },
   exit: { 
     opacity: 0, 
     y: "100%", 
     scale: 0.98,
-    transition: { duration: 0.2, ease: "easeInOut" }
+    transition: { duration: 0.2, ease: "easeInOut" as const }
   }
 };
 

@@ -124,7 +124,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 350, damping: 25 } },
+  visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 350, damping: 25 } },
 };
 
 export function ThreadPanel({
@@ -169,7 +169,7 @@ export function ThreadPanel({
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 380, damping: 35 }}
+        transition={{ type: "spring" as const, stiffness: 380, damping: 35 }}
         className="flex h-full w-full max-w-md flex-col border-l border-white/20 bg-[#FFFDF9]/95 shadow-[-20px_0_60px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/95 dark:shadow-[-20px_0_60px_-15px_rgba(0,0,0,0.5)]"
         onClick={(e) => e.stopPropagation()}
       >
