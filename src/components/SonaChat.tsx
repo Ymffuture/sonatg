@@ -312,7 +312,13 @@ const handleMenuOpenChange = (open: boolean) => {
       ad_cta_label: ad.ctaLabel,
       ad_cta_url: ad.ctaUrl,
     });
-    if (error) throw new Error(explainSupabaseError(error).title);
+    if (error) {
+      // .title alone is just a generic bucket label ("Something went
+      // wrong") — .raw carries the actual Postgres/Supabase error text,
+      // which is what AdComposerModal's error box needs to be useful.
+      const explained = explainSupabaseError(error);
+      throw new Error(`${explained.title}: ${explained.raw}`);
+    }
     setShowAdComposer(false);
   };
   const [showMsgSearch, setShowMsgSearch] = useState(false);
