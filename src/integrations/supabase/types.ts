@@ -321,6 +321,27 @@ export type Database = {
           },
         ]
       }
+      contact_nicknames: {
+        Row: {
+          contact_id: string
+          nickname: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          nickname: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          nickname?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_bookmarks: {
         Row: {
           chat_id: string
@@ -357,6 +378,39 @@ export type Database = {
           },
           {
             foreignKeyName: "message_bookmarks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "visible_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_deliveries: {
+        Row: {
+          delivered_at: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          delivered_at?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          delivered_at?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_deliveries_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_deliveries_message_id_fkey"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "visible_messages"
@@ -650,6 +704,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount_cents: number
+          billing_interval: string
+          created_at: string
+          currency: string
+          id: string
+          plan: string
+          provider: string
+          reference: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan?: string
+          provider: string
+          reference?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan?: string
+          provider?: string
+          reference?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       poll_options: {
         Row: {
           id: string
@@ -784,6 +877,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_model: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -801,6 +895,7 @@ export type Database = {
           x_url: string | null
         }
         Insert: {
+          ai_model?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -818,6 +913,7 @@ export type Database = {
           x_url?: string | null
         }
         Update: {
+          ai_model?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -1095,6 +1191,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vouchers: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          interval: string
+          plan: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          interval: string
+          plan: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          interval?: string
+          plan?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       admin_dashboard_stats: {
@@ -1128,6 +1257,9 @@ export type Database = {
       }
       visible_messages: {
         Row: {
+          ad_cta_label: string | null
+          ad_cta_url: string | null
+          ad_title: string | null
           body: string | null
           chat_id: string | null
           created_at: string | null
@@ -1150,6 +1282,9 @@ export type Database = {
           transcript: string | null
         }
         Insert: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id?: string | null
           created_at?: string | null
@@ -1172,6 +1307,9 @@ export type Database = {
           transcript?: string | null
         }
         Update: {
+          ad_cta_label?: string | null
+          ad_cta_url?: string | null
+          ad_title?: string | null
           body?: string | null
           chat_id?: string | null
           created_at?: string | null
@@ -1219,6 +1357,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_ad_message: { Args: { _id: string }; Returns: undefined }
       admin_delete_moderation_flag: {
         Args: { _id: string }
         Returns: undefined
@@ -1227,14 +1366,16 @@ export type Database = {
         Args: { _older_than_days: number }
         Returns: number
       }
-      admin_delete_ad_message: { Args: { _id: string }; Returns: undefined }
-      admin_set_business: { Args: { _target: string; _value: boolean }; Returns: undefined }
       admin_delete_old_reports: {
         Args: { _older_than_days: number }
         Returns: number
       }
       admin_delete_report: { Args: { _id: string }; Returns: undefined }
       admin_delete_user: { Args: { _target: string }; Returns: undefined }
+      admin_set_business: {
+        Args: { _target: string; _value: boolean }
+        Returns: undefined
+      }
       can_post_in_chat: {
         Args: { _chat_id: string; _user_id: string }
         Returns: boolean
@@ -1254,6 +1395,15 @@ export type Database = {
       }
       generate_chat_invite_token: { Args: never; Returns: string }
       generate_class_join_code: { Args: never; Returns: string }
+      generate_vouchers: {
+        Args: {
+          _count: number
+          _expires_at?: string
+          _interval: string
+          _plan: string
+        }
+        Returns: string[]
+      }
       get_public_profile: {
         Args: { profile_id: string }
         Returns: {
@@ -1295,6 +1445,13 @@ export type Database = {
           is_valid: boolean
           reason: string
           title: string
+        }[]
+      }
+      redeem_voucher: {
+        Args: { _code: string }
+        Returns: {
+          interval: string
+          plan: string
         }[]
       }
     }

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790814875824,
+      "tag": "0000_ads_and_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790814908793,
+      "tag": "0001_visible_messages_ad_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790815051878,
+      "tag": "0002_missing_app_tables",
+      "breakpoints": true
+    }
+  ]
+}

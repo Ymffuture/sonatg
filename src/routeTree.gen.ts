@@ -10,13 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as StripeReturnRouteImport } from './routes/stripe-return'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PaystackReturnRouteImport } from './routes/paystack-return'
+import { Route as PaypalReturnRouteImport } from './routes/paypal-return'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as BlogRouteImport } from './routes/blog'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
@@ -33,6 +37,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StripeReturnRoute = StripeReturnRouteImport.update({
+  id: '/stripe-return',
+  path: '/stripe-return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -41,6 +50,16 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaystackReturnRoute = PaystackReturnRouteImport.update({
+  id: '/paystack-return',
+  path: '/paystack-return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaypalReturnRoute = PaypalReturnRouteImport.update({
+  id: '/paypal-return',
+  path: '/paypal-return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LearnRoute = LearnRouteImport.update({
@@ -66,6 +85,11 @@ const FaqRoute = FaqRouteImport.update({
 const BlogRoute = BlogRouteImport.update({
   id: '/blog',
   path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -121,13 +145,17 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/billing': typeof BillingRoute
   '/blog': typeof BlogRouteWithChildren
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/learn': typeof LearnRoute
+  '/paypal-return': typeof PaypalReturnRoute
+  '/paystack-return': typeof PaystackReturnRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/stripe-return': typeof StripeReturnRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/status': typeof AuthenticatedStatusRoute
@@ -139,12 +167,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
+  '/billing': typeof BillingRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/learn': typeof LearnRoute
+  '/paypal-return': typeof PaypalReturnRoute
+  '/paystack-return': typeof PaystackReturnRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/stripe-return': typeof StripeReturnRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/status': typeof AuthenticatedStatusRoute
@@ -159,13 +191,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/billing': typeof BillingRoute
   '/blog': typeof BlogRouteWithChildren
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/learn': typeof LearnRoute
+  '/paypal-return': typeof PaypalReturnRoute
+  '/paystack-return': typeof PaystackReturnRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/stripe-return': typeof StripeReturnRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/status': typeof AuthenticatedStatusRoute
@@ -181,13 +217,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/billing'
     | '/blog'
     | '/faq'
     | '/forgot-password'
     | '/help'
     | '/learn'
+    | '/paypal-return'
+    | '/paystack-return'
     | '/pricing'
     | '/privacy'
+    | '/stripe-return'
     | '/terms'
     | '/admin'
     | '/status'
@@ -199,12 +239,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/billing'
     | '/faq'
     | '/forgot-password'
     | '/help'
     | '/learn'
+    | '/paypal-return'
+    | '/paystack-return'
     | '/pricing'
     | '/privacy'
+    | '/stripe-return'
     | '/terms'
     | '/admin'
     | '/status'
@@ -218,13 +262,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/billing'
     | '/blog'
     | '/faq'
     | '/forgot-password'
     | '/help'
     | '/learn'
+    | '/paypal-return'
+    | '/paystack-return'
     | '/pricing'
     | '/privacy'
+    | '/stripe-return'
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/status'
@@ -239,13 +287,17 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  BillingRoute: typeof BillingRoute
   BlogRoute: typeof BlogRouteWithChildren
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpRoute: typeof HelpRoute
   LearnRoute: typeof LearnRoute
+  PaypalReturnRoute: typeof PaypalReturnRoute
+  PaystackReturnRoute: typeof PaystackReturnRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  StripeReturnRoute: typeof StripeReturnRoute
   TermsRoute: typeof TermsRoute
   InviteTokenRoute: typeof InviteTokenRoute
   UIdRoute: typeof UIdRoute
@@ -260,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stripe-return': {
+      id: '/stripe-return'
+      path: '/stripe-return'
+      fullPath: '/stripe-return'
+      preLoaderRoute: typeof StripeReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -272,6 +331,20 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paystack-return': {
+      id: '/paystack-return'
+      path: '/paystack-return'
+      fullPath: '/paystack-return'
+      preLoaderRoute: typeof PaystackReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paypal-return': {
+      id: '/paypal-return'
+      path: '/paypal-return'
+      fullPath: '/paypal-return'
+      preLoaderRoute: typeof PaypalReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learn': {
@@ -307,6 +380,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog'
       preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -422,13 +502,17 @@ const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  BillingRoute: BillingRoute,
   BlogRoute: BlogRouteWithChildren,
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpRoute: HelpRoute,
   LearnRoute: LearnRoute,
+  PaypalReturnRoute: PaypalReturnRoute,
+  PaystackReturnRoute: PaystackReturnRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  StripeReturnRoute: StripeReturnRoute,
   TermsRoute: TermsRoute,
   InviteTokenRoute: InviteTokenRoute,
   UIdRoute: UIdRoute,

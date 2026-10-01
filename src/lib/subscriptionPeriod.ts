@@ -62,4 +62,17 @@ export async function recordSubscriptionPeriod(params: {
   if (error) {
     console.error("[recordSubscriptionPeriod] failed to upsert subscriptions row:", error.message);
   }
+  // Billing history row (shown on /billing).
+  const amount = params.interval === "yearly" ? 22788 : 2899;
+  const { error: payErr } = await supabaseAdmin.from("payments").insert({
+    user_id: params.userId,
+    provider: params.provider,
+    plan: "pro",
+    billing_interval: params.interval,
+    amount_cents: amount,
+    currency: "ZAR",
+    status: "paid",
+    reference: params.providerCustomerId ?? null,
+  });
+  if (payErr) console.error("[recordSubscriptionPeriod] failed to log payment:", payErr.message);
 }
