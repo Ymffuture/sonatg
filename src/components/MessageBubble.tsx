@@ -6,7 +6,7 @@ import {
   File as FileIcon, X, CornerUpLeft, MoreVertical, Lock, Phone, Video, Loader2, Clock,ZoomIn, ZoomOut, RotateCcw, Share2,
   Link2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Forward,
   FileText, Plus, ListChecks, CircleAlert, Pin, PinOff, Bookmark, BookmarkCheck, CheckSquare, CheckCircle2, Circle,
-  Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff, Info, AlertTriangle, Megaphone,
+  Sparkles, ArrowUp, ArrowDown, CornerDownLeft, Eye, EyeOff, Info, AlertTriangle, Megaphone,ArrowRight, 
 } from "lucide-react";
 
 
