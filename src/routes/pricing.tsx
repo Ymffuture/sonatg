@@ -170,6 +170,8 @@ function PricingPage() {
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4 text-xs text-zinc-500 dark:text-zinc-500">
             <span>Secured by Paystack</span>
             <span className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            <Link to="/billing" className="font-semibold underline underline-offset-2 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">Billing history & cancel</Link>
+            <span className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
             <Link to="/terms" className="underline underline-offset-2 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">Terms</Link>
             <span className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
             <Link to="/privacy" className="underline underline-offset-2 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">Privacy Policy</Link>
