@@ -5,9 +5,11 @@
 // current date/time, calendar, weather and recent news without having to
 // support tool-calling (which most :free models do not do reliably).
 //
-// Everything here is key-free and fails soft: if a network call times out or
-// errors, that section is simply left out and the reply still goes through.
-// Only isomorphic APIs (fetch, Intl) are used, and no secrets live in this file.
+// Weather comes from OpenWeather and needs OPENWEATHER_API_KEY (server env
+// var, never sent to the browser). Everything else is key-free. All network
+// calls fail soft: a timeout or error never blocks the reply, and for weather
+// the model is explicitly told the data is unavailable so it doesn't guess.
+// Import this only from server code (createServerFn handlers).
 
 const FETCH_TIMEOUT_MS = 4_000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -29,7 +31,9 @@ export function getDateTime(timeZone: string, now = new Date()) {
   return {
     timeZone,
     date: new Intl.DateTimeFormat("en-GB", { timeZone, dateStyle: "full" }).format(now),
-    time: new Intl.DateTimeFormat("en-GB", { timeZone, timeStyle: "short", hour12: false }).format(now),
+    time: new Intl.DateTimeFormat("en-GB", { timeZone, timeStyle: "short", hour12: false }).format(
+      now,
+    ),
     iso: now.toISOString(),
   };
 }
@@ -39,7 +43,10 @@ export function getDateTime(timeZone: string, now = new Date()) {
 export function getCalendarText(timeZone: string, now = new Date()): string {
   // "Today" as seen in the user's timezone, not the server's (Vercel is UTC).
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone, year: "numeric", month: "numeric", day: "numeric",
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
   }).formatToParts(now);
   const num = (t: string) => Number(parts.find((p) => p.type === t)!.value);
   const y = num("year");
@@ -48,7 +55,10 @@ export function getCalendarText(timeZone: string, now = new Date()): string {
 
   const startDay = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(); // 0 = Sunday
   const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  const monthName = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-GB", { month: "long", timeZone: "UTC" });
+  const monthName = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-GB", {
+    month: "long",
+    timeZone: "UTC",
+  });
 
   // Fixed 3-char cells; today is marked with a trailing "*".
   const cells: string[] = [
@@ -59,27 +69,32 @@ export function getCalendarText(timeZone: string, now = new Date()): string {
     }),
   ];
   const rows: string[] = [];
-  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7).join("").trimEnd());
+  for (let i = 0; i < cells.length; i += 7)
+    rows.push(
+      cells
+        .slice(i, i + 7)
+        .join("")
+        .trimEnd(),
+    );
 
-  const header = WEEKDAYS.map((d) => d.slice(0, 2).padEnd(3, " ")).join("").trimEnd();
+  const header = WEEKDAYS.map((d) => d.slice(0, 2).padEnd(3, " "))
+    .join("")
+    .trimEnd();
   return `${monthName} ${y} (today is day ${today}, marked *)\n${header}\n${rows.join("\n")}`;
 }
 
-/* ---------- Weather (Open-Meteo, key-free) ---------- */
+/* ---------- Weather (OpenWeather) ---------- */
 
-const WMO: Record<number, string> = {
-  0: "clear sky", 1: "mainly clear", 2: "partly cloudy", 3: "overcast",
-  45: "fog", 48: "freezing fog", 51: "light drizzle", 53: "drizzle", 55: "heavy drizzle",
-  61: "light rain", 63: "rain", 65: "heavy rain", 71: "light snow", 73: "snow", 75: "heavy snow",
-  80: "rain showers", 81: "heavy rain showers", 82: "violent rain showers",
-  95: "thunderstorm", 96: "thunderstorm with hail", 99: "severe thunderstorm with hail",
-};
+const OW = "https://api.openweathermap.org";
+const WEATHER_UNAVAILABLE =
+  "Weather: live data could not be fetched right now. Do not guess conditions or temperatures; tell the user you couldn't get the weather and to try again shortly.";
 
 async function fetchJson<T>(url: string): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const res = await fetch(url, { signal: controller.signal });
+    // Never log the URL: it contains the API key.
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return (await res.json()) as T;
   } finally {
@@ -87,32 +102,54 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
-export async function getWeatherText(city: string): Promise<string | null> {
+type OWGeo = Array<{ name: string; country?: string; state?: string; lat: number; lon: number }>;
+type OWCurrent = {
+  weather: Array<{ description: string }>;
+  main: { temp: number; feels_like: number; humidity: number };
+  wind: { speed: number }; // m/s in metric
+};
+type OWForecast = { list: Array<{ main: { temp_min: number; temp_max: number }; pop?: number }> };
+
+const round = (n: number) => Math.round(n * 10) / 10;
+
+export async function getWeatherText(city: string, apiKey?: string | null): Promise<string> {
+  if (!apiKey) {
+    console.warn("[liveContext] OPENWEATHER_API_KEY is not set; weather skipped");
+    return WEATHER_UNAVAILABLE;
+  }
   try {
-    const geo = await fetchJson<{ results?: Array<{ name: string; country?: string; latitude: number; longitude: number }> }>(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`,
+    const key = encodeURIComponent(apiKey);
+    const geo = await fetchJson<OWGeo>(
+      `${OW}/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${key}`,
     );
-    const place = geo.results?.[0];
-    if (!place) return `Weather: could not find a place called "${city}".`;
+    const place = geo[0];
+    if (!place)
+      return `Weather: no place found called "${city}". Ask the user to check the spelling or add the country.`;
 
-    const w = await fetchJson<{
-      current: { temperature_2m: number; apparent_temperature: number; relative_humidity_2m: number; weather_code: number; wind_speed_10m: number };
-      daily: { temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: number[] };
-    }>(
-      `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}` +
-        `&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m` +
-        `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`,
-    );
+    const coords = `lat=${place.lat}&lon=${place.lon}&units=metric&appid=${key}`;
+    const [cur, fc] = await Promise.all([
+      fetchJson<OWCurrent>(`${OW}/data/2.5/weather?${coords}`),
+      // cnt=8 → eight 3-hour slots = the next 24 hours
+      fetchJson<OWForecast>(`${OW}/data/2.5/forecast?${coords}&cnt=8`),
+    ]);
 
-    const c = w.current;
+    const slots = fc.list ?? [];
+    const high = slots.length ? Math.max(...slots.map((x) => x.main.temp_max)) : null;
+    const low = slots.length ? Math.min(...slots.map((x) => x.main.temp_min)) : null;
+    const rain = slots.length ? Math.round(Math.max(...slots.map((x) => x.pop ?? 0)) * 100) : null;
+
+    const where = [place.name, place.state, place.country].filter(Boolean).join(", ");
     return (
-      `Weather in ${place.name}${place.country ? `, ${place.country}` : ""}: ${WMO[c.weather_code] ?? "unknown conditions"}, ` +
-      `${c.temperature_2m}°C (feels like ${c.apparent_temperature}°C), humidity ${c.relative_humidity_2m}%, ` +
-      `wind ${c.wind_speed_10m} km/h. Today: high ${w.daily.temperature_2m_max[0]}°C, ` +
-      `low ${w.daily.temperature_2m_min[0]}°C, rain chance ${w.daily.precipitation_probability_max[0]}%.`
+      `Weather in ${where}: ${cur.weather?.[0]?.description ?? "unknown conditions"}, ` +
+      `${round(cur.main.temp)}°C (feels like ${round(cur.main.feels_like)}°C), humidity ${cur.main.humidity}%, ` +
+      `wind ${round(cur.wind.speed * 3.6)} km/h.` +
+      (high !== null && low !== null && rain !== null
+        ? ` Next 24 hours: high ${round(high)}°C, low ${round(low)}°C, chance of rain up to ${rain}%.`
+        : "")
     );
-  } catch {
-    return null; // fail soft, the reply goes out without weather
+  } catch (e) {
+    console.warn("[liveContext] OpenWeather request failed:", (e as Error).message);
+    return WEATHER_UNAVAILABLE;
   }
 }
 
@@ -121,9 +158,13 @@ export async function getWeatherText(city: string): Promise<string | null> {
 function decode(s: string): string {
   return s
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
-    .replace(/&#0?39;|&apos;/g, "'").replace(/&amp;/g, "&")
-    .replace(/<[^>]+>/g, "").trim();
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/<[^>]+>/g, "")
+    .trim();
 }
 
 export async function getWebHeadlinesText(query: string, limit = 5): Promise<string | null> {
@@ -132,7 +173,10 @@ export async function getWebHeadlinesText(query: string, limit = 5): Promise<str
   try {
     const res = await fetch(
       `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-ZA&gl=ZA&ceid=ZA:en`,
-      { signal: controller.signal, headers: { "User-Agent": "Mozilla/5.0 (compatible; SonaTalkGold/1.0)" } },
+      {
+        signal: controller.signal,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; SonaTalkGold/1.0)" },
+      },
     );
     if (!res.ok) return null;
     const xml = await res.text();
@@ -159,9 +203,12 @@ export async function getWebHeadlinesText(query: string, limit = 5): Promise<str
 
 /* ---------- Intent detection (plain regex, so no extra model call) ---------- */
 
-const WEATHER_RE = /\b(weather|forecast|temperature|rain(ing)?|raining|humid(ity)?|how (hot|cold)|will it (rain|snow))\b/i;
-const CALENDAR_RE = /\b(calendar|what day|which day|day of the week|this month|next month|schedule|how many days)\b/i;
-const WEB_RE = /\b(latest|news|headlines?|current(ly)?|right now|recent(ly)?|breaking|who won|score|price of|update on)\b/i;
+const WEATHER_RE =
+  /\b(weather|forecast|temperature|rain(ing)?|raining|humid(ity)?|how (hot|cold)|will it (rain|snow))\b/i;
+const CALENDAR_RE =
+  /\b(calendar|what day|which day|day of the week|this month|next month|schedule|how many days)\b/i;
+const WEB_RE =
+  /\b(latest|news|headlines?|current(ly)?|right now|recent(ly)?|breaking|who won|score|price of|update on)\b/i;
 const CITY_RE =
   /\b(?:weather|forecast|temperature|rain(?:ing)?)\b[^.?!]*?\b(?:in|for|at|of)\s+([A-Za-z][A-Za-z .'-]{1,40}?)(?=\s+(?:today|tomorrow|tonight|now|right|this|please)\b|[?.!,]|$)/i;
 
@@ -176,24 +223,32 @@ export function detectIntents(prompt: string) {
 
 /**
  * Builds the block appended to the system prompt. The date/time line is always
- * included (it is free); the rest only runs when the prompt asks for it.
+ * included (it is free and needs no network); the rest only runs when the
+ * prompt asks for it. Pass "" as the prompt to get the date/time line only.
  * Fetched text is wrapped and labelled as untrusted data, to blunt prompt
  * injection coming from third-party headlines.
  */
-export async function buildLiveContext(prompt: string, timeZoneInput?: string | null, now = new Date()): Promise<string> {
+export async function buildLiveContext(
+  prompt: string,
+  timeZoneInput?: string | null,
+  now = new Date(),
+): Promise<string> {
   const timeZone = safeTimeZone(timeZoneInput);
   const dt = getDateTime(timeZone, now);
   const intents = detectIntents(prompt);
+  const owKey = typeof process !== "undefined" ? process.env?.OPENWEATHER_API_KEY : undefined;
 
   const [weather, web] = await Promise.all([
-    intents.weather && intents.city ? getWeatherText(intents.city) : Promise.resolve(null),
+    intents.weather && intents.city ? getWeatherText(intents.city, owKey) : Promise.resolve(null),
     intents.web ? getWebHeadlinesText(prompt.slice(0, 120)) : Promise.resolve(null),
   ]);
 
   const sections: string[] = [`Current date and time: ${dt.date}, ${dt.time} (${dt.timeZone}).`];
   if (intents.calendar) sections.push(`Calendar:\n${getCalendarText(timeZone, now)}`);
   if (intents.weather && !intents.city) {
-    sections.push("Weather: the user didn't name a location. Ask which city they mean instead of guessing.");
+    sections.push(
+      "Weather: the user didn't name a location. Ask which city they mean instead of guessing.",
+    );
   }
   if (weather) sections.push(weather);
   if (web) sections.push(web);
