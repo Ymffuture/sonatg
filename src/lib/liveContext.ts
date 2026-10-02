@@ -17,6 +17,15 @@ import { detectIntents, type Coords } from "@/lib/liveIntents";
 const FETCH_TIMEOUT_MS = 4_000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function getEnvVar(...names: string[]): string | undefined {
+  if (typeof process === "undefined") return undefined;
+  for (const name of names) {
+    const value = process.env?.[name]?.trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
 /** Returns a valid IANA timezone, falling back to UTC for missing/bad input. */
 export function safeTimeZone(tz?: string | null): string {
   if (!tz) return "UTC";
@@ -117,7 +126,6 @@ type OWForecast = { list: Array<{ main: { temp_min: number; temp_max: number }; 
 
 const round = (n: number) => Math.round(n * 10) / 10;
 
-
 type OMGeo = { results?: Array<{ name: string; admin1?: string; country?: string; latitude: number; longitude: number }> };
 type OMForecast = {
   current?: { temperature_2m: number; apparent_temperature: number; relative_humidity_2m: number; wind_speed_10m: number; weather_code: number };
@@ -149,7 +157,7 @@ async function weatherReport(coords: Coords, label: string, timeZone = "auto"): 
   const lines: string[] = [];
   if (c) {
     lines.push(
-      `Weather now in ${label}: ${wmo(c.weather_code)}, ${round(c.temperature_2m)}°C (feels like ${round(c.apparent_temperature)}°C), humidity ${c.relative_humidity_2m}%, wind ${round(c.wind_speed_10m)} km/h.`,
+      `Weather now in ${label}: ${wmo(c.weather_code)}, ${round(c.temperature_2m)}°C (feels like ${round(c.apparent_temperature)}°C), humidity ${c.relative_humidity_2m}%, wind ${round(c.wind_speed_10m)} m/s`,
     );
   }
   const d = f.daily;
@@ -157,7 +165,7 @@ async function weatherReport(coords: Coords, label: string, timeZone = "auto"): 
     lines.push("7-day forecast (today + next 6 days):");
     d.time.forEach((t, i) => {
       const day = new Date(t + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-      lines.push(`- ${i === 0 ? "Today" : day}: ${wmo(d.weather_code[i])}, high ${round(d.temperature_2m_max[i])}°C, low ${round(d.temperature_2m_min[i])}°C, rain chance ${d.precipitation_probability_max[i] ?? 0}%`);
+      lines.push(`- ${i === 0 ? "Today" : day}: ${wmo(d.weather_code[i])}, high ${round(d.temperature_2m_max[i])}°C, low ${round(d.temperature_2m_min[i])}°C, rain chance ${d.precipitation_probability_max[i]}%`);
     });
   }
   return lines.join("\n") || WEATHER_UNAVAILABLE;
@@ -174,7 +182,7 @@ async function openWeatherReport(coords: Coords, label: string, key: string): Pr
   ]);
   const place = label || [cur.name, cur.sys?.country].filter(Boolean).join(", ");
   const lines = [
-    `Weather now in ${place} (source: OpenWeather, https://openweathermap.org): ${cur.weather[0]?.description ?? "n/a"}, ${round(cur.main.temp)}°C (feels like ${round(cur.main.feels_like)}°C), humidity ${cur.main.humidity}%, wind ${round(cur.wind.speed * 3.6)} km/h.`,
+    `Weather now in ${place} (source: OpenWeather, https://openweathermap.org): ${cur.weather[0]?.description ?? "n/a"}, ${round(cur.main.temp)}°C (feels like ${round(cur.main.feels_like)}°C), humidity ${cur.main.humidity}%, wind ${round(cur.wind.speed)} m/s`,
   ];
   const days = new Map<string, { min: number; max: number; pop: number; desc: string }>();
   for (const e of fc.list) {
@@ -205,7 +213,6 @@ export async function getWeatherText(city: string, apiKey?: string | null): Prom
       const p = geo[0];
       if (p) {
         const where = [p.name, p.state, p.country].filter(Boolean).join(", ");
-        // Open-Meteo gives a full 7 days; OpenWeather free gives ~5. Add Open-Meteo for the extra days.
         const [ow, om] = await Promise.all([
           openWeatherReport({ lat: p.lat, lon: p.lon }, where, apiKey),
           weatherReport({ lat: p.lat, lon: p.lon }, where).catch(() => ""),
@@ -355,11 +362,11 @@ export async function getDuckDuckGoInstantText(query: string): Promise<string | 
 
 /**
  * Optional SerpApi free-tier fallback (Google results).
- * Only runs when SERPAPI_API_KEY is present and the other sources returned nothing.
+ * Only runs when SERPAPI_API_KEY or SERP_API_KEY is present and the other sources returned nothing.
  * Free plan is small (~100–250 searches/month) – use sparingly.
  */
 export async function getSerpApiText(query: string): Promise<string | null> {
-  const key = typeof process !== "undefined" ? process.env?.SERPAPI_API_KEY : undefined;
+  const key = getEnvVar("SERPAPI_API_KEY", "SERP_API_KEY");
   if (!key) return null;
 
   const controller = new AbortController();
@@ -414,7 +421,7 @@ export async function buildLiveContext(
   const timeZone = safeTimeZone(timeZoneInput);
   const dt = getDateTime(timeZone, now);
   const intents = detectIntents(prompt);
-  const owKey = typeof process !== "undefined" ? process.env?.OPENWEATHER_API_KEY : undefined;
+  const owKey = getEnvVar("OPENWEATHER_API_KEY");
 
   const shortQuery = prompt
     .replace(/@sona\b/gi, "")
@@ -433,7 +440,7 @@ export async function buildLiveContext(
         ? getWeatherTextByCoords(coords, owKey)
         : Promise.resolve(null);
 
-  // Search order: SerpApi (Google results, needs SERPAPI_API_KEY) first,
+  // Search order: SerpApi (Google results, needs SERPAPI_API_KEY or SERP_API_KEY) first,
   // DuckDuckGo only if SerpApi is missing/failed. News headlines run alongside.
   const [weather, headlines, serpResult] = await Promise.all([
     weatherTask,
