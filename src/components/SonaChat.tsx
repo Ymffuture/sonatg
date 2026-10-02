@@ -251,6 +251,10 @@ const handleMenuOpenChange = (open: boolean) => {
   const [pendingDocs, setPendingDocs] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [sonaTyping, setSonaTyping] = useState(false);
+  const sonaTypingRef = useRef(false);
+  sonaTypingRef.current = sonaTyping;
+  // Pin/save confirmations stay quiet while Sona is replying.
+  const quietToast = (msg: string) => { if (!sonaTypingRef.current) toast.success(msg); };
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const { checkMessage, lastResult: moderationResult } = useMessageModeration();
 
@@ -1232,7 +1236,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       loadChats();
       return;
     }
-    toast.success(next ? "Chat pinned" : "Chat unpinned");
+    quietToast(next ? "Chat pinned" : "Chat unpinned");
   };
 
 
@@ -1499,7 +1503,6 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         const isAI = isAIChat(active);
         const mentionsSona = /(^|\s)@sona\b/i.test(prompt);
         if ((isAI || mentionsSona) && (prompt || attachedImageUrl || attachedFileUrl)) {
-          const sonaToastId = toast("Sona is thinking…", { isLoading: true });
           setSonaTyping(true);
           const sonaPrompt = prompt || (attachedFileUrl ? "What's in this file?" : "What's in this image?");
           // Only weather questions that name no city ask the browser for its
@@ -1518,8 +1521,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                 },
               }),
             )
-            .then(() => toast.close(sonaToastId))
-            .catch((e) => { toast.close(sonaToastId); toast.danger(e.message); })
+            .catch((e) => { toast.danger(e.message); })
             .finally(() => setSonaTyping(false));
         }
       }
@@ -1667,7 +1669,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     setMessages((prev) => prev.map((row) => row.id === m.id
       ? { ...row, pinned_by: pinning ? me.id : null, pinned_at: pinning ? new Date().toISOString() : null }
       : row));
-    toast.success(pinning ? "Message pinned" : "Message unpinned");
+    quietToast(pinning ? "Message pinned" : "Message unpinned");
   };
 
   const toggleBookmark = async (m: MessageRow) => {
@@ -1678,12 +1680,12 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       if (error) { toast.danger(error.message); return; }
       setBookmarkedIds((prev) => { const next = new Set(prev); next.delete(m.id); return next; });
       setSavedMessages((prev) => prev.filter((row) => row.id !== m.id));
-      toast.success("Removed from Saved Messages");
+      quietToast("Removed from Saved Messages");
     } else {
       const { error } = await supabase.from("message_bookmarks").insert({ user_id: me.id, message_id: m.id, chat_id: m.chat_id });
       if (error) { toast.danger(error.message); return; }
       setBookmarkedIds((prev) => new Set(prev).add(m.id));
-      toast.success("Saved");
+      quietToast("Saved");
     }
   };
 
@@ -1746,7 +1748,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       .in("id", Array.from(selectedMsgIds));
     if (error) { toast.danger(error.message); return; }
     setMessages((prev) => prev.map((m) => selectedMsgIds.has(m.id) ? { ...m, pinned_by: me.id, pinned_at: now } : m));
-    toast.success(`Pinned ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
+    quietToast(`Pinned ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
     exitMsgSelectMode();
   };
 
@@ -1756,7 +1758,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const { error } = await supabase.from("message_bookmarks").upsert(inserts, { onConflict: "user_id,message_id" });
     if (error) { toast.danger(error.message); return; }
     setBookmarkedIds((prev) => { const next = new Set(prev); selectedMsgs.forEach((m) => next.add(m.id)); return next; });
-    toast.success(`Saved ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
+    quietToast(`Saved ${selectedMsgs.length} message${selectedMsgs.length === 1 ? "" : "s"}`);
     exitMsgSelectMode();
   };
 
