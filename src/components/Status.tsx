@@ -682,7 +682,6 @@ export function StatusViewer({
           <div className="dark -my-1.5 shrink-0">
             <DeleteButton
               className="scale-90 origin-right"
-              onOpenChange={(open) => { confirmOpenRef.current = open; }}
               onConfirm={deleteCurrent}
             />
           </div>
