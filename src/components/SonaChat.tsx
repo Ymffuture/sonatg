@@ -442,6 +442,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // True while the user is at/near the end of the thread (see auto-scroll below).
+  const stickToBottomRef = useRef(true);
   
   const chatCacheRef = useRef<Record<string, { messages: MessageRow[]; reactions: ReactionRow[]; reads: MessageReadRow[]; deliveries: MessageDeliveryRow[] }>>({});
   const failedPayloadsRef = useRef<Record<string, Record<string, unknown>>>({});
@@ -954,11 +957,57 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     })();
   }, [me, activeId, messages, loadChats]);
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [activeId, messages.length]);
-
   const active = chats.find((c) => c.id === activeId);
+
+  // ── Auto-scroll: keep the newest message (and the Sona typing loader) in view ──
+  // "Stuck to bottom" means the user is at/near the end of the thread. While
+  // stuck, ANY growth of the list (new message, the loader mounting, images or
+  // link previews finishing loading, framer-motion entry animations, the mobile
+  // keyboard resizing the pane) re-pins the view to the bottom. Scrolling up to
+  // read history un-sticks it, so we never yank them back down mid-read.
+  // Scrolling is instant on purpose: a smooth scroll aims at a stale
+  // scrollHeight and falls short when the content keeps growing.
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+
+  const handleListScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Within 160px of the end counts as "at the bottom".
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+  }, []);
+
+  // Opening or switching a chat always starts pinned to the newest message.
+  useEffect(() => {
+    stickToBottomRef.current = true;
+    scrollToBottom();
+  }, [activeId, scrollToBottom]);
+
+  // New message, or the Sona loader showing/hiding. Your own message and asking
+  // Sona always scroll (even if you'd scrolled up); incoming messages follow
+  // only when you're already at the bottom.
+  const messageCount = messages.length;
+  const lastSenderId = messages[messages.length - 1]?.sender_id;
+  const myId = me?.id;
+  useEffect(() => {
+    if (sonaTyping || (myId && lastSenderId === myId)) stickToBottomRef.current = true;
+    if (stickToBottomRef.current) scrollToBottom();
+  }, [messageCount, lastSenderId, sonaTyping, myId, scrollToBottom]);
+
+  // Re-pin whenever the list or the pane changes size while stuck to the bottom.
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const content = contentRef.current;
+    if (!scroller || !content || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (stickToBottomRef.current) scrollToBottom();
+    });
+    ro.observe(content);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+  }, [active?.id, scrollToBottom]);
 
   const unreadDividerId = useMemo(() => {
     if (unreadSnapshot <= 0 || !me) return null;
@@ -3177,8 +3226,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                   </div>
                 )}
 
-                <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
-                  <div className="mx-auto flex max-w-3xl flex-col gap-0.5">
+                <div ref={scrollRef} onScroll={handleListScroll} className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4 md:px-8 chat-pattern">
+                  <div ref={contentRef} className="mx-auto flex max-w-3xl flex-col gap-0.5">
                     <div className="mx-auto rounded-full bg-[#F4A261]/20 px-4 py-1.5 text-[11px] text-[#8C8C8C] backdrop-blur mb-3 border border-[var(--sona-accent,#E07A5F)]/10">
                       {isAIChat(active) ? "Chat with Sona" : "Type @sona to summon the Sona AI"}
                     </div>
