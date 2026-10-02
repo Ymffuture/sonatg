@@ -384,7 +384,7 @@ export function GroupSettingsModal({
             : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} joined the group`,
         );
       }
-      notify.success({ message: `Added ${addSelected.size} member(s)`, description: "They can now see the group and its message history." });
+      notify.success({ message: `Added ${addSelected.size} participate(s)`, description: "They can now see the group and its message history." });
       setAddOpen(false);
       setAddSelected(new Set());
       onUpdated();
@@ -740,7 +740,7 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
         if (mErr) throw mErr;
       }
 
-      notify.success({ message: `"${groupTitle.trim()}" created`, description: "All selected members have been added." });
+      notify.success({ message: `"${groupTitle.trim()}" created`, description: "All selected participants have been added." });
       onCreated(chat.id);
     } catch (e) {
       console.error("createGroup failed", e);
@@ -913,11 +913,11 @@ export function NewChatModal({ meId, onClose, onCreated }: { meId: string; onClo
                               </Tooltip>
                             )}
                           </div>
-                          <div className="truncate text-xs text-zinc-500">{usernameFromEmail(u.display_name, u.email)}</div>
+                          <div className="truncate text-xs text-zinc-500">@{usernameFromEmail(u.display_name, u.email)}</div>
                         </div>
                         {mode === "direct" ? (
   busyId === u.id ? (
-    <Spinner />
+    <Spinner color="accent" />
   ) : (
     <Plus className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
   )
