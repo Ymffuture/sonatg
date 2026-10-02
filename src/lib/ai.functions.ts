@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { askGeminiWithAttachment, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
 import { buildLiveContext } from "@/lib/liveContext";
+import { sanitizeCoords, type Coords } from "@/lib/liveIntents";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
@@ -20,6 +21,8 @@ type AskInput = {
   fileName?: string | null;
   /** IANA timezone from the browser, e.g. "Africa/Johannesburg". Falls back to UTC. */
   timeZone?: string | null;
+  /** Device location (from the browser) for weather questions that name no city. */
+  coords?: Coords | null;
 };
 type SummarizeInput = { chatId: string; timeZone?: string | null };
 
@@ -124,6 +127,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
       fileUrl: data.fileUrl ? String(data.fileUrl).slice(0, 2000) : null,
       fileName: data.fileName ? String(data.fileName).slice(0, 200) : null,
       timeZone: data.timeZone ? String(data.timeZone).slice(0, 64) : null,
+      coords: sanitizeCoords(data.coords),
     };
   })
   .handler(async ({ data, context }) => {
@@ -148,7 +152,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
         .eq("chat_id", data.chatId)
         .order("created_at", { ascending: false })
         .limit(12),
-      buildLiveContext(data.prompt, data.timeZone),
+      buildLiveContext(data.prompt, data.timeZone, data.coords),
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
 

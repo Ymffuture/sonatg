@@ -12,6 +12,8 @@
 // unavailable so it doesn't guess.
 // Import this only from server code (createServerFn handlers).
 
+import { detectIntents, type Coords } from "@/lib/liveIntents";
+
 const FETCH_TIMEOUT_MS = 4_000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -105,6 +107,8 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 type OWGeo = Array<{ name: string; country?: string; state?: string; lat: number; lon: number }>;
 type OWCurrent = {
+  name?: string;
+  sys?: { country?: string };
   weather: Array<{ description: string }>;
   main: { temp: number; feels_like: number; humidity: number };
   wind: { speed: number }; // m/s in metric
@@ -113,9 +117,38 @@ type OWForecast = { list: Array<{ main: { temp_min: number; temp_max: number }; 
 
 const round = (n: number) => Math.round(n * 10) / 10;
 
+const NO_KEY_WARNING = "[liveContext] OPENWEATHER_API_KEY is not set; weather skipped";
+
+/** Current conditions + next-24h outlook for a coordinate pair. `label` overrides OpenWeather's place name. */
+async function weatherReport(coords: Coords, key: string, label?: string): Promise<string> {
+  const q = `lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${key}`;
+  const [cur, fc] = await Promise.all([
+    fetchJson<OWCurrent>(`${OW}/data/2.5/weather?${q}`),
+    // cnt=8 → eight 3-hour slots = the next 24 hours
+    fetchJson<OWForecast>(`${OW}/data/2.5/forecast?${q}&cnt=8`),
+  ]);
+
+  const slots = fc.list ?? [];
+  const high = slots.length ? Math.max(...slots.map((x) => x.main.temp_max)) : null;
+  const low = slots.length ? Math.min(...slots.map((x) => x.main.temp_min)) : null;
+  const rain = slots.length ? Math.round(Math.max(...slots.map((x) => x.pop ?? 0)) * 100) : null;
+
+  const where =
+    label || [cur.name, cur.sys?.country].filter(Boolean).join(", ") || "the user's location";
+  return (
+    `Weather in ${where}: ${cur.weather?.[0]?.description ?? "unknown conditions"}, ` +
+    `${round(cur.main.temp)}°C (feels like ${round(cur.main.feels_like)}°C), humidity ${cur.main.humidity}%, ` +
+    `wind ${round(cur.wind.speed * 3.6)} km/h.` +
+    (high !== null && low !== null && rain !== null
+      ? ` Next 24 hours: high ${round(high)}°C, low ${round(low)}°C, chance of rain up to ${rain}%.`
+      : "")
+  );
+}
+
+/** Weather for a place the user named in their message ("weather in Soweto"). */
 export async function getWeatherText(city: string, apiKey?: string | null): Promise<string> {
   if (!apiKey) {
-    console.warn("[liveContext] OPENWEATHER_API_KEY is not set; weather skipped");
+    console.warn(NO_KEY_WARNING);
     return WEATHER_UNAVAILABLE;
   }
   try {
@@ -126,28 +159,25 @@ export async function getWeatherText(city: string, apiKey?: string | null): Prom
     const place = geo[0];
     if (!place)
       return `Weather: no place found called "${city}". Ask the user to check the spelling or add the country.`;
-
-    const coords = `lat=${place.lat}&lon=${place.lon}&units=metric&appid=${key}`;
-    const [cur, fc] = await Promise.all([
-      fetchJson<OWCurrent>(`${OW}/data/2.5/weather?${coords}`),
-      // cnt=8 → eight 3-hour slots = the next 24 hours
-      fetchJson<OWForecast>(`${OW}/data/2.5/forecast?${coords}&cnt=8`),
-    ]);
-
-    const slots = fc.list ?? [];
-    const high = slots.length ? Math.max(...slots.map((x) => x.main.temp_max)) : null;
-    const low = slots.length ? Math.min(...slots.map((x) => x.main.temp_min)) : null;
-    const rain = slots.length ? Math.round(Math.max(...slots.map((x) => x.pop ?? 0)) * 100) : null;
-
     const where = [place.name, place.state, place.country].filter(Boolean).join(", ");
-    return (
-      `Weather in ${where}: ${cur.weather?.[0]?.description ?? "unknown conditions"}, ` +
-      `${round(cur.main.temp)}°C (feels like ${round(cur.main.feels_like)}°C), humidity ${cur.main.humidity}%, ` +
-      `wind ${round(cur.wind.speed * 3.6)} km/h.` +
-      (high !== null && low !== null && rain !== null
-        ? ` Next 24 hours: high ${round(high)}°C, low ${round(low)}°C, chance of rain up to ${rain}%.`
-        : "")
-    );
+    return await weatherReport({ lat: place.lat, lon: place.lon }, key, where);
+  } catch (e) {
+    console.warn("[liveContext] OpenWeather request failed:", (e as Error).message);
+    return WEATHER_UNAVAILABLE;
+  }
+}
+
+/** Weather for the coordinates the browser sent ("what's the weather?" with no place named). */
+export async function getWeatherTextByCoords(
+  coords: Coords,
+  apiKey?: string | null,
+): Promise<string> {
+  if (!apiKey) {
+    console.warn(NO_KEY_WARNING);
+    return WEATHER_UNAVAILABLE;
+  }
+  try {
+    return await weatherReport(coords, encodeURIComponent(apiKey));
   } catch (e) {
     console.warn("[liveContext] OpenWeather request failed:", (e as Error).message);
     return WEATHER_UNAVAILABLE;
@@ -299,26 +329,6 @@ export async function getSerpApiText(query: string): Promise<string | null> {
   }
 }
 
-/* ---------- Intent detection (plain regex, so no extra model call) ---------- */
-
-const WEATHER_RE =
-  /\b(weather|forecast|temperature|rain(ing)?|raining|humid(ity)?|how (hot|cold)|will it (rain|snow))\b/i;
-const CALENDAR_RE =
-  /\b(calendar|what day|which day|day of the week|this month|next month|schedule|how many days)\b/i;
-const WEB_RE =
-  /\b(latest|news|headlines?|current(ly)?|right now|recent(ly)?|breaking|who won|score|price of|update on|what is|who is|define)\b/i;
-const CITY_RE =
-  /\b(?:weather|forecast|temperature|rain(?:ing)?)\b[^.?!]*?\b(?:in|for|at|of)\s+([A-Za-z][A-Za-z .'-]{1,40}?)(?=\s+(?:today|tomorrow|tonight|now|right|this|please)\b|[?.!,]|$)/i;
-
-export function detectIntents(prompt: string) {
-  return {
-    weather: WEATHER_RE.test(prompt),
-    calendar: CALENDAR_RE.test(prompt),
-    web: WEB_RE.test(prompt),
-    city: prompt.match(CITY_RE)?.[1]?.trim() ?? null,
-  };
-}
-
 /**
  * Builds the block appended to the system prompt. The date/time line is always
  * included (it is free and needs no network); the rest only runs when the
@@ -329,6 +339,7 @@ export function detectIntents(prompt: string) {
 export async function buildLiveContext(
   prompt: string,
   timeZoneInput?: string | null,
+  coords?: Coords | null,
   now = new Date(),
 ): Promise<string> {
   const timeZone = safeTimeZone(timeZoneInput);
@@ -338,12 +349,20 @@ export async function buildLiveContext(
 
   const shortQuery = prompt.slice(0, 120);
 
-  const [weather, headlines, ddg, serp] = await Promise.all([
-    intents.weather && intents.city ? getWeatherText(intents.city, owKey) : Promise.resolve(null),
+  // A place named in the message wins; otherwise use the device location the
+  // browser sent; otherwise (below) Sona asks which city.
+  const weatherTask = !intents.weather
+    ? Promise.resolve(null)
+    : intents.city
+      ? getWeatherText(intents.city, owKey)
+      : coords
+        ? getWeatherTextByCoords(coords, owKey)
+        : Promise.resolve(null);
+
+  const [weather, headlines, ddg] = await Promise.all([
+    weatherTask,
     intents.web ? getWebHeadlinesText(shortQuery) : Promise.resolve(null),
     intents.web ? getDuckDuckGoInstantText(shortQuery) : Promise.resolve(null),
-    // SerpApi only if key exists and we still have no useful data later
-    Promise.resolve(null), // placeholder – we decide after the others
   ]);
 
   // Only hit SerpApi free tier when the free sources returned nothing useful
@@ -354,9 +373,9 @@ export async function buildLiveContext(
 
   const sections: string[] = [`Current date and time: ${dt.date}, ${dt.time} (${dt.timeZone}).`];
   if (intents.calendar) sections.push(`Calendar:\n${getCalendarText(timeZone, now)}`);
-  if (intents.weather && !intents.city) {
+  if (intents.weather && !intents.city && !coords) {
     sections.push(
-      "Weather: the user didn't name a location. Ask which city they mean instead of guessing.",
+      "Weather: the user didn't name a location and location access wasn't available. Ask which city they mean instead of guessing.",
     );
   }
   if (weather) sections.push(weather);
