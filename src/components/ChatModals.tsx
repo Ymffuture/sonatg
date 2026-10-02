@@ -1125,8 +1125,8 @@ export function SettingsModal({ me, onClose, onSaved }: { me: Profile; onClose: 
     let alive = true;
     setSubscriptionLoading(true);
     supabase.from("subscriptions").select("*").eq("user_id", me.id).maybeSingle()
-      .then(({ data }) => { if (alive) { setSubscription(data as SubscriptionRow | null); setSubscriptionLoading(false); } })
-      .catch(() => { if (alive) setSubscriptionLoading(false); });
+      .then(({ data }) => { if (alive) { setSubscription(data as SubscriptionRow | null); setSubscriptionLoading(false); } },
+        () => { if (alive) setSubscriptionLoading(false); });
     return () => { alive = false; };
   }, [me.id, me.is_pro]);
 

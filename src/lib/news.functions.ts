@@ -6,6 +6,7 @@ export type NewsItem = {
   source: string;
   image: string | null;
   publishedAt: string | null;
+  description?: string | null;
 };
 
 // Key-free RSS feeds. GDELT rate-limits almost immediately and Reddit blocks
