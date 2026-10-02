@@ -1458,6 +1458,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
               imageUrl: attachedImageUrl,
               fileUrl: attachedFileUrl,
               fileName: attachedFileName,
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             },
           })
             .then(() => toast.close(sonaToastId))
@@ -1847,7 +1848,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     if (!requirePro("AI chat summary")) return;
     setShowHeaderMenu(false);
     setIsSummarized(true) ;
-    const summaryPromise = askSummary({ data: { chatId: activeId } }) as Promise<{ summary: string }>;
+    const summaryPromise = askSummary({ data: { chatId: activeId, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone } }) as Promise<{ summary: string }>;
     toast.promise(summaryPromise, {
       loading: "Summarizing…",
       success: "Summary ready",

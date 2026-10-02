@@ -267,6 +267,7 @@ export function AskSonaPanel({
           messageId: message.id,
           action,
           useContext: !!def?.useContext,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           ...extra,
         },
       })) as { result: string };
