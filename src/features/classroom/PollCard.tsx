@@ -302,7 +302,7 @@ function CreatorDropdown({
                 <button
                   key={item.key}
                   onClick={() => {
-                    onAction(item.key);
+                    onAction(item.key!);
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${

@@ -112,7 +112,7 @@ export const synthesizeSpeech = createServerFn({ method: "POST" })
         throw new Error(`Text-to-speech failed [${res.status}]: ${body.slice(0, 300)}`);
       }
 
-      let buffer = Buffer.from(await res.arrayBuffer());
+      let buffer: Buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.length === 0) throw new Error("Text-to-speech returned an empty audio clip — try again.");
 
       // The bug: this used to always report "audio/mpeg" regardless of

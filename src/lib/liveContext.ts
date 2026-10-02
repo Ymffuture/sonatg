@@ -117,69 +117,75 @@ type OWForecast = { list: Array<{ main: { temp_min: number; temp_max: number }; 
 
 const round = (n: number) => Math.round(n * 10) / 10;
 
-const NO_KEY_WARNING = "[liveContext] OPENWEATHER_API_KEY is not set; weather skipped";
 
-/** Current conditions + next-24h outlook for a coordinate pair. `label` overrides OpenWeather's place name. */
-async function weatherReport(coords: Coords, key: string, label?: string): Promise<string> {
-  const q = `lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${key}`;
-  const [cur, fc] = await Promise.all([
-    fetchJson<OWCurrent>(`${OW}/data/2.5/weather?${q}`),
-    // cnt=8 → eight 3-hour slots = the next 24 hours
-    fetchJson<OWForecast>(`${OW}/data/2.5/forecast?${q}&cnt=8`),
-  ]);
+type OMGeo = { results?: Array<{ name: string; admin1?: string; country?: string; latitude: number; longitude: number }> };
+type OMForecast = {
+  current?: { temperature_2m: number; apparent_temperature: number; relative_humidity_2m: number; wind_speed_10m: number; weather_code: number };
+  daily?: { time: string[]; weather_code: number[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: number[] };
+};
 
-  const slots = fc.list ?? [];
-  const high = slots.length ? Math.max(...slots.map((x) => x.main.temp_max)) : null;
-  const low = slots.length ? Math.min(...slots.map((x) => x.main.temp_min)) : null;
-  const rain = slots.length ? Math.round(Math.max(...slots.map((x) => x.pop ?? 0)) * 100) : null;
+function wmo(code: number): string {
+  if (code === 0) return "clear sky";
+  if (code <= 2) return "partly cloudy";
+  if (code === 3) return "overcast";
+  if (code <= 48) return "fog";
+  if (code <= 57) return "drizzle";
+  if (code <= 67) return "rain";
+  if (code <= 77) return "snow";
+  if (code <= 82) return "rain showers";
+  if (code <= 86) return "snow showers";
+  return "thunderstorms";
+}
 
-  const where =
-    label || [cur.name, cur.sys?.country].filter(Boolean).join(", ") || "the user's location";
-  return (
-    `Weather in ${where}: ${cur.weather?.[0]?.description ?? "unknown conditions"}, ` +
-    `${round(cur.main.temp)}°C (feels like ${round(cur.main.feels_like)}°C), humidity ${cur.main.humidity}%, ` +
-    `wind ${round(cur.wind.speed * 3.6)} km/h.` +
-    (high !== null && low !== null && rain !== null
-      ? ` Next 24 hours: high ${round(high)}°C, low ${round(low)}°C, chance of rain up to ${rain}%.`
-      : "")
-  );
+/** Today's conditions + 7-day forecast (today and the next 6 days) from Open-Meteo (free, no key). */
+async function weatherReport(coords: Coords, label: string, timeZone = "auto"): Promise<string> {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
+    `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+    `&forecast_days=7&timezone=${encodeURIComponent(timeZone)}`;
+  const f = await fetchJson<OMForecast>(url);
+  const c = f.current;
+  const lines: string[] = [];
+  if (c) {
+    lines.push(
+      `Weather now in ${label}: ${wmo(c.weather_code)}, ${round(c.temperature_2m)}°C (feels like ${round(c.apparent_temperature)}°C), humidity ${c.relative_humidity_2m}%, wind ${round(c.wind_speed_10m)} km/h.`,
+    );
+  }
+  const d = f.daily;
+  if (d?.time?.length) {
+    lines.push("7-day forecast (today + next 6 days):");
+    d.time.forEach((t, i) => {
+      const day = new Date(t + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+      lines.push(`- ${i === 0 ? "Today" : day}: ${wmo(d.weather_code[i])}, high ${round(d.temperature_2m_max[i])}°C, low ${round(d.temperature_2m_min[i])}°C, rain chance ${d.precipitation_probability_max[i] ?? 0}%`);
+    });
+  }
+  return lines.join("\n") || WEATHER_UNAVAILABLE;
 }
 
 /** Weather for a place the user named in their message ("weather in Soweto"). */
-export async function getWeatherText(city: string, apiKey?: string | null): Promise<string> {
-  if (!apiKey) {
-    console.warn(NO_KEY_WARNING);
-    return WEATHER_UNAVAILABLE;
-  }
+export async function getWeatherText(city: string, _apiKey?: string | null): Promise<string> {
   try {
-    const key = encodeURIComponent(apiKey);
-    const geo = await fetchJson<OWGeo>(
-      `${OW}/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${key}`,
+    const geo = await fetchJson<OMGeo>(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`,
     );
-    const place = geo[0];
+    const place = geo.results?.[0];
     if (!place)
       return `Weather: no place found called "${city}". Ask the user to check the spelling or add the country.`;
-    const where = [place.name, place.state, place.country].filter(Boolean).join(", ");
-    return await weatherReport({ lat: place.lat, lon: place.lon }, key, where);
+    const where = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
+    return await weatherReport({ lat: place.latitude, lon: place.longitude }, where);
   } catch (e) {
-    console.warn("[liveContext] OpenWeather request failed:", (e as Error).message);
+    console.warn("[liveContext] weather request failed:", (e as Error).message);
     return WEATHER_UNAVAILABLE;
   }
 }
 
 /** Weather for the coordinates the browser sent ("what's the weather?" with no place named). */
-export async function getWeatherTextByCoords(
-  coords: Coords,
-  apiKey?: string | null,
-): Promise<string> {
-  if (!apiKey) {
-    console.warn(NO_KEY_WARNING);
-    return WEATHER_UNAVAILABLE;
-  }
+export async function getWeatherTextByCoords(coords: Coords, _apiKey?: string | null): Promise<string> {
   try {
-    return await weatherReport(coords, encodeURIComponent(apiKey));
+    return await weatherReport(coords, "the user's location");
   } catch (e) {
-    console.warn("[liveContext] OpenWeather request failed:", (e as Error).message);
+    console.warn("[liveContext] weather request failed:", (e as Error).message);
     return WEATHER_UNAVAILABLE;
   }
 }
@@ -347,7 +353,12 @@ export async function buildLiveContext(
   const intents = detectIntents(prompt);
   const owKey = typeof process !== "undefined" ? process.env?.OPENWEATHER_API_KEY : undefined;
 
-  const shortQuery = prompt.slice(0, 120);
+  const shortQuery = prompt
+    .replace(/@sona\b/gi, "")
+    .replace(/^\s*(hey|hi|please|can you|could you)?\s*(search( for| the web for)?|look up|google|find( out)?|tell me about)\s+/i, "")
+    .replace(/^(the\s+)?(latest|recent)\s+news\s+(on|about)\s+/i, "")
+    .trim()
+    .slice(0, 120) || prompt.slice(0, 120);
 
   // A place named in the message wins; otherwise use the device location the
   // browser sent; otherwise (below) Sona asks which city.
