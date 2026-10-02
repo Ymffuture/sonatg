@@ -5,7 +5,7 @@
 // (geo.ts), so both sides agree on when a weather question needs a location.
 
 const WEATHER_RE =
-  /\b(weather|forecast|temperature|rain(ing)?|raining|humid(ity)?|how (hot|cold)|will it (rain|snow)|sunny|cloudy|wind(y)?|storm|7.day|6.day|week'?s weather|this week)\b/i;
+  /\b(weather|forecast|temperature|rain(ing)?|raining|humid(ity)?|how (hot|cold)|will it (rain|snow)|sunny|cloudy|wind(y)?|storm|7.day|6.day|week'?s weather)\b/i;
 const CALENDAR_RE =
   /\b(calendar|what day|which day|day of the week|this month|next month|schedule|how many days)\b/i;
 const WEB_RE =
