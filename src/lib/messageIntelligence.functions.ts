@@ -15,6 +15,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callGateway, describeForHistory } from "@/lib/ai.functions";
 import { resolveModel } from "@/lib/aiModels";
+import { buildLiveContext } from "@/lib/liveContext";
 import { SONA_AI_ID } from "@/lib/db";
 
 export type MessageIntelAction =
@@ -35,6 +36,8 @@ type MessageIntelInput = {
   question?: string;
   /** Whether to pull a few nearby messages in for extra context. Off by default. */
   useContext?: boolean;
+  /** IANA timezone from the browser. Falls back to UTC. */
+  timeZone?: string | null;
 };
 
 const MAX_CONTEXT_MESSAGES = 6; // 3 before + 3 after — deliberately small and bounded
@@ -110,6 +113,7 @@ export const askSonaAboutMessage = createServerFn({ method: "POST" })
       language: data.language ? String(data.language).slice(0, 60) : undefined,
       question: data.question ? String(data.question).slice(0, 500) : undefined,
       useContext: !!data.useContext,
+      timeZone: data.timeZone ? String(data.timeZone).slice(0, 64) : null,
     };
   })
   .handler(async ({ data, context }) => {
@@ -223,13 +227,19 @@ export const askSonaAboutMessage = createServerFn({ method: "POST" })
       ? `Nearby conversation for context (do not analyze this directly, only use it to understand the selected message):\n${contextBlock}\n\nSelected message: "${content}"\n\n${instruction}`
       : `Selected message: "${content}"\n\n${instruction}`;
 
+    // Only the user's own "ask" question can trigger weather/web lookups;
+    // other actions (translate, rewrite…) get the date/time line only, so
+    // text inside someone else's message can never trigger a fetch.
+    const liveContext = await buildLiveContext(data.action === "ask" ? (data.question ?? "") : "", data.timeZone);
+
     const messages = [
       {
         role: "system",
         content:
           "You are Sona AI's message-intelligence assistant, embedded inline in a single chat message inside the Sona messaging app. " +
           "You are given exactly one selected message (and optionally a little surrounding context) and one instruction. " +
-          "Follow the instruction precisely and concisely — output only what was asked for, no preamble, no meta-commentary, no 're-stating the task'.",
+          "Follow the instruction precisely and concisely — output only what was asked for, no preamble, no meta-commentary, no 're-stating the task'." +
+          liveContext,
       },
       { role: "user", content: userTurn },
     ];

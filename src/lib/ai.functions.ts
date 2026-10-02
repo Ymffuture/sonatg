@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { askGeminiWithAttachment, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
+import { buildLiveContext } from "@/lib/liveContext";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
@@ -17,8 +18,10 @@ type AskInput = {
   imageUrl?: string | null;
   fileUrl?: string | null;
   fileName?: string | null;
+  /** IANA timezone from the browser, e.g. "Africa/Johannesburg". Falls back to UTC. */
+  timeZone?: string | null;
 };
-type SummarizeInput = { chatId: string };
+type SummarizeInput = { chatId: string; timeZone?: string | null };
 
 function friendlyGatewayError(status: number, body: string): Error {
   if (status === 429) return new Error("Sona AI is busy right now, try again in a moment.");
@@ -120,6 +123,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
       imageUrl: data.imageUrl ? String(data.imageUrl).slice(0, 2000) : null,
       fileUrl: data.fileUrl ? String(data.fileUrl).slice(0, 2000) : null,
       fileName: data.fileName ? String(data.fileName).slice(0, 200) : null,
+      timeZone: data.timeZone ? String(data.timeZone).slice(0, 64) : null,
     };
   })
   .handler(async ({ data, context }) => {
@@ -130,7 +134,9 @@ export const askSonaAI = createServerFn({ method: "POST" })
     // parallel instead of one-after-another is the single biggest lever
     // on time-to-first-reply for a plain @sona/chat message (saves two
     // full round trips to Supabase before the model call even starts).
-    const [{ data: memberRow }, { data: myProfile }, { data: recent }] = await Promise.all([
+    // The live-context fetch (time/date/calendar/weather/headlines) rides in
+    // the same Promise.all, so it adds no extra latency on top of the reads.
+    const [{ data: memberRow }, { data: myProfile }, { data: recent }, liveContext] = await Promise.all([
       context.supabase
         .from("chat_members").select("chat_id")
         .eq("chat_id", data.chatId).eq("user_id", context.userId).maybeSingle(),
@@ -142,6 +148,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
         .eq("chat_id", data.chatId)
         .order("created_at", { ascending: false })
         .limit(12),
+      buildLiveContext(data.prompt, data.timeZone),
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
 
@@ -170,7 +177,8 @@ export const askSonaAI = createServerFn({ method: "POST" })
           systemInstruction:
             `You are Sona AI, True mode, a warm, witty chat companion inside the Sona messaging app. ` +
             `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
-            `Keep replies short, friendly, and conversational — like a good friend texting back. Use emoji sparingly.`,
+            `Keep replies short, friendly, and conversational — like a good friend texting back. Use emoji sparingly.` +
+            liveContext,
         });
       } catch (e) {
         throw new Error(`Sona AI couldn't read that attachment: ${(e as Error).message || "unknown error"}`);
@@ -194,7 +202,8 @@ export const askSonaAI = createServerFn({ method: "POST" })
           `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
           `Keep replies short, friendly, and conversational — like a good friend texting back. ` +
           `You can look at images and read files (PDFs, documents) the user shares, and discuss them. Use emoji sparingly.
-          About Sonatg Developed and maintained by SumStack formal named Swiftmeta, the founder of this app is Kgomotso Nkosi (known as Future Ymf) `,
+          About Sonatg Developed and maintained by SumStack formal named Swiftmeta, the founder of this app is Kgomotso Nkosi (known as Future Ymf) ` +
+          liveContext,
       },
       ...history,
       { role: "user", content: userContent },
@@ -214,7 +223,7 @@ export const summarizeChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: SummarizeInput) => {
     if (!data?.chatId) throw new Error("chatId required");
-    return { chatId: String(data.chatId) };
+    return { chatId: String(data.chatId), timeZone: data.timeZone ? String(data.timeZone).slice(0, 64) : null };
   })
   .handler(async ({ data, context }) => {
     const key = process.env.OPENROUTER_API_KEY;
@@ -235,6 +244,9 @@ export const summarizeChat = createServerFn({ method: "POST" })
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
     const model = resolveModel(!!myProfile?.is_pro, myProfile?.ai_model as string | null | undefined);
+    // Empty prompt = date/time line only (no network), so "tomorrow"/"Friday"
+    // in the transcript can be resolved against the real current date.
+    const liveContext = await buildLiveContext("", data.timeZone);
 
     const rows = (recent ?? []).reverse();
     if (rows.length === 0) return { summary: "No messages yet to summarize." };
@@ -252,7 +264,7 @@ export const summarizeChat = createServerFn({ method: "POST" })
     }).join("\n");
 
     const summary = await callGateway([
-      { role: "system", content: "You summarize chat transcripts. Return a concise TL;DR (2–4 bullet points) covering the main topics, decisions, and any open questions. Use plain text, no markdown headers." },
+      { role: "system", content: "You summarize chat transcripts. Return a concise TL;DR (2–4 bullet points) covering the main topics, decisions, and any open questions. Use plain text, no markdown headers." + liveContext },
       { role: "user", content: `Summarize this chat:\n\n${transcript}` },
     ], key, model);
 
