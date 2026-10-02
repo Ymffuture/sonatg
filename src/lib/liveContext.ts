@@ -353,7 +353,12 @@ export async function buildLiveContext(
   const intents = detectIntents(prompt);
   const owKey = typeof process !== "undefined" ? process.env?.OPENWEATHER_API_KEY : undefined;
 
-  const shortQuery = prompt.slice(0, 120);
+  const shortQuery = prompt
+    .replace(/@sona\b/gi, "")
+    .replace(/^\s*(hey|hi|please|can you|could you)?\s*(search( for| the web for)?|look up|google|find( out)?|tell me about)\s+/i, "")
+    .replace(/^(the\s+)?(latest|recent)\s+news\s+(on|about)\s+/i, "")
+    .trim()
+    .slice(0, 120) || prompt.slice(0, 120);
 
   // A place named in the message wins; otherwise use the device location the
   // browser sent; otherwise (below) Sona asks which city.
