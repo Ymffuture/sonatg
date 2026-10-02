@@ -163,8 +163,59 @@ async function weatherReport(coords: Coords, label: string, timeZone = "auto"): 
   return lines.join("\n") || WEATHER_UNAVAILABLE;
 }
 
+/** OpenWeather: current conditions + daily summary built from the 5-day/3-hour forecast. */
+async function openWeatherReport(coords: Coords, label: string, key: string): Promise<string> {
+  const q = `lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${encodeURIComponent(key)}`;
+  const [cur, fc] = await Promise.all([
+    fetchJson<OWCurrent>(`${OW}/data/2.5/weather?${q}`),
+    fetchJson<OWForecast & { list: Array<{ dt_txt?: string; weather?: Array<{ description: string }> }> }>(
+      `${OW}/data/2.5/forecast?${q}`,
+    ),
+  ]);
+  const place = label || [cur.name, cur.sys?.country].filter(Boolean).join(", ");
+  const lines = [
+    `Weather now in ${place} (source: OpenWeather, https://openweathermap.org): ${cur.weather[0]?.description ?? "n/a"}, ${round(cur.main.temp)}°C (feels like ${round(cur.main.feels_like)}°C), humidity ${cur.main.humidity}%, wind ${round(cur.wind.speed * 3.6)} km/h.`,
+  ];
+  const days = new Map<string, { min: number; max: number; pop: number; desc: string }>();
+  for (const e of fc.list) {
+    const day = (e.dt_txt ?? "").slice(0, 10);
+    if (!day) continue;
+    const d = days.get(day) ?? { min: Infinity, max: -Infinity, pop: 0, desc: e.weather?.[0]?.description ?? "" };
+    d.min = Math.min(d.min, e.main.temp_min);
+    d.max = Math.max(d.max, e.main.temp_max);
+    d.pop = Math.max(d.pop, e.pop ?? 0);
+    if ((e.dt_txt ?? "").includes("12:00")) d.desc = e.weather?.[0]?.description ?? d.desc;
+    days.set(day, d);
+  }
+  if (days.size) {
+    lines.push("Forecast (OpenWeather):");
+    [...days.entries()].forEach(([t, d], i) => {
+      const day = new Date(t + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+      lines.push(`- ${i === 0 ? "Today" : day}: ${d.desc}, high ${round(d.max)}°C, low ${round(d.min)}°C, rain chance ${Math.round(d.pop * 100)}%`);
+    });
+  }
+  return lines.join("\n");
+}
+
 /** Weather for a place the user named in their message ("weather in Soweto"). */
-export async function getWeatherText(city: string, _apiKey?: string | null): Promise<string> {
+export async function getWeatherText(city: string, apiKey?: string | null): Promise<string> {
+  if (apiKey) {
+    try {
+      const geo = await fetchJson<OWGeo>(`${OW}/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${encodeURIComponent(apiKey)}`);
+      const p = geo[0];
+      if (p) {
+        const where = [p.name, p.state, p.country].filter(Boolean).join(", ");
+        // Open-Meteo gives a full 7 days; OpenWeather free gives ~5. Add Open-Meteo for the extra days.
+        const [ow, om] = await Promise.all([
+          openWeatherReport({ lat: p.lat, lon: p.lon }, where, apiKey),
+          weatherReport({ lat: p.lat, lon: p.lon }, where).catch(() => ""),
+        ]);
+        return om ? `${ow}\n\nExtended 7-day outlook (source: Open-Meteo, https://open-meteo.com):\n${om}` : ow;
+      }
+    } catch (e) {
+      console.warn("[liveContext] OpenWeather failed, falling back:", (e as Error).message);
+    }
+  }
   try {
     const geo = await fetchJson<OMGeo>(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`,
@@ -173,7 +224,7 @@ export async function getWeatherText(city: string, _apiKey?: string | null): Pro
     if (!place)
       return `Weather: no place found called "${city}". Ask the user to check the spelling or add the country.`;
     const where = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
-    return await weatherReport({ lat: place.latitude, lon: place.longitude }, where);
+    return `(source: Open-Meteo, https://open-meteo.com)\n` + (await weatherReport({ lat: place.latitude, lon: place.longitude }, where));
   } catch (e) {
     console.warn("[liveContext] weather request failed:", (e as Error).message);
     return WEATHER_UNAVAILABLE;
@@ -181,9 +232,20 @@ export async function getWeatherText(city: string, _apiKey?: string | null): Pro
 }
 
 /** Weather for the coordinates the browser sent ("what's the weather?" with no place named). */
-export async function getWeatherTextByCoords(coords: Coords, _apiKey?: string | null): Promise<string> {
+export async function getWeatherTextByCoords(coords: Coords, apiKey?: string | null): Promise<string> {
+  if (apiKey) {
+    try {
+      const [ow, om] = await Promise.all([
+        openWeatherReport(coords, "", apiKey),
+        weatherReport(coords, "the user's location").catch(() => ""),
+      ]);
+      return om ? `${ow}\n\nExtended 7-day outlook (source: Open-Meteo, https://open-meteo.com):\n${om}` : ow;
+    } catch (e) {
+      console.warn("[liveContext] OpenWeather failed, falling back:", (e as Error).message);
+    }
+  }
   try {
-    return await weatherReport(coords, "the user's location");
+    return `(source: Open-Meteo, https://open-meteo.com)\n` + (await weatherReport(coords, "the user's location"));
   } catch (e) {
     console.warn("[liveContext] weather request failed:", (e as Error).message);
     return WEATHER_UNAVAILABLE;
