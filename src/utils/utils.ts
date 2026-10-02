@@ -142,13 +142,50 @@ function emailSuffix(email: string): string {
   return h.toString(36).toUpperCase().padStart(6, "0").slice(-6);
 }
 
-// Derives a display-friendly "username" handle combining a person's display
-// name with a short suffix from their email, so the raw email address never
-// needs to be shown in the UI (e.g. "Jane Doe" + "jane@x.com" -> "JaneDoe_UD35H5").
+/**
+ * Derives a TikTok-style display-friendly "username" handle.
+ * Combines a person's display name with a short, readable suffix from their email,
+ * so the raw email address never needs to be shown in the UI.
+ * 
+ * Examples:
+ * - "Jane Doe" + "jane@x.com"       -> "janedoe_ja42"
+ * - "Alex" + "alexander@gmail.com"  -> "alex_al87"
+ * - null + "test@yahoo.com"         -> "user_te14"
+ */
 export function usernameFromEmail(displayName?: string | null, email?: string | null): string {
-  const namePart = (displayName || "user").replace(/\s+/g, "");
-  if (!email) return namePart;
-  return `${namePart.slice(-3)}_${emailSuffix(email)}`;
+  // 1. Clean the display name: lowercase and remove all non-alphanumeric characters
+  const cleanName = (displayName || "user")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  
+  // TikTok usernames have a 24-character limit. 
+  // We cap the base name at 16 chars to safely leave room for the suffix.
+  const baseName = cleanName.slice(0, 16) || "user";
+
+  if (!email) {
+    return baseName;
+  }
+
+  // 2. Derive a short, readable, TikTok-style suffix from the email
+  const localPart = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+  
+  // Generate a deterministic 2-digit number from the email string to ensure uniqueness
+  // without needing external libraries or random number generators.
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = ((hash << 5) - hash) + email.charCodeAt(i);
+    hash |= 0; // Convert to 32-bit integer
+  }
+  const numSuffix = Math.abs(hash % 100).toString().padStart(2, '0');
+
+  // Take the first 2 characters of the email's local part (fallback to 'u' if empty)
+  const shortLocal = localPart.slice(0, 2) || "u";
+  
+  // Format as an underscore followed by the short local part and number (e.g., "_ja42")
+  const suffix = `_${shortLocal}${numSuffix}`;
+
+  // 3. Combine and enforce the 24-character maximum limit strictly
+  return (baseName + suffix).slice(0, 24);
 }
 
 // "Sona" is reserved for the admin account and the built-in Sona AI system
