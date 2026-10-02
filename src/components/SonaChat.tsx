@@ -34,6 +34,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { askSonaAI, summarizeChat } from "@/lib/ai.functions";
+import { getCoordsForPrompt } from "@/lib/geo";
 import { AskSonaPanel } from "@/components/AskSonaPanel";
 import { MessageInfoPopover } from "@/components/MessageInfoPopover";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
@@ -1500,16 +1501,23 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         if ((isAI || mentionsSona) && (prompt || attachedImageUrl || attachedFileUrl)) {
           const sonaToastId = toast("Sona is thinking…", { isLoading: true });
           setSonaTyping(true);
-          askAI({
-            data: {
-              chatId: activeId,
-              prompt: prompt || (attachedFileUrl ? "What's in this file?" : "What's in this image?"),
-              imageUrl: attachedImageUrl,
-              fileUrl: attachedFileUrl,
-              fileName: attachedFileName,
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            },
-          })
+          const sonaPrompt = prompt || (attachedFileUrl ? "What's in this file?" : "What's in this image?");
+          // Only weather questions that name no city ask the browser for its
+          // location (resolves to null instantly for everything else).
+          getCoordsForPrompt(sonaPrompt)
+            .then((coords) =>
+              askAI({
+                data: {
+                  chatId: activeId,
+                  prompt: sonaPrompt,
+                  imageUrl: attachedImageUrl,
+                  fileUrl: attachedFileUrl,
+                  fileName: attachedFileName,
+                  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  coords,
+                },
+              }),
+            )
             .then(() => toast.close(sonaToastId))
             .catch((e) => { toast.close(sonaToastId); toast.danger(e.message); })
             .finally(() => setSonaTyping(false));
