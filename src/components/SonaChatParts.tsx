@@ -1,3 +1,4 @@
+import { stripSources } from "@/lib/sources";
 import { useEffect, useState } from "react";
 import {
   Shield, PhoneMissed, Video, Briefcase, Gamepad2, GraduationCap, Heart,
@@ -54,7 +55,7 @@ export function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; de
       </span>
     );
   }
-  if (msg.body) return <span className="truncate text-zinc-600 dark:text-zinc-300">{msg.body}</span>;
+  if (msg.body) return <span className="truncate text-zinc-600 dark:text-zinc-300">{stripSources(msg.body)}</span>;
 
   switch (msg.kind) {
     case "image":

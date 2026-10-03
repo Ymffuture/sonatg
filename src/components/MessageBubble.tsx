@@ -29,6 +29,8 @@ import { synthesizeSpeech } from "@/lib/tts.functions";
 import { fetchLinkPreview, type LinkPreview } from "@/lib/linkpreview.functions";
 import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, type MessageReadRow, type MessageDeliveryRow } from "@/lib/db";
 import { VideoPlayer } from "./VideoPlayer";
+import { SourcePills } from "./SourcePills";
+import { splitSources } from "@/lib/sources";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
   DOC_EXTENSIONS, docExtOf,
@@ -1641,7 +1643,10 @@ export function Bubble({
   const [viewer, setViewer] = useState<{ kind: "image" | "pdf"; url: string; name?: string | null } | null>(null);
   const [justCopied, setJustCopied] = useState(false);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const bodyText = overrideBody ?? msg.body ?? "";
+  // AI replies carry a trailing [[sona-sources:...]] marker; split it off so the
+  // text, copy, read-more and link previews never see it.
+  const rawBody = overrideBody ?? msg.body ?? "";
+  const { text: bodyText, sources: bodySources } = useMemo(() => splitSources(rawBody), [rawBody]);
 
   
   const READ_MORE_CHAR_LIMIT = 620;
@@ -2033,8 +2038,9 @@ function getNameColor(identifier: string) {
     )}
   </div>
 )}
-            {!msg.is_encrypted && (overrideBody ?? msg.body) && (
-              <LinkPreviewCard text={overrideBody ?? msg.body ?? ""} mine={mine} />
+            {isAI && bodySources.length > 0 && <SourcePills sources={bodySources} mine={mine} />}
+            {!msg.is_encrypted && bodyText && (
+              <LinkPreviewCard text={bodyText} mine={mine} />
             )}
 
             {(replyCount ?? 0) > 0 && (
@@ -2105,8 +2111,8 @@ function getNameColor(identifier: string) {
                 )}
               </AnimatePresence>
               {msg.edited_at && <span className="text-[10px] italic opacity-70">edited</span>}
-              {isAI && msg.kind === "text" && me.is_pro && msg.body && (
-                <SonaListenButton chatId={msg.chat_id} text={msg.body} />
+              {isAI && msg.kind === "text" && me.is_pro && bodyText && (
+                <SonaListenButton chatId={msg.chat_id} text={bodyText} />
               )}
               {isPinned && <Pin className="h-3 w-3 fill-current opacity-70" />}
               {isBookmarked && <Bookmark className="h-3 w-3 fill-current opacity-70" />}

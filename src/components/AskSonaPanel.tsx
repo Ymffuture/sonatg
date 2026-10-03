@@ -1,3 +1,4 @@
+import { stripSources } from "@/lib/sources";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
@@ -81,7 +82,7 @@ type HistoryEntry = {
 };
 
 function messagePreviewText(msg: MessageRow): string {
-  if (msg.kind === "text") return msg.body || "";
+  if (msg.kind === "text") return stripSources(msg.body);
   if (msg.kind === "voice") return msg.transcript || "[voice note — not yet transcribed]";
   return `[${msg.kind}]`;
 }
