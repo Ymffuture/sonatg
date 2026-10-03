@@ -112,9 +112,9 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
           </DrawerHeader>
 
           {/* Scrollable List Container */}
-          <div className="relative flex-1 overflow-hidden">
+          <div className="relative min-h-0 flex-1 overflow-hidden">
             <ul
-              className="h-full space-y-3 overflow-y-auto overscroll-contain scroll-smooth px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))]
+              className="h-full max-h-[70dvh] space-y-3 overflow-y-auto overscroll-contain scroll-smooth px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))]
                          [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               data-vaul-no-drag
             >

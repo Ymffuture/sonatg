@@ -503,7 +503,7 @@ export async function buildLiveContextWithSources(
   timeZoneInput?: string | null,
   coords?: Coords | null,
   now = new Date(),
-): Promise<{ context: string; sources: Source[] }> {
+): Promise<{ context: string; sources: Source[]; weatherQuery: { city?: string; lat?: number; lon?: number } | null }> {
   // Separate collectors so concurrent fetches never interleave; merged in a fixed order below.
   const weatherSrc: Source[] = [];
   const newsSrc: Source[] = [];
@@ -574,5 +574,8 @@ export async function buildLiveContextWithSources(
     seen.add(s.url);
     return true;
   });
-  return { context, sources };
+  const weatherQuery = weather && weather !== WEATHER_UNAVAILABLE && !weather.startsWith("Weather: no place")
+    ? intents.city ? { city: intents.city } : coords ? { lat: coords.lat, lon: coords.lon } : null
+    : null;
+  return { context, sources, weatherQuery };
 }
