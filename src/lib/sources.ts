@@ -79,9 +79,28 @@ function sanitize(input: unknown): Source[] {
   return out;
 }
 
+// Weather-card marker: [[sona-weather:<encoded {"city"} or {"lat","lon"}>]]
+const WEATHER_RE = /\n*\[\[sona-weather:([^\]]+)\]\]/;
+export type WeatherMarker = { city?: string; lat?: number; lon?: number };
+
+export function weatherMarker(q: WeatherMarker | null | undefined): string {
+  return q ? `\n\n[[sona-weather:${encodeURIComponent(JSON.stringify(q))}]]` : "";
+}
+
+export function parseWeatherMarker(body: string | null | undefined): WeatherMarker | null {
+  const m = (body ?? "").match(WEATHER_RE);
+  if (!m) return null;
+  try {
+    const o = JSON.parse(decodeURIComponent(m[1]));
+    if (typeof o?.city === "string") return { city: o.city.slice(0, 80) };
+    if (typeof o?.lat === "number" && typeof o?.lon === "number") return { lat: o.lat, lon: o.lon };
+  } catch { /* ignore */ }
+  return null;
+}
+
 /** Splits a stored message body into display text + structured sources. */
 export function splitSources(body: string | null | undefined): { text: string; sources: Source[] } {
-  const raw = body ?? "";
+  const raw = (body ?? "").replace(WEATHER_RE, "");
   const m = raw.match(MARKER_RE);
   if (!m) return { text: raw, sources: [] };
   let sources: Source[] = [];

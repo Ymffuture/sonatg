@@ -3,8 +3,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { askGeminiWithAttachment, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
 import { buildLiveContext, buildLiveContextWithSources } from "@/lib/liveContext";
-import { stripSources, withSources } from "@/lib/sources";
+import { stripSources, withSources, weatherMarker } from "@/lib/sources";
 import { sanitizeCoords, type Coords } from "@/lib/liveIntents";
+
+// Never let the model inject its own markers.
+const stripMarkers = (t: string) => t.replace(/\[\[sona-(?:sources|weather):[^\]]*\]\]/g, "").trimEnd();
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
@@ -193,7 +196,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error: insErr } = await supabaseAdmin.from("messages").insert({
-        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(reply, live.sources),
+        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(stripMarkers(reply) + weatherMarker(live.weatherQuery), live.sources),
       });
       if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
       return { ok: true };
@@ -220,7 +223,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: insErr } = await supabaseAdmin.from("messages").insert({
-      chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(reply, live.sources),
+      chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(stripMarkers(reply) + weatherMarker(live.weatherQuery), live.sources),
     });
     if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
     return { ok: true };
