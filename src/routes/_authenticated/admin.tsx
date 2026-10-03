@@ -200,6 +200,32 @@ function AdminPage() {
     } catch (e) { err(e, "Couldn't update username"); }
   };
 
+  // Permanently deletes a user and all of their data via the admin_delete_user()
+  // Postgres function (see supabase/migrations/20260903090000_admin_user_deletion_and_inactivity_purge.sql).
+  // This also deletes their actual login (auth.users row), so it's a real
+  // "delete this user", not a soft/cosmetic removal.
+  const deleteUser = async (user: Profile) => {
+    const ok = await confirm({
+      title: `Permanently delete ${user.display_name}?`,
+      description: "This deletes their account, every message they sent, and all of their data. This cannot be undone.",
+      confirmText: "Delete everything",
+      danger: true,
+    });
+    if (!ok) return;
+    // Extra friction for a destructive, irreversible action — type-to-confirm.
+    const typed = window.prompt(`Type "${user.display_name}" to confirm permanent deletion`);
+    if (typed !== user.display_name) {
+      if (typed !== null) notification.warning({ message: "Name didn't match", description: "Deletion cancelled.", placement: "top" });
+      return;
+    }
+    try {
+      const { error } = await supabase.rpc("admin_delete_user", { _target: user.id });
+      if (error) throw error;
+      notification.success({ message: "User deleted", description: `${user.display_name} and all of their data are gone.`, placement: "top" });
+      loadAll();
+    } catch (e) { err(e, "Couldn't delete user"); }
+  };
+
   const addDomain = async () => {
     const domain = newDomain.trim().toLowerCase().replace(/^@/, "");
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
@@ -522,6 +548,9 @@ function AdminPage() {
                       </button>
                       <button onClick={() => moderate(p, "clear")} className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600">
                         <CheckCircle2 className="h-3 w-3" /> Reinstate
+                      </button>
+                      <button onClick={() => deleteUser(p)} className="flex items-center gap-1 rounded-full bg-red-600/15 px-3 py-1.5 text-xs font-bold text-red-700">
+                        <Trash2 className="h-3 w-3" /> Delete user
                       </button>
                     </div>
                   </li>
