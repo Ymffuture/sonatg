@@ -19,6 +19,16 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { EmojiReaction } from "@/components/ui/emoji-reaction";
 import type { EmojiData } from "react-apple-emojis";
 
+// Same six reactions as before (❤️😂😮😢👏🔥), now picked via the animated
+// EmojiReaction pill instead of a plain always-visible row of six buttons.
+// react-apple-emojis addresses each emoji by name rather than its raw
+// unicode character, so this maps the two directions: STATUS_REACTION_DATA
+// tells EmojiReaction which named emojis/images to show, and
+// REACTION_NAME_TO_EMOJI translates the name it reports back in onReact
+// into the same unicode character `react()` already stores in
+// status_reactions.emoji — so the database, and every other bit of this
+// file that reads that column expecting a raw emoji character (e.g. the
+// reactors summary in the views footer below), needs no changes at all.
 const STATUS_REACTION_DATA: EmojiData = {
   baseUrl: "https://em-content.zobj.net/source/apple/419/",
   emojis: {
@@ -40,7 +50,7 @@ const REACTION_NAME_TO_EMOJI: Record<string, string> = {
   fire: "🔥",
 };
 
-const TEXT_STATUS_MS = 500000;
+const TEXT_STATUS_MS = 5000;
 
 /* ─── Premium Theme Tokens ───────────────────────────────────── */
 const THEME = {
@@ -307,7 +317,7 @@ export function StatusComposer({
       try {
         const durationMs = await readVideoDurationMs(f);
         if (durationMs > STATUS_MAX_DURATION_MS) {
-          notification.error({ message: "Video too long", description: "Video clips must be 60 seconds or shorter", placement: "top" });
+          notification.error({ message: "Video too long", description: `Video clips must be ${Math.round(STATUS_MAX_DURATION_MS / 60_000)} minutes or shorter`, placement: "top" });
           return;
         }
       } catch {
@@ -521,6 +531,7 @@ export function StatusViewer({
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const pausedRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   // True while the inline delete confirmation is open — pauses the story timer
   // and stops Escape from closing the whole viewer instead of just the prompt.
   const confirmOpenRef = useRef(false);
@@ -590,9 +601,24 @@ export function StatusViewer({
     setProgress(0);
     startRef.current = performance.now();
     pausedRef.current = false;
-    const durationMs = current.kind === "video" && current.duration_ms ? current.duration_ms : TEXT_STATUS_MS;
+    const isVideo = current.kind === "video";
+    // Text/photo statuses run on a fixed timer. Videos do NOT: the stored
+    // duration_ms can be stale or wrong (old rows, clips recorded before the
+    // limit was raised), so a video's bar follows the real playback position.
+    const durationMs = TEXT_STATUS_MS;
 
     const tick = (now: number) => {
+      if (isVideo) {
+        const v = videoRef.current;
+        // Until metadata loads (or if duration is Infinity, which some webm
+        // files report) the bar waits at its current position.
+        if (v && Number.isFinite(v.duration) && v.duration > 0) {
+          setProgress(Math.min(1, v.currentTime / v.duration));
+        }
+        // Moving to the next status happens in the video's onEnded handler.
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
       if (!pausedRef.current && !confirmOpenRef.current) {
         const elapsed = now - startRef.current;
         const pct = Math.min(1, elapsed / durationMs);
@@ -713,9 +739,10 @@ export function StatusViewer({
                 onLoad={() => setImageLoading(false)} onError={() => setImageLoading(false)} />
             </>
           ) : (
-            <motion.video initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+            <motion.video key={current.id} ref={videoRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
               src={currentMediaUrl ?? ""} autoPlay playsInline controls className="max-h-[75vh] max-w-full object-contain z-[1] drop-shadow-2xl"
-              onLoadedData={() => setImageLoading(false)} onError={() => setImageLoading(false)} />
+              onLoadedData={() => setImageLoading(false)} onError={() => setImageLoading(false)}
+              onEnded={() => { setProgress(1); if (index < statuses.length - 1) setIndex((i) => i + 1); else onClose(); }} />
           )}
 
           {/* Caption */}
