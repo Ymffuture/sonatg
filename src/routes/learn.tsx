@@ -230,7 +230,7 @@ const limitRows: LimitRow[] = [
   { key: "doc", type: "Documents", icon: FileText, perMessage: "Up to 2 per message", maxSize: 5 * 1024 * 1024, maxSizeLabel: "5 MB each", notes: ".pdf, .docx, .txt, .md, .json, .csv, and source-code extensions." },
   { key: "video", type: "Videos (chat)", icon: Video, perMessage: "1 per message", maxSize: 100 * 1024 * 1024, maxSizeLabel: "100 MB", notes: "Uploaded via Cloudinary with live progress." },
   { key: "voice", type: "Voice notes", icon: Mic, perMessage: "1 per message", maxSize: 10 * 1024 * 1024, maxSizeLabel: "~10 MB", notes: "Long recordings are limited by file size." },
-  { key: "status", type: "Status updates", icon: Radio, perMessage: "1 photo or video per post", maxSize: 10 * 1024 * 1024, maxSizeLabel: "10 MB", notes: "Video status clips are also capped at 60 seconds." },
+  { key: "status", type: "Status updates", icon: Radio, perMessage: "1 photo or video per post", maxSize: 10 * 1024 * 1024, maxSizeLabel: "10 MB", notes: "Video status clips are also capped at 3 minutes (180 seconds)." },
 ];
 
 function LimitCard({ row }: { row: LimitRow }) {
