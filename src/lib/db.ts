@@ -197,7 +197,17 @@ export type StatusViewRow = {
   viewed_at: string;
 };
 
-export const STATUS_MAX_DURATION_MS = 60_000; // 60s max clip length
+export const STATUS_MAX_DURATION_MS = 300_000; // 60s max clip length
 export const STATUS_MAX_BYTES_SUPABASE = 10 * 1024 * 1024; // 10MB via Supabase Storage
 export const STATUS_MAX_BYTES_CLOUDINARY = 30 * 1024 * 1024; // 30MB via Cloudinary
-export const STATUS_TEXT_BACKGROUNDS = ["#E07A5F", "#4FA6E0", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"];
+// export const STATUS_TEXT_BACKGROUNDS = ["#E07A5F", "#4FA6E0", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444"];
+export const STATUS_TEXT_BACKGROUNDS = [
+  "#EC4899", // pink
+  "#14B8A6", // teal
+  "#6366F1", // indigo
+  "#F97316", // orange
+  "#84CC16", // lime
+  "#0EA5E9", // sky
+  "#A855F7", // purple (brighter)
+  "#22C55E", // green (brighter)
+];
