@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { askGeminiWithAttachment, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
-import { buildLiveContext } from "@/lib/liveContext";
+import { buildLiveContext, buildLiveContextWithSources } from "@/lib/liveContext";
+import { stripSources, withSources } from "@/lib/sources";
 import { sanitizeCoords, type Coords } from "@/lib/liveIntents";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
@@ -98,7 +99,8 @@ export async function callGateway(messages: unknown[], key: string, preferredMod
 export function describeForHistory(m: { kind: string; body?: string | null; file_name?: string | null }): string {
   switch (m.kind) {
     case "text":
-      return m.body ?? "";
+      // Past AI replies carry a [[sona-sources:...]] marker — keep it out of the model's history.
+      return stripSources(m.body);
     case "image":
       return "[shared an image]";
     case "voice":
@@ -140,7 +142,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
     // full round trips to Supabase before the model call even starts).
     // The live-context fetch (time/date/calendar/weather/headlines) rides in
     // the same Promise.all, so it adds no extra latency on top of the reads.
-    const [{ data: memberRow }, { data: myProfile }, { data: recent }, liveContext] = await Promise.all([
+    const [{ data: memberRow }, { data: myProfile }, { data: recent }, live] = await Promise.all([
       context.supabase
         .from("chat_members").select("chat_id")
         .eq("chat_id", data.chatId).eq("user_id", context.userId).maybeSingle(),
@@ -152,9 +154,10 @@ export const askSonaAI = createServerFn({ method: "POST" })
         .eq("chat_id", data.chatId)
         .order("created_at", { ascending: false })
         .limit(12),
-      buildLiveContext(data.prompt, data.timeZone, data.coords),
+      buildLiveContextWithSources(data.prompt, data.timeZone, data.coords),
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
+    const liveContext = live.context;
 
     const userName = (myProfile?.display_name as string | undefined) || "friend";
     const model = resolveModel(!!myProfile?.is_pro, myProfile?.ai_model as string | null | undefined);
@@ -190,7 +193,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error: insErr } = await supabaseAdmin.from("messages").insert({
-        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: reply,
+        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(reply, live.sources),
       });
       if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
       return { ok: true };
@@ -217,7 +220,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: insErr } = await supabaseAdmin.from("messages").insert({
-      chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: reply,
+      chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(reply, live.sources),
     });
     if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
     return { ok: true };

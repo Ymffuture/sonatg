@@ -1,3 +1,4 @@
+import { stripSources } from "@/lib/sources";
 import type { MessageRow, Profile } from "@/lib/db";
 import { fmtDateLabel } from "@/lib/db";
 import type { ChatWithMeta } from "@/utils/utils";
@@ -20,7 +21,7 @@ function contentLabel(m: MessageRow, decrypted?: Record<string, string>): string
     case "voice": return `[Voice message${m.duration_ms ? `, ${Math.round(m.duration_ms / 1000)}s` : ""}]`;
     case "file": return `[File: ${m.file_name ?? "attachment"}]`;
     case "call": return "[Call]";
-    default: return m.body ?? "";
+    default: return stripSources(m.body);
   }
 }
 
