@@ -11,6 +11,11 @@ import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
 import { Spinner } from '@heroui/react';
 
 type AuthMethod = "email" | "google" | "facebook" | "github" | "spotify";
+
+// Login methods hidden from the UI. The code for them is kept, so to bring one
+// back just remove it from this list.
+const HIDDEN_METHODS: readonly AuthMethod[] = ["facebook", "spotify"];
+const isShown = (m: AuthMethod) => !HIDDEN_METHODS.includes(m);
 const LAST_USED_KEY = "sona-last-auth-method";
 
 function LastUsed() {
@@ -111,9 +116,12 @@ function AuthPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem(LAST_USED_KEY);
-    if (saved === "email" || saved === "google" || saved === "facebook" || saved === "github" || saved === "spotify") {
+    if (
+      (saved === "email" || saved === "google" || saved === "facebook" || saved === "github" || saved === "spotify") &&
+      isShown(saved)
+    ) {
       setLastUsed(saved);
-      if (saved === "github" || saved === "spotify") setShowMoreMethods(true);
+      if (saved === "github") setShowMoreMethods(true);
     }
   }, []);
 
@@ -422,17 +430,19 @@ function AuthPage() {
                   {lastUsed === "google" && <LastUsed />}
                 </button>
 
-                <button
-                  onClick={() => oauth("facebook")}
-                  disabled={loading || !!oauthLoading}
-                  className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                    {oauthLoading === "facebook" ? <Spinner className="h-5 w-5 animate-spin text-[#1877F2]" /> : <FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
-                  </div>
-                  <span className="flex-1 text-left">{oauthLoading === "facebook" ? `${strings} Facebook…`: `${strg} Facebook`}</span>
-                  {lastUsed === "facebook" && <LastUsed />}
-                </button>
+                {isShown("facebook") && (
+                  <button
+                    onClick={() => oauth("facebook")}
+                    disabled={loading || !!oauthLoading}
+                    className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                      {oauthLoading === "facebook" ? <Spinner className="h-5 w-5 animate-spin text-[#1877F2]" /> : <FacebookIcon className="h-5 w-5 text-[#1877F2]" />}
+                    </div>
+                    <span className="flex-1 text-left">{oauthLoading === "facebook" ? `${strings} Facebook…`: `${strg} Facebook`}</span>
+                    {lastUsed === "facebook" && <LastUsed />}
+                  </button>
+                )}
               </div>
 
               {/* ─── More login options (collapsed by default) ─── */}
@@ -466,17 +476,19 @@ function AuthPage() {
                       {lastUsed === "github" && <LastUsed />}
                     </button>
 
-                    <button
-                      onClick={() => oauth("spotify")}
-                      disabled={loading || !!oauthLoading}
-                      className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
-                        {oauthLoading === "spotify" ? <Spinner className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
-                      </div>
-                      <span className="flex-1 text-left">{oauthLoading === "spotify" ? `${strings}  Spotify…` : `${strg} Spotify`} </span>
-                      {lastUsed === "spotify" && <LastUsed />}
-                    </button>
+                    {isShown("spotify") && (
+                      <button
+                        onClick={() => oauth("spotify")}
+                        disabled={loading || !!oauthLoading}
+                        className="group relative mt-2 flex w-full items-center gap-3 overflow-hidden rounded-xl border border-zinc-200/60 bg-white py-3.5 px-4 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-white dark:bg-zinc-800 dark:group-hover:bg-zinc-700">
+                          {oauthLoading === "spotify" ? <Spinner className="h-5 w-5 animate-spin text-[#1ED760]" /> : <SpotifyIcon className="h-5 w-5" />}
+                        </div>
+                        <span className="flex-1 text-left">{oauthLoading === "spotify" ? `${strings}  Spotify…` : `${strg} Spotify`} </span>
+                        {lastUsed === "spotify" && <LastUsed />}
+                      </button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
