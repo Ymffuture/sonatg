@@ -19,16 +19,6 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { EmojiReaction } from "@/components/ui/emoji-reaction";
 import type { EmojiData } from "react-apple-emojis";
 
-// Same six reactions as before (❤️😂😮😢👏🔥), now picked via the animated
-// EmojiReaction pill instead of a plain always-visible row of six buttons.
-// react-apple-emojis addresses each emoji by name rather than its raw
-// unicode character, so this maps the two directions: STATUS_REACTION_DATA
-// tells EmojiReaction which named emojis/images to show, and
-// REACTION_NAME_TO_EMOJI translates the name it reports back in onReact
-// into the same unicode character `react()` already stores in
-// status_reactions.emoji — so the database, and every other bit of this
-// file that reads that column expecting a raw emoji character (e.g. the
-// reactors summary in the views footer below), needs no changes at all.
 const STATUS_REACTION_DATA: EmojiData = {
   baseUrl: "https://em-content.zobj.net/source/apple/419/",
   emojis: {
@@ -50,7 +40,7 @@ const REACTION_NAME_TO_EMOJI: Record<string, string> = {
   fire: "🔥",
 };
 
-const TEXT_STATUS_MS = 5000;
+const TEXT_STATUS_MS = 500000;
 
 /* ─── Premium Theme Tokens ───────────────────────────────────── */
 const THEME = {
