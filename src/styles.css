@@ -649,9 +649,9 @@ body {
   
   /* Layout */
   display: flex;
-  align-items: center; /* Crucial: vertically centers icon and text */
+    
+  
   gap: 12px;
-  padding: 12px 16px;  /* Crucial: adds breathing room inside the toast */
   
   /* Shape & Effects */
   border-radius: 25px;
@@ -690,8 +690,8 @@ body {
   /* Dark mode */
   .dark .toast,
   [data-theme="dark"] .toast {
-    background-color: var(--color-card) !important;
-    color: var(--color-card-foreground) !important;
+    background-color: #202124 !important;
+    color: white !important;
     
   }
 
