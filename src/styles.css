@@ -11,6 +11,22 @@
   user-select: none;         /* Standard syntax */
 }
 
+/* Profiles remain visible in the app, but cannot be selected, dragged, or printed. */
+.sona-profile-view {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.sona-profile-view img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+@media print {
+  body:has(.sona-profile-view) {
+    visibility: hidden;
+  }
+}
+
 /* Disable selection across the entire website */
 /* Facebook's UI Font Stack */
 body {

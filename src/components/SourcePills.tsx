@@ -102,9 +102,9 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
 
       {/* Premium Drawer */}
       <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
-        <DrawerContent className="max-h-[85dvh] outline-none flex flex-col">
+        <DrawerContent className="h-[min(90dvh,760px)] max-h-[90dvh] min-h-0 outline-none flex flex-col">
           {/* Sticky Frosted Header */}
-          <DrawerHeader className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-xl pb-3 text-left">
+          <DrawerHeader className="shrink-0 border-b bg-background pb-3 text-left">
             <DrawerTitle className="text-base font-semibold">Sources</DrawerTitle>
             <DrawerDescription className="text-sm">
               {sources.length} {sources.length === 1 ? "link" : "links"} Sona AI used for this answer. Tap to verify.
@@ -112,11 +112,9 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
           </DrawerHeader>
 
           {/* Scrollable List Container */}
-          <div className="relative min-h-0 flex-1 overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [scrollbar-width:thin]" data-vaul-no-drag>
             <ul
-              className="h-full max-h-[70dvh] space-y-3 overflow-y-auto overscroll-contain scroll-smooth px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))]
-                         [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-              data-vaul-no-drag
+              className="space-y-3 px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))]"
             >
               {sources.map((s, i) => {
                 const date = formatDate(s.publishedAt);
@@ -153,6 +151,7 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
                       <p className="mt-2 text-[15px] font-semibold leading-snug text-foreground group-hover:text-[var(--sona-accent-dark,#C2634A)] transition-colors">
                         {s.title}
                       </p>
+                      <p className="mt-1 break-all text-xs text-muted-foreground">{s.url}</p>
                       
                       {s.snippet && (
                         <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
@@ -169,8 +168,6 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
               })}
             </ul>
 
-            {/* Subtle bottom fade gradient to indicate scrollability */}
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent" />
           </div>
         </DrawerContent>
       </Drawer>
