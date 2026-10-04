@@ -156,6 +156,7 @@ function SonaChatInner() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const askAI = useServerFn(askSonaAI);
+  const aiListRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const askSummary = useServerFn(summarizeChat);
   const [isSummarized, setIsSummarized] =useState(false) ;
   const [me, setMe] = useState<Profile | null>(null);
@@ -761,6 +762,8 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
         const m = p.new as MessageRow;
         const notYetDue = m.scheduled_at && new Date(m.scheduled_at).getTime() > Date.now();
+        // Sona's reply is streamed into this row: once its first words land, the typing dots are redundant.
+        if (m.sender_id === SONA_AI_ID && m.chat_id === activeId) setSonaTyping(false);
         if (m.chat_id === activeId && !notYetDue) {
           setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m]);
           if (m.sender_id !== me.id) playReceiveSound();
@@ -777,7 +780,14 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         if (m.chat_id === activeId) {
           setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, ...m } : x));
         }
-        loadChats();
+        // A streaming Sona reply updates its row every ~0.7s; refreshing the whole
+        // chat list on each one is wasteful, so those are coalesced into one trailing refresh.
+        if (m.sender_id === SONA_AI_ID) {
+          if (aiListRefreshTimer.current) clearTimeout(aiListRefreshTimer.current);
+          aiListRefreshTimer.current = setTimeout(() => { aiListRefreshTimer.current = null; loadChats(); }, 1200);
+        } else {
+          loadChats();
+        }
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (p) => {
         const m = p.old as MessageRow;
