@@ -3,11 +3,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { askGeminiWithAttachment, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
 import { buildLiveContext, buildLiveContextWithSources } from "@/lib/liveContext";
-import { stripSources, withSources, weatherMarker } from "@/lib/sources";
+import { stripSources, withSources } from "@/lib/sources";
 import { sanitizeCoords, type Coords } from "@/lib/liveIntents";
-
-// Never let the model inject its own markers.
-const stripMarkers = (t: string) => t.replace(/\[\[sona-(?:sources|weather):[^\]]*\]\]/g, "").trimEnd();
+import { consumeAiQuota, quotaExceededError } from "@/lib/aiLimits";
+import { actionInstructions, detectActionIntents, extractAction, streamPreview } from "@/lib/aiActions";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
@@ -95,6 +94,178 @@ export async function callGateway(messages: unknown[], key: string, preferredMod
   throw lastError ?? new Error("Sona AI is unavailable right now.");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Streaming
+//
+// Instead of waiting for the whole reply, we read OpenRouter's SSE stream and
+// write the growing text into ONE messages row (insert on the first token,
+// then throttled UPDATEs). Every client already listens to messages
+// INSERT/UPDATE over Supabase Realtime, so the reply "types itself" for every
+// chat member with no new transport and no change to the server-function call.
+// ─────────────────────────────────────────────────────────────────────────────
+const STREAM_FIRST_TOKEN_MS = 20_000; // nothing at all from the model by then -> try the next one
+const STREAM_IDLE_MS = 15_000; // a stalled stream is cut and the partial reply kept
+const STREAM_TOTAL_MS = 55_000; // hard cap per model attempt
+const STREAM_UPDATE_MS = 700; // min gap between DB writes (Realtime + loadChats cost)
+
+type StreamResult = { text: string; truncated: boolean };
+
+async function callModelStreamOnce(
+  messages: unknown[],
+  key: string,
+  model: string,
+  onDelta: (full: string) => void,
+): Promise<StreamResult> {
+  const controller = new AbortController();
+  let timer = setTimeout(() => controller.abort(), STREAM_FIRST_TOKEN_MS);
+  const hardStop = setTimeout(() => controller.abort(), STREAM_TOTAL_MS);
+  let full = "";
+  let midError: Error | null = null;
+  try {
+    const res = await fetch(GATEWAY, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+        "HTTP-Referer": process.env.APP_URL || "https://your-app.vercel.app",
+        "X-Title": "Sona AI",
+      },
+      body: JSON.stringify({ model, messages, stream: true }),
+    });
+    if (!res.ok) throw friendlyGatewayError(res.status, await res.text().catch(() => ""));
+    if (!res.body) throw new Error("Sona AI's provider didn't return a stream.");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        clearTimeout(timer);
+        timer = setTimeout(() => controller.abort(), STREAM_IDLE_MS);
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          // Lines starting with ":" are SSE keep-alives (": OPENROUTER PROCESSING") — ignored.
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
+          let json: { error?: { message?: string }; choices?: Array<{ delta?: { content?: string } }> };
+          try { json = JSON.parse(payload); } catch { continue; }
+          if (json.error) throw new Error(json.error.message || "The model reported an error mid-reply.");
+          const delta = json.choices?.[0]?.delta?.content;
+          if (typeof delta === "string" && delta) {
+            full += delta;
+            onDelta(full);
+          }
+        }
+      }
+    } catch (e) {
+      midError = e as Error; // keep whatever already streamed
+    }
+  } catch (e) {
+    if ((e as { name?: string })?.name === "AbortError") {
+      throw new Error("Sona AI took too long to respond. Try again, or switch models in Settings.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+    clearTimeout(hardStop);
+  }
+
+  const text = full.trim();
+  if (!text) {
+    if ((midError as { name?: string } | null)?.name === "AbortError") {
+      throw new Error("Sona AI took too long to respond. Try again, or switch models in Settings.");
+    }
+    throw midError ?? new Error("Sona AI's model returned an empty reply — try again.");
+  }
+  return { text, truncated: !!midError };
+}
+
+// Same fallback chain as callGateway(), but streaming. A model is only skipped
+// if it fails BEFORE producing any text; once tokens have flowed we keep them.
+export async function callGatewayStream(
+  messages: unknown[],
+  key: string,
+  preferredModel: string,
+  onDelta: (full: string) => void,
+): Promise<StreamResult> {
+  let lastError: Error | null = null;
+  for (const model of fallbackChain(preferredModel)) {
+    try {
+      return await callModelStreamOnce(messages, key, model, onDelta);
+    } catch (e) {
+      lastError = e as Error;
+      if (/busy right now|credits exhausted/i.test(lastError.message)) break;
+    }
+  }
+  throw lastError ?? new Error("Sona AI is unavailable right now.");
+}
+
+// Owns the single Sona AI message row for one reply: created on the first
+// visible token, throttled-updated while streaming, finalised by finish().
+function createReplyStreamer(chatId: string, toBody: (raw: string) => string) {
+  let messageId: string | null = null;
+  let latest = "";
+  let dirty = false;
+  let finished = false;
+  let running: Promise<void> | null = null;
+  let wake: (() => void) | null = null;
+
+  const write = async (body: string) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (!messageId) {
+      const { data: row, error } = await supabaseAdmin
+        .from("messages")
+        .insert({ chat_id: chatId, sender_id: SONA_AI_ID, kind: "text", body })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      messageId = row.id as string;
+    } else {
+      const { error } = await supabaseAdmin.from("messages").update({ body }).eq("id", messageId);
+      if (error) throw new Error(error.message);
+    }
+  };
+
+  const pump = () => {
+    if (running || finished) return;
+    running = (async () => {
+      while (dirty && !finished) {
+        dirty = false;
+        const body = toBody(latest);
+        if (body.trim()) {
+          try { await write(body); } catch (e) { console.warn("[askSonaAI] stream update failed:", (e as Error).message); }
+        }
+        // Coalesce deltas for STREAM_UPDATE_MS; finish() wakes this early.
+        await new Promise<void>((resolve) => { wake = resolve; setTimeout(resolve, STREAM_UPDATE_MS); });
+        wake = null;
+      }
+    })().finally(() => { running = null; });
+  };
+
+  return {
+    onDelta(full: string) { latest = full; dirty = true; pump(); },
+    get messageId() { return messageId; },
+    async finish(finalBody: string) {
+      finished = true;
+      dirty = false;
+      wake?.();
+      if (running) await running;
+      try {
+        await write(finalBody);
+      } catch (e) {
+        throw new Error(`Sona AI replied, but saving the message failed: ${(e as Error).message}`);
+      }
+    },
+  };
+}
+
 // Describes a message row for the AI's chat-history context. Every kind the (dots-studio/dots-3-note-preview:free) 
 // `messages` table actually supports gets a real label here — previously
 // anything that wasn't "text" or "image" (i.e. "voice", "file", and "call"
@@ -160,6 +331,9 @@ export const askSonaAI = createServerFn({ method: "POST" })
       buildLiveContextWithSources(data.prompt, data.timeZone, data.coords),
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
+    const isPro = !!myProfile?.is_pro;
+    const quota = await consumeAiQuota(context.userId as string, isPro);
+    if (!quota.allowed) throw quotaExceededError(quota, isPro);
     const liveContext = live.context;
 
     const userName = (myProfile?.display_name as string | undefined) || "friend";
@@ -196,13 +370,18 @@ export const askSonaAI = createServerFn({ method: "POST" })
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error: insErr } = await supabaseAdmin.from("messages").insert({
-        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(stripMarkers(reply) + weatherMarker(live.weatherQuery), live.sources),
+        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(reply, live.sources),
       });
       if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
       return { ok: true };
     }
 
     const userContent: unknown = data.prompt;
+
+    // Actions (polls, scheduled messages) are only offered to the model when the
+    // user's own words asked for one — see src/lib/aiActions.ts.
+    const timeZone = data.timeZone || "UTC";
+    const intents = detectActionIntents(data.prompt);
 
     const messages = [
       {
@@ -213,19 +392,54 @@ export const askSonaAI = createServerFn({ method: "POST" })
           `Keep replies short, friendly, and conversational — like a good friend texting back. ` +
           `You can look at images and read files (PDFs, documents) the user shares, and discuss them. Use emoji sparingly.
           About Sonatg Developed and maintained by SumStack formal named Swiftmeta, the founder of this app is Kgomotso Nkosi (known as Future Ymf) ` +
-          liveContext,
+          liveContext +
+          actionInstructions(intents, timeZone),
       },
       ...history,
       { role: "user", content: userContent },
     ];
 
-    const reply = await callGateway(messages, key, model);
+    const streamer = createReplyStreamer(data.chatId, streamPreview);
+    const result = await callGatewayStream(messages, key, model, streamer.onDelta);
 
+    // Pull out (and validate) any action the model proposed, then park it as
+    // 'pending' — the user must tap Confirm in the chat before anything runs.
+    const extracted = extractAction(result.text, { allow: intents, timeZone });
+    let replyText = extracted.text;
+    let actionId: string | null = null;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: insErr } = await supabaseAdmin.from("messages").insert({
-      chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(stripMarkers(reply) + weatherMarker(live.weatherQuery), live.sources),
-    });
-    if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
+
+    if (extracted.action) {
+      const id = crypto.randomUUID();
+      const { error: actErr } = await (supabaseAdmin as unknown as {
+        from: (t: string) => { insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }> };
+      }).from("ai_actions").insert({
+        id,
+        user_id: context.userId,
+        chat_id: data.chatId,
+        type: extracted.action.type,
+        payload: extracted.action.payload,
+      });
+      if (actErr) {
+        console.warn("[askSonaAI] couldn't store action:", actErr.message);
+        replyText += "\n\n(I couldn't set that up just now — please try again.)";
+      } else {
+        actionId = id;
+        if (!replyText.trim()) replyText = "Here's what I'd do — tap Confirm below to go ahead.";
+      }
+    } else if (extracted.rejected && intents.length) {
+      replyText += "\n\n(I couldn't set that up — try again with the exact options, date and time.)";
+    }
+    if (result.truncated) replyText += " …";
+
+    await streamer.finish(withSources(replyText, live.sources, actionId));
+
+    if (actionId && streamer.messageId) {
+      // Best effort: link the action to its message (used for tidy-up / debugging only).
+      void (supabaseAdmin as unknown as {
+        from: (t: string) => { update: (row: Record<string, unknown>) => { eq: (c: string, v: string) => PromiseLike<unknown> } };
+      }).from("ai_actions").update({ message_id: streamer.messageId }).eq("id", actionId);
+    }
     return { ok: true };
   });
 
@@ -253,6 +467,8 @@ export const summarizeChat = createServerFn({ method: "POST" })
         .limit(100),
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
+    const quota = await consumeAiQuota(context.userId as string, !!myProfile?.is_pro);
+    if (!quota.allowed) throw quotaExceededError(quota, !!myProfile?.is_pro);
     const model = resolveModel(!!myProfile?.is_pro, myProfile?.ai_model as string | null | undefined);
     // Empty prompt = date/time line only (no network), so "tomorrow"/"Friday"
     // in the transcript can be resolved against the real current date.

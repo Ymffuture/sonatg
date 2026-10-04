@@ -17,6 +17,8 @@ import { callGateway, describeForHistory } from "@/lib/ai.functions";
 import { resolveModel } from "@/lib/aiModels";
 import { buildLiveContext } from "@/lib/liveContext";
 import { SONA_AI_ID } from "@/lib/db";
+import { stripSources } from "@/lib/sources";
+import { consumeAiQuota, quotaExceededError } from "@/lib/aiLimits";
 
 export type MessageIntelAction =
   "explain" | "suggest_reply" | "rewrite" | "translate" | "summarize" | "extract" |
@@ -49,7 +51,7 @@ function contentOf(m: {
   transcript?: string | null;
   file_name?: string | null;
 }): string | null {
-  if (m.kind === "text" && m.body) return m.body;
+  if (m.kind === "text" && m.body) return stripSources(m.body) || null;
   if (m.kind === "voice" && m.transcript) return m.transcript;
   return null;
 }
@@ -143,6 +145,8 @@ export const askSonaAboutMessage = createServerFn({ method: "POST" })
 
     // Chat-membership boundary: never analyze a message from a chat the caller isn't in.
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
+    const quota = await consumeAiQuota(context.userId as string, !!myProfile?.is_pro);
+    if (!quota.allowed) throw quotaExceededError(quota, !!myProfile?.is_pro);
     if (!target || target.chat_id !== data.chatId)
       throw new Error("That message couldn't be found in this chat.");
     if (target.deleted_at) throw new Error("This message was deleted and can't be analyzed.");

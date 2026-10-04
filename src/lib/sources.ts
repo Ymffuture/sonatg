@@ -28,6 +28,8 @@ export type Source = {
 };
 
 const MARKER_RE = /\n*\[\[sona-sources:([^\]]+)\]\]\s*$/;
+// Optional confirm-card pointer: "[[sona-action:<uuid>]]" sits just before the sources marker.
+const ACTION_MARKER_RE = /\n*\[\[sona-action:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
 const MAX_SOURCES = 6;
 
 /** Only http(s) links are ever rendered/opened — blocks javascript: and data: URLs. */
@@ -79,37 +81,29 @@ function sanitize(input: unknown): Source[] {
   return out;
 }
 
-// Weather-card marker: [[sona-weather:<encoded {"city"} or {"lat","lon"}>]]
-const WEATHER_RE = /\n*\[\[sona-weather:([^\]]+)\]\]/;
-export type WeatherMarker = { city?: string; lat?: number; lon?: number };
-
-export function weatherMarker(q: WeatherMarker | null | undefined): string {
-  return q ? `\n\n[[sona-weather:${encodeURIComponent(JSON.stringify(q))}]]` : "";
-}
-
-export function parseWeatherMarker(body: string | null | undefined): WeatherMarker | null {
-  const m = (body ?? "").match(WEATHER_RE);
-  if (!m) return null;
-  try {
-    const o = JSON.parse(decodeURIComponent(m[1]));
-    if (typeof o?.city === "string") return { city: o.city.slice(0, 80) };
-    if (typeof o?.lat === "number" && typeof o?.lon === "number") return { lat: o.lat, lon: o.lon };
-  } catch { /* ignore */ }
-  return null;
-}
-
-/** Splits a stored message body into display text + structured sources. */
-export function splitSources(body: string | null | undefined): { text: string; sources: Source[] } {
-  const raw = (body ?? "").replace(WEATHER_RE, "");
-  const m = raw.match(MARKER_RE);
-  if (!m) return { text: raw, sources: [] };
+/** Splits a stored message body into display text, structured sources and an optional action id. */
+export function splitSources(
+  body: string | null | undefined,
+): { text: string; sources: Source[]; actionId: string | null } {
+  let text = body ?? "";
   let sources: Source[] = [];
-  try {
-    sources = sanitize(JSON.parse(decodeURIComponent(m[1])));
-  } catch {
-    /* malformed marker: just hide it */
+  let actionId: string | null = null;
+
+  const m = text.match(MARKER_RE);
+  if (m) {
+    try {
+      sources = sanitize(JSON.parse(decodeURIComponent(m[1])));
+    } catch {
+      /* malformed marker: just hide it */
+    }
+    text = text.slice(0, m.index).trimEnd();
   }
-  return { text: raw.slice(0, m.index).trimEnd(), sources };
+  const a = text.match(ACTION_MARKER_RE);
+  if (a) {
+    actionId = a[1].toLowerCase();
+    text = text.slice(0, a.index).trimEnd();
+  }
+  return { text, sources, actionId };
 }
 
 /** Display text only — use anywhere a raw `msg.body` is shown (previews, search, export). */
@@ -128,8 +122,9 @@ const MODEL_LIST_RE = /\n+(?:\*\*|#+\s*)?Sources?:?(?:\*\*)?[ \t]*\n[\s\S]*$/i;
  *   because the question asked for it; weaker free models often skip the list).
  * - Model wrote a list but cited none of ours -> attach nothing.
  */
-export function withSources(reply: string, fetched: Source[]): string {
-  if (!fetched.length) return reply;
+export function withSources(reply: string, fetched: Source[], actionId?: string | null): string {
+  const action = actionId ? `\n\n[[sona-action:${actionId}]]` : "";
+  if (!fetched.length) return `${reply.trimEnd()}${action}`;
   const listMatch = reply.match(MODEL_LIST_RE);
   const text = (listMatch ? reply.slice(0, listMatch.index) : reply).trimEnd();
   const tail = (listMatch?.[0] ?? "").toLowerCase();
@@ -146,6 +141,6 @@ export function withSources(reply: string, fetched: Source[]): string {
     chosen = fetched.slice(0, 4);
   }
   chosen = chosen.slice(0, MAX_SOURCES);
-  if (!chosen.length) return text;
-  return `${text}\n\n[[sona-sources:${encodeURIComponent(JSON.stringify(chosen))}]]`;
+  if (!chosen.length) return `${text}${action}`;
+  return `${text}${action}\n\n[[sona-sources:${encodeURIComponent(JSON.stringify(chosen))}]]`;
 }
