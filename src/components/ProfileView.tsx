@@ -13,7 +13,6 @@ import {
   FileTextOutlined,
   VideoCameraOutlined,
   StarOutlined,
-  ZoomInOutlined,
   ExclamationCircleOutlined,
   SafetyCertificateOutlined,
   ShareAltOutlined,
@@ -133,11 +132,15 @@ export function ProfileViewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-white dark:bg-zinc-950 overflow-y-auto scrollbar-thin">
+    <div
+      className="sona-profile-view fixed inset-0 z-50 bg-white dark:bg-zinc-950 overflow-y-auto scrollbar-thin"
+      onContextMenu={(event) => event.preventDefault()}
+      onDragStart={(event) => event.preventDefault()}
+    >
       <Watermark
-        content={profile.is_pro ? profile.display_name : ""}
-        font={{ color: "rgba(128,128,128,0.56)", fontSize: 10 }}
-        gap={[300, 240]}
+        content={`Sona · ${profile.display_name}`}
+        font={{ color: "rgba(128,128,128,0.4)", fontSize: 13 }}
+        gap={[160, 130]}
         rotate={-22}
       >
         {/* ─── Cover: blurred/zoomed avatar as backdrop, WhatsApp-business-style ─── */}
@@ -217,14 +220,7 @@ export function ProfileViewModal({
                       src={profile.is_ai ? sonaAi : avatarSrc}
                       className="object-cover !block rounded-full aspect-square"
                       style={{ width: "var(--avatar-size)", height: "var(--avatar-size)" }}
-                      preview={{
-                        mask: (
-                          <div className="flex items-center justify-center w-full h-full bg-black/40 backdrop-blur-sm rounded-full transition-all">
-                            <ZoomInOutlined className="text-white text-xl drop-shadow-md" />
-                          </div>
-                        ),
-                        maskClassName: "rounded-full",
-                      }}
+                       preview={false}
                     />
                   </Badge>
                 </div>
