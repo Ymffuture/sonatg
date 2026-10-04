@@ -2,7 +2,7 @@ import { stripSources } from "@/lib/sources";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "@heroui/react";
+import { toast, Label, ProgressCircle } from "@heroui/react";
 import {
   Sparkles,
   ArrowLeft,
@@ -34,7 +34,6 @@ import {
 } from "@/lib/messageIntelligence.functions";
 import type { MessageRow } from "@/lib/db";
 import { useBackToClose } from "@/hooks/useBackStack";
-import { Spinner } from "@heroui/react";
 
 type ActionDef = {
   id: MessageIntelAction;
@@ -235,6 +234,28 @@ export function AskSonaPanel({
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  
+  // Loading animation state
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const loadingSteps = [
+    { text: "viewing your text", value: 25 },
+    { text: "checking important context", value: 50 },
+    { text: "finishing up", value: 75 },
+    { text: "ready to Use", value: 100 },
+  ];
+
+  useEffect(() => {
+    if (loading) {
+      setLoadingStep(0);
+      const interval = setInterval(() => {
+        setLoadingStep((prev) => Math.min(prev + 1, 3));
+      }, 1200);
+      return () => clearInterval(interval);
+    } else {
+      setLoadingStep(0);
+    }
+  }, [loading]);
 
   const isEligible = message.kind === "text" || (message.kind === "voice" && !!message.transcript);
   const preview = useMemo(() => messagePreviewText(message), [message]);
@@ -526,8 +547,18 @@ export function AskSonaPanel({
 
               {/* Unique Loading Animation */}
               {loading && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-white/5 dark:bg-zinc-950/80 backdrop-blur-sm">
-                  <Spinner size="xl" />
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 dark:bg-zinc-950/70 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/60 dark:bg-zinc-900/60 px-6 py-4 shadow-xl">
+                    <ProgressCircle aria-label="Loading" value={loadingSteps[loadingStep].value}>
+                      <ProgressCircle.Track>
+                        <ProgressCircle.TrackCircle />
+                        <ProgressCircle.FillCircle />
+                      </ProgressCircle.Track>
+                    </ProgressCircle>
+                    <Label className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+                      {loadingSteps[loadingStep].text}
+                    </Label>
+                  </div>
                 </div>
               )}
 
