@@ -646,8 +646,9 @@ body {
   .toast {
     background-color: var(--color-card) !important;
     color: var(--color-card-foreground) !important;
-    
-    border-radius: 50px;
+    display:flex ;
+    gap:12px;
+    border-radius: 25px;
     
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
