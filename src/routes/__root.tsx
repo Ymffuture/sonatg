@@ -181,11 +181,11 @@ function RootComponent() {
 
   return (
   <QueryClientProvider client={queryClient}>
-    
+    <Toast.Provider placement="top" />
     <AntApp>
       <ConfirmProvider>
         <SoundsProvider>
-          <Toast.Provider placement="top" />
+          
           <Outlet />
         </SoundsProvider>
       </ConfirmProvider>
