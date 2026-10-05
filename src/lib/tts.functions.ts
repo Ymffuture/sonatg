@@ -1,17 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Sona Purple text-to-speech, via OpenRouter's dedicated speech endpoint
-// (NOT /chat/completions — /audio/speech is purpose-built for TTS, returns
-// raw audio bytes directly instead of a base64 blob wrapped in JSON).
-// https://openrouter.ai/docs/guides/overview/multimodal/tts
-const SPEECH_ENDPOINT = "https://openrouter.ai/api/v1/audio/speech";
-const MODEL = "fish-audio/s2.1-pro-free:free";
+// Sona Purple text-to-speech, direct via Fish Audio's TTS API (fish.audio).
+// POST https://api.fish.audio/v1/tts returns raw audio bytes.
+// Server-side env var: FISH_API_KEY (from fish.audio/app).
+const SPEECH_ENDPOINT = "https://api.fish.audio/v1/tts";
 
-// fish-audio requires an explicit voice id (no provider-side default) —
-// pick one from https://fish.audio/app/discovery, open it, and use
-// "Copy Model Id" in its "…" menu. Override via FISH_AUDIO_VOICE_ID so
-// this doesn't need a code change to swap voices.
+// fish-audio uses an explicit reference voice id — pick one from
+// https://fish.audio/app/discovery, open it, and use "Copy Model Id".
+// Override via FISH_AUDIO_VOICE_ID so this doesn't need a code change to
+// swap voices. Empty = Fish Audio's built-in default voice.
 const DEFAULT_VOICE_ID = process.env.FISH_AUDIO_VOICE_ID || "";
 
 // Only used if the provider ignores response_format:"mp3" and sends back
