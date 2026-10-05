@@ -2237,7 +2237,9 @@ export function VoicePlayer({
       setShowTranscript(true);
     } catch (err) {
       console.error(err);
-      setTranscribeError("Transcription failed");
+      // The server's message is already user-friendly ("busy right now…", "too large…"), so show it.
+      const reason = err instanceof Error ? err.message.trim() : "";
+      setTranscribeError(reason && reason.length <= 160 ? reason : "Transcription failed");
     } finally {
       setTranscribing(false);
     }
@@ -2304,7 +2306,7 @@ export function VoicePlayer({
             {transcribing ? "Transcribing…" : transcript ? (showTranscript ? "Hide transcript" : "Show transcript") : "Transcribe"}
           </button>
           {transcribeError && (
-            <Tooltip title="Transcription failed">
+            <Tooltip title={transcribeError}>
               <CircleAlert className={`h-3.5 w-3.5 shrink-0 ${mine ? "text-blue-400 " : "text-[#8C8C8C ]"}`} />
             </Tooltip>
           )}
