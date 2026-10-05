@@ -34,7 +34,6 @@ import {
   type RewriteTone,
 } from "@/lib/messageIntelligence.functions";
 import type { MessageRow } from "@/lib/db";
-import { synthesizeSpeech } from "@/lib/tts.functions";
 import { useBackToClose } from "@/hooks/useBackStack";
 
 type ActionDef = {
@@ -221,7 +220,6 @@ export function AskSonaPanel({
 }) {
   useBackToClose(onClose);
   const askSona = useServerFn(askSonaAboutMessage);
-  const speak = useServerFn(synthesizeSpeech);
 
   const [activeAction, setActiveAction] = useState<MessageIntelAction | null>(null);
   const [loading, setLoading] = useState(false);
