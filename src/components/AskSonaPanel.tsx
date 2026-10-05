@@ -402,8 +402,6 @@ export function AskSonaPanel({
     stopSpeaking();
   }
 
-  const canSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
-
   return (
     <motion.div
       initial={{ y: "100%", opacity: 0 }}
@@ -659,17 +657,22 @@ export function AskSonaPanel({
                         {copied ? "Copied" : "Copy"}
                       </motion.button>
 
-                      {canSpeak && (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={toggleSpeak}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                        >
-                          {speaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-                          {speaking ? "Stop" : "Read aloud"}
-                        </motion.button>
-                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={toggleSpeak}
+                        disabled={voiceLoading}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                      >
+                        {voiceLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : speaking ? (
+                          <VolumeX className="h-3.5 w-3.5" />
+                        ) : (
+                          <Volume2 className="h-3.5 w-3.5" />
+                        )}
+                        {voiceLoading ? "Loading voice…" : speaking ? "Stop" : "Read aloud"}
+                      </motion.button>
 
                       {(activeAction === "rewrite" || activeAction === "translate") && (
                         <motion.button
