@@ -1,5 +1,5 @@
 import { stripSources } from "@/lib/sources";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast, Label, ProgressCircle } from "@heroui/react";
@@ -21,7 +21,6 @@ import {
   RotateCcw,
   AlertCircle,
   History,
-  Loader2,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -228,9 +227,6 @@ export function AskSonaPanel({
   const [replyOptions, setReplyOptions] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const [voiceLoading, setVoiceLoading] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const spokenTextRef = useRef<string | null>(null);
 
   const [tone, setTone] = useState<RewriteTone>("clear");
   const [language, setLanguage] = useState("English");
@@ -264,11 +260,11 @@ export function AskSonaPanel({
   const isEligible = message.kind === "text" || (message.kind === "voice" && !!message.transcript);
   const preview = useMemo(() => messagePreviewText(message), [message]);
 
-  // Stop any in-flight speech the moment the panel unmounts, so
+  // Stop any in-flight speech synthesis the moment the panel unmounts, so
   // audio never keeps playing after the user has moved on.
   useEffect(() => {
     return () => {
-      window.speechSynthesis?.cancel();
+      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
     };
   }, []);
 
@@ -348,28 +344,21 @@ export function AskSonaPanel({
   }
 
   function stopSpeaking() {
-    window.speechSynthesis?.cancel();
+    if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
     setSpeaking(false);
   }
 
-  // Speaks the result with the browser's built-in voice — no Fish Audio
-  // credit spend; the FISH_API_KEY is reserved for transcription only.
   function toggleSpeak() {
-    if (!result) return;
+    if (!result || typeof window === "undefined" || !window.speechSynthesis) return;
     if (speaking) {
       stopSpeaking();
       return;
     }
-    const synth = window.speechSynthesis;
-    if (!synth) {
-      toast.danger("This browser doesn't support reading text aloud.");
-      return;
-    }
-    synth.cancel();
-    const utterance = new SpeechSynthesisUtterance(result);
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    synth.speak(utterance);
+    const utter = new SpeechSynthesisUtterance(result);
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
     setSpeaking(true);
   }
 
@@ -381,6 +370,8 @@ export function AskSonaPanel({
     setError(null);
     stopSpeaking();
   }
+
+  const canSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
 
   return (
     <motion.div
@@ -637,22 +628,17 @@ export function AskSonaPanel({
                         {copied ? "Copied" : "Copy"}
                       </motion.button>
 
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={toggleSpeak}
-                        disabled={voiceLoading}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                      >
-                        {voiceLoading ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : speaking ? (
-                          <VolumeX className="h-3.5 w-3.5" />
-                        ) : (
-                          <Volume2 className="h-3.5 w-3.5" />
-                        )}
-                        {voiceLoading ? "Loading voice…" : speaking ? "Stop" : "Read aloud"}
-                      </motion.button>
+                      {canSpeak && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={toggleSpeak}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                          {speaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                          {speaking ? "Stop" : "Read aloud"}
+                        </motion.button>
+                      )}
 
                       {(activeAction === "rewrite" || activeAction === "translate") && (
                         <motion.button
