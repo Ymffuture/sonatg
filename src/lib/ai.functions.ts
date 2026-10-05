@@ -3,10 +3,20 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { askGeminiWithAttachment, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
 import { buildLiveContext, buildLiveContextWithSources } from "@/lib/liveContext";
-import { stripSources, withSources } from "@/lib/sources";
+import { stripSources, withSources, type Source } from "@/lib/sources";
 import { sanitizeCoords, type Coords } from "@/lib/liveIntents";
 import { consumeAiQuota, quotaExceededError } from "@/lib/aiLimits";
 import { actionInstructions, detectActionIntents, extractAction, streamPreview } from "@/lib/aiActions";
+import {
+  STUDY_LIMITS,
+  defaultStudyText,
+  detectStudyIntents,
+  extractStudySet,
+  studyInstructions,
+  wantsStudySet,
+  type StudyIntents,
+  type StudyKind,
+} from "@/lib/studyTools";
 
 const SONA_AI_ID = "00000000-0000-0000-0000-00000000a1a1";
 const GATEWAY = "https://openrouter.ai/api/v1/chat/completions";
@@ -292,13 +302,63 @@ export function describeForHistory(m: { kind: string; body?: string | null; file
 // urlToGeminiAttachment in gemini.functions.ts. This gateway is only
 // used for plain-text turns.
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Study tools (quiz / flashcards): take the model's reply, pull out + validate
+// the study set it produced, and store it for the requester. Returns the reply
+// text to show and the id the chat message will point at.
+// ─────────────────────────────────────────────────────────────────────────────
+async function processStudyReply(
+  reply: string,
+  study: StudyIntents,
+  ctx: { userId: string; chatId: string },
+): Promise<{ text: string; studyId: string | null }> {
+  const allow: StudyKind[] = [...(study.quiz ? (["quiz"] as const) : []), ...(study.flashcards ? (["flashcards"] as const) : [])];
+  if (!allow.length) return { text: reply, studyId: null };
+
+  const ex = extractStudySet(reply, { allow, shuffleOptions: true });
+  let text = ex.text;
+  if (!ex.set) {
+    if (ex.rejected) {
+      text += `${text ? "\n\n" : ""}(I couldn't turn that into an interactive set — try pasting a bit more of your notes and ask again.)`;
+    }
+    return { text, studyId: null };
+  }
+
+  const id = crypto.randomUUID();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await (supabaseAdmin as unknown as {
+    from: (t: string) => { insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }> };
+  }).from("ai_study_sets").insert({
+    id,
+    user_id: ctx.userId,
+    chat_id: ctx.chatId,
+    kind: ex.set.kind,
+    title: ex.set.title,
+    payload: ex.set,
+  });
+  if (error) {
+    console.warn("[askSonaAI] couldn't store study set:", error.message);
+    return { text: `${text}${text ? "\n\n" : ""}(I couldn't save that study set just now — please try again.)`, studyId: null };
+  }
+  return { text: text.trim() ? text : defaultStudyText(ex.set), studyId: id };
+}
+
+async function linkStudySetToMessage(studyId: string, messageId: string) {
+  // Best effort — only used for tidy-up / debugging.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await (supabaseAdmin as unknown as {
+    from: (t: string) => { update: (row: Record<string, unknown>) => { eq: (c: string, v: string) => PromiseLike<unknown> } };
+  }).from("ai_study_sets").update({ message_id: messageId }).eq("id", studyId);
+}
+
 export const askSonaAI = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: AskInput) => {
     if (!data?.chatId || !data?.prompt) throw new Error("chatId and prompt required");
     return {
       chatId: String(data.chatId),
-      prompt: String(data.prompt).slice(0, 4000),
+      // Notes for a quiz / flashcards / simple explanation can be long; the handler trims everything else back to 4000.
+      prompt: String(data.prompt).slice(0, STUDY_LIMITS.maxPromptChars),
       imageUrl: data.imageUrl ? String(data.imageUrl).slice(0, 2000) : null,
       fileUrl: data.fileUrl ? String(data.fileUrl).slice(0, 2000) : null,
       fileName: data.fileName ? String(data.fileName).slice(0, 200) : null,
@@ -309,6 +369,14 @@ export const askSonaAI = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const key = process.env.OPENROUTER_API_KEY;
     if (!key) throw new Error("Missing OPENROUTER_API_KEY");
+
+    // Study tools: a quiz/flashcards/"explain like I'm 12" request may carry pasted notes.
+    const study = detectStudyIntents(data.prompt);
+    const isStudySet = wantsStudySet(study);
+    const promptText =
+      isStudySet || study.eli !== null ? data.prompt : data.prompt.slice(0, STUDY_LIMITS.plainPromptChars);
+    // Pasted notes must never trigger weather/web lookups (cost + noise).
+    const skipLive = isStudySet || (study.eli !== null && promptText.length > 1500);
 
     // These three reads don't depend on each other — running them in
     // parallel instead of one-after-another is the single biggest lever
@@ -328,7 +396,9 @@ export const askSonaAI = createServerFn({ method: "POST" })
         .eq("chat_id", data.chatId)
         .order("created_at", { ascending: false })
         .limit(12),
-      buildLiveContextWithSources(data.prompt, data.timeZone, data.coords),
+      skipLive
+        ? Promise.resolve({ context: "", sources: [] as Source[] })
+        : buildLiveContextWithSources(promptText, data.timeZone, data.coords),
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
     const isPro = !!myProfile?.is_pro;
@@ -355,33 +425,40 @@ export const askSonaAI = createServerFn({ method: "POST" })
       try {
         const attachment = await urlToGeminiAttachment(attachmentUrl, data.fileName);
         reply = await askGeminiWithAttachment({
-          prompt: data.prompt || "What's in this?",
+          prompt: promptText || "What's in this?",
           attachment,
           history: history.map((h) => ({ role: h.role === "assistant" ? "model" : "user", text: String(h.content) })),
           systemInstruction:
             `You are Sona AI, True mode, a warm, witty chat companion inside the Sona messaging app. ` +
             `The person you're chatting with is called ${userName} — greet them by name when it feels natural, but don't overdo it. ` +
             `Keep replies short, friendly, and conversational — like a good friend texting back. Use emoji sparingly.` +
-            liveContext,
+            liveContext +
+            studyInstructions(study),
         });
       } catch (e) {
         throw new Error(`Sona AI couldn't read that attachment: ${(e as Error).message || "unknown error"}`);
       }
 
+      // "Make flashcards from this PDF" works here too.
+      const studied = await processStudyReply(reply, study, { userId: context.userId as string, chatId: data.chatId });
+
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error: insErr } = await supabaseAdmin.from("messages").insert({
-        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text", body: withSources(reply, live.sources),
-      });
+      const { data: inserted, error: insErr } = await supabaseAdmin.from("messages").insert({
+        chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text",
+        body: withSources(studied.text, live.sources, null, studied.studyId),
+      }).select("id").single();
       if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
+      if (studied.studyId && inserted?.id) void linkStudySetToMessage(studied.studyId, inserted.id as string);
       return { ok: true };
     }
 
-    const userContent: unknown = data.prompt;
+    const userContent: unknown = promptText;
 
     // Actions (polls, scheduled messages) are only offered to the model when the
     // user's own words asked for one — see src/lib/aiActions.ts.
     const timeZone = data.timeZone || "UTC";
-    const intents = detectActionIntents(data.prompt);
+    // (Pasted notes for a quiz/flashcards are never an action request.)
+    const intents = isStudySet ? [] : detectActionIntents(promptText);
 
     const messages = [
       {
@@ -393,7 +470,8 @@ export const askSonaAI = createServerFn({ method: "POST" })
           `You can look at images and read files (PDFs, documents) the user shares, and discuss them. Use emoji sparingly.
           About Sonatg Developed and maintained by SumStack formal named Swiftmeta, the founder of this app is Kgomotso Nkosi (known as Future Ymf) ` +
           liveContext +
-          actionInstructions(intents, timeZone),
+          actionInstructions(intents, timeZone) +
+          studyInstructions(study),
       },
       ...history,
       { role: "user", content: userContent },
@@ -404,7 +482,8 @@ export const askSonaAI = createServerFn({ method: "POST" })
 
     // Pull out (and validate) any action the model proposed, then park it as
     // 'pending' — the user must tap Confirm in the chat before anything runs.
-    const extracted = extractAction(result.text, { allow: intents, timeZone });
+    const studied = await processStudyReply(result.text, study, { userId: context.userId as string, chatId: data.chatId });
+    const extracted = extractAction(studied.text, { allow: intents, timeZone });
     let replyText = extracted.text;
     let actionId: string | null = null;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -432,7 +511,9 @@ export const askSonaAI = createServerFn({ method: "POST" })
     }
     if (result.truncated) replyText += " …";
 
-    await streamer.finish(withSources(replyText, live.sources, actionId));
+    await streamer.finish(withSources(replyText, live.sources, actionId, studied.studyId));
+
+    if (studied.studyId && streamer.messageId) void linkStudySetToMessage(studied.studyId, streamer.messageId);
 
     if (actionId && streamer.messageId) {
       // Best effort: link the action to its message (used for tidy-up / debugging only).

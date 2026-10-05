@@ -107,12 +107,14 @@ const ACTION_SYNTAX_RE = /\[\[sona-action:(\{[\s\S]*?\})\]\]/;
  */
 export function streamPreview(text: string): string {
   let t = text;
-  const i = t.indexOf("[[sona-action");
-  if (i >= 0) t = t.slice(0, i);
+  // Hide a hidden-marker line (action OR study set) even while it's half-typed.
+  const openers = ["[[sona-action", "[[sona-study"];
+  const idx = openers.map((o) => t.indexOf(o)).filter((i) => i >= 0);
+  if (idx.length) t = t.slice(0, Math.min(...idx));
   else {
-    // a partial opener like "[[sona-ac" at the very end
+    // a partial opener like "[[sona-st" at the very end
     const m = t.match(/\[{1,2}[a-z-]{0,12}$/i);
-    if (m && "[[sona-action:".startsWith(m[0].toLowerCase())) t = t.slice(0, m.index);
+    if (m && openers.some((o) => o.startsWith(m[0].toLowerCase()))) t = t.slice(0, m.index);
   }
   t = t.replace(/\n+(?:\*\*|#+\s*)?Sources?:?(?:\*\*)?[ \t]*\n[\s\S]*$/i, "");
   return t.trimEnd();

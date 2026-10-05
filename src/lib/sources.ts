@@ -28,6 +28,8 @@ export type Source = {
 };
 
 const MARKER_RE = /\n*\[\[sona-sources:([^\]]+)\]\]\s*$/;
+// Optional study-set pointer: "[[sona-study:<uuid>]]" (a quiz / flashcards the user asked Sona to make).
+const STUDY_MARKER_RE = /\n*\[\[sona-study:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
 // Optional confirm-card pointer: "[[sona-action:<uuid>]]" sits just before the sources marker.
 const ACTION_MARKER_RE = /\n*\[\[sona-action:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
 const MAX_SOURCES = 6;
@@ -84,10 +86,11 @@ function sanitize(input: unknown): Source[] {
 /** Splits a stored message body into display text, structured sources and an optional action id. */
 export function splitSources(
   body: string | null | undefined,
-): { text: string; sources: Source[]; actionId: string | null } {
+): { text: string; sources: Source[]; actionId: string | null; studyId: string | null } {
   let text = body ?? "";
   let sources: Source[] = [];
   let actionId: string | null = null;
+  let studyId: string | null = null;
 
   const m = text.match(MARKER_RE);
   if (m) {
@@ -98,12 +101,18 @@ export function splitSources(
     }
     text = text.slice(0, m.index).trimEnd();
   }
+  // Peeled in the reverse of the order withSources() appends them: sources, study, action.
+  const st = text.match(STUDY_MARKER_RE);
+  if (st) {
+    studyId = st[1].toLowerCase();
+    text = text.slice(0, st.index).trimEnd();
+  }
   const a = text.match(ACTION_MARKER_RE);
   if (a) {
     actionId = a[1].toLowerCase();
     text = text.slice(0, a.index).trimEnd();
   }
-  return { text, sources, actionId };
+  return { text, sources, actionId, studyId };
 }
 
 /** Display text only — use anywhere a raw `msg.body` is shown (previews, search, export). */
@@ -122,8 +131,13 @@ const MODEL_LIST_RE = /\n+(?:\*\*|#+\s*)?Sources?:?(?:\*\*)?[ \t]*\n[\s\S]*$/i;
  *   because the question asked for it; weaker free models often skip the list).
  * - Model wrote a list but cited none of ours -> attach nothing.
  */
-export function withSources(reply: string, fetched: Source[], actionId?: string | null): string {
-  const action = actionId ? `\n\n[[sona-action:${actionId}]]` : "";
+export function withSources(
+  reply: string,
+  fetched: Source[],
+  actionId?: string | null,
+  studyId?: string | null,
+): string {
+  const action = (actionId ? `\n\n[[sona-action:${actionId}]]` : "") + (studyId ? `\n\n[[sona-study:${studyId}]]` : "");
   if (!fetched.length) return `${reply.trimEnd()}${action}`;
   const listMatch = reply.match(MODEL_LIST_RE);
   const text = (listMatch ? reply.slice(0, listMatch.index) : reply).trimEnd();
