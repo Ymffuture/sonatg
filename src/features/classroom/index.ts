@@ -5,3 +5,6 @@ export * from "./broadcast";
 export * from "./polls";
 export { PollCard } from "./PollCard";
 export { PollComposerModal } from "./PollComposerModal";
+export * from "./attendance";
+export { AttendanceModal } from "./AttendanceModal";
+export { AttendanceCodeForm } from "./AttendanceCodeForm";
