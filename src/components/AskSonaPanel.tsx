@@ -21,6 +21,7 @@ import {
   RotateCcw,
   AlertCircle,
   History,
+  Loader2,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import {
   type RewriteTone,
 } from "@/lib/messageIntelligence.functions";
 import type { MessageRow } from "@/lib/db";
+import { synthesizeSpeech } from "@/lib/tts.functions";
 import { useBackToClose } from "@/hooks/useBackStack";
 
 type ActionDef = {
