@@ -1,5 +1,5 @@
 import { stripSources } from "@/lib/sources";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast, Label, ProgressCircle } from "@heroui/react";
@@ -21,6 +21,7 @@ import {
   RotateCcw,
   AlertCircle,
   History,
+  Loader2,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import {
   type RewriteTone,
 } from "@/lib/messageIntelligence.functions";
 import type { MessageRow } from "@/lib/db";
+import { synthesizeSpeech } from "@/lib/tts.functions";
 import { useBackToClose } from "@/hooks/useBackStack";
 
 type ActionDef = {
@@ -219,6 +221,7 @@ export function AskSonaPanel({
 }) {
   useBackToClose(onClose);
   const askSona = useServerFn(askSonaAboutMessage);
+  const speak = useServerFn(synthesizeSpeech);
 
   const [activeAction, setActiveAction] = useState<MessageIntelAction | null>(null);
   const [loading, setLoading] = useState(false);
@@ -227,6 +230,9 @@ export function AskSonaPanel({
   const [replyOptions, setReplyOptions] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const spokenTextRef = useRef<string | null>(null);
 
   const [tone, setTone] = useState<RewriteTone>("clear");
   const [language, setLanguage] = useState("English");
@@ -260,11 +266,13 @@ export function AskSonaPanel({
   const isEligible = message.kind === "text" || (message.kind === "voice" && !!message.transcript);
   const preview = useMemo(() => messagePreviewText(message), [message]);
 
-  // Stop any in-flight speech synthesis the moment the panel unmounts, so
+  // Stop any in-flight Fish Audio playback the moment the panel unmounts, so
   // audio never keeps playing after the user has moved on.
   useEffect(() => {
     return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+      audioRef.current?.pause();
+      audioRef.current = null;
+      spokenTextRef.current = null;
     };
   }, []);
 
@@ -344,22 +352,45 @@ export function AskSonaPanel({
   }
 
   function stopSpeaking() {
-    if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+    audioRef.current?.pause();
     setSpeaking(false);
   }
 
-  function toggleSpeak() {
-    if (!result || typeof window === "undefined" || !window.speechSynthesis) return;
+  // Speaks the result with Sona's Fish Audio voice (FISH_AUDIO_VOICE_ID) via
+  // the same synthesizeSpeech server function message bubbles use.
+  async function toggleSpeak() {
+    if (!result || voiceLoading) return;
     if (speaking) {
       stopSpeaking();
       return;
     }
-    const utter = new SpeechSynthesisUtterance(result);
-    utter.onend = () => setSpeaking(false);
-    utter.onerror = () => setSpeaking(false);
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
-    setSpeaking(true);
+    // Replay the already-synthesized clip for the same result text.
+    if (audioRef.current && spokenTextRef.current === result) {
+      audioRef.current.play();
+      setSpeaking(true);
+      return;
+    }
+    setVoiceLoading(true);
+    try {
+      const { audioBase64, mimeType } = (await speak({
+        data: { chatId, text: result },
+      })) as { audioBase64: string; mimeType: string };
+      const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
+      audio.onended = () => setSpeaking(false);
+      audio.onerror = () => {
+        setSpeaking(false);
+        toast.danger("Couldn't play that audio.");
+      };
+      audioRef.current = audio;
+      spokenTextRef.current = result;
+      await audio.play();
+      setSpeaking(true);
+    } catch (e) {
+      setSpeaking(false);
+      toast.danger((e as Error).message || "Voice failed. Try again.");
+    } finally {
+      setVoiceLoading(false);
+    }
   }
 
   function reset() {
@@ -370,8 +401,6 @@ export function AskSonaPanel({
     setError(null);
     stopSpeaking();
   }
-
-  const canSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
 
   return (
     <motion.div
@@ -628,17 +657,22 @@ export function AskSonaPanel({
                         {copied ? "Copied" : "Copy"}
                       </motion.button>
 
-                      {canSpeak && (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={toggleSpeak}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                        >
-                          {speaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-                          {speaking ? "Stop" : "Read aloud"}
-                        </motion.button>
-                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={toggleSpeak}
+                        disabled={voiceLoading}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                      >
+                        {voiceLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : speaking ? (
+                          <VolumeX className="h-3.5 w-3.5" />
+                        ) : (
+                          <Volume2 className="h-3.5 w-3.5" />
+                        )}
+                        {voiceLoading ? "Loading voice…" : speaking ? "Stop" : "Read aloud"}
+                      </motion.button>
 
                       {(activeAction === "rewrite" || activeAction === "translate") && (
                         <motion.button
