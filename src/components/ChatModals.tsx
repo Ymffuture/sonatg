@@ -6,7 +6,7 @@ import {
   Lock, Unlock, LogOut, Bell, Shield, Pencil,
   Briefcase, Gamepad2, GraduationCap, Heart, Music, Plane, Newspaper, HelpCircle, Tag,
   Radio, Copy, KeyRound, Mail, Check, Bookmark, BookmarkX, Link2, Zap, Ticket, Megaphone,
-  Calendar, CreditCard,
+  Calendar, CreditCard, ClipboardCheck,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,7 @@ import { MessagePreview } from "./SonaChatParts";
 import { useSonaTheme } from "@/hooks/useSonaTheme";
 import { Avatar } from "./Avatar";
 import { Spin, Skeleton, Tooltip, notification, Empty } from "antd";
-import { setChatBroadcastMode, createClass, joinClassByCode } from "@/features/classroom";
+import { setChatBroadcastMode, createClass, joinClassByCode, AttendanceModal, AttendanceCodeForm, getOpenAttendanceSession } from "@/features/classroom";
 import { fetchMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/announcements";
 import type { ClassRow } from "@/features/classroom";
 import { createChatInvite, listChatInvites, revokeChatInvite, inviteUrl, parseAllowedEmails, type ChatInviteRow } from "@/features/invites";
@@ -114,6 +114,15 @@ export function MemberListModal({
   onRemoveMember?: (member: Profile) => void;
 }) {
   const confirm = useConfirm();
+  // Is the teacher taking attendance right now? (Members can read open sessions.)
+  const [openSession, setOpenSession] = useState<{ created_by: string; title: string | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getOpenAttendanceSession(chat.id)
+      .then((s) => { if (alive) setOpenSession(s ? { created_by: s.created_by, title: s.title } : null); })
+      .catch(() => { /* attendance not set up for this chat — show nothing */ });
+    return () => { alive = false; };
+  }, [chat.id]);
   return (
     <GlassSheet onClose={onClose}>
       <div className="px-5 pt-2 pb-4 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50">
@@ -124,6 +133,16 @@ export function MemberListModal({
           <X className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
         </button>
       </div>
+
+      {openSession && openSession.created_by !== meId && (
+        <div className="mx-5 mt-3 rounded-2xl border border-[var(--sona-accent,#E07A5F)]/30 bg-[var(--sona-accent,#E07A5F)]/5 p-3.5">
+          <p className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <ClipboardCheck className="h-4 w-4 text-[var(--sona-accent,#E07A5F)]" /> Attendance is open{openSession.title ? ` · ${openSession.title}` : ""}
+          </p>
+          <p className="mb-3 mt-1 text-[11px] text-zinc-500">Scan the QR on your teacher's screen with your camera, or type the 6-digit code here.</p>
+          <AttendanceCodeForm />
+        </div>
+      )}
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-2">
         <motion.div layout className="space-y-1 p-2">
@@ -228,6 +247,7 @@ export function GroupSettingsModal({
   const [isBroadcast, setIsBroadcast] = useState(false);
   const [classInfo, setClassInfo] = useState<ClassRow | null>(null);
   const [classroomBusy, setClassroomBusy] = useState(false);
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
 
   const [invites, setInvites] = useState<ChatInviteRow[]>([]);
   const [inviteEmails, setInviteEmails] = useState("");
@@ -562,7 +582,30 @@ export function GroupSettingsModal({
               Generate join code
             </motion.button>
           )}
+
+          {classInfo && (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setAttendanceOpen(true)}
+              className="w-full flex items-center gap-3 rounded-xl bg-white dark:bg-zinc-950 px-3 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100 border border-zinc-200/50 dark:border-zinc-800/50 transition-all"
+            >
+              <ClipboardCheck className="h-5 w-5 text-[var(--sona-accent,#E07A5F)]" />
+              <span className="flex-1 text-left">
+                Take attendance
+                <span className="block text-[11px] font-normal text-zinc-500">Rotating QR code — a screenshot can't be shared</span>
+              </span>
+            </motion.button>
+          )}
         </div>
+
+        {attendanceOpen && classInfo && (
+          <AttendanceModal
+            classRow={classInfo}
+            members={chat.members}
+            meId={meId}
+            onClose={() => setAttendanceOpen(false)}
+          />
+        )}
 
         {/* Invite link */}
         <div className="rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 bg-zinc-50/50 dark:bg-zinc-900/50 p-4 backdrop-blur-sm space-y-3">

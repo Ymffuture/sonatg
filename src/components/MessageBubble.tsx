@@ -31,6 +31,7 @@ import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, t
 import { VideoPlayer } from "./VideoPlayer";
 import { SourcePills } from "./SourcePills";
 import { SonaActionCard } from "./SonaActionCard";
+import { StudySetCard } from "./StudySetCard";
 import { splitSources } from "@/lib/sources";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
@@ -1647,7 +1648,7 @@ export function Bubble({
   // AI replies carry a trailing [[sona-sources:...]] marker; split it off so the
   // text, copy, read-more and link previews never see it.
   const rawBody = overrideBody ?? msg.body ?? "";
-  const { text: bodyText, sources: bodySources, actionId: bodyActionId } = useMemo(() => splitSources(rawBody), [rawBody]);
+  const { text: bodyText, sources: bodySources, actionId: bodyActionId, studyId: bodyStudyId } = useMemo(() => splitSources(rawBody), [rawBody]);
 
   
   const READ_MORE_CHAR_LIMIT = 620;
@@ -2040,6 +2041,7 @@ function getNameColor(identifier: string) {
   </div>
 )}
             {isAI && bodyActionId && <SonaActionCard actionId={bodyActionId} />}
+            {isAI && bodyStudyId && <StudySetCard studyId={bodyStudyId} />}
             {isAI && bodySources.length > 0 && <SourcePills sources={bodySources} mine={mine} />}
             {!msg.is_encrypted && bodyText && (
               <LinkPreviewCard text={bodyText} mine={mine} />
