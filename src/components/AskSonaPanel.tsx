@@ -264,13 +264,11 @@ export function AskSonaPanel({
   const isEligible = message.kind === "text" || (message.kind === "voice" && !!message.transcript);
   const preview = useMemo(() => messagePreviewText(message), [message]);
 
-  // Stop any in-flight Fish Audio playback the moment the panel unmounts, so
+  // Stop any in-flight speech the moment the panel unmounts, so
   // audio never keeps playing after the user has moved on.
   useEffect(() => {
     return () => {
-      audioRef.current?.pause();
-      audioRef.current = null;
-      spokenTextRef.current = null;
+      window.speechSynthesis?.cancel();
     };
   }, []);
 
@@ -350,45 +348,29 @@ export function AskSonaPanel({
   }
 
   function stopSpeaking() {
-    audioRef.current?.pause();
+    window.speechSynthesis?.cancel();
     setSpeaking(false);
   }
 
-  // Speaks the result with Sona's Fish Audio voice (FISH_AUDIO_VOICE_ID) via
-  // the same synthesizeSpeech server function message bubbles use.
-  async function toggleSpeak() {
-    if (!result || voiceLoading) return;
+  // Speaks the result with the browser's built-in voice — no Fish Audio
+  // credit spend; the FISH_API_KEY is reserved for transcription only.
+  function toggleSpeak() {
+    if (!result) return;
     if (speaking) {
       stopSpeaking();
       return;
     }
-    // Replay the already-synthesized clip for the same result text.
-    if (audioRef.current && spokenTextRef.current === result) {
-      audioRef.current.play();
-      setSpeaking(true);
+    const synth = window.speechSynthesis;
+    if (!synth) {
+      toast.danger("This browser doesn't support reading text aloud.");
       return;
     }
-    setVoiceLoading(true);
-    try {
-      const { audioBase64, mimeType } = (await speak({
-        data: { chatId, text: result },
-      })) as { audioBase64: string; mimeType: string };
-      const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
-      audio.onended = () => setSpeaking(false);
-      audio.onerror = () => {
-        setSpeaking(false);
-        toast.danger("Couldn't play that audio.");
-      };
-      audioRef.current = audio;
-      spokenTextRef.current = result;
-      await audio.play();
-      setSpeaking(true);
-    } catch (e) {
-      setSpeaking(false);
-      toast.danger((e as Error).message || "Voice failed. Try again.");
-    } finally {
-      setVoiceLoading(false);
-    }
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(result);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    synth.speak(utterance);
+    setSpeaking(true);
   }
 
   function reset() {
