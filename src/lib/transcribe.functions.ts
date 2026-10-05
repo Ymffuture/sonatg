@@ -1,11 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Speech-to-text via Fish Audio's dedicated ASR endpoint (fish.audio).
-// POST https://api.fish.audio/v1/asr with the audio as a multipart form
-// field named "audio"; returns JSON with a `text` field.
-// Server-side env var: FISH_API_KEY (from fish.audio/app).
-const ASR_ENDPOINT = "https://api.fish.audio/v1/asr";
+// Requires an env var (server-side only — no VITE_ prefix, set in Vercel ->
+// Project Settings -> Environment Variables):
+//   OPENROUTER_API_KEY — same key already used by ai.functions.ts for Sona AI.
+//
+// Uses OpenRouter's dedicated /api/v1/audio/transcriptions endpoint (not
+// the /chat/completions input_audio hack this used to route through) —
+// purpose-built for STT, returns structured JSON with a real `usage`
+// object, and lets OpenRouter pick from actual transcription-capable
+// models instead of overloading a general chat model to do it.
+// https://openrouter.ai/docs/guides/overview/multimodal/stt
+//
+// NOTE: fish-audio/s2.1-pro-free:free is a *text-to-speech* model (see
+// tts.functions.ts) — it has no transcription capability and doesn't
+// appear under OpenRouter's `output_modalities=transcription` filter, so
+// it can't be used here. Whisper Large V3 Turbo is the closest free-tier
+// equivalent: cheap, fast, and accurate. Override via STT_MODEL if you'd
+// rather use a different transcription model.
+
+const TRANSCRIBE_ENDPOINT = "https://openrouter.ai/api/v1/audio/transcriptions";
+const MODEL = process.env.STT_MODEL || "openai/whisper-large-v3-turbo";
 const TRANSCRIBE_TIMEOUT_MS = 30_000;
 
 type TranscribeInput = { messageId: string };
@@ -37,10 +52,10 @@ export const transcribeVoiceMessage = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!memberRow) throw new Error("Forbidden: not a member of this chat");
 
-    const apiKey = process.env.FISH_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       throw new Error(
-        "Transcription isn't configured on the server. Missing FISH_API_KEY — add it in the server environment, then redeploy."
+        "Transcription isn't configured on the server. Missing OPENROUTER_API_KEY — add it in Vercel's Environment Variables, then redeploy."
       );
     }
 
@@ -55,7 +70,8 @@ export const transcribeVoiceMessage = createServerFn({ method: "POST" })
       throw new Error(`Couldn't download the voice note to transcribe it: ${(e as Error).message}`);
     }
 
-    const ext = contentType.includes("mp3")
+    const base64Audio = audioBuffer.toString("base64");
+    const format = contentType.includes("mp3")
       ? "mp3"
       : contentType.includes("wav")
       ? "wav"
@@ -63,25 +79,29 @@ export const transcribeVoiceMessage = createServerFn({ method: "POST" })
       ? "ogg"
       : "webm";
 
-    const form = new FormData();
-    form.append("audio", new Blob([new Uint8Array(audioBuffer)], { type: contentType }), `voice.${ext}`);
-
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TRANSCRIBE_TIMEOUT_MS);
     let transcript: string;
     try {
-      const res = await fetch(ASR_ENDPOINT, {
+      const res = await fetch(TRANSCRIBE_ENDPOINT, {
         method: "POST",
         signal: controller.signal,
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: form,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "HTTP-Referer": process.env.APP_URL || "https://your-app.vercel.app",
+          "X-Title": "Sona AI",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          input_audio: { data: base64Audio, format },
+        }),
       });
 
       if (!res.ok) {
         const body = await res.text().catch(() => "");
         if (res.status === 429) throw new Error("Transcription is busy right now, try again in a moment.");
-        if (res.status === 402 || res.status === 401 || res.status === 403)
-          throw new Error("Fish Audio rejected the request — check the FISH_API_KEY and account balance.");
+        if (res.status === 402) throw new Error("OpenRouter credits exhausted. Please check your account balance.");
         throw new Error(`Transcription failed [${res.status}]: ${body.slice(0, 300)}`);
       }
 
