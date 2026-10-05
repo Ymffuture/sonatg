@@ -69,13 +69,8 @@ export const synthesizeSpeech = createServerFn({ method: "POST" })
       .eq("chat_id", data.chatId).eq("user_id", context.userId).maybeSingle();
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
 
-    const key = process.env.OPENROUTER_API_KEY;
-    if (!key) throw new Error("Missing OPENROUTER_API_KEY");
-    if (!DEFAULT_VOICE_ID) {
-      throw new Error(
-        "Text-to-speech isn't configured on the server. Missing FISH_AUDIO_VOICE_ID — pick a voice at fish.audio/app/discovery, add its id in Vercel's Environment Variables, then redeploy."
-      );
-    }
+    const key = process.env.FISH_API_KEY;
+    if (!key) throw new Error("Text-to-speech isn't configured on the server. Missing FISH_API_KEY.");
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
@@ -86,25 +81,23 @@ export const synthesizeSpeech = createServerFn({ method: "POST" })
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${key}`,
-          "HTTP-Referer": process.env.APP_URL || "https://your-app.vercel.app",
-          "X-Title": "Sona AI",
         },
         body: JSON.stringify({
-          model: MODEL,
-          input: data.text,
-          voice: DEFAULT_VOICE_ID,
-          response_format: "mp3",
+          text: data.text,
+          ...(DEFAULT_VOICE_ID ? { reference_id: DEFAULT_VOICE_ID } : {}),
+          format: "mp3",
         }),
       });
 
       const contentType = (res.headers.get("content-type") || "").toLowerCase();
 
       if (!res.ok) {
-        // Non-200 responses on /audio/speech are JSON, not audio.
+        // Non-200 responses are JSON, not audio.
         const body = await res.text().catch(() => "");
         if (res.status === 429) throw new Error("Sona voice is busy right now, try again in a moment.");
-        if (res.status === 402) throw new Error("OpenRouter credits exhausted. Please check your account balance.");
-        if (res.status === 400 && /voice/i.test(body)) {
+        if (res.status === 402 || res.status === 401 || res.status === 403)
+          throw new Error("Fish Audio rejected the request — check the FISH_API_KEY and account balance.");
+        if (res.status === 400 && /voice|reference/i.test(body)) {
           throw new Error(`Text-to-speech rejected the configured voice id — pick a valid one from fish.audio/app/discovery. Provider said: ${body.slice(0, 200)}`);
         }
         throw new Error(`Text-to-speech failed [${res.status}]: ${body.slice(0, 300)}`);
