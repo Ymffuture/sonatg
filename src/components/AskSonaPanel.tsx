@@ -1,5 +1,5 @@
 import { stripSources } from "@/lib/sources";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast, Label, ProgressCircle } from "@heroui/react";
@@ -221,6 +221,7 @@ export function AskSonaPanel({
 }) {
   useBackToClose(onClose);
   const askSona = useServerFn(askSonaAboutMessage);
+  const speak = useServerFn(synthesizeSpeech);
 
   const [activeAction, setActiveAction] = useState<MessageIntelAction | null>(null);
   const [loading, setLoading] = useState(false);
@@ -229,6 +230,9 @@ export function AskSonaPanel({
   const [replyOptions, setReplyOptions] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const spokenTextRef = useRef<string | null>(null);
 
   const [tone, setTone] = useState<RewriteTone>("clear");
   const [language, setLanguage] = useState("English");
