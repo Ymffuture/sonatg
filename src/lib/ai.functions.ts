@@ -514,7 +514,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: inserted, error: insErr } = await supabaseAdmin.from("messages").insert({
         chat_id: data.chatId, sender_id: SONA_AI_ID, kind: "text",
-        body: withSources(studied.text, live.sources, null, studied.studyId),
+        body: withSources(studied.text, liveSources, null, studied.studyId),
       }).select("id").single();
       if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
       if (studied.studyId && inserted?.id) void linkStudySetToMessage(studied.studyId, inserted.id as string);
@@ -577,7 +577,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
     }
     if (result.truncated) replyText += " …";
 
-    await streamer.finish(withSources(replyText, live.sources, actionId, studied.studyId));
+    await streamer.finish(withSources(replyText, liveSources, actionId, studied.studyId));
 
     if (studied.studyId && streamer.messageId) void linkStudySetToMessage(studied.studyId, streamer.messageId);
 
