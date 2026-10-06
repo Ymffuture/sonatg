@@ -149,6 +149,27 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  // Update the browser/PWA title when another participant is typing.
+  useEffect(() => {
+    const baseTitle = "Sona — Talk Gold";
+    const onTypingTitle = (event: Event) => {
+      const names = (event as CustomEvent<{ names?: string[] }>).detail?.names ?? [];
+      const uniqueNames = [...new Set(names.filter(Boolean))];
+      if (uniqueNames.length === 0) {
+        document.title = baseTitle;
+      } else if (uniqueNames.length === 1) {
+        document.title = \`${uniqueNames[0]} is typing… · Sona\`;
+      } else if (uniqueNames.length === 2) {
+        document.title = \`${uniqueNames[0]} and ${uniqueNames[1]} are typing… · Sona\`;
+      } else {
+        document.title = \`${uniqueNames[0]}, ${uniqueNames[1]} and ${uniqueNames.length - 2} others are typing… · Sona\`;
+      }
+    };
+
+    window.addEventListener("sona:typing-title", onTypingTitle);
+    return () => window.removeEventListener("sona:typing-title", onTypingTitle);
+  }, []);
+
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.register("/sw.js").catch(() => {});
