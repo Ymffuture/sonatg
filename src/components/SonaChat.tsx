@@ -380,6 +380,16 @@ const handleMenuOpenChange = (open: boolean) => {
   const signCloudinaryUpload = useServerFn(getCloudinaryUploadSignature);
   const [reactingOn, setReactingOn] = useState<string | null>(null);
   const [typingOthers, setTypingOthers] = useState<string[]>([]);
+  // Keep the browser tab title in sync with who is currently typing.
+  useEffect(() => {
+    const names = typingOthers
+      .map((id) => profiles[id]?.display_name?.trim())
+      .filter((name): name is string => Boolean(name));
+    window.dispatchEvent(new CustomEvent("sona:typing-title", { detail: { names } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("sona:typing-title", { detail: { names: [] } }));
+    };
+  }, [typingOthers, profiles]);
   const [recordingOthers, setRecordingOthers] = useState<string[]>([]);
   const [listActivity, setListActivity] = useState<Record<string, { typing: string[]; recording: string[] }>>({});
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
