@@ -32,7 +32,7 @@ type SpeakInput = { chatId: string; text: string };
 // labeled the response audio/mpeg even on the occasions the provider
 // ignored response_format:"mp3" and returned PCM instead. Wrapping it in
 // a minimal 44-byte WAV header makes it self-describing and playable.
-function wrapPcmAsWav(pcm: Buffer, sampleRate: number, channels = 1, bitDepth = 16): Buffer {
+function wrapPcmAsWav(pcm: Buffer<ArrayBuffer>, sampleRate: number, channels = 1, bitDepth = 16): Buffer<ArrayBuffer> {
   const blockAlign = channels * (bitDepth / 8);
   const byteRate = sampleRate * blockAlign;
   const header = Buffer.alloc(44);

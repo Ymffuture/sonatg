@@ -158,11 +158,11 @@ function RootComponent() {
       if (uniqueNames.length === 0) {
         document.title = baseTitle;
       } else if (uniqueNames.length === 1) {
-        document.title = \`${uniqueNames[0]} is typing… · Sona\`;
+        document.title = `${uniqueNames[0]} is typing… · Sona`;
       } else if (uniqueNames.length === 2) {
-        document.title = \`${uniqueNames[0]} and ${uniqueNames[1]} are typing… · Sona\`;
+        document.title = `${uniqueNames[0]} and ${uniqueNames[1]} are typing… · Sona`;
       } else {
-        document.title = \`${uniqueNames[0]}, ${uniqueNames[1]} and ${uniqueNames.length - 2} others are typing… · Sona\`;
+        document.title = `${uniqueNames[0]}, ${uniqueNames[1]} and ${uniqueNames.length - 2} others are typing… · Sona`;
       }
     };
 

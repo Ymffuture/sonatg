@@ -1,5 +1,12 @@
+// StatusPageLoader.tsx — app loading state.
+//
+// SonaLoadingSplash plays first for at least 5 seconds (the uploaded
+// hexagon/radiating-lines animation), then the skeleton loader takes over
+// while data is still loading.
+
 import * as React from "react";
 import { motion } from "framer-motion";
+import { SonaLoadingSplash } from "./SonaLoadingSplash";
 
 /* ─── Premium Shimmer Skeleton ──────────────────────────────── */
 function Skeleton({ className = "", delay = 0, style }: { className?: string; delay?: number; style?: React.CSSProperties }) {
@@ -20,7 +27,22 @@ function Skeleton({ className = "", delay = 0, style }: { className?: string; de
   );
 }
 
+/* ─── Splash (min 5s) → skeleton loader sequence ────────────── */
+const SPLASH_MIN_MS = 5000;
+
 export function StatusPageLoader() {
+  const [showSplash, setShowSplash] = React.useState(true);
+
+  React.useEffect(() => {
+    const t = window.setTimeout(() => setShowSplash(false), SPLASH_MIN_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  if (showSplash) return <SonaLoadingSplash />;
+  return <StatusSkeletonLoader />;
+}
+
+export function StatusSkeletonLoader() {
   return (
     <div className="h-dvh w-full bg-[#F0EBE3] text-[#2D3436] dark:bg-[#121212] dark:text-[#E8E8E8]">
       <div className="mx-auto flex h-full max-w-[1400px] overflow-hidden md:p-4">
