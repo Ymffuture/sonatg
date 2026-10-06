@@ -155,7 +155,7 @@ export async function researchWithGoogleSearch(params: {
       for (const annotation of block.annotations ?? []) {
         if (annotation.type !== "url_citation") continue;
         const url = annotation.url?.trim();
-        if (!url || !/^https?:\\/\\//i.test(url) || seen.has(url)) continue;
+        if (!url || (!url.startsWith("https://") && !url.startsWith("http://")) || seen.has(url)) continue;
         seen.add(url);
 
         const startIndex = annotation.startIndex ?? annotation.start_index;
@@ -170,7 +170,7 @@ export async function researchWithGoogleSearch(params: {
 
         let site: string | undefined;
         try {
-          site = new URL(url).hostname.replace(/^www\\./, "");
+          site = new URL(url).hostname.replace(/^www\./, "");
         } catch {
           site = undefined;
         }
