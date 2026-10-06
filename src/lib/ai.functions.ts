@@ -424,7 +424,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
         .limit(12),
       skipLive
         ? Promise.resolve({ context: "", sources: [] as Source[] })
-        : buildLiveContextWithSources(promptText, data.timeZone, data.coords),
+        : buildLiveContextWithSources(promptText, data.timeZone, data.coords , undefined, { includeWeb: false }),
     ]);
     if (!memberRow) throw new Error("Forbidden: not a member of chat");
     const isPro = !!myProfile?.is_pro;
