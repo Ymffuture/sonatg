@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { askGeminiWithAttachment, researchLiveContext, urlToGeminiAttachment } from "@/lib/gemini.functions";
+import { askGeminiWithAttachment, researchWithGoogleSearch, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
 import { buildLiveContext, buildLiveContextWithSources } from "@/lib/liveContext";
 import { stripSources, withSources, type Source } from "@/lib/sources";
-import { sanitizeCoords, type Coords } from "@/lib/liveIntents";
+import { detectIntents, sanitizeCoords, type Coords } from "@/lib/liveIntents";
 import { consumeAiQuota, quotaExceededError } from "@/lib/aiLimits";
 import { actionInstructions, detectActionIntents, extractAction, streamPreview } from "@/lib/aiActions";
 import {
