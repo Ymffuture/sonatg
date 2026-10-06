@@ -1,10 +1,12 @@
 // src/components/SourcePills.tsx
 //
-// Pills under an AI reply showing where the live info came from. Tapping a pill
-// opens a bottom sheet (vaul drawer) with the full details of every source.
+// One compact pill under an AI reply showing where the live info came from: a
+// HeroUI AvatarGroup of the sources' site icons + "3 sources". Tapping it opens
+// a bottom sheet (vaul drawer) with the full details of every source.
 
 import { useState } from "react";
-import { ExternalLink, Globe, CloudSun, Newspaper } from "lucide-react";
+import { Avatar, AvatarGroup } from "@heroui/react";
+import { ChevronRight, CloudSun, ExternalLink } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -14,24 +16,39 @@ import {
 } from "@/components/ui/drawer";
 import { hostOf, type Source } from "@/lib/sources";
 
-const MAX_VISIBLE_PILLS = 3;
+const MAX_STACKED = 3;
 
-function Favicon({ source, size = 16 }: { source: Source; size?: number }) {
-  const [failed, setFailed] = useState(false);
-  const Fallback = source.kind === "weather" ? CloudSun : source.kind === "news" ? Newspaper : Globe;
-  
-  if (failed) return <Fallback style={{ width: size, height: size }} className="shrink-0 opacity-60" aria-hidden />;
+// Google News links are redirects, so their favicon would just be Google's logo;
+// the publisher's initials say far more.
+const isRedirectHost = (url: string) => hostOf(url) === "news.google.com";
+
+function initials(text: string): string {
+  const words = text.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  const letters = words.length === 1 ? words[0].slice(0, 2) : words[0][0] + words[1][0];
+  return letters.toUpperCase();
+}
+
+/**
+ * A source's icon as a HeroUI Avatar. If the favicon is missing or fails to load,
+ * Avatar.Fallback takes over automatically (initials, or a sun for weather).
+ * `className` sets the size, e.g. "size-6 [--avatar-size:1.5rem]" (the group's
+ * overlap mask reads --avatar-size, so both must be set together).
+ */
+function SourceAvatar({ source, className = "" }: { source: Source; className?: string }) {
   return (
-    <img
-      src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostOf(source.url))}&sz=64`}
-      alt=""
-      width={size}
-      height={size}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-      className="shrink-0 rounded-md"
-    />
+    <Avatar size="sm" className={`bg-white ${className}`}>
+      {!isRedirectHost(source.url) && (
+        <Avatar.Image
+          alt=""
+          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostOf(source.url))}&sz=64`}
+          referrerPolicy="no-referrer"
+        />
+      )}
+      <Avatar.Fallback className="text-[10px] font-semibold">
+        {source.kind === "weather" ? <CloudSun className="size-3.5" aria-hidden /> : initials(label(source))}
+      </Avatar.Fallback>
+    </Avatar>
   );
 }
 
@@ -49,26 +66,22 @@ function formatDate(iso?: string): string | null {
 
 export function SourcePills({ sources, mine = false }: { sources: Source[]; mine?: boolean }) {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<number | null>(null);
   if (!sources.length) return null;
 
-  const visible = sources.slice(0, MAX_VISIBLE_PILLS);
-  const extra = sources.length - visible.length;
-
-  const openAt = (i: number | null) => {
-    setActive(i);
-    setOpen(true);
-  };
+  const stacked = sources.slice(0, MAX_STACKED);
+  const extra = sources.length - stacked.length;
+  const text = sources.length === 1 ? label(sources[0]) : `${sources.length} sources`;
 
   // Prevent drawer events from bubbling into the message bubble
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   const pill =
-    "inline-flex max-w-[11rem] items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium " +
-    "transition-all duration-200 active:scale-95 hover:shadow-sm " +
+    "group inline-flex max-w-full cursor-pointer select-none items-center gap-2.5 rounded-full border py-1 pr-3 pl-1 " +
+    "shadow-sm ring-1 transition-all duration-200 hover:shadow-md active:scale-[0.97] " +
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sona-accent,#E07A5F)] " +
     (mine
-      ? "border-black/10 bg-black/5 text-gray-700 hover:bg-black/10 hover:border-black/20 dark:border-white/15 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15"
-      : "border-[var(--sona-accent,#E07A5F)]/30 bg-[var(--sona-accent,#E07A5F)]/10 text-[var(--sona-accent-dark,#C2634A)] hover:bg-[var(--sona-accent,#E07A5F)]/15 hover:border-[var(--sona-accent,#E07A5F)]/50");
+      ? "border-black/10 bg-surface/90 ring-black/[0.04] dark:border-white/15 dark:ring-white/10"
+      : "border-[var(--sona-accent,#E07A5F)]/25 bg-surface/95 ring-black/[0.04] hover:border-[var(--sona-accent,#E07A5F)]/50 dark:ring-white/10");
 
   return (
     <div
@@ -78,26 +91,39 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
       onContextMenu={stop}
       className="pr-12 pb-2"
     >
-      {/* Pill Container */}
-      <div className="flex flex-wrap items-center gap-2" role="list" aria-label="Sources">
-        {visible.map((s, i) => (
-          <button
-            key={s.url}
-            type="button"
-            role="listitem"
-            onClick={() => openAt(i)}
-            className={pill}
-            title={s.title}
-          >
-            <Favicon source={s} />
-            <span className="truncate">{label(s)}</span>
-          </button>
-        ))}
-        {extra > 0 && (
-          <button type="button" role="listitem" onClick={() => openAt(null)} className={pill}>
-            +{extra} more
-          </button>
-        )}
+      {/* A div (not a <button>) because the avatar group renders divs inside it */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-label={`${sources.length} ${sources.length === 1 ? "source" : "sources"} used for this answer. Tap to view.`}
+        onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+        className={pill}
+      >
+        <AvatarGroup
+          aria-hidden
+          overlap="clip"
+          size="sm"
+          className="[--avatar-group-overlap:0.5rem] [--avatar-group-seam:2px]"
+        >
+          {stacked.map((s) => (
+            <SourceAvatar key={s.url} source={s} className="size-6 [--avatar-size:1.5rem]" />
+          ))}
+          {extra > 0 && (
+            <AvatarGroup.Count className="size-6 [--avatar-size:1.5rem] text-[10px]">+{extra}</AvatarGroup.Count>
+          )}
+        </AvatarGroup>
+        <span className="truncate text-[13px] font-medium text-foreground">{text}</span>
+        <ChevronRight
+          className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+          aria-hidden
+        />
       </div>
 
       {/* Premium Drawer */}
@@ -116,27 +142,20 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
             <ul
               className="space-y-3 px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))]"
             >
-              {sources.map((s, i) => {
+              {sources.map((s) => {
                 const date = formatDate(s.publishedAt);
-                const isActive = active === i;
-                
+
                 return (
                   <li key={s.url}>
                     <a
                       href={s.url}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
-                      className={`
-                        group block rounded-2xl border p-4 transition-all duration-200 
-                        hover:-translate-y-0.5 hover:shadow-md
-                        ${isActive 
-                          ? "border-[var(--sona-accent,#E07A5F)] bg-[var(--sona-accent,#E07A5F)]/5 shadow-sm" 
-                          : "border-border bg-card hover:border-[var(--sona-accent,#E07A5F)]/30 hover:bg-muted/40"
-                        }
-                      `}
+                      className="group flex items-start gap-3 rounded-2xl border border-border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--sona-accent,#E07A5F)]/30 hover:bg-muted/40 hover:shadow-md"
                     >
+                      <SourceAvatar source={s} className="mt-0.5 shrink-0 ring-1 ring-black/5 dark:ring-white/10" />
+                      <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Favicon source={s} size={16} />
                         <span className="truncate font-semibold text-foreground/80">{label(s)}</span>
                         <span aria-hidden className="opacity-50">·</span>
                         <span className="truncate">{hostOf(s.url)}</span>
@@ -162,6 +181,7 @@ export function SourcePills({ sources, mine = false }: { sources: Source[]; mine
                       <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[var(--sona-accent-dark,#C2634A)] opacity-80 group-hover:opacity-100 transition-opacity">
                         Open source <ExternalLink className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
                       </span>
+                      </div>
                     </a>
                   </li>
                 );
