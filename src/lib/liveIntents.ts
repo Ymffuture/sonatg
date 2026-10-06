@@ -9,9 +9,9 @@ const WEATHER_RE =
 const CALENDAR_RE =
   /\b(calendar|what day|which day|day of the week|this month|next month|schedule|how many days)\b/i;
 const WEB_RE =
-  /\b(latest|news|headlines?|current(ly)?|right now|recent(ly)?|breaking|who won|score|price of|update on|what is|who is|define|search|look up|google|find out|tell me about|today'?s|tonight|this week|stock|exchange rate)\b/i;
+  /\b(latest|latest version|news|headlines?|current(ly)?|right now|recent(ly)?|breaking|who won|who is winning|score|scores|standings?|fixture|match|game|price of|prices?|how much|costs?|under\s+r?\d|update on|what is|what's|who is|where is|when is|define|search|look up|google|find out|tell me about|today'?s|tonight|this week|this month|this year|release|released|version|launch|launched|market|markets|stock|stocks|share price|exchange rate|currency|bitcoin|crypto|restaurant|hotel|flight|traffic|near me)\b/i;
 const CITY_RE =
-  /\b(?:weather|forecast|temperature|rain(?:ing)?)\b[^.?!]*?\b(?:in|for|at|of)\s+([A-Za-z][A-Za-z .'-]{1,40}?)(?=\s+(?:today|tomorrow|tonight|now|right|this|please)\b|[?.!,]|$)/i;
+  /\b(?:weather|forecast|temperature|rain(?:ing)?)\b[^.?!]*?\b(?:in|for|at|of)\s+([A-Za-z][A-Za-z .'-]{1,60}?)(?=\s+(?:today|tomorrow|tonight|now|right|this|please)\b|[?.!,]|$)/i;
 
 export function detectIntents(prompt: string) {
   return {
