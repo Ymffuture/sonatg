@@ -50,19 +50,19 @@ const REACTION_NAME_TO_EMOJI: Record<string, string> = {
   fire: "🔥",
 };
 
-const TEXT_STATUS_MS = 5000;
+const TEXT_STATUS_MS = 180000;
 
 /* ─── Premium Theme Tokens ───────────────────────────────────── */
 const THEME = {
-  accent: "#E07A5F",
-  accentHover: "#d4694f",
-  bg: "#09090b", // zinc-950
-  surface: "rgba(24, 24, 27, 0.7)", // zinc-900/70
-  elevated: "rgba(39, 39, 42, 0.8)", // zinc-800/80
-  text: "#fafafa", // zinc-50
-  textMuted: "#a1a1aa", // zinc-400
-  ringSeen: "#52525b", // zinc-600
-  ringUnseen: "linear-gradient(135deg, #34d399, #f43f5e, #8b5cf6)", // emerald -> rose -> violet
+  accent: "#0ea5e9",        // sky-500
+  accentHover: "#0284c7",   // sky-600
+  bg: "#040608",            // ultra-dark blue-black
+  surface: "rgba(12, 18, 26, 0.7)",   // deep navy tint
+  elevated: "rgba(22, 30, 42, 0.85)", // slightly lighter ocean layer
+  text: "#f1f5f9",          // slate-100
+  textMuted: "#94a3b8",     // slate-400
+  ringSeen: "#475569",      // slate-600
+  ringUnseen: "linear-gradient(135deg, #38bdf8, #60a5fa, #a78bfa)", // sky -> blue -> violet
 };
 
 /* ─── Relative time ──────────────────────────────────────────── */
