@@ -581,6 +581,7 @@ export async function buildLiveContextWithSources(
   timeZoneInput?: string | null,
   coords?: Coords | null,
   now = new Date(),
+  options: { includeWeb?: boolean } = {},
 ): Promise<{ context: string; sources: Source[] }> {
   // Separate collectors so concurrent fetches never interleave; merged in a fixed order below.
   const weatherSrc: Source[] = [];
@@ -590,6 +591,7 @@ export async function buildLiveContextWithSources(
   const timeZone = safeTimeZone(timeZoneInput);
   const dt = getDateTime(timeZone, now);
   const intents = detectIntents(prompt);
+  const includeWeb = options.includeWeb !== false;
   const owKey = getEnvVar("OPENWEATHER_API_KEY");
 
   const shortQuery = prompt
@@ -613,12 +615,12 @@ export async function buildLiveContextWithSources(
   // DuckDuckGo only if SerpApi is missing/failed. News headlines run alongside.
   const [weather, headlines, serpResult] = await Promise.all([
     weatherTask,
-    intents.web ? getWebHeadlinesText(shortQuery, 5, newsSrc) : Promise.resolve(null),
-    intents.web ? getSerpApiText(shortQuery, serpSrc) : Promise.resolve(null),
+    includeWeb && intents.web ? getWebHeadlinesText(shortQuery, 5, newsSrc) : Promise.resolve(null),
+    includeWeb && intents.web ? getSerpApiText(shortQuery, serpSrc) : Promise.resolve(null),
   ]);
   // SerpApi missing/failed -> DuckDuckGo instant answer, then DuckDuckGo result links.
   const ddg =
-    intents.web && !serpResult
+    includeWeb && intents.web && !serpResult
       ? ((await getDuckDuckGoInstantText(shortQuery, ddgSrc)) ?? (await getDuckDuckGoResultsText(shortQuery, ddgSrc)))
       : null;
 
