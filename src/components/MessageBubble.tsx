@@ -32,6 +32,7 @@ import { VideoPlayer } from "./VideoPlayer";
 import { SourcePills } from "./SourcePills";
 import { SonaActionCard } from "./SonaActionCard";
 import { StudySetCard } from "./StudySetCard";
+import { AdCard } from "./AdCard";
 import { splitSources } from "@/lib/sources";
 import {
   type ChatWithMeta, type ReadStatus, readStatusFor, waveformBars, formatBytes, downloadFile,
@@ -1342,49 +1343,6 @@ export function MediaViewer({
 // Or inline the class if you prefer:
 const toolBtnClass = "grid h-8 w-8 place-items-center rounded-lg text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none";
 
-
-function AdCard({ msg, mine, sender }: { msg: MessageRow; mine: boolean; sender?: Profile }) {
-  const hasCta = !!msg.ad_cta_url && !!msg.ad_cta_label;
-  return (
-    <div
-      className={`w-full max-w-[320px] overflow-hidden rounded-2xl border shadow-sm ${
-        mine ? "border-white/[0.08] bg-[#18181B]" : "border-black/[0.04] bg-white dark:bg-[#242424]"
-      }`}
-    >
-      {msg.media_url && (
-        <div className="relative w-full aspect-[16/9] overflow-hidden bg-black/5 dark:bg-white/5">
-          <img src={msg.media_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-          <span className="absolute top-2 left-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
-            Ad
-          </span>
-        </div>
-      )}
-      <div className="p-4">
-        {sender?.is_business && (
-          <div className="mb-1.5 flex items-center gap-1 text-[11px] font-semibold text-amber-500">
-            <VscVerifiedFilled className="h-3.5 w-3.5" />
-            <span>{sender.display_name}</span>
-          </div>
-        )}
-        {msg.ad_title && (
-          <p className={`text-sm font-bold leading-snug ${mine ? "text-white" : "text-[#151c1c] dark:text-white"}`}>
-            {msg.ad_title}
-          </p>
-        )}
-        {hasCta && (
-          <a
-            href={msg.ad_cta_url!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 block w-full rounded-xl bg-amber-500 px-4 py-2.5 text-center text-sm font-bold text-white transition hover:bg-amber-600"
-          >
-            {msg.ad_cta_label}
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function LinkPreviewCard({ text, mine }: { text: string; mine: boolean }) {
   const url = useMemo(() => {
