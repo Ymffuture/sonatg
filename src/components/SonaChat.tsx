@@ -68,7 +68,7 @@ import {
 } from "@/lib/db";
 import { encryptBody, decryptBody, unlockChat, isUnlocked, lockChat } from "@/lib/crypto";
 import { playSendSound, playReceiveSound } from "@/lib/sounds";
-import sonaLogo from "@/assets/sona-logo.png";
+import { SonaLogo } from "./SonaLogo";
 import sonaAi from "@/assets/sona01.jpg";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { MdInsertPhoto } from "react-icons/md";
@@ -3628,7 +3628,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
             ) : (
               <div className="grid flex-1 place-items-center p-6 text-center text-[#8C8C8C] chat-pattern">
                 <div>
-                  <img src={sonaLogo} alt="" className="mx-auto h-24 w-24 opacity-60 invert-1" />
+                  <SonaLogo alt="" className="mx-auto h-24 w-24" />
                   <p className="mt-5 text-[#8C8C8C] flex gap-2 ">Pick a chat or tap <BiSolidMessageSquareAdd className ="text-white" /> to start a new one.</p>
                 </div>
               </div>

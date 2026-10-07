@@ -1,2 +1,3 @@
 - [x] Make the chat sources drawer fully scrollable and expose each URL with new-tab navigation.
 - [x] Add best-effort screenshot deterrents to the profile viewer without blocking normal actions.
+- [x] Replace Sona branding and installation icons and update manifest and browser theme colors.

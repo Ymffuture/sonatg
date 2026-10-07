@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { isReservedSonaName, fallbackNameFromEmail } from "@/utils/utils";
 import { Spinner } from '@heroui/react';
+import { SonaLogo } from "@/components/SonaLogo";
 
 type AuthMethod = "email" | "google" | "facebook" | "github" | "spotify";
 
@@ -79,26 +80,7 @@ function SpotifyIcon({ className = "h-5 w-5" }: { className?: string }) {
 
 /* ─── Logo Component with PNG fallback ─── */
 function BrandLogo({ className = "" }: { className?: string }) {
-  const [imgError, setImgError] = useState(false);
-
-  if (!imgError) {
-    return (
-      <img
-        src="/s-logo.png"
-        alt="Sona"
-        className={`object-contain ${className}`}
-        onError={() => setImgError(true)}
-      />
-    );
-  }
-
-  return (
-    <div className={`leading-none min-w-0 rounded-xl bg-zinc-100 dark:bg-zinc-800 px-3.5 py-2 border border-zinc-200/60 dark:border-zinc-700/60 ${className}`}>
-      <span className="text-[20px] font-bold tracking-tight text-zinc-900 dark:text-white">
-        Sona<span className="font-black text-[#E07A5F]">TG</span>
-      </span>
-    </div>
-  );
+  return <SonaLogo wordmark className={className} />;
 }
 
 function AuthPage() {
