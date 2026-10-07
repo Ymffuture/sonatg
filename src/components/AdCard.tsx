@@ -64,51 +64,54 @@ export function AdCard({ msg, mine, sender }: { msg: MessageRow; mine: boolean; 
   }
 
   return (
-    <aside aria-label="Advertisement" className="@container w-full max-w-[400px]">
-      <Card className="w-full items-stretch @[340px]:flex-row">
+    <aside aria-label="Advertisement" className="@container w-full max-w-[430px]">
+      <Card className="group relative w-full overflow-hidden border border-foreground/10 bg-background/95 shadow-[0_12px_40px_-20px_hsl(var(--foreground)/0.35)] ring-1 ring-black/5 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_-22px_hsl(var(--foreground)/0.45)] dark:ring-white/5 @[340px]:flex-row">
         {msg.media_url && (
-          <div className="relative h-[140px] w-full shrink-0 overflow-hidden rounded-2xl @[340px]:h-[120px] @[340px]:w-[120px]">
+          <div className="relative h-[155px] w-full shrink-0 overflow-hidden @[340px]:h-[132px] @[340px]:w-[132px] @[340px]:self-stretch">
             <img
               alt=""
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none transition-transform duration-500 group-hover:scale-[1.04]"
               loading="lazy"
               src={msg.media_url}
             />
-            <span className="absolute top-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
-              Ad
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/0 to-black/10" />
+            <span className="absolute start-3 top-3 rounded-full border border-white/20 bg-black/55 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-sm backdrop-blur-md">
+              Sponsored
             </span>
           </div>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <Card.Header className="gap-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-0 @[340px]:min-h-[132px]">
+          <Card.Header className="relative gap-1.5 px-4 pb-2 pt-4 @[340px]:px-4 @[340px]:pt-4">
             {!msg.media_url && (
-              <span className="mb-0.5 w-fit rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
-                Ad
+              <span className="mb-0.5 w-fit rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+                Sponsored
               </span>
             )}
-            <Card.Title className={mine ? "" : "pe-8"}>{msg.ad_title || "Sponsored message"}</Card.Title>
-            <Card.Description className="flex items-center gap-1">
+            <Card.Title className={mine ? "text-[15px] leading-5 tracking-[-0.01em]" : "pe-8 text-[15px] leading-5 tracking-[-0.01em]"}>{msg.ad_title || "Sponsored message"}</Card.Title>
+            <Card.Description className="flex min-w-0 items-center gap-1.5 text-[11px]">
               {sender?.is_business && <VscVerifiedFilled className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Verified business" />}
-              <span className="truncate">{sponsor ? `Sponsored by ${sponsor}` : "Sponsored"}</span>
+              <span className="truncate">{sponsor ? sponsor : "Sponsored"}</span>
             </Card.Description>
             {!mine && (
-              <CloseButton aria-label="Hide this ad" className="absolute end-3 top-3" onPress={hide} />
+              <CloseButton aria-label="Hide this ad" className="absolute end-2 top-2 opacity-60 transition-opacity hover:opacity-100" onPress={hide} />
             )}
           </Card.Header>
 
           {hasCta && (
-            <Card.Footer className="mt-auto flex w-full flex-col items-start gap-3">
+            <Card.Footer className="mt-auto flex w-full flex-col items-stretch gap-2.5 px-4 pb-4 pt-2">
               <span className="flex max-w-full items-center gap-1 text-xs text-muted">
-                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
-                <span className="truncate">{hostOf(ctaUrl!)}</span>
+                <span className="flex min-w-0 items-center gap-1.5 rounded-md bg-foreground/5 px-2 py-1">
+                  <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                  <span className="truncate">{hostOf(ctaUrl!)}</span>
+                </span>
               </span>
               {/* An <a> carrying HeroUI's button classes: same look as <Button>, but a real link. */}
               <a
                 href={ctaUrl!}
                 target="_blank"
                 rel="noopener noreferrer nofollow sponsored"
-                className={buttonVariants({ fullWidth: true })}
+                className={`${buttonVariants({ fullWidth: true })} h-9 rounded-xl text-[12px] font-semibold shadow-sm transition-transform active:scale-[0.98]`}
               >
                 {msg.ad_cta_label}
               </a>
