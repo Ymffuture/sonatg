@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { Sparkles, PenTool, Lightbulb, Moon, ArrowUpRight } from "lucide-react";
-import sonaLogo from "@/assets/sona-logo.png";
+import { SonaLogo } from "./SonaLogo";
 
 const SUGGESTIONS = [
   {
@@ -233,8 +233,7 @@ function PremiumOrb() {
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#E07A5F]/40 to-[#F4A261]/40 blur-2xl" />
           <div className="absolute inset-0 rounded-3xl bg-white/10 backdrop-blur-sm" />
 
-          <img
-            src={sonaLogo}
+          <SonaLogo
             alt="Sona AI"
             className="relative h-16 w-16 object-contain drop-shadow-[0_8px_24px_rgba(224,122,95,0.5)]"
           />

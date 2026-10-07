@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { SonaLogo } from "@/components/SonaLogo";
 import {
   ArrowLeft, MessageCircle, Sparkles, Lock, Mic, Image as ImageIcon, Users, Bell, Shield,
   Crown, Phone, Download, Forward, UserCircle2, FolderOpen, Video, FileText,
@@ -384,7 +385,7 @@ function LearnPage() {
             <ArrowLeft className="h-4.5 w-4.5 text-zinc-600 transition-transform group-hover:-translate-x-0.5 dark:text-zinc-400" />
           </Link>
           <div className="flex items-center gap-2">
-            <img src="/s-logo.png" alt="Sona" className="h-8 w-auto" />
+            <SonaLogo wordmark className="h-8 w-24" />
             <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">Learn</span>
           </div>
         </div>
