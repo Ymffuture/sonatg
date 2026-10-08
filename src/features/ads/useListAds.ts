@@ -13,7 +13,7 @@ export type ListAd = {
   title: string;
   cta_label: string;
   cta_url: string;
-  sponsor?: Pick<Profile, "id" | "display_name" | "is_business">;
+  sponsor?: Pick<Profile, "id" | "display_name" | "avatar_url" | "is_business">;
 };
 
 // The generated Supabase types don't know the new `ads` table until you
@@ -56,7 +56,7 @@ export function useListAds(enabled: boolean): ListAd[] {
       const ownerIds = [...new Set(rows.map((r) => r.owner_id))];
       const { data: owners } = await supabase
         .from("profiles")
-        .select("id, display_name, is_business")
+        .select("id, display_name, avatar_url, is_business")
         .in("id", ownerIds);
       const byId = new Map((owners ?? []).map((o) => [o.id, o]));
       if (cancelled) return;
