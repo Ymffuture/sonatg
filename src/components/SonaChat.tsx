@@ -318,12 +318,13 @@ const handleMenuOpenChange = (open: boolean) => {
         title: ad.title,
         cta_label: ad.ctaLabel,
         cta_url: ad.ctaUrl,
+        ends_at: new Date(Date.now() + ad.durationDays * 24 * 60 * 60 * 1000).toISOString(),
       });
       if (error) {
         const explained = explainSupabaseError(error);
         throw new Error(`${explained.title}: ${explained.raw}`);
       }
-      toast.success("Your ad is live in the chat list.");
+      toast.success(`Your ad is live for ${ad.durationDays} days.`);
       setShowAdComposer(false);
       return;
     }
