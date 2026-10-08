@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { Sparkles, PenTool, Lightbulb, Moon, ArrowUpRight } from "lucide-react";
-import { SonaLogo } from "@assets/icon-512.png";
+import SonaLogo from "@assets/icon-512.png";
 
 const SUGGESTIONS = [
   {
@@ -97,7 +97,7 @@ function NeuralBackground() {
       <div
         className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='100' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
       />
     </div>
@@ -233,7 +233,8 @@ function PremiumOrb() {
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#E07A5F]/40 to-[#F4A261]/40 blur-2xl" />
           <div className="absolute inset-0 rounded-3xl bg-white/10 backdrop-blur-sm" />
 
-          <SonaLogo
+          <img
+            src={SonaLogo}
             alt="Sona AI"
             className="relative h-16 w-16 object-contain drop-shadow-[0_8px_24px_rgba(224,122,95,0.5)]"
           />
@@ -308,7 +309,7 @@ function SuggestionCard({
         rotateY: isHovered ? rotateY : 0,
         transformPerspective: 1000,
       }}
-      className="group relative flex items-center gap-3.5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 bg-white/60 dark:bg-white/[0.03] px-4 py-4 text-left backdrop-blur-xl transition-colors duration-300 hover:border-[#E07A5F]/30 dark:hover:border-[#E07A5F]/25 hover:bg-white/90 dark:hover:bg-white/[0.06] sm:flex-1 sm:min-w-[170px] sm:flex-col sm:items-start sm:gap-3 sm:py-5"
+      className="group relative flex items-center gap-3.5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 bg-white/60 dark:bg-white/[0.03] px-4 py-4 text-left backdrop-blur-xl transition-all duration-300 hover:border-zinc-200 dark:hover:border-zinc-700 w-full sm:max-w-sm cursor-pointer"
     >
       {/* Gradient border on hover */}
       <motion.div
@@ -323,7 +324,7 @@ function SuggestionCard({
       />
 
       {/* Tag */}
-      <span className="absolute right-3 top-3 text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 sm:right-4 sm:top-4">
+      <span className="absolute right-3 top-3 text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 sm:text-[10px]">
         {suggestion.tag}
       </span>
 
@@ -444,7 +445,7 @@ function SonaAIGreeting({
         transition={{ delay: 0.9, duration: 0.5 }}
         className="relative z-10 mt-10 flex items-center gap-2 text-[11px] font-medium text-zinc-400 dark:text-zinc-600"
       >
-        <kbd className="flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 px-2 py-1 font-sans text-[10px] font-semibold text-zinc-600 dark:text-zinc-400 shadow-sm backdrop-blur-sm">
+        <kbd className="flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 px-2 py-1 font-sans text-[10px] font-semibold text-zinc-600 dark:text-zinc-400">
           <span className="h-1.5 w-1.5 rounded-full bg-[#E07A5F] animate-pulse" />
           /
         </kbd>
