@@ -40,3 +40,35 @@ export async function adminSetBusiness(targetUserId: string, value: boolean): Pr
   const { error } = await supabase.rpc("admin_set_business", { _target: targetUserId, _value: value });
   if (error) throw error;
 }
+
+// --- Chat-list ads (the `ads` table; see 20261008090000_chat_list_ads.sql) ---
+
+export type ListAdRow = {
+  id: string;
+  owner_id: string;
+  media_url: string;
+  title: string;
+  cta_label: string;
+  cta_url: string;
+  status: "active" | "paused" | "removed";
+  impressions: number;
+  clicks: number;
+  created_at: string;
+};
+
+// The generated types don't include `ads` until you regenerate them.
+const adsTable = () => (supabase as unknown as { from: (t: string) => any }).from("ads");
+
+export async function fetchListAds(): Promise<ListAdRow[]> {
+  const { data, error } = await adsTable()
+    .select("id, owner_id, media_url, title, cta_label, cta_url, status, impressions, clicks, created_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return (data ?? []) as ListAdRow[];
+}
+
+export async function adminSetListAdStatus(id: string, status: ListAdRow["status"]): Promise<void> {
+  const { error } = await adsTable().update({ status }).eq("id", id);
+  if (error) throw error;
+}
