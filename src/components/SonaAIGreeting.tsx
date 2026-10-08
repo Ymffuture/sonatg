@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { Sparkles, PenTool, Lightbulb, Moon, ArrowUpRight } from "lucide-react";
-import { SonaLogo } from "@/components/SonaLogo";
+import { SonaLogo } from "@assets/icon-512.png";
 
 const SUGGESTIONS = [
   {
