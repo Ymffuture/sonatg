@@ -104,7 +104,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "en_US" },
       { property: "og:url", content: "https://sonatg.vercel.app" },
-      { name: "twitter:card", content: "summary_large_image" },
+      // Social link previews use the app icon. Crawlers need an absolute URL.
+      { property: "og:image", content: "https://sonatg.vercel.app/favicon.png" },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:width", content: "64" },
+      { property: "og:image:height", content: "64" },
+      { property: "og:image:alt", content: "Sona logo" },
+      // favicon.png is square, so use the small-image card (large cards would crop/skip it).
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:image", content: "https://sonatg.vercel.app/favicon.png" },
+      { name: "twitter:image:alt", content: "Sona logo" },
       { name: "twitter:site", content: "@sona_app" },
       { name: "twitter:title", content: "Sona — Talk Gold" },
       { name: "twitter:description", content: "Private messaging, voice & video calls, and AI-powered conversations." },
