@@ -1,9 +1,11 @@
 // src/features/ads/AdComposerModal.tsx
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Megaphone, ImagePlus, Loader2 } from "lucide-react";
+import { X, Megaphone, ImagePlus, Loader2, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImageForUpload } from "@/utils/utils";
+import { DURATION_OPTIONS, type AdDurationDays } from "./myAds";
+import { MyAdsModal } from "./MyAdsModal";
 
 export type CreatedAd = {
   mediaUrl: string;
@@ -12,6 +14,8 @@ export type CreatedAd = {
   ctaUrl: string;
   /** "list" = between chats for everyone; "chat" = only inside the open chat. */
   placement: "list" | "chat";
+  /** How long a chat-list ad runs before it expires (ignored for "chat" ads). */
+  durationDays: AdDurationDays;
 };
 
 interface AdComposerModalProps {
@@ -30,6 +34,8 @@ function normalizeUrl(raw: string): string {
 
 export function AdComposerModal({ meId, onClose, onCreated, canPostInChat = false }: AdComposerModalProps) {
   const [placement, setPlacement] = useState<"list" | "chat">("list");
+  const [durationDays, setDurationDays] = useState<AdDurationDays>(7);
+  const [showMine, setShowMine] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -87,6 +93,7 @@ export function AdComposerModal({ meId, onClose, onCreated, canPostInChat = fals
         ctaLabel: ctaLabel.trim(),
         ctaUrl: normalizeUrl(ctaUrl),
         placement: canPostInChat ? placement : "list",
+        durationDays,
       });
       onClose();
     } catch (e) {
@@ -120,12 +127,21 @@ export function AdComposerModal({ meId, onClose, onCreated, canPostInChat = fals
                 Create New Ad
               </span>
             </h3>
+            <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowMine(true)}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-amber-700 transition hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
+            >
+              <List className="h-4 w-4" /> My ads
+            </button>
             <button 
               onClick={onClose} 
               className="grid h-9 w-9 place-items-center rounded-full text-zinc-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400"
             >
               <X className="h-5 w-5" />
             </button>
+            </div>
           </div>
 
           {/* Body */}
@@ -207,6 +223,27 @@ export function AdComposerModal({ meId, onClose, onCreated, canPostInChat = fals
               </div>
             </div>
 
+            {(canPostInChat ? placement : "list") === "list" && (
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Run for</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {DURATION_OPTIONS.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDurationDays(d)}
+                      className={`rounded-xl border px-3 py-2.5 text-center text-sm font-bold transition ${durationDays === d ? "border-amber-500 bg-amber-50 text-zinc-900 ring-4 ring-amber-500/10 dark:bg-amber-950/30 dark:text-zinc-50" : "border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-200"}`}
+                    >
+                      {d} days
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                  The ad disappears on its own after this time. You can also delete it any time from “My ads”.
+                </p>
+              </div>
+            )}
+
             {error && (
               <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950/40">
                 <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-red-600 dark:text-red-400">
@@ -246,6 +283,7 @@ export function AdComposerModal({ meId, onClose, onCreated, canPostInChat = fals
           </div>
         </motion.div>
       </div>
+      {showMine && <MyAdsModal meId={meId} onClose={() => setShowMine(false)} />}
     </AnimatePresence>
   );
 }
