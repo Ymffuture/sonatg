@@ -13,6 +13,15 @@ import { VscVerifiedFilled } from "react-icons/vsc";
 import type { MessageRow, Profile } from "@/lib/db";
 import { hostOf, isSafeHttpUrl } from "@/lib/sources";
 
+/** The fields the card needs, whether the ad came from a chat message or the `ads` table. */
+export type AdCardData = {
+  id: string;
+  media_url: string | null;
+  title: string | null;
+  cta_label: string | null;
+  cta_url: string | null;
+};
+
 // "Hide this ad" is local to this device: it never deletes the message for anyone else.
 const HIDDEN_KEY = "sona:hidden-ads";
 const MAX_REMEMBERED = 200;
@@ -32,7 +41,22 @@ function writeHidden(ids: string[]) {
   } catch { /* private mode / storage full — hiding just won't persist */ }
 }
 
-export function AdCard({ msg, mine, sender }: { msg: MessageRow; mine: boolean; sender?: Profile }) {
+type AdCardProps = {
+  /** In-chat ad (a `kind = 'ad'` message). */
+  msg?: MessageRow;
+  /** Chat-list ad (a row from the `ads` table). */
+  ad?: AdCardData;
+  mine?: boolean;
+  sender?: Pick<Profile, "display_name" | "is_business">;
+  /** Called when the CTA link is opened (used to count clicks). */
+  onCtaClick?: () => void;
+};
+
+export function AdCard({ msg: message, ad, mine = false, sender, onCtaClick }: AdCardProps) {
+  // Normalise both sources into one shape so the markup below is written once.
+  const msg = message
+    ? { id: message.id, media_url: message.media_url, ad_title: message.ad_title, ad_cta_label: message.ad_cta_label, ad_cta_url: message.ad_cta_url }
+    : { id: ad!.id, media_url: ad!.media_url, ad_title: ad!.title, ad_cta_label: ad!.cta_label, ad_cta_url: ad!.cta_url };
   const [hidden, setHidden] = useState(false);
 
   // Read after mount (not in the initializer) so server and client render the same first frame.
@@ -111,6 +135,7 @@ export function AdCard({ msg, mine, sender }: { msg: MessageRow; mine: boolean; 
                 href={ctaUrl!}
                 target="_blank"
                 rel="noopener noreferrer nofollow sponsored"
+                onClick={onCtaClick}
                 className={`${buttonVariants({ fullWidth: true })} h-9 rounded-xl text-[12px] font-semibold shadow-sm transition-transform active:scale-[0.98]`}
               >
                 {msg.ad_cta_label}

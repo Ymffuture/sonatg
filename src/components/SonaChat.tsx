@@ -106,6 +106,8 @@ import {
 } from "@/lib/planLimits";
 import { PollComposerModal, canPostInChat } from "@/features/classroom";
 import { AdComposerModal, type CreatedAd } from "@/features/ads/AdComposerModal";
+import { useListAds, adSlotAfter } from "@/features/ads/useListAds";
+import { ChatListAd } from "@/components/ChatListAd";
 import { getCloudinaryUploadSignature } from "@/lib/cloudinary.functions";
 import { postSystemMessage } from "@/lib/systemMessages";
 import { FaPoll } from "react-icons/fa";
@@ -306,7 +308,28 @@ const handleMenuOpenChange = (open: boolean) => {
   };
 
   const onAdCreated = async (ad: CreatedAd) => {
-    if (!me || !activeId) {
+    if (!me) throw new Error("You need to be signed in to post an ad.");
+
+    // "Chat list" ads go to the `ads` table and show between chats for everyone.
+    if (ad.placement === "list") {
+      const { error } = await (supabase as unknown as { from: (t: string) => any }).from("ads").insert({
+        owner_id: me.id,
+        media_url: ad.mediaUrl,
+        title: ad.title,
+        cta_label: ad.ctaLabel,
+        cta_url: ad.ctaUrl,
+      });
+      if (error) {
+        const explained = explainSupabaseError(error);
+        throw new Error(`${explained.title}: ${explained.raw}`);
+      }
+      toast.success("Your ad is live in the chat list.");
+      setShowAdComposer(false);
+      return;
+    }
+
+    // "This chat" keeps the original behaviour: an ad message inside the open chat.
+    if (!activeId) {
       throw new Error("No active chat to post this ad to. Open a chat and try again.");
     }
     const { error } = await supabase.from("messages").insert({
@@ -319,9 +342,6 @@ const handleMenuOpenChange = (open: boolean) => {
       ad_cta_url: ad.ctaUrl,
     });
     if (error) {
-      // .title alone is just a generic bucket label ("Something went
-      // wrong") — .raw carries the actual Postgres/Supabase error text,
-      // which is what AdComposerModal's error box needs to be useful.
       const explained = explainSupabaseError(error);
       throw new Error(`${explained.title}: ${explained.raw}`);
     }
@@ -1174,6 +1194,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
     const next = current.includes(folderId) ? current.filter((f) => f !== folderId) : [...current, folderId];
     persistFolderMap({ ...chatFolderMap, [chatId]: next });
   };
+
+  // Sponsored cards shown between chats. Hidden while searching so results stay clean.
+  const listAds = useListAds(!!me);
 
   const filtered = useMemo(() => chats.filter((c) => {
     if (!me) return true;
@@ -2484,7 +2507,7 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                </button>
              )}
              <AnimatePresence initial={false}>
-             {(filtered.map((c) => {
+             {(filtered.flatMap((c, chatIndex) => {
       const title = chatTitle(c, c.memberIds.includes(me.id) ? me.id : "");
       const last = c.lastMessage;
       const mine = last?.sender_id === me.id;
@@ -2493,7 +2516,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
       const isSelected = selectedChatIds.has(c.id);
       const otherIsBusiness = !c.is_group && !ai
         && profiles[c.memberIds.find((id) => id !== me.id) ?? ""]?.is_business;
-      return (
+      const adSlot = !query.trim() && !selectMode && listAds.length > 0 ? adSlotAfter(chatIndex, filtered.length) : null;
+      const adToShow = adSlot === null ? null : listAds[adSlot % listAds.length];
+      return [
         <motion.div key={c.id}
           layout
           initial={{ opacity: 0, y: 8 }}
@@ -2638,8 +2663,9 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
               {c.is_hidden && <Lock className="h-3 w-3 text-[var(--sona-accent,#E07A5F)]/5 shrink-0" />}
             </div>
           </div>
-        </motion.div>
-      );
+        </motion.div>,
+        ...(adToShow ? [<ChatListAd key={`ad-${adToShow.id}-${chatIndex}`} ad={adToShow} />] : []),
+      ];
     })
   )}
   {!loadingChats && filtered.length === 0 && ( <div className="-mb-2">
@@ -3695,9 +3721,10 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
         />
       )}
 
-      {showAdComposer && activeId && me && (
+      {showAdComposer && me && (
         <AdComposerModal
           meId={me.id}
+          canPostInChat={!!activeId}
           onClose={() => setShowAdComposer(false)}
           onCreated={onAdCreated}
         />
