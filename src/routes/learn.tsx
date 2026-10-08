@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import {SonaLogo} from "@assets/sona_logo_512.png";
+import { SonaLogo } from "@/components/SonaLogo";
 import {
   ArrowLeft, MessageCircle, Sparkles, Lock, Mic, Image as ImageIcon, Users, Bell, Shield,
   Crown, Phone, Download, Forward, UserCircle2, FolderOpen, Video, FileText,
