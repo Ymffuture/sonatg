@@ -10,12 +10,16 @@ export type CreatedAd = {
   title: string;
   ctaLabel: string;
   ctaUrl: string;
+  /** "list" = between chats for everyone; "chat" = only inside the open chat. */
+  placement: "list" | "chat";
 };
 
 interface AdComposerModalProps {
   meId: string;
   onClose: () => void;
   onCreated: (ad: CreatedAd) => Promise<void>;
+  /** True when a chat is open, so "This chat only" is a valid choice. */
+  canPostInChat?: boolean;
 }
 
 function normalizeUrl(raw: string): string {
@@ -24,7 +28,8 @@ function normalizeUrl(raw: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalProps) {
+export function AdComposerModal({ meId, onClose, onCreated, canPostInChat = false }: AdComposerModalProps) {
+  const [placement, setPlacement] = useState<"list" | "chat">("list");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -81,6 +86,7 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
         title: title.trim(),
         ctaLabel: ctaLabel.trim(),
         ctaUrl: normalizeUrl(ctaUrl),
+        placement: canPostInChat ? placement : "list",
       });
       onClose();
     } catch (e) {
@@ -173,6 +179,31 @@ export function AdComposerModal({ meId, onClose, onCreated }: AdComposerModalPro
                   placeholder="yourstore.com"
                   className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-900 outline-none transition-all focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-amber-500 dark:focus:ring-amber-500/20"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Where it shows</label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["list", "Chat list", "Between chats, for everyone"],
+                  ["chat", "This chat", "Only inside the open chat"],
+                ] as const).map(([value, label, hint]) => {
+                  const disabled = value === "chat" && !canPostInChat;
+                  const on = (canPostInChat ? placement : "list") === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setPlacement(value)}
+                      className={`rounded-xl border px-3 py-2.5 text-left transition disabled:cursor-not-allowed disabled:opacity-40 ${on ? "border-amber-500 bg-amber-50 ring-4 ring-amber-500/10 dark:bg-amber-950/30" : "border-zinc-300 dark:border-zinc-600"}`}
+                    >
+                      <span className="block text-sm font-bold text-zinc-900 dark:text-zinc-100">{label}</span>
+                      <span className="block text-[11px] text-zinc-500 dark:text-zinc-400">{hint}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
