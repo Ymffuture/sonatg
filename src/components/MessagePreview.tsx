@@ -1,5 +1,4 @@
-import { stripSources } from "@/lib/sources";
-import { Video, Link2, PhoneMissed, Ban } from "lucide-react";
+import { Video, Link2, PhoneMissed, Ban, Megaphone } from "lucide-react";
 import { MdInsertPhoto } from "react-icons/md";
 import { IoMdMic } from "react-icons/io";
 import { FaFileLines, FaLock } from "react-icons/fa6";
@@ -36,7 +35,22 @@ export function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; de
   if (!msg) return null; // ← add this guard
 
   if (msg.deleted_at) {
-    return <span className="italic opacity-70">Message was deleted</span>;
+    return (
+      <span className="inline-flex items-center gap-1.5 italic text-zinc-500 dark:text-zinc-400">
+        <Ban className="h-3.5 w-3.5 shrink-0 text-red-500/70" /> This message was deleted
+      </span>
+    );
+  }
+
+  // Ads are `kind = 'ad'` messages with no body, so without this case they fell through
+  // to the default branch below and were wrongly previewed as "deleted".
+  if (msg.kind === "ad") {
+    return (
+      <span className="inline-flex min-w-0 items-center gap-1.5">
+        <Megaphone className="h-4 w-4 shrink-0 text-amber-500" />
+        <span className="truncate">Ad{msg.ad_title ? `: ${msg.ad_title}` : ""}</span>
+      </span>
+    );
   }
 
   if (msg.is_encrypted) {
@@ -58,14 +72,13 @@ export function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; de
     );
   }
 
-  const bodyText = stripSources(msg.body);
-  if (bodyText) {
+  if (msg.body) {
     // A plain text message whose body is (or starts with) a link gets a
     // link-style preview, same treatment photos/videos already get. The
     // URL itself is a real clickable link — tapping it opens the page
     // directly from the preview instead of only being able to jump to
     // the original message first.
-    const linkMatch = bodyText.match(/https?:\/\/\S+/i);
+    const linkMatch = msg.body.match(/https?:\/\/\S+/i);
     if (linkMatch) {
       const url = linkMatch[0];
       return (
@@ -78,12 +91,12 @@ export function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; de
             onClick={(e) => e.stopPropagation()}
             className="truncate text-[#4FA6E0] underline decoration-[#4FA6E0]/40 underline-offset-2 hover:decoration-[#4FA6E0]"
           >
-            {bodyText}
+            {msg.body}
           </a>
         </span>
       );
     }
-    return <span className="truncate">{bodyText}</span>;
+    return <span className="truncate">{msg.body}</span>;
   }
 
   switch (msg.kind) {
@@ -123,6 +136,7 @@ export function MessagePreview({ msg, decrypted }: { msg?: MessageRow | null; de
       );
     }
     default:
-      return (<span className="flex gap-2 items-center "> <Ban className="h-4 text-red-600/10 w-4 shrink-0"/>This message was deleted</span>) ;
+      // Unknown kinds (system notices, etc.) are not deleted messages — don't claim they are.
+      return <span className="opacity-70">Message</span>;
   }
 }

@@ -2648,6 +2648,16 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                   if (act?.typing.length) {
                     return <span className="truncate animate-pulse text-[var(--sona-accent,#E07A5F)]">typing…</span>;
                   }
+                  // Unsent text saved for this chat (not shown for the chat that's open).
+                  const draftText = !isActive ? loadDraftFromStorage(c.id).trim() : "";
+                  if (draftText) {
+                    return (
+                      <>
+                        <span className="shrink-0 font-semibold text-[var(--sona-accent,#E07A5F)]">Draft:</span>
+                        <span className="truncate">{draftText}</span>
+                      </>
+                    );
+                  }
                   return (
                     <>
                       {mine && last && <TickIcon status={readStatusFor(last, reads, c.memberIds, me.id)} className="h-3.5 w-3.5 shrink-0" />}
@@ -2655,7 +2665,13 @@ const [headerMenuView, setHeaderMenuView] = useState<"root" | "more">("root");
                         <MessagePreview msg={last} />
                       </span>
                       {last && !last.deleted_at && c.lastMessageReaction && (
-                        <span className="shrink-0 text-xs" title="Reacted">{c.lastMessageReaction}</span>
+                        <span
+                          className="ml-auto inline-grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-zinc-200/80 px-1 text-xs leading-none shadow-sm dark:bg-white/10"
+                          title="Reaction on the last message"
+                          aria-label={`Reacted ${c.lastMessageReaction}`}
+                        >
+                          {c.lastMessageReaction}
+                        </span>
                       )}
                     </>
                   );
