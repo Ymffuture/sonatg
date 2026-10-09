@@ -10,6 +10,7 @@ import { ChevronRight, X } from "lucide-react";
 import { VscVerifiedFilled } from "react-icons/vsc";
 import type { MessageRow } from "@/lib/db";
 import { hostOf, isSafeHttpUrl } from "@/lib/sources";
+import { AdFullscreen } from "@/components/AdFullscreen";
 
 /** The fields the card needs, whether the ad came from a chat message or the `ads` table. */
 export type AdCardData = {
@@ -64,6 +65,7 @@ export function AdCard({ msg: message, ad, mine = false, sender, onCtaClick }: A
 
   const [hidden, setHidden] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [open, setOpen] = useState(false); // full-screen view
 
   // Read after mount (not in the initializer) so server and client render the same first frame.
   useEffect(() => { setHidden(readHidden().includes(data.id)); }, [data.id]);
@@ -139,38 +141,38 @@ export function AdCard({ msg: message, ad, mine = false, sender, onCtaClick }: A
       </div>
 
       {/* Media */}
-      {showImage ? (
-        <img
-          alt=""
-          src={data.media_url!}
-          loading="lazy"
-          onError={() => setImgFailed(true)}
-          className="pointer-events-none aspect-[1.91/1] w-full select-none bg-zinc-100 object-cover dark:bg-zinc-800"
-        />
-      ) : (
-        <div className="grid aspect-[1.91/1] w-full place-items-center bg-gradient-to-br from-amber-100 to-orange-200 px-6 text-center dark:from-amber-950 dark:to-orange-900">
-          <span className="text-lg font-bold leading-snug text-zinc-900 dark:text-zinc-50">
-            {data.title || "Sponsored message"}
-          </span>
-        </div>
-      )}
+      <button type="button" onClick={() => setOpen(true)} aria-label="Open ad full screen" className="block w-full text-left">
+        {showImage ? (
+          <img
+            alt=""
+            src={data.media_url!}
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+            className="pointer-events-none aspect-[1.91/1] w-full select-none bg-zinc-100 object-cover dark:bg-zinc-800"
+          />
+        ) : (
+          <div className="grid aspect-[1.91/1] w-full place-items-center bg-gradient-to-br from-amber-100 to-orange-200 px-6 text-center dark:from-amber-950 dark:to-orange-900">
+            <span className="text-lg font-bold leading-snug text-zinc-900 dark:text-zinc-50">
+              {data.title || "Sponsored message"}
+            </span>
+          </div>
+        )}
+      </button>
 
       {/* Call-to-action bar (a real link, full width like Instagram's) */}
       {hasCta && (
-        <a
-          href={ctaUrl!}
-          target="_blank"
-          rel="noopener noreferrer nofollow sponsored"
-          onClick={onCtaClick}
-          className="flex items-center justify-between gap-2 bg-sky-500 px-3.5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 active:bg-sky-700"
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center justify-between gap-2 bg-sky-500 px-3.5 py-2.5 text-left text-sm font-semibold text-white transition hover:bg-sky-600 active:bg-sky-700"
         >
           <span className="truncate">{data.cta_label}</span>
           <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-        </a>
+        </button>
       )}
 
       {/* Caption */}
-      <div className="px-3.5 pb-3.5 pt-2.5">
+      <button type="button" onClick={() => setOpen(true)} className="block w-full px-3.5 pb-3.5 pt-2.5 text-left">
         <p className="text-sm leading-snug text-zinc-900 dark:text-zinc-100">
           <span className="font-semibold">{sponsor}</span>{" "}
           <span className="text-zinc-700 dark:text-zinc-200">{data.title || "Sponsored message"}</span>
@@ -180,7 +182,21 @@ export function AdCard({ msg: message, ad, mine = false, sender, onCtaClick }: A
             {hostOf(ctaUrl!)}
           </p>
         )}
-      </div>
+      </button>
+
+      {open && (
+        <AdFullscreen
+          mediaUrl={data.media_url}
+          title={data.title}
+          ctaLabel={data.cta_label}
+          ctaUrl={ctaUrl}
+          sponsorName={sponsor}
+          sponsorAvatar={sender?.avatar_url}
+          verified={sender?.is_business}
+          onClose={() => setOpen(false)}
+          onCtaClick={onCtaClick}
+        />
+      )}
     </aside>
   );
 }
