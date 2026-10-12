@@ -16,6 +16,7 @@ import {
   Radio,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@heroui/react";
 import { CallOverlay, type CallKind } from "./CallOverlay";
 
 type IncomingCall = {
@@ -354,6 +355,16 @@ export const CallManager = forwardRef<
       targetAvatar: string | null
     ) => {
       const sessionId = crypto.randomUUID();
+      // Register the call on the server first. Zego tokens are only issued for a registered,
+      // un-ended session in this chat, so a guessed session id can't be used to join a call.
+      const { error: sessionErr } = await (supabase as unknown as { from: (t: string) => any })
+        .from("call_sessions")
+        .insert({ id: sessionId, chat_id: chatId, created_by: meId, kind, group_call: groupCall });
+      if (sessionErr) {
+        console.error("Couldn't start call session:", sessionErr);
+        toast.danger("Couldn't start the call. Please try again.");
+        return;
+      }
       await Promise.all(
         otherMemberIds.map((id) =>
           supabase.channel(`calls:${id}`).send({
@@ -424,6 +435,14 @@ export const CallManager = forwardRef<
   };
 
   const endActive = () => {
+    // The person who started the call closes its server session (best effort).
+    if (active && isCallerRef.current) {
+      void (supabase as unknown as { from: (t: string) => any })
+        .from("call_sessions")
+        .update({ ended_at: new Date().toISOString() })
+        .eq("id", active.sessionId)
+        .then(() => {}, () => {});
+    }
     if (active && isCallerRef.current && callStartedAtRef.current) {
       const durationMs = Date.now() - callStartedAtRef.current;
       insertCallLog(active.chatId, active.kind, "answered", durationMs);
