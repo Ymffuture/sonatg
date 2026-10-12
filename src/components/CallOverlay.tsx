@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Phone, ShieldCheck, AlertTriangle } from "lucide-react";
+import { getZegoCallToken } from "@/lib/zego.functions";
 
 export type CallKind = "voice" | "video";
 
 export function CallOverlay({
+  chatId,
   roomId,
-  userId,
   userName,
   kind,
   groupCall,
   onLeave,
 }: {
+  chatId: string;
   roomId: string;
-  userId: string;
   userName: string;
   kind: CallKind;
   groupCall: boolean;
@@ -27,27 +28,17 @@ export function CallOverlay({
     let cancelled = false;
 
     (async () => {
-      const appId = Number(import.meta.env.VITE_ZEGO_APP_ID);
-      const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET as string;
-
-      if (!appId || !serverSecret) {
-        console.error(
-          "ZegoCloud is not configured — set VITE_ZEGO_APP_ID and VITE_ZEGO_SERVER_SECRET."
-        );
-        setError("Call service not configured.");
-        setIsConnecting(false);
-        return;
-      }
-
       try {
+        // The token is minted on the server (the Zego secret never reaches the browser).
+        const { appId, token: serverToken, userId: zegoUserId } = await getZegoCallToken({ data: { chatId, roomId } });
         const { ZegoUIKitPrebuilt } = await import("@zegocloud/zego-uikit-prebuilt");
         if (cancelled || !containerRef.current) return;
 
-        const token = ZegoUIKitPrebuilt.generateKitTokenForTest(
+        const token = ZegoUIKitPrebuilt.generateKitTokenForProduction(
           appId,
-          serverSecret,
+          serverToken,
           roomId,
-          userId,
+          zegoUserId,
           userName
         );
 
@@ -80,7 +71,7 @@ export function CallOverlay({
 
       } catch (err) {
         console.error("Failed to initialize ZegoCloud:", err);
-        setError("Failed to connect to call servers.");
+        setError(err instanceof Error && err.message.startsWith("Forbidden") ? "You can't join this call." : "Failed to connect to call servers.");
         setIsConnecting(false);
       }
     })();

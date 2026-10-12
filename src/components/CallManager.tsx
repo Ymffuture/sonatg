@@ -555,8 +555,8 @@ export const CallManager = forwardRef<
           {/* Video Placeholder / Call Overlay */}
           <div className="relative z-10 flex-1 flex items-center justify-center w-full max-w-sm mx-4 my-6">
             <CallOverlay
+              chatId={active.chatId}
               roomId={active.sessionId}
-              userId={meId}
               userName={meName}
               kind={active.kind}
               groupCall={active.groupCall}
