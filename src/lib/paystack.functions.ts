@@ -124,12 +124,25 @@ export const verifyPaystackBusiness = createServerFn({ method: "POST" })
     const json = await res.json() as {
       status: boolean;
       message: string;
-      data?: { status?: string; metadata?: { user_id?: string; plan?: string } };
+      data?: { status?: string; amount?: number; currency?: string; metadata?: { user_id?: string; plan?: string; purpose?: string; interval?: string } };
     };
     if (!json.status || !json.data) throw new Error(json.message || "Paystack verification failed");
 
     const paidForThisUser = json.data.metadata?.user_id === context.userId;
-    if (json.data.status !== "success" || !paidForThisUser) {
+
+    // The payment must be for BUSINESS (not the cheaper Pro plan) and cover the configured price,
+    // otherwise any successful payment by this user could be replayed to unlock Business.
+    const interval = json.data.metadata?.interval === "yearly" ? "yearly" : "monthly";
+    const priceKey = interval === "yearly" ? "PAYSTACK_BUSINESS_PRICE_YEARLY_ZAR" : "PAYSTACK_BUSINESS_PRICE_MONTHLY_ZAR";
+    const expectedCents = Math.round(parseFloat(process.env[priceKey] ?? "") * 100);
+    const isBusinessPayment =
+      json.data.metadata?.purpose === "sona_business" &&
+      json.data.metadata?.plan === "business" &&
+      json.data.currency === "ZAR" &&
+      Number.isFinite(expectedCents) && expectedCents > 0 &&
+      (json.data.amount ?? 0) >= expectedCents;
+
+    if (json.data.status !== "success" || !paidForThisUser || !isBusinessPayment) {
       throw new Error("Payment was not completed. No changes were made to your account.");
     }
 
