@@ -7,7 +7,7 @@
 //   ZEGO_SERVER_SECRET   your Zego ServerSecret (32 chars)  ← rotate the old leaked one first!
 //
 // What a token allows: joining ONE room, as the signed-in user, for 1 hour, and only if that
-// user is a member of the chat the call belongs to.
+// room is a live call_sessions row in a chat the user belongs to.
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -71,6 +71,19 @@ export const getZegoCallToken = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .maybeSingle();
     if (!member) throw new Error("Forbidden: not a member of this chat");
+
+    // The room must be a real, un-ended call in THIS chat that started in the last 4 hours.
+    // (RLS also limits this lookup to calls in chats the caller belongs to.)
+    const since = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    const { data: session } = await (context.supabase as unknown as { from: (t: string) => any })
+      .from("call_sessions")
+      .select("id")
+      .eq("id", data.roomId)
+      .eq("chat_id", data.chatId)
+      .is("ended_at", null)
+      .gte("created_at", since)
+      .maybeSingle();
+    if (!session) throw new Error("Forbidden: this call isn't available");
 
     const appId = Number(process.env.ZEGO_APP_ID);
     const secret = process.env.ZEGO_SERVER_SECRET;
