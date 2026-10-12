@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { cached } from "@/lib/ttlCache";
 import {
   DEFAULT_STT_MODELS,
@@ -70,6 +71,7 @@ export const transcribeVoiceMessage = createServerFn({ method: "POST" })
     return { messageId: String(data.messageId) };
   })
   .handler(async ({ data, context }) => {
+    await enforceRateLimit(context.supabase, "transcribe", 10, 60);
     // RLS: only messages in chats the caller belongs to are visible here.
     const { data: message, error: msgErr } = await context.supabase
       .from("messages")

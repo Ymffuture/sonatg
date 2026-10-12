@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { askGeminiWithAttachment, researchWithGoogleSearch, urlToGeminiAttachment } from "@/lib/gemini.functions";
 import { resolveModel, fallbackChain } from "@/lib/aiModels";
 import { buildLiveContext, buildLiveContextWithSources } from "@/lib/liveContext";
@@ -393,6 +394,7 @@ export const askSonaAI = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data, context }) => {
+    await enforceRateLimit(context.supabase, "ai", 20, 60);
     const key = process.env.OPENROUTER_API_KEY;
     if (!key) throw new Error("Missing OPENROUTER_API_KEY");
 
@@ -673,6 +675,7 @@ export const summarizeChat = createServerFn({ method: "POST" })
     return { chatId: String(data.chatId), timeZone: data.timeZone ? String(data.timeZone).slice(0, 64) : null };
   })
   .handler(async ({ data, context }) => {
+    await enforceRateLimit(context.supabase, "ai", 20, 60);
     const key = process.env.OPENROUTER_API_KEY;
     if (!key) throw new Error("Missing OPENROUTER_API_KEY");
 

@@ -13,6 +13,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { callGateway, describeForHistory } from "@/lib/ai.functions";
 import { resolveModel } from "@/lib/aiModels";
 import { buildLiveContext } from "@/lib/liveContext";
@@ -119,6 +120,7 @@ export const askSonaAboutMessage = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data, context }) => {
+    await enforceRateLimit(context.supabase, "ai", 20, 60);
     const key = process.env.OPENROUTER_API_KEY;
     if (!key) throw new Error("Missing OPENROUTER_API_KEY");
 

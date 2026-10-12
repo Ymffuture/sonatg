@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Voucher/gift-code redemption — a payment-free way to get Sona Purple OR
@@ -32,6 +33,7 @@ export const redeemVoucher = createServerFn({ method: "POST" })
     return { code };
   })
   .handler(async ({ context, data }) => {
+    await enforceRateLimit(context.supabase, "voucher", 5, 600);
     const { data: rows, error } = await context.supabase.rpc("redeem_voucher", {
       _code: data.code,
     });

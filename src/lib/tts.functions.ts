@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 // Sona Purple text-to-speech, via OpenRouter's dedicated speech endpoint
 // (NOT /chat/completions — /audio/speech is purpose-built for TTS, returns
@@ -59,6 +60,7 @@ export const synthesizeSpeech = createServerFn({ method: "POST" })
     return { chatId: String(data.chatId), text: String(data.text).slice(0, MAX_CHARS) };
   })
   .handler(async ({ data, context }) => {
+    await enforceRateLimit(context.supabase, "tts", 15, 60);
     // Purple-only: gate right at the top, before spending a Supabase round trip.
     const { data: myProfile } = await context.supabase
       .from("profiles").select("is_pro").eq("id", context.userId).maybeSingle();
