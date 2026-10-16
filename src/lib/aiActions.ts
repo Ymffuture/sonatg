@@ -108,7 +108,7 @@ const ACTION_SYNTAX_RE = /\[\[sona-action:(\{[\s\S]*?\})\]\]/;
 export function streamPreview(text: string): string {
   let t = text;
   // Hide a hidden-marker line (action OR study set) even while it's half-typed.
-  const openers = ["[[sona-action", "[[sona-study"];
+  const openers = ["[[sona-action", "[[sona-study", "[[sona-agent"];
   const idx = openers.map((o) => t.indexOf(o)).filter((i) => i >= 0);
   if (idx.length) t = t.slice(0, Math.min(...idx));
   else {

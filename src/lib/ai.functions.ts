@@ -8,6 +8,10 @@ import { stripSources, withSources, type Source } from "@/lib/sources";
 import { detectIntents, sanitizeCoords, type Coords } from "@/lib/liveIntents";
 import { consumeAiQuota, quotaExceededError } from "@/lib/aiLimits";
 import { actionInstructions, detectActionIntents, extractAction, streamPreview } from "@/lib/aiActions";
+import { detectStemIntent, type StemIntent } from "@/lib/stem/detect";
+import { runStemAgents } from "@/lib/stem/agents";
+import { renderProgress } from "@/lib/stem/render";
+import type { AgentRole } from "@/lib/stem/types";
 import {
   STUDY_LIMITS,
   defaultStudyText,
@@ -48,9 +52,15 @@ function friendlyGatewayError(status: number, body: string): Error {
   return new Error(`AI request failed [${status}]: ${body.slice(0, 300)}`);
 }
 
-async function callModelOnce(messages: unknown[], key: string, model: string): Promise<string> {
+type GatewayOpts = {
+  /** Per-model-attempt timeout. Structured math/physics solutions need longer than a chat reply. */
+  timeoutMs?: number;
+  temperature?: number;
+};
+
+async function callModelOnce(messages: unknown[], key: string, model: string, opts: GatewayOpts = {}): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), GATEWAY_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? GATEWAY_TIMEOUT_MS);
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
@@ -61,7 +71,7 @@ async function callModelOnce(messages: unknown[], key: string, model: string): P
         "HTTP-Referer": process.env.APP_URL || "https://your-app.vercel.app",
         "X-Title": "Sona AI",
       },
-      body: JSON.stringify({ model, messages }),
+      body: JSON.stringify({ model, messages, ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}) }),
     });
 
     if (!res.ok) {
@@ -88,12 +98,12 @@ async function callModelOnce(messages: unknown[], key: string, model: string): P
 // to the next model in the chain instead of surfacing the failure right
 // away. The chain always ends with the shared free-tier default, so a
 // Purple pick going down never fully breaks replies.
-export async function callGateway(messages: unknown[], key: string, preferredModel: string): Promise<string> {
+export async function callGateway(messages: unknown[], key: string, preferredModel: string, opts: GatewayOpts = {}): Promise<string> {
   const chain = fallbackChain(preferredModel);
   let lastError: Error | null = null;
   for (const model of chain) {
     try {
-      return await callModelOnce(messages, key, model);
+      return await callModelOnce(messages, key, model, opts);
     } catch (e) {
       lastError = e as Error;
       // A 429 (rate limited) or 402 (out of credits) will fail identically
@@ -263,6 +273,22 @@ function createReplyStreamer(chatId: string, toBody: (raw: string) => string) {
   return {
     onDelta(full: string) { latest = full; dirty = true; pump(); },
     get messageId() { return messageId; },
+    /** Stops streaming and removes the half-written row (used when a run produced nothing and we fall back). */
+    async discard() {
+      finished = true;
+      dirty = false;
+      wake?.();
+      if (running) await running;
+      if (!messageId) return;
+      const id = messageId;
+      messageId = null;
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("messages").delete().eq("id", id);
+      } catch (e) {
+        console.warn("[askSonaAI] couldn't remove progress message:", (e as Error).message);
+      }
+    },
     async finish(finalBody: string) {
       finished = true;
       dirty = false;
@@ -378,6 +404,92 @@ function sonaSystemInstruction(
   ].filter(Boolean).join("\n");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Math & physics agents (src/lib/stem/*)
+//
+// plan → solve twice independently → calculator/unit verification → correct → write-up.
+// While it runs, the single Sona AI message row is updated with live progress (same
+// Realtime path as streamed replies); when it finishes, that row becomes the answer
+// and a "How Sona solved this" sheet is linked via [[sona-agent:<id>]].
+//
+// Tunable without a code change:
+//   STEM_BUDGET_MS        wall-clock budget for one run          (default 48000, keep < your function limit)
+//   STEM_MAX_CORRECTIONS  correct→re-verify rounds               (default 2)
+//   STEM_AGENT_MODEL      override the model the agents use      (default: the user's normal model)
+//
+// Returns false when the agents produced nothing usable, so the caller can fall
+// back to the ordinary reply — a user is never worse off than before.
+// ─────────────────────────────────────────────────────────────────────────────
+const STEM_TEMPERATURE: Record<AgentRole, number> = { planner: 0.2, solver: 0.2, solver_b: 0.5, corrector: 0.2 };
+const STEM_ATTEMPT_TIMEOUT_MS = 30_000;
+
+function envNumber(name: string, fallback: number, min: number, max: number): number {
+  const n = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
+async function answerWithStemAgents(p: {
+  stem: StemIntent;
+  history: Array<{ role: string; content: unknown }>;
+  key: string;
+  model: string;
+  chatId: string;
+  userId: string;
+}): Promise<boolean> {
+  const model = process.env.STEM_AGENT_MODEL?.trim() || p.model;
+
+  // Earlier turns, so follow-ups like "now double the mass" make sense. The newest user
+  // message is the problem itself, so it's dropped from the context.
+  const prior = [...p.history];
+  if (prior[prior.length - 1]?.role === "user") prior.pop();
+  const context = prior
+    .slice(-6)
+    .map((m) => `${m.role === "assistant" ? "Sona" : "User"}: ${String(m.content).slice(0, 500)}`)
+    .join("\n")
+    .slice(-1500);
+
+  const streamer = createReplyStreamer(p.chatId, (s) => s);
+  const outcome = await runStemAgents(
+    { prompt: p.stem.prompt, subject: p.stem.subject, context: context || undefined },
+    {
+      budgetMs: envNumber("STEM_BUDGET_MS", 48_000, 15_000, 240_000),
+      maxCorrections: envNumber("STEM_MAX_CORRECTIONS", 2, 0, 4),
+      call: (role, messages) => callGateway(messages, p.key, model, { timeoutMs: STEM_ATTEMPT_TIMEOUT_MS, temperature: STEM_TEMPERATURE[role] }),
+      onProgress: (snap) => streamer.onDelta(renderProgress(snap)),
+    },
+  );
+
+  if (outcome.status === "failed") {
+    console.warn("[askSonaAI] math/physics agents produced nothing, using the normal reply:", outcome.reason);
+    await streamer.discard();
+    return false;
+  }
+
+  // Store the trace for the "How Sona solved this" sheet. If the table isn't migrated yet the
+  // answer still goes out, just without the sheet.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const runs = (supabaseAdmin as unknown as {
+    from: (t: string) => {
+      insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+      update: (row: Record<string, unknown>) => { eq: (c: string, v: string) => PromiseLike<unknown> };
+    };
+  }).from("ai_agent_runs");
+  const runId = crypto.randomUUID();
+  const { error } = await runs.insert({
+    id: runId,
+    user_id: p.userId,
+    chat_id: p.chatId,
+    subject: p.stem.subject,
+    level: outcome.trace.level,
+    trace: outcome.trace,
+  });
+  if (error) console.warn("[askSonaAI] couldn't store agent trace:", error.message);
+
+  await streamer.finish(withSources(outcome.body, [], null, null, error ? null : runId));
+  if (!error && streamer.messageId) void runs.update({ message_id: streamer.messageId }).eq("id", runId);
+  return true;
+}
+
 export const askSonaAI = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: AskInput) => {
@@ -401,10 +513,19 @@ export const askSonaAI = createServerFn({ method: "POST" })
     // Study tools: a quiz/flashcards/"explain like I'm 12" request may carry pasted notes.
     const study = detectStudyIntents(data.prompt);
     const isStudySet = wantsStudySet(study);
-    const promptText =
+    const rawPrompt =
       isStudySet || study.eli !== null ? data.prompt : data.prompt.slice(0, STUDY_LIMITS.plainPromptChars);
-    // Pasted notes must never trigger weather/web lookups (cost + noise).
-    const skipLive = isStudySet || (study.eli !== null && promptText.length > 1500);
+    // Math & physics agents: text-only, quantitative questions. Quizzes, "explain like I'm 12" and
+    // action requests (polls, scheduling) keep their own flows; "/quick" opts out, "/solve" forces it.
+    const stem =
+      !data.imageUrl && !data.fileUrl && !isStudySet && study.eli === null && detectActionIntents(rawPrompt).length === 0
+        ? detectStemIntent(rawPrompt)
+        : null;
+    // ("/quick" only ever means "skip the agents" — the model never needs to see it.)
+    const promptText = rawPrompt.replace(/^\s*\/quick\b\s*/i, "");
+    // Pasted notes must never trigger weather/web lookups (cost + noise); neither do agent runs
+    // (they reason from the problem itself).
+    const skipLive = isStudySet || (study.eli !== null && promptText.length > 1500) || !!stem;
 
     // These three reads don't depend on each other — running them in
     // parallel instead of one-after-another is the single biggest lever
@@ -596,6 +717,12 @@ export const askSonaAI = createServerFn({ method: "POST" })
       }).select("id").single();
       if (insErr) throw new Error(`Sona AI replied, but saving the message failed: ${insErr.message}`);
       if (studied.studyId && inserted?.id) void linkStudySetToMessage(studied.studyId, inserted.id as string);
+      return { ok: true };
+    }
+
+    // Math & physics agents. One AI quota unit in total (consumed above). If they produce nothing
+    // usable we fall through to the ordinary reply below.
+    if (stem && (await answerWithStemAgents({ stem, history, key, model, chatId: data.chatId, userId: context.userId as string }))) {
       return { ok: true };
     }
 
