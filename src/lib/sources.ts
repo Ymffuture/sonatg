@@ -13,6 +13,8 @@
 // that open a bottom sheet. No DB migration needed, and older clients simply
 // see plain text (apart from the marker, which the patched previews strip too).
 
+import { decodeThinking, type ThinkingView } from "@/lib/stem/think";
+
 export type SourceKind = "weather" | "news" | "web";
 
 export type Source = {
@@ -29,11 +31,16 @@ export type Source = {
 
 const MARKER_RE = /\n*\[\[sona-sources:([^\]]+)\]\]\s*$/;
 // Optional study-set pointer: "[[sona-study:<uuid>]]" (a quiz / flashcards the user asked Sona to make).
-const STUDY_MARKER_RE = /\n*\[\[sona-study:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
+const STUDY_MARKER_RE =
+  /\n*\[\[sona-study:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
+// Live "thinking" state of an agent run: the ENTIRE body while it runs, replaced by the answer when done.
+const THINK_MARKER_RE = /^\s*\[\[sona-think:([^\]]*)\]\]\s*$/;
 // Optional agent-run pointer: "[[sona-agent:<uuid>]]" (the "How Sona solved this" sheet for a math/physics answer).
-const AGENT_MARKER_RE = /\n*\[\[sona-agent:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
+const AGENT_MARKER_RE =
+  /\n*\[\[sona-agent:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
 // Optional confirm-card pointer: "[[sona-action:<uuid>]]" sits just before the sources marker.
-const ACTION_MARKER_RE = /\n*\[\[sona-action:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
+const ACTION_MARKER_RE =
+  /\n*\[\[sona-action:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]\s*$/i;
 const MAX_SOURCES = 6;
 
 /** Only http(s) links are ever rendered/opened — blocks javascript: and data: URLs. */
@@ -86,14 +93,22 @@ function sanitize(input: unknown): Source[] {
 }
 
 /** Splits a stored message body into display text, structured sources and an optional action id. */
-export function splitSources(
-  body: string | null | undefined,
-): { text: string; sources: Source[]; actionId: string | null; studyId: string | null; agentId: string | null } {
+export function splitSources(body: string | null | undefined): {
+  text: string;
+  sources: Source[];
+  actionId: string | null;
+  studyId: string | null;
+  agentId: string | null;
+  thinking: ThinkingView | null;
+} {
   let text = body ?? "";
   let sources: Source[] = [];
   let actionId: string | null = null;
   let studyId: string | null = null;
   let agentId: string | null = null;
+
+  const th = text.match(THINK_MARKER_RE);
+  if (th) return { text: "", sources, actionId, studyId, agentId, thinking: decodeThinking(th[1]) };
 
   const m = text.match(MARKER_RE);
   if (m) {
@@ -120,12 +135,13 @@ export function splitSources(
     actionId = a[1].toLowerCase();
     text = text.slice(0, a.index).trimEnd();
   }
-  return { text, sources, actionId, studyId, agentId };
+  return { text, sources, actionId, studyId, agentId, thinking: null };
 }
 
 /** Display text only — use anywhere a raw `msg.body` is shown (previews, search, export). */
 export function stripSources(body: string | null | undefined): string {
-  return splitSources(body).text;
+  const { text, thinking } = splitSources(body);
+  return thinking ? "Thinking…" : text;
 }
 
 // "Sources:" list the model was asked to write at the end of its reply.

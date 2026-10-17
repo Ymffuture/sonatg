@@ -10,7 +10,7 @@ import { consumeAiQuota, quotaExceededError } from "@/lib/aiLimits";
 import { actionInstructions, detectActionIntents, extractAction, streamPreview } from "@/lib/aiActions";
 import { detectStemIntent, type StemIntent } from "@/lib/stem/detect";
 import { runStemAgents } from "@/lib/stem/agents";
-import { renderProgress } from "@/lib/stem/render";
+import { encodeThinking } from "@/lib/stem/think";
 import type { AgentRole } from "@/lib/stem/types";
 import {
   STUDY_LIMITS,
@@ -455,7 +455,9 @@ async function answerWithStemAgents(p: {
       budgetMs: envNumber("STEM_BUDGET_MS", 48_000, 15_000, 240_000),
       maxCorrections: envNumber("STEM_MAX_CORRECTIONS", 2, 0, 4),
       call: (role, messages) => callGateway(messages, p.key, model, { timeoutMs: STEM_ATTEMPT_TIMEOUT_MS, temperature: STEM_TEMPERATURE[role] }),
-      onProgress: (snap) => streamer.onDelta(renderProgress(snap)),
+      // The bubble renders this marker as the animated "thinking" panel (AgentThinking.tsx).
+      paceMs: 900,
+      onProgress: (snap) => streamer.onDelta(encodeThinking(snap)),
     },
   );
 
