@@ -571,7 +571,7 @@ export function solverMessages(input: StemInput, plan: Plan | null): ChatMsg[] {
         ),
         JSON_RULES,
         SYNTAX,
-        `Return exactly this shape (2-10 steps):\n${SOLUTION_SCHEMA}`,
+        `Return exactly this shape. Write 6 to 10 steps — NEVER fewer than 6 — each a real piece of reasoning: restate the givens and what is asked, choose the principle/law, write the general equation, substitute the numbers, compute, then sanity-check the result (sign, size, units).\n${SOLUTION_SCHEMA}`,
         ANSWER_GUIDE,
         CLAIM_GUIDE,
         "Before answering, re-read the problem once: check that every given is used, the units are consistent, and the result is physically/mathematically sensible.",
@@ -590,7 +590,7 @@ export function solverBMessages(input: StemInput): ChatMsg[] {
           input.subject,
           "ROLE: INDEPENDENT SECOND SOLVER. Another expert is solving this separately. You will not see their work.",
         ),
-        "Where a sensible alternative exists, use a DIFFERENT method from the textbook-obvious one (for example energy conservation instead of kinematics, substitution instead of integration by parts, a direct formula instead of long algebra). Keep it concise: at most 6 steps.",
+        "Where a sensible alternative exists, use a DIFFERENT method from the textbook-obvious one (for example energy conservation instead of kinematics, substitution instead of integration by parts, a direct formula instead of long algebra). Keep it concise: 5 to 6 steps.",
         JSON_RULES,
         SYNTAX,
         `Return exactly this shape:\n${SOLUTION_SCHEMA}`,
@@ -650,6 +650,48 @@ export function correctorMessages(
         .join("\n\n"),
     },
   ];
+}
+
+// ── salvage: a solution must ALWAYS reach the user ────────────────────────────
+// Small free models often answer in prose instead of the JSON schema. Rather than throw that
+// work away, first ask the model to reformat its own answer; failing that, show it as written.
+
+/** Prose the model wrote, minus <think> blocks and code fences. "" if there's nothing substantial. */
+export function usableProse(raw: string): string {
+  const t = stripThinking(String(raw ?? "")).trim();
+  return t.length >= 60 ? t : "";
+}
+
+export function reformatMessages(input: StemInput, prose: string): ChatMsg[] {
+  return [
+    {
+      role: "system",
+      content: [
+        persona(
+          input.subject,
+          "ROLE: FORMATTER. Below is a worked solution written in free text. Convert it into the JSON shape. Keep the solution's reasoning and answer exactly; do NOT solve it again.",
+        ),
+        JSON_RULES,
+        SYNTAX,
+        `Return exactly this shape (6 to 10 steps — split the working into clear steps):\n${SOLUTION_SCHEMA}`,
+        ANSWER_GUIDE,
+        CLAIM_GUIDE,
+      ].join("\n\n"),
+    },
+    {
+      role: "user",
+      content: `PROBLEM:\n${input.prompt}\n\nWORKED SOLUTION TO CONVERT:\n${prose.slice(0, 6000)}`,
+    },
+  ];
+}
+
+/** Body for an answer we could not machine-check: the model's own words, clearly labelled. */
+export function renderSalvagedBody(prose: string): string {
+  const clean = prose.replace(/\[\[/g, "[ [").replace(/\]\]/g, "] ]").slice(0, 5000);
+  return [
+    "⚠️ **Not fully verified** — the solver's answer wasn't in a checkable format, so it is shown as written. Please double-check before relying on it.",
+    clean,
+  ].join("\n\n");
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -769,16 +811,60 @@ export async function runStemAgents(input: StemInput, deps: AgentDeps): Promise<
     ask("solver", solverMessages(input, plan)),
     ask("solver_b", solverBMessages(input)),
   ]);
-  let a = ra.status === "fulfilled" ? (parseSolutionResponse(ra.value)?.solution ?? null) : null;
-  const b = rb.status === "fulfilled" ? (parseSolutionResponse(rb.value)?.solution ?? null) : null;
+  const rawA = ra.status === "fulfilled" ? ra.value : "";
+  const rawB = rb.status === "fulfilled" ? rb.value : "";
+  let a = parseSolutionResponse(rawA)?.solution ?? null;
+  const b = parseSolutionResponse(rawB)?.solution ?? null;
+
   if (!a && !b) {
-    return {
-      status: "failed",
-      reason:
+    // Nothing parsed. If a model still wrote a real solution, don't throw it away.
+    const prose = usableProse(rawA) || usableProse(rawB);
+    if (!prose) {
+      const why =
         ra.status === "rejected"
           ? (ra.reason as Error).message
-          : "the solver didn't return a usable solution",
-    };
+          : rb.status === "rejected"
+            ? (rb.reason as Error).message
+            : "the solver didn't return a usable solution";
+      return { status: "failed", reason: why };
+    }
+    emit("solving", "Tidying up the working");
+    try {
+      const fixed = parseSolutionResponse(
+        await ask("solver", reformatMessages(input, prose), Math.max(8_000, remaining() * 0.5)),
+      );
+      if (fixed) a = fixed.solution;
+    } catch {
+      /* fall through to showing the prose */
+    }
+    if (!a) {
+      emit("writing", "Writing up the solution");
+      const trace: AgentTrace = {
+        v: 1,
+        subject: input.subject,
+        plan,
+        method: null,
+        methodB: null,
+        checks: [],
+        agreement: {
+          compared: false,
+          agreed: false,
+          note: "no independent solution was available",
+        },
+        unitCheck: { expected: plan?.expectedUnit, got: undefined, ok: null },
+        corrections: [],
+        level: "unverified",
+        openIssues: ["the model's answer wasn't in a checkable format, so it is shown as written"],
+        events: [],
+        elapsedMs: 0,
+        llmCalls,
+        budgetHit,
+      };
+      emit("done", "Finished (not fully verified)");
+      trace.events = events;
+      trace.elapsedMs = now() - t0;
+      return { status: "ok", body: renderSalvagedBody(prose), trace };
+    }
   }
   let witness: { sol: Solution; ev: Evaluated } | null = null;
   if (a && b) {
