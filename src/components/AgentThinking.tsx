@@ -17,6 +17,7 @@
 import { useEffect, useState, type ReactNode, type SyntheticEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+  AlertTriangle,
   Calculator,
   Check,
   CheckCircle2,
@@ -274,6 +275,8 @@ function Thoughts({
 export function AgentThinking({ view }: { view: ThinkingView }) {
   const reduced = !!useReducedMotion();
   const elapsed = useElapsed(view.startedAt);
+  // A run that never finished (function killed, connection lost) must not spin forever.
+  const stalled = view.phase !== "done" && elapsed > 120;
   const [open, setOpen] = useState(true);
   const idx = ORDER.indexOf(view.phase);
   const stop = (e: SyntheticEvent) => e.stopPropagation();
@@ -335,7 +338,7 @@ export function AgentThinking({ view }: { view: ThinkingView }) {
             )}
           </p>
         )}
-        {view.steps.length > 0 && <Thoughts items={view.steps} reduced={reduced} />}
+        {view.steps.length > 0 && <Thoughts items={view.steps} reduced={reduced} cap={8} />}
       </StepRow>
     ));
   }
@@ -443,7 +446,7 @@ export function AgentThinking({ view }: { view: ThinkingView }) {
             className="relative grid size-7 shrink-0 place-items-center rounded-full"
             style={{ background: `color-mix(in srgb, ${ACCENT} 14%, transparent)`, color: ACCENT }}
           >
-            {!reduced && (
+            {!reduced && !stalled && (
               <motion.span
                 aria-hidden
                 className="absolute inset-0 rounded-full"
@@ -452,16 +455,26 @@ export function AgentThinking({ view }: { view: ThinkingView }) {
                 transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
               />
             )}
-            <PhaseIcon step={headerStep(view.phase)} reduced={reduced} />
+            {stalled ? (
+              <AlertTriangle width={16} height={16} aria-hidden />
+            ) : (
+              <PhaseIcon step={headerStep(view.phase)} reduced={reduced} />
+            )}
           </span>
           <span
             className="min-w-0 flex-1 truncate text-[14px] text-foreground"
             role="status"
             aria-live="polite"
           >
-            <Shimmer reduced={reduced}>{headline(view)}…</Shimmer>
+            {stalled ? (
+              <span className="font-medium">No response — please send it again</span>
+            ) : (
+              <Shimmer reduced={reduced}>{headline(view)}…</Shimmer>
+            )}
           </span>
-          <span className="text-[12px] tabular-nums text-muted-foreground">{elapsed}s</span>
+          {!stalled && (
+            <span className="text-[12px] tabular-nums text-muted-foreground">{elapsed}s</span>
+          )}
           <ChevronDown
             className={`size-4 shrink-0 text-muted-foreground transition-transform duration-300 ${open ? "rotate-180" : ""}`}
             aria-hidden
