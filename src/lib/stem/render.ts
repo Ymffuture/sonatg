@@ -8,7 +8,7 @@
 // verification status come FIRST and the worked steps follow.
 
 import { fmt } from "./calc";
-import type { AgentTrace, Evaluated, ProgressSnapshot, Solution } from "./types";
+import type { AgentTrace, Evaluated, Solution } from "./types";
 
 const SUP: Record<string, string> = {
   "0": "⁰",
@@ -104,27 +104,4 @@ export function renderAnswerBody(sol: Solution, ev: Evaluated, trace: AgentTrace
     out.push(`*Checks that didn't pass:* ${failed.map((c) => c.label).join("; ")}`);
   }
   return out.join("\n\n");
-}
-
-/** Live status shown in the chat row while the agents work (replaced by the final answer). */
-export function renderProgress(s: ProgressSnapshot): string {
-  const lines = ["🧠 **Sona is working on this…**", ""];
-  if (s.plan) lines.push(`✅ Plan — ${s.plan.topic}`);
-  switch (s.phase) {
-    case "planning":
-      if (!s.plan) lines.push("🧭 Planning the approach…");
-      break;
-    case "solving":
-      lines.push("🧮 Solving it two independent ways…");
-      break;
-    case "verifying":
-      lines.push("🔍 Checking every number with a calculator…");
-      break;
-    case "correcting":
-      lines.push(`🛠 ${s.note}…`);
-      break;
-    default:
-      lines.push("✍️ Writing up the solution…");
-  }
-  return lines.join("\n");
 }

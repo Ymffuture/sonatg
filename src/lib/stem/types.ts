@@ -129,4 +129,13 @@ export type ProgressSnapshot = {
   plan: Plan | null;
   round: number;
   events: TraceEvent[];
+  /** Epoch ms (from the run's clock) when the run started. */
+  startedAt: number;
+  methods: { a?: string; b?: string };
+  /** Titles of the primary solver's steps — the visible "reasoning". */
+  stepTitles: string[];
+  /** Calculator checks of the current best solution, as they come in. */
+  checks: { label: string; ok: boolean }[];
+  /** What the verifier currently has a problem with. */
+  issues: string[];
 };

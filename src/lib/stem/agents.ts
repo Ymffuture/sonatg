@@ -73,6 +73,11 @@ export type AgentDeps = {
   /** Don't start a correction if less than this is left. Default 12s. */
   minCorrectionMs?: number;
   now?: () => number;
+  /**
+   * Breathing room (ms) after each verification so the UI can actually show the calculator's
+   * checks — they're computed instantly otherwise. Skipped when the budget is nearly spent. Default 0.
+   */
+  paceMs?: number;
   onProgress?: (snap: ProgressSnapshot) => void;
 };
 
@@ -715,10 +720,21 @@ export async function runStemAgents(input: StemInput, deps: AgentDeps): Promise<
   let round = 0;
   let llmCalls = 0;
   let budgetHit = false;
+  // What the live "thinking" panel shows. Updated as the run learns things.
+  const live: Pick<ProgressSnapshot, "methods" | "stepTitles" | "checks" | "issues"> = {
+    methods: {},
+    stepTitles: [],
+    checks: [],
+    issues: [],
+  };
+
+  const pace = async () => {
+    if (deps.paceMs && remaining() > 5_000) await new Promise((r) => setTimeout(r, deps.paceMs));
+  };
 
   const emit = (phase: Phase, note: string) => {
     events.push({ at: now() - t0, phase, note });
-    deps.onProgress?.({ phase, note, plan, round, events: [...events] });
+    deps.onProgress?.({ phase, note, plan, round, events: [...events], startedAt: t0, ...live });
   };
 
   const ask = async (role: AgentRole, messages: ChatMsg[], capMs = Infinity): Promise<string> => {
@@ -770,10 +786,19 @@ export async function runStemAgents(input: StemInput, deps: AgentDeps): Promise<
     if (evB.issues.length === 0) witness = { sol: b, ev: evB };
   }
   if (!a) a = b; // only the second solver delivered: it becomes the primary (nothing to compare against)
+  live.methods = { a: a?.method, b: b && b !== a ? b.method : undefined };
+  live.stepTitles = a?.steps.map((x) => x.title) ?? [];
 
   // 4 ── VERIFY with the calculator
-  emit("verifying", "Checking every number with a calculator");
   let best = assess(a!, plan, witness);
+  const publish = (x: Assessment) => {
+    live.checks = x.ev.claimResults.map((c) => ({ label: c.label, ok: c.ok }));
+    live.issues = x.issues.map((i) => i.message);
+    live.stepTitles = x.sol.steps.map((st) => st.title);
+  };
+  publish(best);
+  emit("verifying", "Checking every number with a calculator");
+  await pace();
 
   // 5 ── CORRECT → RE-VERIFY
   while (best.issues.length > 0 && round < maxCorrections && remaining() > minCorrectionMs) {
@@ -803,7 +828,9 @@ export async function runStemAgents(input: StemInput, deps: AgentDeps): Promise<
     if (!fixed) break;
 
     const next = assess(fixed.solution, plan, witness);
+    if (next.issues.length <= best.issues.length) publish(next);
     emit("verifying", "Re-checking the corrected solution");
+    await pace();
     const adopt = next.issues.length <= best.issues.length;
     corrections.push({
       round,
