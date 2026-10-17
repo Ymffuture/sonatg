@@ -11,7 +11,7 @@ import { actionInstructions, detectActionIntents, extractAction, streamPreview }
 import { detectStemIntent, type StemIntent } from "@/lib/stem/detect";
 import { runStemAgents } from "@/lib/stem/agents";
 import { encodeThinking } from "@/lib/stem/think";
-import type { AgentRole } from "@/lib/stem/types";
+import { callWithRotation, type ModelHealth } from "@/lib/stem/rotate";
 import {
   STUDY_LIMITS,
   defaultStudyText,
@@ -76,6 +76,9 @@ async function callModelOnce(messages: unknown[], key: string, model: string, op
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
+      // The user-facing message is deliberately vague ("model isn't available"); the real reason
+      // OpenRouter gave (delisted, privacy policy, unsupported parameter…) goes to the logs.
+      console.warn(`[gateway] ${model} -> ${res.status}: ${body.slice(0, 300)}`);
       throw friendlyGatewayError(res.status, body);
     }
 
@@ -113,6 +116,27 @@ export async function callGateway(messages: unknown[], key: string, preferredMod
     }
   }
   throw lastError ?? new Error("Sona AI is unavailable right now.");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Model health (used by the math/physics agents) — see src/lib/stem/rotate.ts.
+// The memory lives as long as the serverless instance.
+// ─────────────────────────────────────────────────────────────────────────────
+const modelHealth: ModelHealth = new Map();
+
+export function callGatewayResilient(
+  messages: unknown[],
+  key: string,
+  preferredModel: string,
+  opts: GatewayOpts & { maxAttempts?: number } = {},
+): Promise<string> {
+  return callWithRotation({
+    chain: fallbackChain(preferredModel),
+    health: modelHealth,
+    maxAttempts: opts.maxAttempts,
+    callOnce: (model) => callModelOnce(messages, key, model, opts),
+    onSwitch: (model, err) => console.warn(`[agents] ${model} failed, switching model: ${err.message}`),
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -420,8 +444,9 @@ function sonaSystemInstruction(
 // Returns false when the agents produced nothing usable, so the caller can fall
 // back to the ordinary reply — a user is never worse off than before.
 // ─────────────────────────────────────────────────────────────────────────────
-const STEM_TEMPERATURE: Record<AgentRole, number> = { planner: 0.2, solver: 0.2, solver_b: 0.5, corrector: 0.2 };
-const STEM_ATTEMPT_TIMEOUT_MS = 30_000;
+const STEM_ATTEMPT_TIMEOUT_MS = 25_000;
+// If the agents burn more than this before giving up, there is no time left to also run the normal reply.
+const STEM_FALLBACK_MAX_ELAPSED_MS = 20_000;
 
 function envNumber(name: string, fallback: number, min: number, max: number): number {
   const n = Number.parseInt(process.env[name] ?? "", 10);
@@ -449,12 +474,15 @@ async function answerWithStemAgents(p: {
     .slice(-1500);
 
   const streamer = createReplyStreamer(p.chatId, (s) => s);
+  const startedAt = Date.now();
   const outcome = await runStemAgents(
     { prompt: p.stem.prompt, subject: p.stem.subject, context: context || undefined },
     {
       budgetMs: envNumber("STEM_BUDGET_MS", 48_000, 15_000, 240_000),
       maxCorrections: envNumber("STEM_MAX_CORRECTIONS", 2, 0, 4),
-      call: (role, messages) => callGateway(messages, p.key, model, { timeoutMs: STEM_ATTEMPT_TIMEOUT_MS, temperature: STEM_TEMPERATURE[role] }),
+      // Auto-switches models per call. No sampling parameters are sent: some free endpoints answer 404
+      // ("model isn't available") when a request carries parameters they don't support.
+      call: (_role, messages) => callGatewayResilient(messages, p.key, model, { timeoutMs: STEM_ATTEMPT_TIMEOUT_MS }),
       // The bubble renders this marker as the animated "thinking" panel (AgentThinking.tsx).
       paceMs: 900,
       onProgress: (snap) => streamer.onDelta(encodeThinking(snap)),
@@ -462,9 +490,16 @@ async function answerWithStemAgents(p: {
   );
 
   if (outcome.status === "failed") {
-    console.warn("[askSonaAI] math/physics agents produced nothing, using the normal reply:", outcome.reason);
-    await streamer.discard();
-    return false;
+    console.warn("[askSonaAI] math/physics agents produced nothing:", outcome.reason);
+    if (Date.now() - startedAt <= STEM_FALLBACK_MAX_ELAPSED_MS) {
+      await streamer.discard();
+      return false; // quick failure: the ordinary reply path still has time to run
+    }
+    // Slow failure: running the normal path now could outlive the function. Say so, never hang.
+    await streamer.finish(
+      "I couldn't get a reply from the AI models in time. Please try again in a moment — or start your message with /quick for a fast, unchecked answer.",
+    );
+    return true;
   }
 
   // Store the trace for the "How Sona solved this" sheet. If the table isn't migrated yet the
