@@ -22,7 +22,9 @@ import {
   runStemAgents,
   type ChatMsg,
 } from "../src/lib/stem/agents";
-import type { AgentRole } from "../src/lib/stem/types";
+import type { AgentRole, ProgressSnapshot } from "../src/lib/stem/types";
+import { encodeThinking, decodeThinking } from "../src/lib/stem/think";
+import { splitSources, stripSources } from "../src/lib/sources";
 
 let passed = 0;
 async function test(name: string, fn: () => void | Promise<void>) {
@@ -512,6 +514,62 @@ await test("budget: a hanging model can't hold the chat hostage", async () => {
   const r = await runStemAgents(INPUT, { call: m.call, budgetMs: 4_000 });
   assert.equal(r.status, "failed");
   assert.ok(Date.now() - t < 6_000, `took ${Date.now() - t}ms`);
+});
+
+// ── live thinking marker ─────────────────────────────────────────────────────
+console.log("thinking marker");
+await test("progress snapshot survives the body round-trip and hides from previews", () => {
+  const snap: ProgressSnapshot = {
+    phase: "verifying",
+    note: "n",
+    plan: {
+      topic: "Vertical throw",
+      givens: [],
+      unknown: "max height",
+      approach: ["a", "b"],
+      pitfalls: [],
+      difficulty: 2,
+    },
+    round: 1,
+    events: [],
+    startedAt: 1_700_000_000_000,
+    methods: { a: "kinematics", b: "energy" },
+    stepTitles: ["Use v² = v0² − 2gh"],
+    checks: [
+      { label: "v0^2 = 400", ok: true },
+      { label: "bad]]one", ok: false },
+    ],
+    issues: ["x"],
+  };
+  const body = encodeThinking(snap);
+  const parts = splitSources(body);
+  assert.equal(parts.text, "");
+  assert.equal(parts.thinking?.phase, "verifying");
+  assert.equal(parts.thinking?.methods.b, "energy");
+  assert.equal(parts.thinking?.checks.length, 2);
+  assert.equal(parts.thinking?.checks[1].label, "bad]]one"); // "]]" inside a label must not break the marker
+  assert.equal(stripSources(body), "Thinking…");
+  assert.equal(decodeThinking("%7Bnot-json"), null);
+  assert.equal(
+    decodeThinking(encodeURIComponent(JSON.stringify({ phase: "hax", startedAt: 1 }))),
+    null,
+  );
+  assert.equal(splitSources("a normal answer").thinking, null);
+});
+await test("run emits rich progress (plan, methods, steps, checks) for the live panel", async () => {
+  const m = fakeModel({
+    planner: () => PLAN,
+    solver: () => goodSolution("kinematics"),
+    solver_b: () => goodSolution("energy conservation"),
+  });
+  const snaps: ProgressSnapshot[] = [];
+  await runStemAgents(INPUT, { call: m.call, paceMs: 20, onProgress: (s) => snaps.push(s) });
+  const verifying = snaps.find((s) => s.phase === "verifying")!;
+  assert.equal(verifying.methods.a, "kinematics");
+  assert.equal(verifying.methods.b, "energy conservation");
+  assert.ok(verifying.stepTitles.length >= 2);
+  assert.equal(verifying.checks[0].ok, true);
+  assert.ok(snaps.every((s) => s.startedAt === snaps[0].startedAt));
 });
 
 console.log(`\n${passed} checks passed${process.exitCode ? " — WITH FAILURES" : ""}`);
