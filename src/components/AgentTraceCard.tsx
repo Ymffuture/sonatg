@@ -1,8 +1,14 @@
 // src/components/AgentTraceCard.tsx
 import { useEffect, useState } from "react";
-import { 
-  AlertTriangle, Brain, CheckCircle2, ChevronRight, 
-  Wrench, XCircle, Clock, Cpu 
+import {
+  AlertTriangle,
+  Brain,
+  CheckCircle2,
+  ChevronRight,
+  Wrench,
+  XCircle,
+  Clock,
+  Cpu,
 } from "lucide-react";
 import {
   Drawer,
@@ -22,23 +28,34 @@ function cn(...classes: (string | undefined | null | false)[]) {
 // A trace never changes after creation, so cache it for the session.
 const cache = new Map<string, AgentTrace | null>();
 
+type RunsTable = {
+  select: (cols: string) => {
+    eq: (
+      col: string,
+      val: string,
+    ) => {
+      maybeSingle: () => Promise<{ data: { trace?: unknown } | null; error: unknown }>;
+    };
+  };
+};
+
 async function loadTrace(id: string): Promise<AgentTrace | null> {
   if (cache.has(id)) return cache.get(id) ?? null;
-  
-  // Note: Consider properly typing your Supabase client in `database.types.ts` to avoid this cast
-  const { data, error } = await (supabase as any)
+
+  // ai_agent_runs isn't in the generated Supabase types yet, hence the narrow cast.
+  const { data, error } = await (supabase as unknown as { from: (t: string) => RunsTable })
     .from("ai_agent_runs")
     .select("trace")
     .eq("id", id)
     .maybeSingle();
-    
+
   if (error) return null;
-  
+
   const t =
     data?.trace && typeof data.trace === "object" && (data.trace as AgentTrace).v === 1
       ? (data.trace as AgentTrace)
       : null;
-      
+
   cache.set(id, t);
   return t;
 }
@@ -50,11 +67,11 @@ const LEVEL = {
     bg: "bg-emerald-500/10 border-emerald-500/20 dark:bg-emerald-500/5",
     Icon: CheckCircle2,
   },
-  checked: { 
-    label: "Checked", 
-    tone: "text-sky-600 dark:text-sky-400", 
+  checked: {
+    label: "Checked",
+    tone: "text-sky-600 dark:text-sky-400",
     bg: "bg-sky-500/10 border-sky-500/20 dark:bg-sky-500/5",
-    Icon: CheckCircle2 
+    Icon: CheckCircle2,
   },
   unverified: {
     label: "Not fully verified",
@@ -64,7 +81,15 @@ const LEVEL = {
   },
 } as const;
 
-function Section({ title, children, variant = "default" }: { title: string; children: React.ReactNode; variant?: "default" | "success" | "warning" }) {
+function Section({
+  title,
+  children,
+  variant = "default",
+}: {
+  title: string;
+  children: React.ReactNode;
+  variant?: "default" | "success" | "warning";
+}) {
   const variantStyles = {
     default: "bg-muted/30 border-border/50",
     success: "bg-emerald-500/5 border-emerald-500/20 dark:bg-emerald-500/10",
@@ -114,7 +139,7 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
   const lv = LEVEL[trace.level];
   const passed = trace.checks.filter((c) => c.ok).length;
-  
+
   const summary = [
     lv.label,
     trace.agreement?.compared && trace.agreement?.agreed ? "2 solvers agreed" : null,
@@ -122,6 +147,7 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
     trace.corrections.length
       ? `${trace.corrections.length} fix${trace.corrections.length === 1 ? "" : "es"}`
       : null,
+    trace.elapsedMs >= 1000 ? `Thought for ${Math.round(trace.elapsedMs / 1000)}s` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -150,22 +176,22 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
           "group relative inline-flex max-w-full cursor-pointer select-none items-center gap-2.5 rounded-full border px-3 py-1.5 shadow-sm transition-all duration-300 hover:shadow-md active:scale-[0.98]",
           mine
             ? "border-border/60 bg-background/80 backdrop-blur-md hover:border-border"
-            : "border-[var(--sona-accent,#E07A5F)]/30 bg-[var(--sona-accent,#E07A5F)]/5 hover:border-[var(--sona-accent,#E07A5F)]/50 hover:bg-[var(--sona-accent,#E07A5F)]/10"
+            : "border-[var(--sona-accent,#E07A5F)]/30 bg-[var(--sona-accent,#E07A5F)]/5 hover:border-[var(--sona-accent,#E07A5F)]/50 hover:bg-[var(--sona-accent,#E07A5F)]/10",
         )}
       >
         {/* Subtle glow effect for verified state */}
         {trace.level === "verified" && (
           <span className="absolute inset-0 rounded-full bg-emerald-500/10 blur-md transition-opacity duration-300 opacity-0 group-hover:opacity-100" />
         )}
-        
+
         <div className="relative flex items-center gap-2.5">
           <Brain className={cn("size-4 shrink-0 transition-colors", lv.tone)} aria-hidden />
           <span className="truncate text-[13px] font-medium text-foreground/90 group-hover:text-foreground">
             {summary}
           </span>
-          <ChevronRight 
-            className="size-3.5 shrink-0 text-muted-foreground/70 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-foreground" 
-            aria-hidden 
+          <ChevronRight
+            className="size-3.5 shrink-0 text-muted-foreground/70 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-foreground"
+            aria-hidden
           />
         </div>
       </div>
@@ -174,7 +200,7 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
         <DrawerContent className="flex h-[min(90dvh,760px)] max-h-[90dvh] min-h-0 flex-col outline-none">
           {/* Drag Handle */}
           <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-muted-foreground/20" />
-          
+
           <DrawerHeader className="shrink-0 border-b bg-background/80 pb-4 text-left backdrop-blur-md sticky top-0 z-10">
             <DrawerTitle className="flex items-center gap-2 text-base font-semibold">
               <Brain className="size-4 text-[var(--sona-accent,#E07A5F)]" />
@@ -202,8 +228,14 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
             data-vaul-no-drag
           >
             {/* Status Banner */}
-            <div className={cn("flex items-center gap-2.5 rounded-lg border p-3 text-sm font-semibold", lv.bg, lv.tone)}>
-              <lv.Icon className="size-4" aria-hidden /> 
+            <div
+              className={cn(
+                "flex items-center gap-2.5 rounded-lg border p-3 text-sm font-semibold",
+                lv.bg,
+                lv.tone,
+              )}
+            >
+              <lv.Icon className="size-4" aria-hidden />
               {lv.label}
             </div>
 
@@ -217,7 +249,8 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
                 )}
                 {trace.plan.givens.length > 0 && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Given:</span> {trace.plan.givens.join("; ")}
+                    <span className="font-medium text-foreground">Given:</span>{" "}
+                    {trace.plan.givens.join("; ")}
                   </p>
                 )}
                 <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-foreground/90">
@@ -227,7 +260,8 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
                 </ol>
                 {trace.plan.pitfalls.length > 0 && (
                   <div className="mt-3 rounded-md bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
-                    <span className="font-semibold">Watch out for:</span> {trace.plan.pitfalls.join("; ")}
+                    <span className="font-semibold">Watch out for:</span>{" "}
+                    {trace.plan.pitfalls.join("; ")}
                   </div>
                 )}
               </Section>
@@ -236,12 +270,20 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
             <Section title="2. Independent Solutions">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border border-border/50 bg-background p-3 shadow-sm">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Solver 1</span>
-                  <p className="mt-1 text-sm font-medium text-foreground">{trace.method || "Standard approach"}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Solver 1
+                  </span>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {trace.method || "Standard approach"}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-background p-3 shadow-sm">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Solver 2</span>
-                  <p className="mt-1 text-sm font-medium text-foreground">{trace.methodB || "Alternative approach"}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Solver 2
+                  </span>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {trace.methodB || "Alternative approach"}
+                  </p>
                 </div>
               </div>
               {trace.agreement?.note && (
@@ -251,8 +293,11 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
               )}
             </Section>
 
-            <Section title="3. Calculator Checks" variant={passed === trace.checks.length ? "success" : "default"}>
-              {trace.checks.length === 0 && trace.unitCheck?.ok === undefined ? (
+            <Section
+              title="3. Calculator Checks"
+              variant={passed === trace.checks.length ? "success" : "default"}
+            >
+              {trace.checks.length === 0 && typeof trace.unitCheck?.ok !== "boolean" ? (
                 <p className="text-sm italic text-muted-foreground">
                   No machine-checkable claims were made for this answer.
                 </p>
@@ -261,7 +306,10 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
                   {trace.checks.map((c, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       {c.ok ? (
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden />
+                        <CheckCircle2
+                          className="mt-0.5 size-4 shrink-0 text-emerald-500"
+                          aria-hidden
+                        />
                       ) : (
                         <XCircle className="mt-0.5 size-4 shrink-0 text-red-500" aria-hidden />
                       )}
@@ -271,10 +319,13 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
                       </span>
                     </li>
                   ))}
-                  {trace.unitCheck && trace.unitCheck.ok !== undefined && (
+                  {typeof trace.unitCheck?.ok === "boolean" && (
                     <li className="flex items-start gap-3 text-sm">
                       {trace.unitCheck.ok ? (
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden />
+                        <CheckCircle2
+                          className="mt-0.5 size-4 shrink-0 text-emerald-500"
+                          aria-hidden
+                        />
                       ) : (
                         <XCircle className="mt-0.5 size-4 shrink-0 text-red-500" aria-hidden />
                       )}
@@ -282,7 +333,8 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
                         <span className="font-medium text-foreground">Units</span>
                         <span className="text-muted-foreground">
                           {" "}
-                          — Got <span className="font-mono">{trace.unitCheck.got}</span> vs expected <span className="font-mono">{trace.unitCheck.expected}</span>
+                          — Got <span className="font-mono">{trace.unitCheck.got}</span> vs expected{" "}
+                          <span className="font-mono">{trace.unitCheck.expected}</span>
                         </span>
                       </span>
                     </li>
@@ -295,7 +347,10 @@ export function AgentTraceCard({ agentId, mine = false }: { agentId: string; min
               <Section title="4. Mistakes Caught" variant="warning">
                 <ul className="space-y-4">
                   {trace.corrections.map((c) => (
-                    <li key={c.round} className="relative pl-4 text-sm before:absolute before:left-0 before:top-1.5 before:h-1.5 before:w-1.5 before:rounded-full before:bg-amber-500/50">
+                    <li
+                      key={c.round}
+                      className="relative pl-4 text-sm before:absolute before:left-0 before:top-1.5 before:h-1.5 before:w-1.5 before:rounded-full before:bg-amber-500/50"
+                    >
                       <p className="flex items-center gap-1.5 font-semibold text-foreground">
                         <Wrench className="size-3.5 text-amber-500" aria-hidden /> Attempt {c.round}
                       </p>

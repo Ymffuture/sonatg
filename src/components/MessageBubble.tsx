@@ -31,6 +31,7 @@ import { SONA_AI_ID, fmtTime, type MessageRow, type Profile, type ReactionRow, t
 import { VideoPlayer } from "./VideoPlayer";
 import { SourcePills } from "./SourcePills";
 import { AgentTraceCard } from "./AgentTraceCard";
+import { AgentThinking } from "./AgentThinking";
 import { SonaActionCard } from "./SonaActionCard";
 import { StudySetCard } from "./StudySetCard";
 import { AdCard } from "./AdCard";
@@ -1607,7 +1608,7 @@ export function Bubble({
   // AI replies carry a trailing [[sona-sources:...]] marker; split it off so the
   // text, copy, read-more and link previews never see it.
   const rawBody = overrideBody ?? msg.body ?? "";
-  const { text: bodyText, sources: bodySources, actionId: bodyActionId, studyId: bodyStudyId, agentId: bodyAgentId } = useMemo(() => splitSources(rawBody), [rawBody]);
+  const { text: bodyText, sources: bodySources, actionId: bodyActionId, studyId: bodyStudyId, agentId: bodyAgentId, thinking: bodyThinking } = useMemo(() => splitSources(rawBody), [rawBody]);
 
   
   const READ_MORE_CHAR_LIMIT = 620;
@@ -1967,7 +1968,8 @@ function getNameColor(identifier: string) {
               />
             )}
 
-            {(overrideBody ?? msg.body) && (
+            {isAI && bodyThinking && <AgentThinking view={bodyThinking} />}
+            {(overrideBody ?? msg.body) && !bodyThinking && (
   <div className="text-[15px] leading-[1.65] tracking-[-0.01em] pr-12 pb-2">
     {renderMarkdown(visibleBodyText, mine)}
     
