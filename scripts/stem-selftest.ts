@@ -24,6 +24,7 @@ import {
 } from "../src/lib/stem/agents";
 import type { AgentRole, ProgressSnapshot } from "../src/lib/stem/types";
 import { encodeThinking, decodeThinking } from "../src/lib/stem/think";
+import { callWithRotation } from "../src/lib/stem/rotate";
 import { splitSources, stripSources } from "../src/lib/sources";
 
 let passed = 0;
@@ -570,6 +571,216 @@ await test("run emits rich progress (plan, methods, steps, checks) for the live 
   assert.ok(verifying.stepTitles.length >= 2);
   assert.equal(verifying.checks[0].ok, true);
   assert.ok(snaps.every((s) => s.startedAt === snaps[0].startedAt));
+});
+
+// ── automatic model switching ────────────────────────────────────────────────
+console.log("model rotation");
+await test("dead default model -> next model answers; dead model is skipped afterwards", async () => {
+  const health = new Map<string, number>();
+  const tried: string[] = [];
+  const callOnce = async (m: string) => {
+    tried.push(m);
+    if (m === "default")
+      throw new Error("That AI model isn't available right now — try a different one in Settings.");
+    return `answer from ${m}`;
+  };
+  const chain = ["default", "pro-a", "pro-b"];
+  assert.equal(await callWithRotation({ chain, health, callOnce }), "answer from pro-a");
+  assert.deepEqual(tried, ["default", "pro-a"]);
+  tried.length = 0;
+  assert.equal(await callWithRotation({ chain, health, callOnce }), "answer from pro-a");
+  assert.deepEqual(tried, ["pro-a"], "the dead model must not be retried on the next call");
+});
+await test("everything cooling down -> still tries; credits exhausted -> stops at once", async () => {
+  const health = new Map([
+    ["a", Date.now() + 60_000],
+    ["b", Date.now() + 60_000],
+  ]);
+  assert.equal(
+    await callWithRotation({ chain: ["a", "b"], health, callOnce: async (m) => `ok ${m}` }),
+    "ok a",
+  );
+  const tried: string[] = [];
+  const fresh = new Map<string, number>();
+  await assert.rejects(
+    callWithRotation({
+      chain: ["a", "b", "c"],
+      health: fresh,
+      callOnce: async (m) => {
+        tried.push(m);
+        throw new Error("OpenRouter credits exhausted. Please check your account balance.");
+      },
+    }),
+    /credits exhausted/,
+  );
+  assert.deepEqual(tried, ["a"]);
+  assert.equal(fresh.size, 0, "a key-level failure must not blame the model");
+});
+
+// ── the exact problem from the bug report ────────────────────────────────────
+console.log("net-force problem");
+const FORCE_PROBLEM = `A 2.5 kg object is sliding across a rough horizontal surface.
+It is being pushed by a constant horizontal force of 18 N.
+The kinetic friction force opposing the motion is 6 N.
+At the same moment, a second force of 10 N is applied at an angle of 30° above the horizontal (in the same direction as the 18 N force).
+Calculate the acceleration of the object.`;
+const forceSolution = (method: string, exprs = ["(F1 + F2*cosd(30) - f_k)/m"]) =>
+  JSON.stringify({
+    method,
+    vars: { m: 2.5, F1: 18, F2: 10, f_k: 6 },
+    steps: [
+      {
+        title: "Restate the givens",
+        explanation:
+          "Mass 2.5 kg; pushes of 18 N and 10 N (at 30° above horizontal); kinetic friction 6 N opposing motion.",
+      },
+      {
+        title: "Choose the principle",
+        explanation:
+          "Newton's second law along the direction of motion: net horizontal force = m·a.",
+      },
+      {
+        title: "Resolve the angled force",
+        explanation:
+          "Only the horizontal component of the 10 N force pushes the object along the surface.",
+        math: "F2x = F2*cosd(30)",
+      },
+      {
+        title: "Sum the horizontal forces",
+        explanation: "Both pushes point forward, friction points backward.",
+        math: "F_net = F1 + F2x - f_k",
+      },
+      {
+        title: "Substitute the numbers",
+        explanation: "F_net = 18 + 10·cos 30° − 6.",
+        math: "F_net = 18 + 10*cosd(30) - 6",
+      },
+      {
+        title: "Compute the acceleration",
+        explanation: "Divide the net force by the mass.",
+        math: "a = F_net / m",
+      },
+      {
+        title: "Sanity-check",
+        explanation:
+          "Net force is positive, so the object speeds up in the pushed direction; units N/kg = m/s².",
+      },
+    ],
+    answer: {
+      kind: "numbers",
+      label: "a",
+      exprs,
+      unit: "m/s^2",
+      text: "Acceleration of the object",
+    },
+    claims: [
+      {
+        type: "value",
+        label: "horizontal part of the 10 N force",
+        expr: "F2*cosd(30)",
+        equals: 8.66,
+      },
+      {
+        type: "value",
+        label: "net horizontal force",
+        expr: "F1 + F2*cosd(30) - f_k",
+        equals: 20.66,
+      },
+    ],
+    assumptions: ["the 10 N force acts in the direction of motion", "friction stays 6 N"],
+  });
+await test("user's problem: 7 reasoning steps, calculator-computed answer 8.264 m/s²", async () => {
+  const m = fakeModel({
+    planner: () =>
+      JSON.stringify({
+        topic: "Net force on a sliding object",
+        givens: ["m = 2.5 kg"],
+        unknown: "acceleration",
+        expectedUnit: "m/s^2",
+        approach: ["resolve the angled force", "sum forces", "a = F/m"],
+        pitfalls: ["using the full 10 N"],
+        difficulty: 2,
+      }),
+    solver: () => forceSolution("Newton's second law"),
+    solver_b: () =>
+      forceSolution("work-energy per metre", ["(F1*1 + F2*cosd(30)*1 - f_k*1)/(m*1)"]),
+  });
+  const r = await runStemAgents({ prompt: FORCE_PROBLEM, subject: "physics" }, { call: m.call });
+  assert.equal(r.status, "ok");
+  if (r.status !== "ok") return;
+  assert.equal(r.trace.level, "verified");
+  assert.match(r.body, /a ≈ 8\.264 m\/s²/);
+  assert.ok((r.body.match(/^\d+\. \*\*/gm) ?? []).length >= 6, "needs at least 6 reasoning steps");
+  const solverPrompt = m.seen.find((s) => s.role === "solver")!.msgs[0].content;
+  assert.match(solverPrompt, /NEVER fewer than 6/);
+});
+await test("a wrong answer here (forgetting cos 30°) is caught and corrected", async () => {
+  const m = fakeModel({
+    planner: () =>
+      JSON.stringify({
+        topic: "Net force",
+        approach: ["sum forces"],
+        expectedUnit: "m/s^2",
+        difficulty: 2,
+      }),
+    solver: () => forceSolution("naive", ["(F1 + F2 - f_k)/m"]), // 22/2.5 = 8.8 — the classic mistake
+    solver_b: () => forceSolution("resolve components"),
+    corrector: () =>
+      forceSolution("fixed", undefined).replace(
+        '"claims"',
+        '"whatWasWrong":"Used the full 10 N instead of its horizontal component 10 cos30°.","claims"',
+      ),
+  });
+  const r = await runStemAgents({ prompt: FORCE_PROBLEM, subject: "physics" }, { call: m.call });
+  assert.equal(r.status === "ok" && r.trace.level, "verified");
+  assert.equal(r.status === "ok" && r.trace.corrections.length, 1);
+  if (r.status === "ok") assert.match(r.body, /8\.264/);
+});
+
+// ── a solution always reaches the user ───────────────────────────────────────
+console.log("salvage");
+const FORCE_PLAN = JSON.stringify({
+  topic: "Net force",
+  approach: ["sum forces"],
+  expectedUnit: "m/s^2",
+  difficulty: 2,
+});
+const PROSE =
+  "Resolve the 10 N force: its horizontal part is 10·cos30° = 8.66 N. Net force = 18 + 8.66 − 6 = 20.66 N. a = 20.66 / 2.5 = 8.26 m/s². So the acceleration is about 8.26 m/s².";
+await test("model answers in prose -> reformatted into checkable JSON and verified", async () => {
+  let n = 0;
+  const m = fakeModel({
+    planner: () => FORCE_PLAN,
+    solver: () => (++n === 1 ? PROSE : forceSolution("reformatted")),
+    solver_b: () => PROSE,
+  });
+  const r = await runStemAgents({ prompt: FORCE_PROBLEM, subject: "physics" }, { call: m.call });
+  assert.equal(r.status === "ok" && r.trace.level, "checked");
+  if (r.status === "ok") assert.match(r.body, /8\.264/);
+});
+await test("model answers in prose and can't be reformatted -> shown as written, flagged", async () => {
+  const m = fakeModel({ planner: () => PLAN, solver: () => PROSE, solver_b: () => PROSE });
+  const r = await runStemAgents({ prompt: FORCE_PROBLEM, subject: "physics" }, { call: m.call });
+  assert.equal(r.status, "ok");
+  if (r.status !== "ok") return;
+  assert.equal(r.trace.level, "unverified");
+  assert.match(r.body, /Not fully verified/);
+  assert.match(r.body, /8\.66 N/);
+});
+await test("truly nothing (every call errors) -> failed, caller falls back", async () => {
+  const m = fakeModel({
+    planner: () => {
+      throw new Error("That AI model isn't available right now");
+    },
+    solver: () => {
+      throw new Error("That AI model isn't available right now");
+    },
+    solver_b: () => {
+      throw new Error("That AI model isn't available right now");
+    },
+  });
+  const r = await runStemAgents({ prompt: FORCE_PROBLEM, subject: "physics" }, { call: m.call });
+  assert.equal(r.status, "failed");
 });
 
 console.log(`\n${passed} checks passed${process.exitCode ? " — WITH FAILURES" : ""}`);
